@@ -112,79 +112,90 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onConfirm }: AddonModal
 
   if (!menuItem) return null;
 
+  const categoryEntries = Object.entries(addonsByCategory);
+  const leftCategories = categoryEntries.slice(0, Math.ceil(categoryEntries.length / 2));
+  const rightCategories = categoryEntries.slice(Math.ceil(categoryEntries.length / 2));
+
+  const renderCategorySection = (categories: [string, Addon[]][]) => (
+    <div className="space-y-6">
+      {categories.map(([category, categoryAddons]) => {
+        const isMultipleChoice = categoryAddons[0]?.allow_multiple;
+        const isRequired = categoryAddons.some(addon => addon.is_required);
+
+        return (
+          <div key={category} className="space-y-3">
+            <h3 className="font-medium text-coffee-700">
+              {categoryNames[category as AddonCategory]}
+              {isRequired && <span className="text-red-500 ml-1">*</span>}
+            </h3>
+
+            {isMultipleChoice ? (
+              <div className="space-y-2">
+                {categoryAddons.map((addon) => (
+                  <div key={addon.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={addon.id}
+                      checked={selectedAddons.includes(addon.id)}
+                      onCheckedChange={(checked) => 
+                        handleMultipleChoiceChange(addon.id, checked as boolean)
+                      }
+                    />
+                    <Label htmlFor={addon.id} className="flex-1 cursor-pointer text-sm">
+                      <span>{addon.name}</span>
+                      {addon.price !== 0 && (
+                        <span className="ml-2 text-coffee-600">
+                          ({addon.price > 0 ? '+' : ''}฿{addon.price})
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <RadioGroup
+                value={selectedAddons.find(id => 
+                  categoryAddons.some(addon => addon.id === id)
+                ) || ''}
+                onValueChange={(value) => handleSingleChoiceChange(categoryAddons, value)}
+              >
+                {categoryAddons.map((addon) => (
+                  <div key={addon.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={addon.id} id={addon.id} />
+                    <Label htmlFor={addon.id} className="flex-1 cursor-pointer text-sm">
+                      <span>{addon.name}</span>
+                      {addon.price !== 0 && (
+                        <span className="ml-2 text-coffee-600">
+                          ({addon.price > 0 ? '+' : ''}฿{addon.price})
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-coffee-200">
         <DialogHeader>
           <DialogTitle className="text-coffee-800">
             เลือกตัวเลือกสำหรับ {menuItem.name}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {Object.entries(addonsByCategory).map(([category, categoryAddons]) => {
-            const isMultipleChoice = categoryAddons[0]?.allow_multiple;
-            const isRequired = categoryAddons.some(addon => addon.is_required);
-
-            return (
-              <div key={category} className="space-y-3">
-                <h3 className="font-medium text-coffee-700">
-                  {categoryNames[category as AddonCategory]}
-                  {isRequired && <span className="text-red-500 ml-1">*</span>}
-                </h3>
-
-                {isMultipleChoice ? (
-                  <div className="space-y-2">
-                    {categoryAddons.map((addon) => (
-                      <div key={addon.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={addon.id}
-                          checked={selectedAddons.includes(addon.id)}
-                          onCheckedChange={(checked) => 
-                            handleMultipleChoiceChange(addon.id, checked as boolean)
-                          }
-                        />
-                        <Label htmlFor={addon.id} className="flex-1 cursor-pointer">
-                          <span>{addon.name}</span>
-                          {addon.price !== 0 && (
-                            <span className="ml-2 text-coffee-600">
-                              ({addon.price > 0 ? '+' : ''}฿{addon.price})
-                            </span>
-                          )}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <RadioGroup
-                    value={selectedAddons.find(id => 
-                      categoryAddons.some(addon => addon.id === id)
-                    ) || ''}
-                    onValueChange={(value) => handleSingleChoiceChange(categoryAddons, value)}
-                  >
-                    {categoryAddons.map((addon) => (
-                      <div key={addon.id} className="flex items-center space-x-2">
-                        <RadioGroupItem value={addon.id} id={addon.id} />
-                        <Label htmlFor={addon.id} className="flex-1 cursor-pointer">
-                          <span>{addon.name}</span>
-                          {addon.price !== 0 && (
-                            <span className="ml-2 text-coffee-600">
-                              ({addon.price > 0 ? '+' : ''}฿{addon.price})
-                            </span>
-                          )}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                )}
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-6">
+          {renderCategorySection(leftCategories)}
+          {renderCategorySection(rightCategories)}
         </div>
 
         <div className="border-t pt-4">
           <div className="flex justify-between items-center mb-4">
-            <span className="font-medium">ราคารวม:</span>
+            <span className="font-medium text-coffee-700">ราคารวม:</span>
             <span className="text-xl font-bold text-coffee-600">
               ฿{calculateTotal()}
             </span>
@@ -192,7 +203,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onConfirm }: AddonModal
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="border-coffee-300 text-coffee-700">
             ยกเลิก
           </Button>
           <Button 

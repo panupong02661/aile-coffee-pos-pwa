@@ -24,22 +24,22 @@ const DisplaySettingsModal = ({
   
   const getSizeLabel = (size: 'small' | 'medium' | 'large') => {
     switch (size) {
-      case 'small': return 'Small';
-      case 'medium': return 'Medium';
-      case 'large': return 'Large';
+      case 'small': return 'เล็ก';
+      case 'medium': return 'กลาง';
+      case 'large': return 'ใหญ่';
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md border-coffee-200">
         <DialogHeader>
-          <DialogTitle>Display Settings</DialogTitle>
+          <DialogTitle className="text-coffee-800">ตั้งค่าการแสดงผล</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           <div>
-            <h4 className="font-medium mb-3">Items Per Row</h4>
+            <h4 className="font-medium mb-3 text-coffee-700">จำนวนเมนูต่อแถว</h4>
             <div className="grid grid-cols-4 gap-2">
               {columnOptions.map((option) => (
                 <Button
@@ -48,8 +48,8 @@ const DisplaySettingsModal = ({
                   onClick={() => setGridColumns(option)}
                   className={`${
                     gridColumns === option
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-coffee-600 hover:bg-coffee-700 text-white'
+                      : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
                   }`}
                 >
                   {option}
@@ -59,7 +59,7 @@ const DisplaySettingsModal = ({
           </div>
 
           <div>
-            <h4 className="font-medium mb-3">Item Size</h4>
+            <h4 className="font-medium mb-3 text-coffee-700">ขนาดเมนู</h4>
             <div className="grid grid-cols-3 gap-2">
               {sizeOptions.map((option) => (
                 <Button
@@ -68,8 +68,8 @@ const DisplaySettingsModal = ({
                   onClick={() => setItemSize(option)}
                   className={`${
                     itemSize === option
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-coffee-600 hover:bg-coffee-700 text-white'
+                      : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
                   }`}
                 >
                   {getSizeLabel(option)}
@@ -80,9 +80,9 @@ const DisplaySettingsModal = ({
 
           <Button 
             onClick={onClose}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-coffee-600 hover:bg-coffee-700"
           >
-            Close
+            ปิด
           </Button>
         </div>
       </DialogContent>
