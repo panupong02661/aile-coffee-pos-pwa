@@ -11,7 +11,7 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const [gridColumns, setGridColumns] = useState(4);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // เริ่มต้นเป็น true
 
   const {
     cartItems,
@@ -46,7 +46,10 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-0' : 'md:ml-0'}`}>
+      {/* Main content area ที่ปรับตัวตาม sidebar */}
+      <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
         <div className="max-w-7xl mx-auto">
           <Header 
             onToggleSidebar={handleToggleSidebar}

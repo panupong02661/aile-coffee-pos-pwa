@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -69,7 +68,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
 
   return (
     <>
-      {/* Overlay for mobile */}
+      {/* Overlay สำหรับ mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -77,11 +76,11 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
         />
       )}
       
-      {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      {/* Sidebar ที่ซ่อน/แสดงได้ทุก screen size */}
+      <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Card className="h-full border-coffee-200 rounded-none md:rounded-lg">
+        <Card className="h-full border-coffee-200 rounded-none">
           <div className="p-4 border-b border-coffee-200">
             <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
           </div>
