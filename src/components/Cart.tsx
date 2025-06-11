@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2 } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
+import DiscountModal from './DiscountModal';
+import HoldBillModal from './HoldBillModal';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -14,6 +16,11 @@ interface CartProps {
   onRemoveItem: (itemId: string) => void;
   onUpdateDiscount: (itemId: string, discount: number, discountType: 'percent' | 'amount') => void;
   onClearCart: () => void;
+  billDiscount: number;
+  billDiscountType: 'percent' | 'amount';
+  onUpdateBillDiscount: (discount: number) => void;
+  onUpdateBillDiscountType: (type: 'percent' | 'amount') => void;
+  onRestoreCart: (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
 }
 
 const Cart = ({ 
@@ -21,11 +28,16 @@ const Cart = ({
   onUpdateQuantity, 
   onRemoveItem, 
   onUpdateDiscount,
-  onClearCart 
+  onClearCart,
+  billDiscount,
+  billDiscountType,
+  onUpdateBillDiscount,
+  onUpdateBillDiscountType,
+  onRestoreCart
 }: CartProps) => {
-  const [billDiscount, setBillDiscount] = useState(0);
-  const [billDiscountType, setBillDiscountType] = useState<'percent' | 'amount'>('amount');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
   
@@ -40,13 +52,24 @@ const Cart = ({
   const total = Math.max(0, subtotal - billDiscountAmount);
 
   const handlePayment = (paymentMethod: PaymentMethod, cashReceived?: number) => {
-    // Handle payment logic here
     console.log('Payment processed:', { paymentMethod, total, cashReceived });
-    
-    // Clear cart after successful payment
     onClearCart();
     setIsPaymentModalOpen(false);
-    setBillDiscount(0);
+    onUpdateBillDiscount(0);
+  };
+
+  const handleApplyDiscount = (discount: number, type: 'percent' | 'amount') => {
+    onUpdateBillDiscount(discount);
+    onUpdateBillDiscountType(type);
+  };
+
+  const handleHoldBill = () => {
+    onClearCart();
+    onUpdateBillDiscount(0);
+  };
+
+  const handleRestoreBill = (bill: any) => {
+    onRestoreCart(bill.items, bill.discount, bill.discountType);
   };
 
   return (
@@ -153,29 +176,9 @@ const Cart = ({
                   <span>฿{subtotal}</span>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="number"
-                    placeholder="ส่วนลดทั้งบิล"
-                    value={billDiscount || ''}
-                    onChange={(e) => setBillDiscount(Number(e.target.value) || 0)}
-                    className="flex-1 h-8"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBillDiscountType(
-                      billDiscountType === 'percent' ? 'amount' : 'percent'
-                    )}
-                    className="text-xs"
-                  >
-                    {billDiscountType === 'percent' ? '%' : '฿'}
-                  </Button>
-                </div>
-
                 {billDiscountAmount > 0 && (
                   <div className="flex justify-between text-sm text-red-600">
-                    <span>ส่วนลด:</span>
+                    <span>ส่วนลด ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
                     <span>-฿{billDiscountAmount}</span>
                   </div>
                 )}
@@ -197,6 +200,26 @@ const Cart = ({
                   ชำระเงิน
                 </Button>
                 
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDiscountModalOpen(true)}
+                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  >
+                    <Percent className="w-4 h-4 mr-2" />
+                    ส่วนลด
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsHoldBillModalOpen(true)}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    พักบิล
+                  </Button>
+                </div>
+                
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -215,6 +238,25 @@ const Cart = ({
         onClose={() => setIsPaymentModalOpen(false)}
         total={total}
         onPayment={handlePayment}
+      />
+
+      <DiscountModal
+        isOpen={isDiscountModalOpen}
+        onClose={() => setIsDiscountModalOpen(false)}
+        onApplyDiscount={handleApplyDiscount}
+        currentDiscount={billDiscount}
+        currentType={billDiscountType}
+      />
+
+      <HoldBillModal
+        isOpen={isHoldBillModalOpen}
+        onClose={() => setIsHoldBillModalOpen(false)}
+        currentCart={cartItems}
+        currentDiscount={billDiscount}
+        currentDiscountType={billDiscountType}
+        currentTotal={total}
+        onHoldBill={handleHoldBill}
+        onRestoreBill={handleRestoreBill}
       />
     </>
   );

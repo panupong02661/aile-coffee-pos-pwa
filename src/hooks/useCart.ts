@@ -1,62 +1,97 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { CartItem, MenuItem, Addon } from '@/types';
 
 export const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [billDiscount, setBillDiscount] = useState(0);
+  const [billDiscountType, setBillDiscountType] = useState<'percent' | 'amount'>('amount');
 
-  const addToCart = useCallback((menuItem: MenuItem, selectedAddons: Addon[] = []) => {
-    const newCartItem: CartItem = {
-      id: `${menuItem.id}-${Date.now()}`,
+  const addToCart = (menuItem: MenuItem, selectedAddons: Addon[]) => {
+    const addonPrice = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+    const totalPrice = menuItem.price + addonPrice;
+
+    const newItem: CartItem = {
+      id: `${menuItem.id}_${Date.now()}_${Math.random()}`,
       menu_item: menuItem,
       quantity: 1,
       selected_addons: selectedAddons,
       item_discount: 0,
       item_discount_type: 'amount',
-      total_price: menuItem.price + selectedAddons.reduce((sum, addon) => sum + addon.price, 0)
+      total_price: totalPrice
     };
-    
-    setCartItems(prev => [...prev, newCartItem]);
-  }, []);
 
-  const updateQuantity = useCallback((itemId: string, quantity: number) => {
+    setCartItems(prev => [...prev, newItem]);
+  };
+
+  const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
       return;
     }
-    
-    setCartItems(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, quantity, total_price: (item.menu_item.price + item.selected_addons.reduce((sum, addon) => sum + addon.price, 0)) * quantity }
-        : item
-    ));
-  }, []);
 
-  const removeFromCart = useCallback((itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-  }, []);
-
-  const updateDiscount = useCallback((itemId: string, discount: number, discountType: 'percent' | 'amount') => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
-        const basePrice = (item.menu_item.price + item.selected_addons.reduce((sum, addon) => sum + addon.price, 0)) * item.quantity;
-        const discountAmount = discountType === 'percent' ? (basePrice * discount / 100) : discount;
+        const basePrice = item.menu_item.price + 
+          item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+        
+        let discountAmount = 0;
+        if (item.item_discount_type === 'percent') {
+          discountAmount = (basePrice * quantity) * (item.item_discount / 100);
+        } else {
+          discountAmount = item.item_discount;
+        }
+
         return {
           ...item,
-          item_discount: discount,
-          item_discount_type: discountType,
-          total_price: Math.max(0, basePrice - discountAmount)
+          quantity,
+          total_price: Math.max(0, (basePrice * quantity) - discountAmount)
         };
       }
       return item;
     }));
-  }, []);
+  };
 
-  const clearCart = useCallback(() => {
+  const removeFromCart = (itemId: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const updateDiscount = (itemId: string, discount: number, discountType: 'percent' | 'amount') => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const basePrice = item.menu_item.price + 
+          item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+        const totalBasePrice = basePrice * item.quantity;
+        
+        let discountAmount = 0;
+        if (discountType === 'percent') {
+          discountAmount = totalBasePrice * (discount / 100);
+        } else {
+          discountAmount = discount;
+        }
+
+        return {
+          ...item,
+          item_discount: discount,
+          item_discount_type: discountType,
+          total_price: Math.max(0, totalBasePrice - discountAmount)
+        };
+      }
+      return item;
+    }));
+  };
+
+  const clearCart = () => {
     setCartItems([]);
-  }, []);
+    setBillDiscount(0);
+    setBillDiscountType('amount');
+  };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+  const restoreCart = (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => {
+    setCartItems(items);
+    setBillDiscount(discount);
+    setBillDiscountType(discountType);
+  };
 
   return {
     cartItems,
@@ -65,7 +100,10 @@ export const useCart = () => {
     removeFromCart,
     updateDiscount,
     clearCart,
-    subtotal,
-    itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+    billDiscount,
+    billDiscountType,
+    setBillDiscount,
+    setBillDiscountType,
+    restoreCart
   };
 };
