@@ -14,11 +14,10 @@ const Header = ({ onSettingsClick, onMemberClick }: HeaderProps) => {
   });
 
   return (
-    <div className="bg-coffee-600 text-white p-4 rounded-lg mb-6 shadow-lg">
+    <div className="bg-coffee-600 text-white p-3 rounded-lg mb-6 shadow-lg">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Aile Coffee</h1>
-          <p className="text-coffee-100 mt-1">Point of Sale System</p>
+          <h1 className="text-2xl font-bold">Aile Coffee</h1>
         </div>
         
         <div className="flex items-center space-x-4">
