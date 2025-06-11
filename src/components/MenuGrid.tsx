@@ -45,16 +45,44 @@ const MenuGrid = ({
     setSelectedItem(null);
   };
 
-  const gridClass = `grid grid-cols-${gridColumns} gap-4`;
-  const sizeClasses = {
-    small: 'h-32',
-    medium: 'h-40',
-    large: 'h-48'
+  // Dynamic grid styling based on column count
+  const getGridStyle = () => {
+    switch (gridColumns) {
+      case 3:
+        return 'grid-cols-3';
+      case 4:
+        return 'grid-cols-4';
+      case 5:
+        return 'grid-cols-5';
+      case 6:
+        return 'grid-cols-6';
+      default:
+        return 'grid-cols-4';
+    }
   };
+
+  const getSizeClasses = () => {
+    // Adjust size based on both itemSize and gridColumns for responsive design
+    if (gridColumns >= 5) {
+      return {
+        small: 'h-24',
+        medium: 'h-28',
+        large: 'h-32'
+      };
+    }
+    
+    return {
+      small: 'h-32',
+      medium: 'h-40',
+      large: 'h-48'
+    };
+  };
+
+  const sizeClasses = getSizeClasses();
 
   return (
     <>
-      <div className={gridClass}>
+      <div className={`grid ${getGridStyle()} gap-4`}>
         {menuItems
           .filter(item => item.is_available)
           .map((item) => (
@@ -73,10 +101,14 @@ const MenuGrid = ({
                     />
                   )}
                   <div className="flex-1 flex flex-col justify-between">
-                    <h3 className="font-medium text-sm text-coffee-800 line-clamp-2">
+                    <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
+                      gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
                       {item.name}
                     </h3>
-                    <p className="text-coffee-600 font-semibold">
+                    <p className={`text-coffee-600 font-semibold ${
+                      gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
                       ฿{item.price}
                     </p>
                   </div>

@@ -115,6 +115,7 @@ const Dashboard = () => {
             setGridColumns={() => {}}
             itemSize="medium"
             setItemSize={() => {}}
+            page="dashboard"
           />
 
           <div className="mb-6">

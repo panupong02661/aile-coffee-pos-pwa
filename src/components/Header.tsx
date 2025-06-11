@@ -1,5 +1,5 @@
 
-import { Clock, Settings, User, Menu } from 'lucide-react';
+import { Settings, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import DisplaySettingsModal from './DisplaySettingsModal';
@@ -17,6 +17,7 @@ interface HeaderProps {
   setGridColumns: (columns: number) => void;
   itemSize: 'small' | 'medium' | 'large';
   setItemSize: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'dashboard' | 'pos' | 'other';
 }
 
 const Header = ({ 
@@ -29,14 +30,10 @@ const Header = ({
   gridColumns,
   setGridColumns,
   itemSize,
-  setItemSize
+  setItemSize,
+  page = 'other'
 }: HeaderProps) => {
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
-  
-  const currentTime = new Date().toLocaleTimeString('th-TH', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 
   return (
     <>
@@ -52,52 +49,55 @@ const Header = ({
               <Menu className="w-5 h-5" />
             </Button>
             
-            <div className="flex items-center space-x-2">
-              <CategoryFilter
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategorySelect={onCategorySelect}
-                variant="header"
-              />
-            </div>
+            {page === 'pos' && (
+              <div className="flex items-center space-x-2">
+                <CategoryFilter
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={onCategorySelect}
+                  variant="header"
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-coffee-100">
-              <Clock className="w-4 h-4" />
-              <span className="font-mono">{currentTime}</span>
-            </div>
-            
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onMemberClick}
-              className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-            >
-              <User className="w-4 h-4 mr-2" />
-              สมาชิก
-            </Button>
-            
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsDisplaySettingsOpen(true)}
-              className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
+            {page === 'pos' && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onMemberClick}
+                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  สมาชิก
+                </Button>
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsDisplaySettingsOpen(true)}
+                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <DisplaySettingsModal
-        isOpen={isDisplaySettingsOpen}
-        onClose={() => setIsDisplaySettingsOpen(false)}
-        gridColumns={gridColumns}
-        setGridColumns={setGridColumns}
-        itemSize={itemSize}
-        setItemSize={setItemSize}
-      />
+      {page === 'pos' && (
+        <DisplaySettingsModal
+          isOpen={isDisplaySettingsOpen}
+          onClose={() => setIsDisplaySettingsOpen(false)}
+          gridColumns={gridColumns}
+          setGridColumns={setGridColumns}
+          itemSize={itemSize}
+          setItemSize={setItemSize}
+        />
+      )}
     </>
   );
 };

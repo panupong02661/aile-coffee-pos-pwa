@@ -60,6 +60,7 @@ const POS = () => {
             setGridColumns={setGridColumns}
             itemSize={itemSize}
             setItemSize={setItemSize}
+            page="pos"
           />
           
           <div className="flex gap-6">

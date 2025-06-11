@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,6 +67,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'printer', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer' },
   ];
 
+  const handleMenuClick = () => {
+    onClose(); // ปิดเมนูทันทีเมื่อคลิกเมนูใดๆ
+  };
+
   return (
     <>
       {/* Overlay สำหรับ mobile */}
@@ -96,7 +101,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                     <Link
                       key={item.id}
                       to={item.path}
-                      onClick={onClose}
+                      onClick={handleMenuClick}
                       className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                         isActive
                           ? 'bg-coffee-600 text-white'
