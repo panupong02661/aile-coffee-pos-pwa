@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
+import ItemDiscountModal from './ItemDiscountModal';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -38,6 +38,8 @@ const Cart = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
+  const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
+  const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
   
@@ -50,6 +52,8 @@ const Cart = ({
 
   const billDiscountAmount = calculateBillDiscount();
   const total = Math.max(0, subtotal - billDiscountAmount);
+
+  const hasItemDiscounts = cartItems.some(item => item.item_discount > 0);
 
   const handlePayment = (paymentMethod: PaymentMethod, cashReceived?: number) => {
     console.log('Payment processed:', { paymentMethod, total, cashReceived });
@@ -70,6 +74,17 @@ const Cart = ({
 
   const handleRestoreBill = (bill: any) => {
     onRestoreCart(bill.items, bill.discount, bill.discountType);
+  };
+
+  const handleItemDiscountClick = (item: CartItem) => {
+    setSelectedItemForDiscount(item);
+    setIsItemDiscountModalOpen(true);
+  };
+
+  const handleApplyItemDiscount = (discount: number, type: 'percent' | 'amount') => {
+    if (selectedItemForDiscount) {
+      onUpdateDiscount(selectedItemForDiscount.id, discount, type);
+    }
   };
 
   return (
@@ -138,29 +153,18 @@ const Cart = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      type="number"
-                      placeholder="ส่วนลด"
-                      value={item.item_discount || ''}
-                      onChange={(e) => onUpdateDiscount(
-                        item.id, 
-                        Number(e.target.value) || 0, 
-                        item.item_discount_type
-                      )}
-                      className="flex-1 h-8"
-                    />
+                  <div className="flex justify-center">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onUpdateDiscount(
-                        item.id,
-                        item.item_discount,
-                        item.item_discount_type === 'percent' ? 'amount' : 'percent'
-                      )}
-                      className="text-xs"
+                      onClick={() => handleItemDiscountClick(item)}
+                      className={`${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
                     >
-                      {item.item_discount_type === 'percent' ? '%' : '฿'}
+                      <Tag className="w-4 h-4 mr-1" />
+                      {item.item_discount > 0 
+                        ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
+                        : 'ส่วนลด'
+                      }
                     </Button>
                   </div>
                 </div>
@@ -176,9 +180,20 @@ const Cart = ({
                   <span>฿{subtotal}</span>
                 </div>
 
+                {hasItemDiscounts && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>ส่วนลดรายการ:</span>
+                    <span>-฿{cartItems.reduce((sum, item) => {
+                      const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+                      const totalBasePrice = basePrice * item.quantity;
+                      return sum + (totalBasePrice - item.total_price);
+                    }, 0)}</span>
+                  </div>
+                )}
+
                 {billDiscountAmount > 0 && (
                   <div className="flex justify-between text-sm text-red-600">
-                    <span>ส่วนลด ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
+                    <span>ส่วนลดท้ายบิล ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
                     <span>-฿{billDiscountAmount}</span>
                   </div>
                 )}
@@ -193,40 +208,43 @@ const Cart = ({
 
               <div className="space-y-2">
                 <Button 
-                  className="w-full bg-coffee-600 hover:bg-coffee-700"
+                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-9"
                   onClick={() => setIsPaymentModalOpen(true)}
                   disabled={total <= 0}
                 >
                   ชำระเงิน
                 </Button>
                 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button 
                     variant="outline" 
                     onClick={() => setIsDiscountModalOpen(true)}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                    className="border-orange-300 text-orange-700 hover:bg-orange-50 h-9"
+                    size="sm"
                   >
-                    <Percent className="w-4 h-4 mr-2" />
+                    <Percent className="w-4 h-4 mr-1" />
                     ส่วนลด
                   </Button>
                   
                   <Button 
                     variant="outline" 
                     onClick={() => setIsHoldBillModalOpen(true)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50 h-9"
+                    size="sm"
                   >
-                    <Clock className="w-4 h-4 mr-2" />
+                    <Clock className="w-4 h-4 mr-1" />
                     พักบิล
                   </Button>
+
+                  <Button 
+                    variant="outline" 
+                    onClick={onClearCart}
+                    className="h-9"
+                    size="sm"
+                  >
+                    เคลียร์
+                  </Button>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={onClearCart}
-                >
-                  เคลียร์ตะกร้า
-                </Button>
               </div>
             </div>
           )}
@@ -258,6 +276,20 @@ const Cart = ({
         onHoldBill={handleHoldBill}
         onRestoreBill={handleRestoreBill}
       />
+
+      {selectedItemForDiscount && (
+        <ItemDiscountModal
+          isOpen={isItemDiscountModalOpen}
+          onClose={() => {
+            setIsItemDiscountModalOpen(false);
+            setSelectedItemForDiscount(null);
+          }}
+          onApplyDiscount={handleApplyItemDiscount}
+          currentDiscount={selectedItemForDiscount.item_discount}
+          currentType={selectedItemForDiscount.item_discount_type}
+          itemName={selectedItemForDiscount.menu_item.name}
+        />
+      )}
     </>
   );
 };

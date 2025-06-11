@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -11,7 +10,7 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const [gridColumns, setGridColumns] = useState(4);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // เริ่มต้นเป็น true
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const {
     cartItems,
@@ -46,7 +45,6 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      {/* Main content area ที่ปรับตัวตาม sidebar */}
       <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
@@ -74,7 +72,7 @@ const POS = () => {
               />
             </div>
 
-            <div className="w-96">
+            <div className="w-80">
               <Cart
                 cartItems={cartItems}
                 onUpdateQuantity={updateQuantity}
