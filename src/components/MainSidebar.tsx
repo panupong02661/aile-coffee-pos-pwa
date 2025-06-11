@@ -69,7 +69,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay for mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -78,40 +78,42 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
       )}
       
       {/* Sidebar */}
-      <Card className={`fixed left-0 top-0 h-full w-64 z-50 border-coffee-200 transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0 md:relative md:w-64 md:h-auto`}>
-        <div className="p-4 border-b border-coffee-200">
-          <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
-        </div>
-        
-        <ScrollArea className="h-[calc(100vh-80px)] md:h-[calc(100vh-140px)]">
-          <div className="p-2">
-            <nav className="space-y-1">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    onClick={onClose}
-                    className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
-                      isActive
-                        ? 'bg-coffee-600 text-white'
-                        : 'text-coffee-700 hover:bg-coffee-50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+      <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
+        <Card className="h-full border-coffee-200 rounded-none md:rounded-lg">
+          <div className="p-4 border-b border-coffee-200">
+            <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
           </div>
-        </ScrollArea>
-      </Card>
+          
+          <ScrollArea className="h-[calc(100vh-80px)]">
+            <div className="p-2">
+              <nav className="space-y-1">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      onClick={onClose}
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                        isActive
+                          ? 'bg-coffee-600 text-white'
+                          : 'text-coffee-700 hover:bg-coffee-50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </ScrollArea>
+        </Card>
+      </div>
     </>
   );
 };
