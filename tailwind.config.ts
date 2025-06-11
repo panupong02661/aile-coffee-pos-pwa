@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,15 +53,31 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
+				coffee: {
+					50: '#faf7f2',
+					100: '#f4edde',
+					200: '#e8d5bc',
+					300: '#d8b892',
+					400: '#c99968',
+					500: '#b8804a',
+					600: '#a96a3e',
+					700: '#8d5535',
+					800: '#734530',
+					900: '#5e3a2a',
+					950: '#321d15'
+				},
+				cream: {
+					50: '#fefdfb',
+					100: '#fdf9f3',
+					200: '#fbf0e3',
+					300: '#f7e3cc',
+					400: '#f1d0a6',
+					500: '#e8b377',
+					600: '#de9552',
+					700: '#d17a37',
+					800: '#b0622d',
+					900: '#8f5028',
+					950: '#4d2713'
 				}
 			},
 			borderRadius: {
@@ -84,11 +101,22 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out'
 			}
 		}
 	},
