@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { BarChart3, TrendingUp, Users, ShoppingCart } from 'lucide-react';
 import { mockDashboardStats } from '@/data/mockData';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
+import { mockCategories } from '@/data/mockData';
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -106,10 +108,17 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           <Header 
             onToggleSidebar={handleToggleSidebar}
-            title="แดชบอร์ด"
+            categories={mockCategories}
+            selectedCategory="1"
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
           />
 
           <div className="mb-6">
+            <h1 className="text-3xl font-bold text-coffee-800">แดชบอร์ด</h1>
             <p className="text-coffee-600 mt-2">ภาพรวมและสถิติการขาย</p>
           </div>
 

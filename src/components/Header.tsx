@@ -10,17 +10,13 @@ interface HeaderProps {
   onSettingsClick?: () => void;
   onMemberClick?: () => void;
   onToggleSidebar?: () => void;
-  categories?: Category[];
-  selectedCategory?: string;
-  onCategorySelect?: (categoryId: string) => void;
-  gridColumns?: number;
-  setGridColumns?: (columns: number) => void;
-  itemSize?: 'small' | 'medium' | 'large';
-  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
-  showCategoryFilter?: boolean;
-  showDisplaySettings?: boolean;
-  showMemberButton?: boolean;
-  title?: string;
+  categories: Category[];
+  selectedCategory: string;
+  onCategorySelect: (categoryId: string) => void;
+  gridColumns: number;
+  setGridColumns: (columns: number) => void;
+  itemSize: 'small' | 'medium' | 'large';
+  setItemSize: (size: 'small' | 'medium' | 'large') => void;
 }
 
 const Header = ({ 
@@ -33,11 +29,7 @@ const Header = ({
   gridColumns,
   setGridColumns,
   itemSize,
-  setItemSize,
-  showCategoryFilter = false,
-  showDisplaySettings = false,
-  showMemberButton = false,
-  title
+  setItemSize
 }: HeaderProps) => {
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   
@@ -60,20 +52,14 @@ const Header = ({
               <Menu className="w-5 h-5" />
             </Button>
             
-            {title && (
-              <h1 className="text-xl font-semibold text-white">{title}</h1>
-            )}
-            
-            {showCategoryFilter && categories && (
-              <div className="flex items-center space-x-2">
-                <CategoryFilter
-                  categories={categories}
-                  selectedCategory={selectedCategory || '1'}
-                  onCategorySelect={onCategorySelect || (() => {})}
-                  variant="header"
-                />
-              </div>
-            )}
+            <div className="flex items-center space-x-2">
+              <CategoryFilter
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategorySelect={onCategorySelect}
+                variant="header"
+              />
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -82,42 +68,36 @@ const Header = ({
               <span className="font-mono">{currentTime}</span>
             </div>
             
-            {showMemberButton && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onMemberClick}
-                className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-              >
-                <User className="w-4 h-4 mr-2" />
-                สมาชิก
-              </Button>
-            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onMemberClick}
+              className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+            >
+              <User className="w-4 h-4 mr-2" />
+              สมาชิก
+            </Button>
             
-            {showDisplaySettings && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsDisplaySettingsOpen(true)}
-                className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsDisplaySettingsOpen(true)}
+              className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
 
-      {showDisplaySettings && gridColumns && setGridColumns && itemSize && setItemSize && (
-        <DisplaySettingsModal
-          isOpen={isDisplaySettingsOpen}
-          onClose={() => setIsDisplaySettingsOpen(false)}
-          gridColumns={gridColumns}
-          setGridColumns={setGridColumns}
-          itemSize={itemSize}
-          setItemSize={setItemSize}
-        />
-      )}
+      <DisplaySettingsModal
+        isOpen={isDisplaySettingsOpen}
+        onClose={() => setIsDisplaySettingsOpen(false)}
+        gridColumns={gridColumns}
+        setGridColumns={setGridColumns}
+        itemSize={itemSize}
+        setItemSize={setItemSize}
+      />
     </>
   );
 };
