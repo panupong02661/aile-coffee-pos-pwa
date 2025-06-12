@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -128,7 +127,11 @@ const MenuGrid = ({
         addons={addons.filter(addon => 
           !addon.menu_item_id || addon.menu_item_id === selectedItem?.id
         )}
-        onConfirm={handleAddonConfirm}
+        onAddToCart={(menuItem, selectedAddons) => {
+          onAddToCart(menuItem, selectedAddons);
+          setIsAddonModalOpen(false);
+          setSelectedItem(null);
+        }}
       />
     </>
   );

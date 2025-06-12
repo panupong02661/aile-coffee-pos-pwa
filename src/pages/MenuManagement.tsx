@@ -323,8 +323,7 @@ const MenuManagement = () => {
             onClose={() => setShowMenuForm(false)}
             onSuccess={() => refetch.menuItems()}
             categories={categories}
-            uploadImage={uploadImage}
-            editMenuItem={editingMenuItem}
+            editItem={editingMenuItem}
           />
 
           <CategoryForm

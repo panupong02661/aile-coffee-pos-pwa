@@ -1,4 +1,3 @@
-
 export interface MenuItem {
   id: string;
   name: string;
@@ -28,6 +27,13 @@ export interface Addon {
   is_required: boolean;
   allow_multiple: boolean;
   menu_item_id?: string;
+  addon_group_id?: string;
+  addon_groups?: {
+    id: string;
+    name: string;
+    allow_multiple: boolean;
+    is_required: boolean;
+  };
 }
 
 export interface CartItem {

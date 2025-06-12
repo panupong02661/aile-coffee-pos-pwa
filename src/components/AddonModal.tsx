@@ -19,11 +19,11 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
 
   if (!menuItem) return null;
 
-  const addonGroups = [...new Set(addons.map(addon => addon.addon_group_name))];
+  const addonGroups = [...new Set(addons.map(addon => addon.addon_groups?.name).filter(Boolean))];
 
   const handleAddonToggle = (addon: Addon, groupName: string) => {
-    const groupAddons = addons.filter(a => a.addon_group_name === groupName);
-    const allowMultiple = groupAddons[0]?.allow_multiple || false;
+    const groupAddons = addons.filter(a => a.addon_groups?.name === groupName);
+    const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
 
     if (allowMultiple) {
       setSelectedAddons(prev => 
@@ -33,7 +33,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
       );
     } else {
       setSelectedAddons(prev => [
-        ...prev.filter(a => a.addon_group_name !== groupName),
+        ...prev.filter(a => a.addon_groups?.name !== groupName),
         addon
       ]);
     }
@@ -60,8 +60,9 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
         
         <div className="space-y-6">
           {addonGroups.map(groupName => {
-            const groupAddons = addons.filter(addon => addon.addon_group_name === groupName);
-            const allowMultiple = groupAddons[0]?.allow_multiple || false;
+            if (!groupName) return null;
+            const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
+            const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
             
             return (
               <div key={groupName} className="space-y-3">

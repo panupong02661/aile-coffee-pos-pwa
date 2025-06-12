@@ -17,6 +17,7 @@ interface MenuItemFormProps {
   onSuccess: () => void;
   categories: DatabaseCategory[];
   editItem?: DatabaseMenuItem | null;
+  uploadImage?: (file: File) => Promise<string>;
 }
 
 const MenuItemForm = ({ isOpen, onClose, onSuccess, categories, editItem }: MenuItemFormProps) => {
