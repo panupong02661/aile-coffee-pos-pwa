@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface PromotionFormProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
   });
   const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isMenuPopoverOpen, setIsMenuPopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: menuItems = [] } = useQuery({
@@ -281,27 +283,58 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
               <Label>เมนูที่ใช้ได้</Label>
               <div className="space-x-2">
                 <Button type="button" variant="outline" size="sm" onClick={selectAllMenuItems}>
-                  เลือกทั้งหมด
+                  เลือกรายการทั้งหมด
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={deselectAllMenuItems}>
-                  ยกเลิกทั้งหมด
-                </Button>
+                <Popover open={isMenuPopoverOpen} onOpenChange={setIsMenuPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" size="sm">
+                      เลือกเมนู
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 max-h-60 overflow-y-auto">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">เลือกเมนู</span>
+                        <Button size="sm" variant="ghost" onClick={deselectAllMenuItems}>
+                          ยกเลิกทั้งหมด
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {menuItems.map((item) => (
+                          <div key={item.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={item.id}
+                              checked={selectedMenuItems.includes(item.id)}
+                              onCheckedChange={() => handleMenuItemToggle(item.id)}
+                            />
+                            <Label htmlFor={item.id} className="text-sm cursor-pointer">
+                              {item.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="border border-coffee-200 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-2 gap-2">
-                {menuItems.map((item) => (
+                {menuItems.filter(item => selectedMenuItems.includes(item.id)).map((item) => (
                   <div key={item.id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={item.id}
-                      checked={selectedMenuItems.includes(item.id)}
+                      id={`selected-${item.id}`}
+                      checked={true}
                       onCheckedChange={() => handleMenuItemToggle(item.id)}
                     />
-                    <Label htmlFor={item.id} className="text-sm cursor-pointer">
+                    <Label htmlFor={`selected-${item.id}`} className="text-sm cursor-pointer">
                       {item.name}
                     </Label>
                   </div>
                 ))}
+                {selectedMenuItems.length === 0 && (
+                  <p className="text-sm text-gray-500 col-span-2">ยังไม่ได้เลือกเมนู</p>
+                )}
               </div>
             </div>
           </div>

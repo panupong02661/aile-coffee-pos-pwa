@@ -1,22 +1,36 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import MenuItemForm from '@/components/MenuItemForm';
 import CategoryForm from '@/components/CategoryForm';
 import AddonForm from '@/components/AddonForm';
+import Header from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
 
 const MenuManagement = () => {
-  const { categories, menuItems, addonGroups, addons, loading, refetch } = useSupabaseData();
+  const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'addons'>('menu');
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showAddonForm, setShowAddonForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editingAddon, setEditingAddon] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  const { 
+    categories, 
+    menuItems, 
+    addonGroups, 
+    addons, 
+    loading, 
+    refetch,
+    uploadImage 
+  } = useSupabaseData();
+  
   const { toast } = useToast();
 
   const handleDeleteMenuItem = async (id: string) => {
@@ -55,172 +69,138 @@ const MenuManagement = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-cream-50 p-4 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลด...</div>
-      </div>
-    );
-  }
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-cream-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
-          <p className="text-coffee-600 mt-2">จัดการเมนูสินค้า, Add-on และหมวดหมู่</p>
-        </div>
+    <div className="min-h-screen bg-cream-50 flex">
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={handleCloseSidebar}
+      />
+      
+      <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="max-w-7xl mx-auto">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
 
-        <Tabs defaultValue="menu-items" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="menu-items">เมนูสินค้า</TabsTrigger>
-            <TabsTrigger value="addons">Add-on</TabsTrigger>
-            <TabsTrigger value="categories">หมวดหมู่</TabsTrigger>
-          </TabsList>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
+            <p className="text-coffee-600 mt-2">จัดการรายการอาหาร หมวดหมู่ และ Add-on</p>
+          </div>
 
-          {/* Menu Items Tab */}
-          <TabsContent value="menu-items" className="space-y-6">
+          <div className="mb-4">
+            <div className="flex space-x-4">
+              <Button
+                variant={activeTab === 'menu' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('menu')}
+              >
+                เมนู
+              </Button>
+              <Button
+                variant={activeTab === 'categories' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('categories')}
+              >
+                หมวดหมู่
+              </Button>
+              <Button
+                variant={activeTab === 'addons' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('addons')}
+              >
+                Add-ons
+              </Button>
+            </div>
+          </div>
+
+          {activeTab === 'menu' && (
             <Card className="border-coffee-200">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-coffee-800">รายการเมนู</CardTitle>
+                <CardTitle className="text-coffee-800">รายการอาหาร</CardTitle>
                 <Button 
                   className="bg-coffee-600 hover:bg-coffee-700"
                   onClick={() => {
-                    setEditingItem(null);
+                    setEditingMenuItem(null);
                     setShowMenuForm(true);
                   }}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  เพิ่มเมนูใหม่
+                  เพิ่มเมนู
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-7 gap-4">
-                  {menuItems.map((item) => (
-                    <Card key={item.id} className="border-coffee-100">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          {item.image_url && (
-                            <img 
-                              src={item.image_url} 
-                              alt={item.name}
-                              className="w-full h-32 object-cover rounded-lg"
-                            />
-                          )}
+                {loading ? (
+                  <div className="text-center py-8 text-coffee-500">กำลังโหลด...</div>
+                ) : menuItems.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-500">
+                    <p>ยังไม่มีเมนู</p>
+                    <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มเมนู" เพื่อเริ่มต้น</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {menuItems.map((item) => (
+                      <div key={item.id} className="border border-coffee-100 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-medium text-coffee-800 text-sm">{item.name}</h3>
-                            <p className="text-coffee-600 font-semibold">฿{item.price}</p>
-                            <p className="text-xs text-coffee-500">
-                              ต้นทุน: ฿{item.cost_price}
-                            </p>
-                            <p className="text-xs text-coffee-400">
-                              {item.categories?.name || 'ไม่มีหมวดหมู่'}
-                            </p>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => {
-                                  setEditingItem(item);
-                                  setShowMenuForm(true);
-                                }}
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-red-600"
-                                onClick={() => handleDeleteMenuItem(item.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
+                            <h3 className="font-medium text-coffee-800">{item.name}</h3>
+                            <p className="text-sm text-coffee-600">{item.description}</p>
+                            <p className="text-sm text-coffee-600">ราคา: ฿{item.price}</p>
+                            {item.categories && (
+                              <p className="text-sm text-coffee-600">หมวดหมู่: {item.categories.name}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingMenuItem(item);
+                                setShowMenuForm(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeleteMenuItem(item.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Add-ons Tab */}
-          <TabsContent value="addons" className="space-y-6">
-            <Card className="border-coffee-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-coffee-800">Add-on</CardTitle>
-                <Button 
-                  className="bg-coffee-600 hover:bg-coffee-700"
-                  onClick={() => {
-                    setEditingItem(null);
-                    setShowAddonForm(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  เพิ่ม Add-on
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {addonGroups.map((group) => {
-                    const groupAddons = addons.filter(addon => addon.addon_group_id === group.id);
-                    return (
-                      <div key={group.id} className="border border-coffee-100 rounded-lg p-4">
-                        <h3 className="font-medium text-coffee-800 mb-3">{group.name}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {groupAddons.map((addon) => (
-                            <div key={addon.id} className="flex items-center justify-between p-2 bg-coffee-50 rounded">
-                              <div>
-                                <span className="text-sm font-medium text-coffee-800">
-                                  {addon.name}
-                                </span>
-                                <div className="text-xs text-coffee-600">
-                                  {addon.price > 0 ? `+฿${addon.price}` : 
-                                   addon.price < 0 ? `฿${addon.price}` : 'ฟรี'}
-                                </div>
-                              </div>
-                              <div className="flex space-x-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingItem(addon);
-                                    setShowAddonForm(true);
-                                  }}
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-red-600"
-                                  onClick={() => handleDeleteAddon(addon.id)}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Categories Tab */}
-          <TabsContent value="categories" className="space-y-6">
+          {activeTab === 'categories' && (
             <Card className="border-coffee-200">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-coffee-800">หมวดหมู่เมนู</CardTitle>
+                <CardTitle className="text-coffee-800">หมวดหมู่</CardTitle>
                 <Button 
                   className="bg-coffee-600 hover:bg-coffee-700"
                   onClick={() => {
-                    setEditingItem(null);
+                    setEditingCategory(null);
                     setShowCategoryForm(true);
                   }}
                 >
@@ -229,81 +209,139 @@ const MenuManagement = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center justify-between p-4 border border-coffee-100 rounded-lg">
-                      <div>
-                        <h3 className="font-medium text-coffee-800">{category.name}</h3>
-                        <p className="text-sm text-coffee-600">{category.description}</p>
-                        <p className="text-xs text-coffee-500">ลำดับ: {category.sort_order}</p>
+                {loading ? (
+                  <div className="text-center py-8 text-coffee-500">กำลังโหลด...</div>
+                ) : categories.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-500">
+                    <p>ยังไม่มีหมวดหมู่</p>
+                    <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มหมวดหมู่" เพื่อเริ่มต้น</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {categories.map((category) => (
+                      <div key={category.id} className="border border-coffee-100 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-coffee-800">{category.name}</h3>
+                            <p className="text-sm text-coffee-600">{category.description}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingCategory(category);
+                                setShowCategoryForm(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          category.is_active 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {category.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                        </span>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingItem(category);
-                            setShowCategoryForm(true);
-                          }}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-600"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
 
-        {/* Forms */}
-        <MenuItemForm
-          isOpen={showMenuForm}
-          onClose={() => setShowMenuForm(false)}
-          onSuccess={() => {
-            refetch.menuItems();
-            setEditingItem(null);
-          }}
-          categories={categories}
-          editItem={editingItem}
-        />
+          {activeTab === 'addons' && (
+            <Card className="border-coffee-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-coffee-800">Add-ons</CardTitle>
+                <Button 
+                  className="bg-coffee-600 hover:bg-coffee-700"
+                  onClick={() => {
+                    setEditingAddon(null);
+                    setShowAddonForm(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  เพิ่ม Add-on
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8 text-coffee-500">กำลังโหลด...</div>
+                ) : addons.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-500">
+                    <p>ยังไม่มี Add-ons</p>
+                    <p className="text-sm mt-2">คลิกปุ่ม "เพิ่ม Add-on" เพื่อเริ่มต้น</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addons.map((addon) => (
+                      <div key={addon.id} className="border border-coffee-100 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-coffee-800">{addon.name}</h3>
+                            <p className="text-sm text-coffee-600">ราคา: ฿{addon.price}</p>
+                            {addon.addon_groups && (
+                              <p className="text-sm text-coffee-600">กลุ่ม: {addon.addon_groups.name}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingAddon(addon);
+                                setShowAddonForm(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeleteAddon(addon.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-        <CategoryForm
-          isOpen={showCategoryForm}
-          onClose={() => setShowCategoryForm(false)}
-          onSuccess={() => {
-            refetch.categories();
-            setEditingItem(null);
-          }}
-          editCategory={editingItem}
-        />
+          <MenuItemForm
+            isOpen={showMenuForm}
+            onClose={() => setShowMenuForm(false)}
+            onSuccess={() => refetch.menuItems()}
+            categories={categories}
+            uploadImage={uploadImage}
+            editMenuItem={editingMenuItem}
+          />
 
-        <AddonForm
-          isOpen={showAddonForm}
-          onClose={() => setShowAddonForm(false)}
-          onSuccess={() => {
-            refetch.addons();
-            setEditingItem(null);
-          }}
-          addonGroups={addonGroups}
-          editAddon={editingItem}
-        />
+          <CategoryForm
+            isOpen={showCategoryForm}
+            onClose={() => setShowCategoryForm(false)}
+            onSuccess={() => refetch.categories()}
+            editCategory={editingCategory}
+          />
+
+          <AddonForm
+            isOpen={showAddonForm}
+            onClose={() => setShowAddonForm(false)}
+            onSuccess={() => refetch.addons()}
+            addonGroups={addonGroups}
+            editAddon={editingAddon}
+          />
+        </div>
       </div>
     </div>
   );

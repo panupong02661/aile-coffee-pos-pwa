@@ -95,7 +95,7 @@ const Cart = ({
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+          <div className="flex-1 overflow-y-auto space-y-3 mb-4" style={{ maxHeight: 'calc(100vh - 32rem)' }}>
             {cartItems.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 ไม่มีสินค้าในตะกร้า
@@ -145,6 +145,18 @@ const Cart = ({
                       >
                         <Plus className="w-3 h-3" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleItemDiscountClick(item)}
+                        className={`ml-2 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                      >
+                        <Tag className="w-4 h-4 mr-1" />
+                        {item.item_discount > 0 
+                          ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
+                          : 'ส่วนลด'
+                        }
+                      </Button>
                     </div>
                     <div className="text-right">
                       <div className="font-medium text-coffee-600">
@@ -152,28 +164,13 @@ const Cart = ({
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleItemDiscountClick(item)}
-                      className={`${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
-                    >
-                      <Tag className="w-4 h-4 mr-1" />
-                      {item.item_discount > 0 
-                        ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
-                        : 'ส่วนลด'
-                      }
-                    </Button>
-                  </div>
                 </div>
               ))
             )}
           </div>
 
           {cartItems.length > 0 && (
-            <div className="border-t border-coffee-200 pt-4 space-y-3">
+            <div className="border-t border-coffee-200 pt-4 space-y-3" style={{ marginTop: '8rem' }}>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>ยอดรวมย่อย:</span>

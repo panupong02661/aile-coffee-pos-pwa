@@ -1,218 +1,120 @@
 
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { MenuItem, Addon, AddonCategory } from '@/types';
+import { MenuItem, Addon } from '@/types';
 
 interface AddonModalProps {
   isOpen: boolean;
   onClose: () => void;
   menuItem: MenuItem | null;
   addons: Addon[];
-  onConfirm: (selectedAddons: Addon[]) => void;
+  onAddToCart: (menuItem: MenuItem, selectedAddons: Addon[]) => void;
 }
 
-const AddonModal = ({ isOpen, onClose, menuItem, addons, onConfirm }: AddonModalProps) => {
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      // Auto-select required single-choice addons with default options
-      const defaultSelections: string[] = [];
-      const addonsByCategory = groupAddonsByCategory(addons);
-      
-      Object.entries(addonsByCategory).forEach(([category, categoryAddons]) => {
-        const requiredSingleChoice = categoryAddons.find(addon => 
-          addon.is_required && !addon.allow_multiple
-        );
-        if (requiredSingleChoice) {
-          // Select the first option as default for required single-choice
-          defaultSelections.push(categoryAddons[0].id);
-        }
-      });
-      
-      setSelectedAddons(defaultSelections);
-    } else {
-      setSelectedAddons([]);
-    }
-  }, [isOpen, addons]);
-
-  const groupAddonsByCategory = (addons: Addon[]) => {
-    return addons.reduce((groups, addon) => {
-      if (!groups[addon.category]) {
-        groups[addon.category] = [];
-      }
-      groups[addon.category].push(addon);
-      return groups;
-    }, {} as Record<AddonCategory, Addon[]>);
-  };
-
-  const handleSingleChoiceChange = (categoryAddons: Addon[], selectedAddonId: string) => {
-    setSelectedAddons(prev => {
-      // Remove all addons from this category
-      const filtered = prev.filter(id => 
-        !categoryAddons.some(addon => addon.id === id)
-      );
-      // Add the new selection
-      return [...filtered, selectedAddonId];
-    });
-  };
-
-  const handleMultipleChoiceChange = (addonId: string, checked: boolean) => {
-    setSelectedAddons(prev => 
-      checked 
-        ? [...prev, addonId]
-        : prev.filter(id => id !== addonId)
-    );
-  };
-
-  const handleConfirm = () => {
-    // Validate required addons
-    const addonsByCategory = groupAddonsByCategory(addons);
-    const isValid = Object.entries(addonsByCategory).every(([category, categoryAddons]) => {
-      const hasRequired = categoryAddons.some(addon => addon.is_required);
-      if (!hasRequired) return true;
-      
-      const hasSelection = categoryAddons.some(addon => 
-        selectedAddons.includes(addon.id)
-      );
-      return hasSelection;
-    });
-
-    if (!isValid) {
-      alert('กรุณาเลือกตัวเลือกที่จำเป็น');
-      return;
-    }
-
-    const selectedAddonObjects = addons.filter(addon => 
-      selectedAddons.includes(addon.id)
-    );
-    onConfirm(selectedAddonObjects);
-  };
-
-  const calculateTotal = () => {
-    if (!menuItem) return 0;
-    const addonTotal = addons
-      .filter(addon => selectedAddons.includes(addon.id))
-      .reduce((sum, addon) => sum + addon.price, 0);
-    return menuItem.price + addonTotal;
-  };
-
-  const addonsByCategory = groupAddonsByCategory(addons);
-  const categoryNames = {
-    shot: 'ชอต',
-    sweetness: 'ความหวาน',
-    topping: 'ท็อปปิ้ง',
-    size: 'ขนาด',
-    other: 'อื่นๆ'
-  };
+const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
 
   if (!menuItem) return null;
 
-  const categoryEntries = Object.entries(addonsByCategory);
-  const leftCategories = categoryEntries.slice(0, Math.ceil(categoryEntries.length / 2));
-  const rightCategories = categoryEntries.slice(Math.ceil(categoryEntries.length / 2));
+  const addonGroups = [...new Set(addons.map(addon => addon.addon_group_name))];
 
-  const renderCategorySection = (categories: [string, Addon[]][]) => (
-    <div className="space-y-6">
-      {categories.map(([category, categoryAddons]) => {
-        const isMultipleChoice = categoryAddons[0]?.allow_multiple;
-        const isRequired = categoryAddons.some(addon => addon.is_required);
+  const handleAddonToggle = (addon: Addon, groupName: string) => {
+    const groupAddons = addons.filter(a => a.addon_group_name === groupName);
+    const allowMultiple = groupAddons[0]?.allow_multiple || false;
 
-        return (
-          <div key={category} className="space-y-3">
-            <h3 className="font-medium text-coffee-700">
-              {categoryNames[category as AddonCategory]}
-              {isRequired && <span className="text-red-500 ml-1">*</span>}
-            </h3>
+    if (allowMultiple) {
+      setSelectedAddons(prev => 
+        prev.find(a => a.id === addon.id)
+          ? prev.filter(a => a.id !== addon.id)
+          : [...prev, addon]
+      );
+    } else {
+      setSelectedAddons(prev => [
+        ...prev.filter(a => a.addon_group_name !== groupName),
+        addon
+      ]);
+    }
+  };
 
-            {isMultipleChoice ? (
-              <div className="space-y-2">
-                {categoryAddons.map((addon) => (
-                  <div key={addon.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={addon.id}
-                      checked={selectedAddons.includes(addon.id)}
-                      onCheckedChange={(checked) => 
-                        handleMultipleChoiceChange(addon.id, checked as boolean)
-                      }
-                    />
-                    <Label htmlFor={addon.id} className="flex-1 cursor-pointer text-sm">
-                      <span>{addon.name}</span>
-                      {addon.price !== 0 && (
-                        <span className="ml-2 text-coffee-600">
-                          ({addon.price > 0 ? '+' : ''}฿{addon.price})
-                        </span>
-                      )}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <RadioGroup
-                value={selectedAddons.find(id => 
-                  categoryAddons.some(addon => addon.id === id)
-                ) || ''}
-                onValueChange={(value) => handleSingleChoiceChange(categoryAddons, value)}
-              >
-                {categoryAddons.map((addon) => (
-                  <div key={addon.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={addon.id} id={addon.id} />
-                    <Label htmlFor={addon.id} className="flex-1 cursor-pointer text-sm">
-                      <span>{addon.name}</span>
-                      {addon.price !== 0 && (
-                        <span className="ml-2 text-coffee-600">
-                          ({addon.price > 0 ? '+' : ''}฿{addon.price})
-                        </span>
-                      )}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+  const isAddonSelected = (addon: Addon) => {
+    return selectedAddons.some(a => a.id === addon.id);
+  };
+
+  const handleAddToCart = () => {
+    onAddToCart(menuItem, selectedAddons);
+    setSelectedAddons([]);
+    onClose();
+  };
+
+  const totalPrice = menuItem.price + selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-coffee-200">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-coffee-800">
-            เลือกตัวเลือกสำหรับ {menuItem.name}
-          </DialogTitle>
+          <DialogTitle>เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
         </DialogHeader>
+        
+        <div className="space-y-6">
+          {addonGroups.map(groupName => {
+            const groupAddons = addons.filter(addon => addon.addon_group_name === groupName);
+            const allowMultiple = groupAddons[0]?.allow_multiple || false;
+            
+            return (
+              <div key={groupName} className="space-y-3">
+                <h3 className="font-medium text-coffee-800">
+                  {groupName} {!allowMultiple && <span className="text-red-500">*</span>}
+                </h3>
+                
+                <div className="space-y-2">
+                  {groupAddons.map(addon => (
+                    <Button
+                      key={addon.id}
+                      variant={isAddonSelected(addon) ? "default" : "outline"}
+                      className={`w-full h-7 text-left justify-start ${
+                        isAddonSelected(addon) 
+                          ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
+                          : 'hover:bg-coffee-50'
+                      }`}
+                      onClick={() => handleAddonToggle(addon, groupName)}
+                    >
+                      <div className="flex justify-between items-center w-full">
+                        <span>{addon.name}</span>
+                        {addon.price > 0 && (
+                          <span className="text-orange-600 font-medium">
+                            +฿{addon.price}
+                          </span>
+                        )}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
-        <div className="grid grid-cols-2 gap-6">
-          {renderCategorySection(leftCategories)}
-          {renderCategorySection(rightCategories)}
-        </div>
-
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-medium text-coffee-700">ราคารวม:</span>
-            <span className="text-xl font-bold text-coffee-600">
-              ฿{calculateTotal()}
-            </span>
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-medium">ราคารวม:</span>
+              <span className="text-xl font-bold text-coffee-600">฿{totalPrice}</span>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                ยกเลิก
+              </Button>
+              <Button 
+                onClick={handleAddToCart} 
+                className="flex-1 bg-coffee-600 hover:bg-coffee-700"
+              >
+                เพิ่มลงตะกร้า
+              </Button>
+            </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-coffee-300 text-coffee-700">
-            ยกเลิก
-          </Button>
-          <Button 
-            onClick={handleConfirm}
-            className="bg-coffee-600 hover:bg-coffee-700"
-          >
-            เพิ่มลงตะกร้า
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
