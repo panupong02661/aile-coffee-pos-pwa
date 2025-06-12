@@ -9,7 +9,340 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      addon_groups: {
+        Row: {
+          allow_multiple: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_required: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allow_multiple?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_multiple?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      addons: {
+        Row: {
+          addon_group_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          addon_group_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          addon_group_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addons_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      category_addon_groups: {
+        Row: {
+          addon_group_id: string | null
+          category_id: string | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          addon_group_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          addon_group_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_addon_groups_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_addon_groups_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_addon_groups: {
+        Row: {
+          addon_group_id: string | null
+          created_at: string
+          id: string
+          menu_item_id: string | null
+        }
+        Insert: {
+          addon_group_id?: string | null
+          created_at?: string
+          id?: string
+          menu_item_id?: string | null
+        }
+        Update: {
+          addon_group_id?: string | null
+          created_at?: string
+          id?: string
+          menu_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_addon_groups_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_addon_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          category_id: string | null
+          cost_price: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_menu_items: {
+        Row: {
+          created_at: string
+          id: string
+          menu_item_id: string | null
+          promotion_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_item_id?: string | null
+          promotion_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_item_id?: string | null
+          promotion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_menu_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_menu_items_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_value: number
+          end_date: string
+          id: string
+          is_active: boolean
+          name: string
+          start_date: string
+          target_group: string
+          type: string
+          updated_at: string
+          usage_limit: number | null
+          used_count: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          end_date: string
+          id?: string
+          is_active?: boolean
+          name: string
+          start_date: string
+          target_group?: string
+          type: string
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_date?: string
+          target_group?: string
+          type?: string
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          role?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          role?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
