@@ -24,7 +24,10 @@ export interface DatabaseMenuItem {
   is_available: boolean;
   created_at: string;
   updated_at: string;
-  categories?: DatabaseCategory;
+  categories?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface DatabaseAddonGroup {
@@ -47,7 +50,10 @@ export interface DatabaseAddon {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  addon_groups?: DatabaseAddonGroup;
+  addon_groups?: {
+    id: string;
+    name: string;
+  };
 }
 
 export const useSupabaseData = () => {
