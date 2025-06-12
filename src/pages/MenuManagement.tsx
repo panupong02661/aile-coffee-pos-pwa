@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,16 +9,19 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import MenuItemForm from '@/components/MenuItemForm';
 import CategoryForm from '@/components/CategoryForm';
 import AddonForm from '@/components/AddonForm';
+import AddonGroupForm from '@/components/AddonGroupForm';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 
 const MenuManagement = () => {
-  const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'addons'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'addon-groups' | 'addons'>('menu');
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showAddonGroupForm, setShowAddonGroupForm] = useState(false);
   const [showAddonForm, setShowAddonForm] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [editingAddonGroup, setEditingAddonGroup] = useState(null);
   const [editingAddon, setEditingAddon] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -54,6 +58,18 @@ const MenuManagement = () => {
     } else {
       toast({ title: 'สำเร็จ', description: 'ลบหมวดหมู่สำเร็จ' });
       refetch.categories();
+    }
+  };
+
+  const handleDeleteAddonGroup = async (id: string) => {
+    if (!confirm('คุณต้องการลบกลุ่ม Add-on นี้หรือไม่?')) return;
+    
+    const { error } = await supabase.from('addon_groups').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบกลุ่ม Add-on ได้', variant: 'destructive' });
+    } else {
+      toast({ title: 'สำเร็จ', description: 'ลบกลุ่ม Add-on สำเร็จ' });
+      refetch.addonGroups();
     }
   };
 
@@ -102,7 +118,7 @@ const MenuManagement = () => {
 
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
-            <p className="text-coffee-600 mt-2">จัดการรายการอาหาร หมวดหมู่ และ Add-on</p>
+            <p className="text-coffee-600 mt-2">จัดการรายการอาหาร หมวดหมู่ กลุ่ม Add-on และ Add-on</p>
           </div>
 
           <div className="mb-4">
@@ -118,6 +134,12 @@ const MenuManagement = () => {
                 onClick={() => setActiveTab('categories')}
               >
                 หมวดหมู่
+              </Button>
+              <Button
+                variant={activeTab === 'addon-groups' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('addon-groups')}
+              >
+                กลุ่ม Add-on
               </Button>
               <Button
                 variant={activeTab === 'addons' ? 'default' : 'outline'}
@@ -254,6 +276,75 @@ const MenuManagement = () => {
             </Card>
           )}
 
+          {activeTab === 'addon-groups' && (
+            <Card className="border-coffee-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-coffee-800">กลุ่ม Add-on</CardTitle>
+                <Button 
+                  className="bg-coffee-600 hover:bg-coffee-700"
+                  onClick={() => {
+                    setEditingAddonGroup(null);
+                    setShowAddonGroupForm(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  เพิ่มกลุ่ม Add-on
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8 text-coffee-500">กำลังโหลด...</div>
+                ) : addonGroups.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-500">
+                    <p>ยังไม่มีกลุ่ม Add-on</p>
+                    <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มกลุ่ม Add-on" เพื่อเริ่มต้น</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addonGroups.map((group) => (
+                      <div key={group.id} className="border border-coffee-100 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-coffee-800">{group.name}</h3>
+                            <p className="text-sm text-coffee-600">{group.description}</p>
+                            <div className="flex space-x-4 mt-1">
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {group.is_required ? 'บังคับเลือก' : 'ไม่บังคับ'}
+                              </span>
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {group.allow_multiple ? 'เลือกได้หลายรายการ' : 'เลือกได้รายการเดียว'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingAddonGroup(group);
+                                setShowAddonGroupForm(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeleteAddonGroup(group.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {activeTab === 'addons' && (
             <Card className="border-coffee-200">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -331,6 +422,13 @@ const MenuManagement = () => {
             onClose={() => setShowCategoryForm(false)}
             onSuccess={() => refetch.categories()}
             editCategory={editingCategory}
+          />
+
+          <AddonGroupForm
+            isOpen={showAddonGroupForm}
+            onClose={() => setShowAddonGroupForm(false)}
+            onSuccess={() => refetch.addonGroups()}
+            editAddonGroup={editingAddonGroup}
           />
 
           <AddonForm

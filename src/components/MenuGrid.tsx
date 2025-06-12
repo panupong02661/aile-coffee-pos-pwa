@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,17 +24,9 @@ const MenuGrid = ({
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
 
   const handleItemClick = (item: MenuItem) => {
-    // Check if item has addons
-    const itemAddons = addons.filter(addon => 
-      !addon.menu_item_id || addon.menu_item_id === item.id
-    );
-    
-    if (itemAddons.length > 0) {
-      setSelectedItem(item);
-      setIsAddonModalOpen(true);
-    } else {
-      onAddToCart(item, []);
-    }
+    // Always show addon modal when clicking a menu item
+    setSelectedItem(item);
+    setIsAddonModalOpen(true);
   };
 
   const handleAddonConfirm = (selectedAddons: Addon[]) => {
