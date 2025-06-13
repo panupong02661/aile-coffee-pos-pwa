@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +52,8 @@ export interface DatabaseAddon {
   addon_groups?: {
     id: string;
     name: string;
+    is_required: boolean;
+    allow_multiple: boolean;
   };
 }
 
@@ -116,7 +117,9 @@ export const useSupabaseData = () => {
         *,
         addon_groups (
           id,
-          name
+          name,
+          is_required,
+          allow_multiple
         )
       `)
       .order('sort_order');
