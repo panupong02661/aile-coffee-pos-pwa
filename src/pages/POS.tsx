@@ -31,8 +31,20 @@ const POS = () => {
 
   // Convert database categories to the format expected by components
   const convertedCategories = [
-    { id: '1', name: 'ทั้งหมด' },
-    ...categories.map(cat => ({ id: cat.id, name: cat.name }))
+    { 
+      id: '1', 
+      name: 'ทั้งหมด',
+      description: 'แสดงสินค้าทั้งหมด',
+      sort_order: 0,
+      is_active: true
+    },
+    ...categories.map(cat => ({ 
+      id: cat.id, 
+      name: cat.name,
+      description: cat.description || '',
+      sort_order: cat.sort_order,
+      is_active: cat.is_active
+    }))
   ];
 
   // Convert database menu items to the format expected by components
@@ -42,7 +54,9 @@ const POS = () => {
     price: Number(item.price),
     category_id: item.category_id || '',
     image: item.image_url || '',
-    is_available: item.is_available
+    is_available: item.is_available,
+    description: item.description || '',
+    calculated_cost: Number(item.cost_price)
   }));
 
   // Convert database addons to the format expected by components
@@ -50,8 +64,10 @@ const POS = () => {
     id: addon.id,
     name: addon.name,
     price: Number(addon.price),
-    addon_group_id: addon.addon_group_id || null,
-    menu_item_id: null // We'll use addon_group relationships instead
+    category: 'other' as const,
+    is_required: addon.addon_groups?.is_required || false,
+    allow_multiple: addon.addon_groups?.allow_multiple || false,
+    addon_group_id: addon.addon_group_id || undefined
   }));
 
   const filteredMenuItems = selectedCategory === '1' 
