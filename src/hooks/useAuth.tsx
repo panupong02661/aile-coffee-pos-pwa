@@ -2,10 +2,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Define types explicitly to avoid circular references
+// Simple types to avoid conflicts
 type UserRole = 'admin' | 'manager' | 'staff';
 
-interface AppUser {
+// Renamed to avoid any conflicts with built-in types
+interface AuthUser {
   id: string;
   username: string;
   full_name?: string;
@@ -14,7 +15,7 @@ interface AppUser {
 }
 
 interface AuthContextType {
-  user: AppUser | null;
+  user: AuthUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -31,7 +32,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,8 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // For demo purposes, we'll use a simple authentication
-      // In production, you'd want to hash passwords properly
+      // Use a more explicit query structure to avoid type issues
       const { data, error } = await supabase
         .from('users')
         .select('id, username, role, password_hash')
@@ -59,7 +59,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error('Database error:', error);
+        showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
+        return false;
+      }
+
+      if (!data) {
         showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
@@ -70,7 +76,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      const userData: AppUser = {
+      // Create user object with explicit typing
+      const userData: AuthUser = {
         id: data.id,
         username: data.username,
         full_name: getLevelDisplayName(data.role as UserRole),
