@@ -75,8 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData: User = {
         id: data.id,
         username: data.username,
-        full_name: getLevelDisplayName(data.role),
-        role: data.role,
+        full_name: getLevelDisplayName(data.role as 'admin' | 'manager' | 'staff'),
+        role: data.role as 'admin' | 'manager' | 'staff',
       };
 
       setUser(userData);
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const getLevelDisplayName = (role: string) => {
+  const getLevelDisplayName = (role: 'admin' | 'manager' | 'staff'): string => {
     switch (role) {
       case 'admin': return 'ผู้ดูแลระบบ';
       case 'manager': return 'ผู้จัดการ';
