@@ -1,13 +1,15 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
+// Define types explicitly to avoid circular references
+type UserRole = 'admin' | 'manager' | 'staff';
 
 interface User {
   id: string;
   username: string;
   full_name?: string;
-  role: 'admin' | 'manager' | 'staff';
+  role: UserRole;
   avatar_url?: string;
 }
 
@@ -31,7 +33,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is already logged in
@@ -41,6 +42,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setLoading(false);
   }, []);
+
+  const showToast = (title: string, description: string, variant?: 'default' | 'destructive') => {
+    // Simple console log for now to avoid toast dependency issues
+    console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`);
+  };
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -54,46 +60,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error || !data) {
-        toast({ 
-          title: 'ข้อผิดพลาด', 
-          description: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 
-          variant: 'destructive' 
-        });
+        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
 
       // Simple password check (in production, use proper password hashing)
       if (password !== 'admin') {
-        toast({ 
-          title: 'ข้อผิดพลาด', 
-          description: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 
-          variant: 'destructive' 
-        });
+        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
 
       const userData: User = {
         id: data.id,
         username: data.username,
-        full_name: getLevelDisplayName(data.role as 'admin' | 'manager' | 'staff'),
-        role: data.role as 'admin' | 'manager' | 'staff',
+        full_name: getLevelDisplayName(data.role as UserRole),
+        role: data.role as UserRole,
       };
 
       setUser(userData);
       localStorage.setItem('currentUser', JSON.stringify(userData));
       
-      toast({ 
-        title: 'สำเร็จ', 
-        description: 'เข้าสู่ระบบเรียบร้อยแล้ว' 
-      });
+      showToast('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว');
       return true;
     } catch (error) {
       console.error('Login error:', error);
-      toast({ 
-        title: 'ข้อผิดพลาด', 
-        description: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 
-        variant: 'destructive' 
-      });
+      showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
       return false;
     }
   };
@@ -101,13 +92,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('currentUser');
-    toast({ 
-      title: 'สำเร็จ', 
-      description: 'ออกจากระบบเรียบร้อยแล้ว' 
-    });
+    showToast('สำเร็จ', 'ออกจากระบบเรียบร้อยแล้ว');
   };
 
-  const getLevelDisplayName = (role: 'admin' | 'manager' | 'staff'): string => {
+  const getLevelDisplayName = (role: UserRole): string => {
     switch (role) {
       case 'admin': return 'ผู้ดูแลระบบ';
       case 'manager': return 'ผู้จัดการ';
