@@ -27,9 +27,14 @@ const LoginPage = () => {
     setLoading(false);
   };
 
+  const bgPattern = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L40 20L20 40L0 20L20 0Z' fill='%23f5f5f0' opacity='0.1'/%3E%3C/svg%3E";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-coffee-50 via-cream-50 to-coffee-100 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M20 0L40 20L20 40L0 20L20 0Z" fill="%23f5f5f0" opacity="0.1"/%3E%3C/svg%3E')] bg-repeat opacity-20"></div>
+      <div 
+        className="absolute inset-0 bg-repeat opacity-20"
+        style={{ backgroundImage: `url("${bgPattern}")` }}
+      ></div>
       
       <Card className="w-full max-w-md shadow-2xl border-coffee-200 bg-white/95 backdrop-blur-sm relative z-10">
         <CardHeader className="text-center pb-6">
