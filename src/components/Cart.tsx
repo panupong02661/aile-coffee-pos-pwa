@@ -95,7 +95,86 @@ const Cart = ({
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto space-y-3 mb-4" style={{ maxHeight: 'calc(100vh - 32rem)' }}>
+          {/* Payment Summary Section - Moved to top */}
+          {cartItems.length > 0 && (
+            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>ยอดรวมย่อย:</span>
+                  <span>฿{subtotal}</span>
+                </div>
+
+                {hasItemDiscounts && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>ส่วนลดรายการ:</span>
+                    <span>-฿{cartItems.reduce((sum, item) => {
+                      const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+                      const totalBasePrice = basePrice * item.quantity;
+                      return sum + (totalBasePrice - item.total_price);
+                    }, 0)}</span>
+                  </div>
+                )}
+
+                {billDiscountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-red-600">
+                    <span>ส่วนลดท้ายบิล ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
+                    <span>-฿{billDiscountAmount}</span>
+                  </div>
+                )}
+
+                <Separator />
+                
+                <div className="flex justify-between font-bold text-lg">
+                  <span>ยอดชำระสุทธิ:</span>
+                  <span className="text-coffee-600">฿{total}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 mt-4">
+                <Button 
+                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-9"
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  disabled={total <= 0}
+                >
+                  ชำระเงิน
+                </Button>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDiscountModalOpen(true)}
+                    className="border-orange-300 text-orange-700 hover:bg-orange-50 h-9"
+                    size="sm"
+                  >
+                    <Percent className="w-4 h-4 mr-1" />
+                    ส่วนลด
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsHoldBillModalOpen(true)}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50 h-9"
+                    size="sm"
+                  >
+                    <Clock className="w-4 h-4 mr-1" />
+                    พักบิล
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    onClick={onClearCart}
+                    className="h-9"
+                    size="sm"
+                  >
+                    เคลียร์
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cart Items Section */}
+          <div className="flex-1 overflow-y-auto space-y-3">
             {cartItems.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 ไม่มีสินค้าในตะกร้า
@@ -168,83 +247,6 @@ const Cart = ({
               ))
             )}
           </div>
-
-          {cartItems.length > 0 && (
-            <div className="border-t border-coffee-200 pt-4 space-y-3" style={{ marginTop: '8rem' }}>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>ยอดรวมย่อย:</span>
-                  <span>฿{subtotal}</span>
-                </div>
-
-                {hasItemDiscounts && (
-                  <div className="flex justify-between text-sm text-orange-600">
-                    <span>ส่วนลดรายการ:</span>
-                    <span>-฿{cartItems.reduce((sum, item) => {
-                      const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
-                      const totalBasePrice = basePrice * item.quantity;
-                      return sum + (totalBasePrice - item.total_price);
-                    }, 0)}</span>
-                  </div>
-                )}
-
-                {billDiscountAmount > 0 && (
-                  <div className="flex justify-between text-sm text-red-600">
-                    <span>ส่วนลดท้ายบิล ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
-                    <span>-฿{billDiscountAmount}</span>
-                  </div>
-                )}
-
-                <Separator />
-                
-                <div className="flex justify-between font-bold text-lg">
-                  <span>ยอดชำระสุทธิ:</span>
-                  <span className="text-coffee-600">฿{total}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Button 
-                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-9"
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  disabled={total <= 0}
-                >
-                  ชำระเงิน
-                </Button>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsDiscountModalOpen(true)}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50 h-9"
-                    size="sm"
-                  >
-                    <Percent className="w-4 h-4 mr-1" />
-                    ส่วนลด
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsHoldBillModalOpen(true)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50 h-9"
-                    size="sm"
-                  >
-                    <Clock className="w-4 h-4 mr-1" />
-                    พักบิล
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    onClick={onClearCart}
-                    className="h-9"
-                    size="sm"
-                  >
-                    เคลียร์
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

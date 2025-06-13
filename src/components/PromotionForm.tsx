@@ -35,6 +35,8 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
   const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isMenuPopoverOpen, setIsMenuPopoverOpen] = useState(false);
+  const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const { toast } = useToast();
 
   const { data: menuItems = [] } = useQuery({
@@ -42,8 +44,29 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     queryFn: async () => {
       const { data, error } = await supabase
         .from('menu_items')
-        .select('id, name')
+        .select(`
+          id, 
+          name,
+          categories (
+            id,
+            name
+          )
+        `)
         .eq('is_available', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('is_active', true)
         .order('name');
       
       if (error) throw error;
@@ -101,6 +124,24 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
   const deselectAllMenuItems = () => {
     setSelectedMenuItems([]);
   };
+
+  const handleCategorySelect = (categoryId: string) => {
+    const categoryMenuItems = menuItems.filter(item => item.categories?.id === categoryId);
+    const categoryItemIds = categoryMenuItems.map(item => item.id);
+    
+    // Add all items from this category to selected items
+    setSelectedMenuItems(prev => {
+      const newItems = categoryItemIds.filter(id => !prev.includes(id));
+      return [...prev, ...newItems];
+    });
+    
+    setSelectedCategory(categoryId);
+    setIsCategoryPopoverOpen(false);
+  };
+
+  const filteredMenuItems = selectedCategory 
+    ? menuItems.filter(item => item.categories?.id === selectedCategory)
+    : menuItems;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,8 +324,32 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
               <Label>เมนูที่ใช้ได้</Label>
               <div className="space-x-2">
                 <Button type="button" variant="outline" size="sm" onClick={selectAllMenuItems}>
-                  เลือกรายการทั้งหมด
+                  เลือกทั้งหมด
                 </Button>
+                <Popover open={isCategoryPopoverOpen} onOpenChange={setIsCategoryPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" size="sm">
+                      เลือกหมวดหมู่
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-60">
+                    <div className="space-y-2">
+                      <div className="font-medium">เลือกหมวดหมู่</div>
+                      <div className="space-y-2">
+                        {categories.map((category) => (
+                          <Button
+                            key={category.id}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleCategorySelect(category.id)}
+                          >
+                            {category.name}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Popover open={isMenuPopoverOpen} onOpenChange={setIsMenuPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" size="sm">
@@ -300,7 +365,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        {menuItems.map((item) => (
+                        {filteredMenuItems.map((item) => (
                           <div key={item.id} className="flex items-center space-x-2">
                             <Checkbox
                               id={item.id}
@@ -309,6 +374,11 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                             />
                             <Label htmlFor={item.id} className="text-sm cursor-pointer">
                               {item.name}
+                              {item.categories && (
+                                <span className="text-xs text-gray-500 ml-2">
+                                  ({item.categories.name})
+                                </span>
+                              )}
                             </Label>
                           </div>
                         ))}

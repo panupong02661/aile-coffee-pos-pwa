@@ -24,9 +24,20 @@ const MenuGrid = ({
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
 
   const handleItemClick = (item: MenuItem) => {
-    // Always show addon modal when clicking a menu item
-    setSelectedItem(item);
-    setIsAddonModalOpen(true);
+    // Check if this menu item has any addons available
+    const availableAddons = addons.filter(addon => 
+      !addon.addon_group_id || // Global addons
+      addon.menu_item_id === item.id // Item-specific addons
+    );
+
+    // If no addons available, add directly to cart
+    if (availableAddons.length === 0) {
+      onAddToCart(item, []);
+    } else {
+      // Show addon modal if addons are available
+      setSelectedItem(item);
+      setIsAddonModalOpen(true);
+    }
   };
 
   const handleAddonConfirm = (selectedAddons: Addon[]) => {
