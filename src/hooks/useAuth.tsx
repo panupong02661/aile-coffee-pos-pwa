@@ -56,7 +56,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('users')
         .select('id, username, role, password_hash')
         .eq('username', username)
-        .eq('is_active', true)
         .maybeSingle();
 
       if (error) {
