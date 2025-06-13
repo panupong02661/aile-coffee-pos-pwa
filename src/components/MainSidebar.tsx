@@ -2,6 +2,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import UserProfile from './UserProfile';
 import { 
   BarChart3, 
   Calculator, 
@@ -68,12 +69,12 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   ];
 
   const handleMenuClick = () => {
-    onClose(); // ปิดเมนูทันทีเมื่อคลิกเมนูใดๆ
+    onClose();
   };
 
   return (
     <>
-      {/* Overlay สำหรับ mobile */}
+      {/* Overlay for mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -81,7 +82,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
         />
       )}
       
-      {/* Sidebar ที่ซ่อน/แสดงได้ทุก screen size */}
+      {/* Sidebar */}
       <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -90,7 +91,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
             <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
           </div>
           
-          <ScrollArea className="h-[calc(100vh-80px)]">
+          {/* User Profile Section */}
+          <UserProfile />
+          
+          <ScrollArea className="h-[calc(100vh-200px)]">
             <div className="p-2">
               <nav className="space-y-1">
                 {menuItems.map((item) => {
