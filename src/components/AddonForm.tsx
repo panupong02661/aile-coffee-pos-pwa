@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,14 +20,37 @@ interface AddonFormProps {
 
 const AddonForm = ({ isOpen, onClose, onSuccess, addonGroups, editAddon }: AddonFormProps) => {
   const [formData, setFormData] = useState({
-    name: editAddon?.name || '',
-    price: editAddon?.price || 0,
-    addon_group_id: editAddon?.addon_group_id || '',
-    sort_order: editAddon?.sort_order || 0,
-    is_active: editAddon?.is_active ?? true,
+    name: '',
+    price: 0,
+    addon_group_id: '',
+    sort_order: 0,
+    is_active: true,
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Reset form data when dialog opens/closes or when editAddon changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editAddon) {
+        setFormData({
+          name: editAddon.name || '',
+          price: editAddon.price || 0,
+          addon_group_id: editAddon.addon_group_id || '',
+          sort_order: editAddon.sort_order || 0,
+          is_active: editAddon.is_active ?? true,
+        });
+      } else {
+        setFormData({
+          name: '',
+          price: 0,
+          addon_group_id: '',
+          sort_order: 0,
+          is_active: true,
+        });
+      }
+    }
+  }, [isOpen, editAddon]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

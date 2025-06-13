@@ -1,10 +1,11 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
 import { useCart } from '@/hooks/useCart';
-import { mockCategories, mockMenuItems, mockAddons } from '@/data/mockData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 
 const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
@@ -26,9 +27,36 @@ const POS = () => {
     restoreCart
   } = useCart();
 
+  const { categories, menuItems, addons, loading } = useSupabaseData();
+
+  // Convert database categories to the format expected by components
+  const convertedCategories = [
+    { id: '1', name: 'ทั้งหมด' },
+    ...categories.map(cat => ({ id: cat.id, name: cat.name }))
+  ];
+
+  // Convert database menu items to the format expected by components
+  const convertedMenuItems = menuItems.map(item => ({
+    id: item.id,
+    name: item.name,
+    price: Number(item.price),
+    category_id: item.category_id || '',
+    image: item.image_url || '',
+    is_available: item.is_available
+  }));
+
+  // Convert database addons to the format expected by components
+  const convertedAddons = addons.map(addon => ({
+    id: addon.id,
+    name: addon.name,
+    price: Number(addon.price),
+    addon_group_id: addon.addon_group_id || null,
+    menu_item_id: null // We'll use addon_group relationships instead
+  }));
+
   const filteredMenuItems = selectedCategory === '1' 
-    ? mockMenuItems 
-    : mockMenuItems.filter(item => item.category_id === selectedCategory);
+    ? convertedMenuItems 
+    : convertedMenuItems.filter(item => item.category_id === selectedCategory);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -37,6 +65,14 @@ const POS = () => {
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
@@ -51,7 +87,7 @@ const POS = () => {
         <div className="max-w-7xl mx-auto">
           <Header 
             onToggleSidebar={handleToggleSidebar}
-            categories={mockCategories}
+            categories={convertedCategories}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
             gridColumns={gridColumns}
@@ -65,7 +101,7 @@ const POS = () => {
             <div className="flex-1">
               <MenuGrid
                 menuItems={filteredMenuItems}
-                addons={mockAddons}
+                addons={convertedAddons}
                 onAddToCart={addToCart}
                 gridColumns={gridColumns}
                 itemSize={itemSize}

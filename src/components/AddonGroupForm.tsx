@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,14 +19,37 @@ interface AddonGroupFormProps {
 
 const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGroupFormProps) => {
   const [formData, setFormData] = useState({
-    name: editAddonGroup?.name || '',
-    description: editAddonGroup?.description || '',
-    is_required: editAddonGroup?.is_required ?? false,
-    allow_multiple: editAddonGroup?.allow_multiple ?? false,
-    sort_order: editAddonGroup?.sort_order || 0,
+    name: '',
+    description: '',
+    is_required: false,
+    allow_multiple: false,
+    sort_order: 0,
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Reset form data when dialog opens/closes or when editAddonGroup changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editAddonGroup) {
+        setFormData({
+          name: editAddonGroup.name || '',
+          description: editAddonGroup.description || '',
+          is_required: editAddonGroup.is_required ?? false,
+          allow_multiple: editAddonGroup.allow_multiple ?? false,
+          sort_order: editAddonGroup.sort_order || 0,
+        });
+      } else {
+        setFormData({
+          name: '',
+          description: '',
+          is_required: false,
+          allow_multiple: false,
+          sort_order: 0,
+        });
+      }
+    }
+  }, [isOpen, editAddonGroup]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
