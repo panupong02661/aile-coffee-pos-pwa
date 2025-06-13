@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Define types explicitly to avoid circular references
 type UserRole = 'admin' | 'manager' | 'staff';
 
-interface User {
+interface AppUser {
   id: string;
   username: string;
   full_name?: string;
@@ -14,7 +14,7 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -31,7 +31,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('id, username, role, password_hash')
         .eq('username', username)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      const userData: User = {
+      const userData: AppUser = {
         id: data.id,
         username: data.username,
         full_name: getLevelDisplayName(data.role as UserRole),
