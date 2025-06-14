@@ -228,13 +228,13 @@ const Cart = ({
                         variant="outline"
                         size="sm"
                         onClick={() => handleItemDiscountClick(item)}
-                        className={`ml-2 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
-                      >
-                        <Tag className="w-4 h-4 mr-1" />
-                        {item.item_discount > 0 
+                        className={`ml-2 w-8 h-8 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                        title={item.item_discount > 0 
                           ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
                           : 'ส่วนลด'
                         }
+                      >
+                        <Tag className="w-4 h-4" />
                       </Button>
                     </div>
                     <div className="text-right">
