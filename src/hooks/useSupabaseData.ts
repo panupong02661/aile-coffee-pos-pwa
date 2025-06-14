@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -57,11 +58,27 @@ export interface DatabaseAddon {
   };
 }
 
+export interface MenuAddonGroup {
+  id: string;
+  menu_item_id: string;
+  addon_group_id: string;
+  created_at: string;
+}
+
+export interface CategoryAddonGroup {
+  id: string;
+  category_id: string;
+  addon_group_id: string;
+  created_at: string;
+}
+
 export const useSupabaseData = () => {
   const [categories, setCategories] = useState<DatabaseCategory[]>([]);
   const [menuItems, setMenuItems] = useState<DatabaseMenuItem[]>([]);
   const [addonGroups, setAddonGroups] = useState<DatabaseAddonGroup[]>([]);
   const [addons, setAddons] = useState<DatabaseAddon[]>([]);
+  const [menuAddonGroups, setMenuAddonGroups] = useState<MenuAddonGroup[]>([]);
+  const [categoryAddonGroups, setCategoryAddonGroups] = useState<CategoryAddonGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -131,6 +148,30 @@ export const useSupabaseData = () => {
     setAddons(data || []);
   };
 
+  const fetchMenuAddonGroups = async () => {
+    const { data, error } = await supabase
+      .from('menu_addon_groups')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching menu addon groups:', error);
+      return;
+    }
+    setMenuAddonGroups(data || []);
+  };
+
+  const fetchCategoryAddonGroups = async () => {
+    const { data, error } = await supabase
+      .from('category_addon_groups')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching category addon groups:', error);
+      return;
+    }
+    setCategoryAddonGroups(data || []);
+  };
+
   const uploadImage = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
@@ -151,6 +192,22 @@ export const useSupabaseData = () => {
     return data.publicUrl;
   };
 
+  const getAddonGroupsForMenuItem = (menuItemId: string) => {
+    const menuAddonGroupIds = menuAddonGroups
+      .filter(mag => mag.menu_item_id === menuItemId)
+      .map(mag => mag.addon_group_id);
+    
+    return addonGroups.filter(ag => menuAddonGroupIds.includes(ag.id));
+  };
+
+  const getAddonGroupsForCategory = (categoryId: string) => {
+    const categoryAddonGroupIds = categoryAddonGroups
+      .filter(cag => cag.category_id === categoryId)
+      .map(cag => cag.addon_group_id);
+    
+    return addonGroups.filter(ag => categoryAddonGroupIds.includes(ag.id));
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -159,6 +216,8 @@ export const useSupabaseData = () => {
         fetchMenuItems(),
         fetchAddonGroups(),
         fetchAddons(),
+        fetchMenuAddonGroups(),
+        fetchCategoryAddonGroups(),
       ]);
       setLoading(false);
     };
@@ -171,13 +230,19 @@ export const useSupabaseData = () => {
     menuItems,
     addonGroups,
     addons,
+    menuAddonGroups,
+    categoryAddonGroups,
     loading,
     refetch: {
       categories: fetchCategories,
       menuItems: fetchMenuItems,
       addonGroups: fetchAddonGroups,
       addons: fetchAddons,
+      menuAddonGroups: fetchMenuAddonGroups,
+      categoryAddonGroups: fetchCategoryAddonGroups,
     },
     uploadImage,
+    getAddonGroupsForMenuItem,
+    getAddonGroupsForCategory,
   };
 };

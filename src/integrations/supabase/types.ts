@@ -81,6 +81,13 @@ export type Database = {
             referencedRelation: "addon_groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_addons_addon_group_id"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       categories: {
@@ -147,6 +154,20 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_category_addon_groups_addon_group_id"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_category_addon_groups_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
         ]
       }
       menu_addon_groups: {
@@ -169,6 +190,20 @@ export type Database = {
           menu_item_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_menu_addon_groups_addon_group_id"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_menu_addon_groups_menu_item_id"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_addon_groups_addon_group_id_fkey"
             columns: ["addon_group_id"]
@@ -223,6 +258,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_menu_items_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_items_category_id_fkey"
             columns: ["category_id"]

@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
+import AddonModal from '@/components/AddonModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 
@@ -12,6 +13,9 @@ const POS = () => {
   const [gridColumns, setGridColumns] = useState(4);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
+  const [availableAddons, setAvailableAddons] = useState<any[]>([]);
 
   const {
     cartItems,
@@ -27,7 +31,14 @@ const POS = () => {
     restoreCart
   } = useCart();
 
-  const { categories, menuItems, addons, loading } = useSupabaseData();
+  const { 
+    categories, 
+    menuItems, 
+    addons, 
+    loading, 
+    getAddonGroupsForMenuItem, 
+    getAddonGroupsForCategory 
+  } = useSupabaseData();
 
   // Convert database categories to the format expected by components
   const convertedCategories = [
@@ -82,6 +93,43 @@ const POS = () => {
     setIsSidebarOpen(false);
   };
 
+  const handleMenuItemClick = (menuItem: any) => {
+    // Get addon groups for this specific menu item
+    const menuAddonGroups = getAddonGroupsForMenuItem(menuItem.id);
+    
+    // Get addon groups for the category this menu item belongs to
+    const categoryAddonGroups = menuItem.category_id 
+      ? getAddonGroupsForCategory(menuItem.category_id) 
+      : [];
+
+    // Combine both sets of addon groups (avoid duplicates)
+    const allAddonGroupIds = new Set([
+      ...menuAddonGroups.map(ag => ag.id),
+      ...categoryAddonGroups.map(ag => ag.id)
+    ]);
+
+    // Get all addons that belong to these addon groups
+    const relevantAddons = convertedAddons.filter(addon => 
+      addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
+    );
+
+    if (relevantAddons.length > 0) {
+      setSelectedMenuItem(menuItem);
+      setAvailableAddons(relevantAddons);
+      setIsAddonModalOpen(true);
+    } else {
+      // No addons available, add directly to cart
+      addToCart(menuItem, []);
+    }
+  };
+
+  const handleAddToCartWithAddons = (menuItem: any, selectedAddons: any[]) => {
+    addToCart(menuItem, selectedAddons);
+    setIsAddonModalOpen(false);
+    setSelectedMenuItem(null);
+    setAvailableAddons([]);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
@@ -118,7 +166,7 @@ const POS = () => {
               <MenuGrid
                 menuItems={filteredMenuItems}
                 addons={convertedAddons}
-                onAddToCart={addToCart}
+                onAddToCart={handleMenuItemClick}
                 gridColumns={gridColumns}
                 itemSize={itemSize}
               />
@@ -141,6 +189,20 @@ const POS = () => {
           </div>
         </div>
       </div>
+
+      {selectedMenuItem && (
+        <AddonModal
+          isOpen={isAddonModalOpen}
+          onClose={() => {
+            setIsAddonModalOpen(false);
+            setSelectedMenuItem(null);
+            setAvailableAddons([]);
+          }}
+          menuItem={selectedMenuItem}
+          addons={availableAddons}
+          onAddToCart={handleAddToCartWithAddons}
+        />
+      )}
     </div>
   );
 };

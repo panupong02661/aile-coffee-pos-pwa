@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +33,35 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
   const { toast } = useToast();
   const { categories, menuItems } = useSupabaseData();
 
+  // Load existing relationships when editing
+  useEffect(() => {
+    const loadExistingRelationships = async () => {
+      if (editAddonGroup && isOpen) {
+        // Load existing menu relationships
+        const { data: menuRels } = await supabase
+          .from('menu_addon_groups')
+          .select('menu_item_id')
+          .eq('addon_group_id', editAddonGroup.id);
+        
+        if (menuRels) {
+          setSelectedMenuItems(menuRels.map(rel => rel.menu_item_id));
+        }
+
+        // Load existing category relationships
+        const { data: categoryRels } = await supabase
+          .from('category_addon_groups')
+          .select('category_id')
+          .eq('addon_group_id', editAddonGroup.id);
+        
+        if (categoryRels) {
+          setSelectedCategories(categoryRels.map(rel => rel.category_id));
+        }
+      }
+    };
+
+    loadExistingRelationships();
+  }, [editAddonGroup, isOpen]);
+
   // Reset form data when dialog opens/closes or when editAddonGroup changes
   useEffect(() => {
     if (isOpen) {
@@ -45,9 +73,6 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
           allow_multiple: editAddonGroup.allow_multiple ?? false,
           sort_order: editAddonGroup.sort_order || 0,
         });
-        // TODO: Load existing menu items and categories relationships
-        setSelectedMenuItems([]);
-        setSelectedCategories([]);
       } else {
         setFormData({
           name: '',
@@ -94,15 +119,20 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
         toast({ title: 'สำเร็จ', description: 'เพิ่มกลุ่ม Add-on สำเร็จ' });
       }
 
-      // Handle menu items relationships
-      if (selectedMenuItems.length > 0) {
-        // Delete existing relationships for this addon group
-        await supabase
+      // Delete existing relationships for this addon group
+      await Promise.all([
+        supabase
           .from('menu_addon_groups')
           .delete()
-          .eq('addon_group_id', addonGroupId);
+          .eq('addon_group_id', addonGroupId),
+        supabase
+          .from('category_addon_groups')
+          .delete()
+          .eq('addon_group_id', addonGroupId)
+      ]);
 
-        // Insert new relationships
+      // Insert new menu relationships
+      if (selectedMenuItems.length > 0) {
         const menuRelationships = selectedMenuItems.map(menuItemId => ({
           addon_group_id: addonGroupId,
           menu_item_id: menuItemId
@@ -115,15 +145,8 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
         if (menuError) throw menuError;
       }
 
-      // Handle category relationships
+      // Insert new category relationships
       if (selectedCategories.length > 0) {
-        // Delete existing relationships for this addon group
-        await supabase
-          .from('category_addon_groups')
-          .delete()
-          .eq('addon_group_id', addonGroupId);
-
-        // Insert new relationships
         const categoryRelationships = selectedCategories.map(categoryId => ({
           addon_group_id: addonGroupId,
           category_id: categoryId
@@ -253,7 +276,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
+                <PopoverContent className="w-full p-0" align="start" side="bottom">
                   <div className="p-2 border-b">
                     <div className="flex gap-2">
                       <Button
@@ -316,7 +339,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
+                <PopoverContent className="w-full p-0" align="start" side="bottom">
                   <div className="p-2 border-b">
                     <div className="flex gap-2">
                       <Button
