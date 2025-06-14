@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,13 +19,34 @@ interface CategoryFormProps {
 
 const CategoryForm = ({ isOpen, onClose, onSuccess, editCategory }: CategoryFormProps) => {
   const [formData, setFormData] = useState({
-    name: editCategory?.name || '',
-    description: editCategory?.description || '',
-    sort_order: editCategory?.sort_order || 0,
-    is_active: editCategory?.is_active ?? true,
+    name: '',
+    description: '',
+    sort_order: 0,
+    is_active: true,
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Reset form data when dialog opens/closes or when editCategory changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editCategory) {
+        setFormData({
+          name: editCategory.name || '',
+          description: editCategory.description || '',
+          sort_order: editCategory.sort_order || 0,
+          is_active: editCategory.is_active ?? true,
+        });
+      } else {
+        setFormData({
+          name: '',
+          description: '',
+          sort_order: 0,
+          is_active: true,
+        });
+      }
+    }
+  }, [isOpen, editCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
