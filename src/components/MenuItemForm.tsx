@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,17 +22,44 @@ interface MenuItemFormProps {
 
 const MenuItemForm = ({ isOpen, onClose, onSuccess, categories, editItem }: MenuItemFormProps) => {
   const [formData, setFormData] = useState({
-    name: editItem?.name || '',
-    description: editItem?.description || '',
-    price: editItem?.price || 0,
-    cost_price: editItem?.cost_price || 0,
-    category_id: editItem?.category_id || '',
-    image_url: editItem?.image_url || '',
+    name: '',
+    description: '',
+    price: 0,
+    cost_price: 0,
+    category_id: '',
+    image_url: '',
   });
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(editItem?.image_url || '');
+  const [imagePreview, setImagePreview] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Reset form data when dialog opens/closes or when editItem changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editItem) {
+        setFormData({
+          name: editItem.name || '',
+          description: editItem.description || '',
+          price: editItem.price || 0,
+          cost_price: editItem.cost_price || 0,
+          category_id: editItem.category_id || '',
+          image_url: editItem.image_url || '',
+        });
+        setImagePreview(editItem.image_url || '');
+      } else {
+        setFormData({
+          name: '',
+          description: '',
+          price: 0,
+          cost_price: 0,
+          category_id: '',
+          image_url: '',
+        });
+        setImagePreview('');
+      }
+    }
+  }, [isOpen, editItem]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
