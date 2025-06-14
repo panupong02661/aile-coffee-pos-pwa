@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import AddonForm from '@/components/AddonForm';
 import AddonGroupForm from '@/components/AddonGroupForm';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
+import { DatabaseMenuItem, DatabaseCategory, DatabaseAddonGroup, DatabaseAddon } from '@/hooks/useSupabaseData';
 
 const MenuManagement = () => {
   const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'addon-groups' | 'addons'>('menu');
@@ -19,10 +19,10 @@ const MenuManagement = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showAddonGroupForm, setShowAddonGroupForm] = useState(false);
   const [showAddonForm, setShowAddonForm] = useState(false);
-  const [editingMenuItem, setEditingMenuItem] = useState(null);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [editingAddonGroup, setEditingAddonGroup] = useState(null);
-  const [editingAddon, setEditingAddon] = useState(null);
+  const [editingMenuItem, setEditingMenuItem] = useState<DatabaseMenuItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<DatabaseCategory | null>(null);
+  const [editingAddonGroup, setEditingAddonGroup] = useState<DatabaseAddonGroup | null>(null);
+  const [editingAddon, setEditingAddon] = useState<DatabaseAddon | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const { 
@@ -36,6 +36,23 @@ const MenuManagement = () => {
   } = useSupabaseData();
   
   const { toast } = useToast();
+
+  const handleEditMenuItem = (item: DatabaseMenuItem) => {
+    console.log('Editing menu item:', item);
+    setEditingMenuItem(item);
+    setShowMenuForm(true);
+  };
+
+  const handleAddMenuItem = () => {
+    console.log('Adding new menu item');
+    setEditingMenuItem(null);
+    setShowMenuForm(true);
+  };
+
+  const handleCloseMenuForm = () => {
+    setShowMenuForm(false);
+    setEditingMenuItem(null);
+  };
 
   const handleDeleteMenuItem = async (id: string) => {
     if (!confirm('คุณต้องการลบเมนูนี้หรือไม่?')) return;
@@ -156,10 +173,7 @@ const MenuManagement = () => {
                 <CardTitle className="text-coffee-800">รายการอาหาร</CardTitle>
                 <Button 
                   className="bg-coffee-600 hover:bg-coffee-700"
-                  onClick={() => {
-                    setEditingMenuItem(null);
-                    setShowMenuForm(true);
-                  }}
+                  onClick={handleAddMenuItem}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   เพิ่มเมนู
@@ -190,10 +204,7 @@ const MenuManagement = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => {
-                                setEditingMenuItem(item);
-                                setShowMenuForm(true);
-                              }}
+                              onClick={() => handleEditMenuItem(item)}
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -411,7 +422,7 @@ const MenuManagement = () => {
 
           <MenuItemForm
             isOpen={showMenuForm}
-            onClose={() => setShowMenuForm(false)}
+            onClose={handleCloseMenuForm}
             onSuccess={() => refetch.menuItems()}
             categories={categories}
             editItem={editingMenuItem}

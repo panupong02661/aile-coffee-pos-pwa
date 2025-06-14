@@ -34,20 +34,26 @@ const MenuItemForm = ({ isOpen, onClose, onSuccess, categories, editItem }: Menu
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Reset form data when dialog opens/closes or when editItem changes
+  // Debug logging and form reset
   useEffect(() => {
+    console.log('MenuItemForm useEffect triggered:', { isOpen, editItem });
+    
     if (isOpen) {
       if (editItem) {
-        setFormData({
+        console.log('Setting form data from editItem:', editItem);
+        const newFormData = {
           name: editItem.name || '',
           description: editItem.description || '',
           price: editItem.price || 0,
           cost_price: editItem.cost_price || 0,
           category_id: editItem.category_id || '',
           image_url: editItem.image_url || '',
-        });
+        };
+        console.log('New form data:', newFormData);
+        setFormData(newFormData);
         setImagePreview(editItem.image_url || '');
       } else {
+        console.log('Resetting form for new item');
         setFormData({
           name: '',
           description: '',
@@ -60,6 +66,11 @@ const MenuItemForm = ({ isOpen, onClose, onSuccess, categories, editItem }: Menu
       }
     }
   }, [isOpen, editItem]);
+
+  // Additional effect to handle form data changes
+  useEffect(() => {
+    console.log('Current formData state:', formData);
+  }, [formData]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
