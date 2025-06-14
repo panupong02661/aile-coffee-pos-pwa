@@ -5,23 +5,25 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { MenuItem, Addon } from '@/types';
+import { DatabaseAddon } from '@/hooks/useSupabaseData';
 
 interface AddonModalProps {
   isOpen: boolean;
   onClose: () => void;
   menuItem: MenuItem | null;
-  addons: Addon[];
-  onAddToCart: (menuItem: MenuItem, selectedAddons: Addon[]) => void;
+  addons: DatabaseAddon[];
+  onAddToCart: (menuItem: MenuItem, selectedAddons: DatabaseAddon[]) => void;
 }
 
 const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
-  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
 
   if (!menuItem) return null;
 
+  // Group addons by addon group
   const addonGroups = [...new Set(addons.map(addon => addon.addon_groups?.name).filter(Boolean))];
 
-  const handleAddonToggle = (addon: Addon, groupName: string) => {
+  const handleAddonToggle = (addon: DatabaseAddon, groupName: string) => {
     const groupAddons = addons.filter(a => a.addon_groups?.name === groupName);
     const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
 
@@ -39,7 +41,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
     }
   };
 
-  const isAddonSelected = (addon: Addon) => {
+  const isAddonSelected = (addon: DatabaseAddon) => {
     return selectedAddons.some(a => a.id === addon.id);
   };
 
@@ -49,7 +51,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
     onClose();
   };
 
-  const totalPrice = menuItem.price + selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+  const totalPrice = menuItem.price + selectedAddons.reduce((sum, addon) => sum + Number(addon.price), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -63,11 +65,12 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
             if (!groupName) return null;
             const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
             const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
+            const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
             
             return (
               <div key={groupName} className="space-y-3">
                 <h3 className="font-medium text-coffee-800">
-                  {groupName} {!allowMultiple && <span className="text-red-500">*</span>}
+                  {groupName} {isRequired && <span className="text-red-500">*</span>}
                 </h3>
                 
                 <div className="space-y-2">
@@ -75,7 +78,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                     <Button
                       key={addon.id}
                       variant={isAddonSelected(addon) ? "default" : "outline"}
-                      className={`w-full h-7 text-left justify-start ${
+                      className={`w-full h-auto text-left justify-start p-3 ${
                         isAddonSelected(addon) 
                           ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
                           : 'hover:bg-coffee-50'
@@ -84,9 +87,9 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                     >
                       <div className="flex justify-between items-center w-full">
                         <span>{addon.name}</span>
-                        {addon.price > 0 && (
+                        {Number(addon.price) > 0 && (
                           <span className="text-orange-600 font-medium">
-                            +฿{addon.price}
+                            +฿{Number(addon.price)}
                           </span>
                         )}
                       </div>

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
@@ -7,15 +7,23 @@ import Cart from '@/components/Cart';
 import AddonModal from '@/components/AddonModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { DatabaseAddon } from '@/hooks/useSupabaseData';
 
 const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
-  const [gridColumns, setGridColumns] = useState(4);
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
+  // โหลดการตั้งค่าจาก localStorage
+  const [gridColumns, setGridColumns] = useState(() => {
+    const saved = localStorage.getItem('pos-grid-columns');
+    return saved ? parseInt(saved) : 4;
+  });
+  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
+    const saved = localStorage.getItem('pos-item-size');
+    return saved ? saved as 'small' | 'medium' | 'large' : 'medium';
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
-  const [availableAddons, setAvailableAddons] = useState<any[]>([]);
+  const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
 
   const {
     cartItems,
@@ -39,6 +47,15 @@ const POS = () => {
     getAddonGroupsForMenuItem, 
     getAddonGroupsForCategory 
   } = useSupabaseData();
+
+  // บันทึกการตั้งค่าลง localStorage เมื่อมีการเปลี่ยนแปลง
+  useEffect(() => {
+    localStorage.setItem('pos-grid-columns', gridColumns.toString());
+  }, [gridColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('pos-item-size', itemSize);
+  }, [itemSize]);
 
   // Convert database categories to the format expected by components
   const convertedCategories = [
@@ -70,17 +87,6 @@ const POS = () => {
     calculated_cost: Number(item.cost_price)
   }));
 
-  // Convert database addons to the format expected by components
-  const convertedAddons = addons.map(addon => ({
-    id: addon.id,
-    name: addon.name,
-    price: Number(addon.price),
-    category: 'other' as const,
-    is_required: addon.addon_groups?.is_required || false,
-    allow_multiple: addon.addon_groups?.allow_multiple || false,
-    addon_group_id: addon.addon_group_id || undefined
-  }));
-
   const filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
@@ -94,24 +100,30 @@ const POS = () => {
   };
 
   const handleMenuItemClick = (menuItem: any) => {
+    console.log('Menu item clicked:', menuItem);
+    
     // Get addon groups for this specific menu item
     const menuAddonGroups = getAddonGroupsForMenuItem(menuItem.id);
+    console.log('Menu addon groups:', menuAddonGroups);
     
     // Get addon groups for the category this menu item belongs to
     const categoryAddonGroups = menuItem.category_id 
       ? getAddonGroupsForCategory(menuItem.category_id) 
       : [];
+    console.log('Category addon groups:', categoryAddonGroups);
 
     // Combine both sets of addon groups (avoid duplicates)
     const allAddonGroupIds = new Set([
       ...menuAddonGroups.map(ag => ag.id),
       ...categoryAddonGroups.map(ag => ag.id)
     ]);
+    console.log('All addon group IDs:', Array.from(allAddonGroupIds));
 
     // Get all addons that belong to these addon groups
-    const relevantAddons = convertedAddons.filter(addon => 
+    const relevantAddons = addons.filter(addon => 
       addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
     );
+    console.log('Relevant addons:', relevantAddons);
 
     if (relevantAddons.length > 0) {
       setSelectedMenuItem(menuItem);
@@ -123,8 +135,19 @@ const POS = () => {
     }
   };
 
-  const handleAddToCartWithAddons = (menuItem: any, selectedAddons: any[]) => {
-    addToCart(menuItem, selectedAddons);
+  const handleAddToCartWithAddons = (menuItem: any, selectedAddons: DatabaseAddon[]) => {
+    // Convert DatabaseAddon to the format expected by cart
+    const convertedAddons = selectedAddons.map(addon => ({
+      id: addon.id,
+      name: addon.name,
+      price: Number(addon.price),
+      category: 'other' as const,
+      is_required: addon.addon_groups?.is_required || false,
+      allow_multiple: addon.addon_groups?.allow_multiple || false,
+      addon_group_id: addon.addon_group_id || undefined
+    }));
+
+    addToCart(menuItem, convertedAddons);
     setIsAddonModalOpen(false);
     setSelectedMenuItem(null);
     setAvailableAddons([]);
@@ -165,7 +188,7 @@ const POS = () => {
             <div className="flex-1">
               <MenuGrid
                 menuItems={filteredMenuItems}
-                addons={convertedAddons}
+                addons={[]} // ส่งค่าว่างเพราะเราจัดการ addons ใน POS แล้ว
                 onAddToCart={handleMenuItemClick}
                 gridColumns={gridColumns}
                 itemSize={itemSize}
