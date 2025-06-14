@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -100,7 +99,7 @@ export const useSupabaseData = () => {
       .from('menu_items')
       .select(`
         *,
-        categories (
+        categories!menu_items_category_id_fkey (
           id,
           name
         )
@@ -132,7 +131,7 @@ export const useSupabaseData = () => {
       .from('addons')
       .select(`
         *,
-        addon_groups (
+        addon_groups!addons_addon_group_id_fkey (
           id,
           name,
           is_required,
