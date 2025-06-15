@@ -168,10 +168,11 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
-        <div className="max-w-7xl mx-auto">
+        {/* Fixed Header */}
+        <div className="sticky top-0 z-10 bg-cream-50 p-4 pb-0">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={convertedCategories}
@@ -183,32 +184,35 @@ const POS = () => {
             setItemSize={setItemSize}
             page="pos"
           />
-          
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <MenuGrid
-                menuItems={filteredMenuItems}
-                addons={[]} // ส่งค่าว่างเพราะเราจัดการ addons ใน POS แล้ว
-                onAddToCart={handleMenuItemClick}
-                gridColumns={gridColumns}
-                itemSize={itemSize}
-              />
-            </div>
+        </div>
+        
+        {/* Content Area */}
+        <div className="flex-1 flex gap-6 p-4 pt-0 overflow-hidden">
+          {/* Menu Grid - Scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <MenuGrid
+              menuItems={filteredMenuItems}
+              addons={[]} // ส่งค่าว่างเพราะเราจัดการ addons ใน POS แล้ว
+              onAddToCart={handleMenuItemClick}
+              gridColumns={gridColumns}
+              itemSize={itemSize}
+            />
+          </div>
 
-            <div className="w-80">
-              <Cart
-                cartItems={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onUpdateDiscount={updateDiscount}
-                onClearCart={clearCart}
-                billDiscount={billDiscount}
-                billDiscountType={billDiscountType}
-                onUpdateBillDiscount={setBillDiscount}
-                onUpdateBillDiscountType={setBillDiscountType}
-                onRestoreCart={restoreCart}
-              />
-            </div>
+          {/* Fixed Cart */}
+          <div className="w-80 flex-shrink-0 overflow-y-auto">
+            <Cart
+              cartItems={cartItems}
+              onUpdateQuantity={updateQuantity}
+              onRemoveItem={removeFromCart}
+              onUpdateDiscount={updateDiscount}
+              onClearCart={clearCart}
+              billDiscount={billDiscount}
+              billDiscountType={billDiscountType}
+              onUpdateBillDiscount={setBillDiscount}
+              onUpdateBillDiscountType={setBillDiscountType}
+              onRestoreCart={restoreCart}
+            />
           </div>
         </div>
       </div>

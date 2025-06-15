@@ -55,50 +55,51 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          {addonGroups.map(groupName => {
-            if (!groupName) return null;
-            const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
-            const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
-            const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
-            
-            return (
-              <div key={groupName} className="space-y-3">
-                <h3 className="font-medium text-coffee-800">
-                  {groupName} {isRequired && <span className="text-red-500">*</span>}
-                </h3>
-                
-                <div className="space-y-2">
-                  {groupAddons.map(addon => (
-                    <Button
-                      key={addon.id}
-                      variant={isAddonSelected(addon) ? "default" : "outline"}
-                      className={`w-full h-auto text-left justify-start p-3 ${
-                        isAddonSelected(addon) 
-                          ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
-                          : 'hover:bg-coffee-50'
-                      }`}
-                      onClick={() => handleAddonToggle(addon, groupName)}
-                    >
-                      <div className="flex justify-between items-center w-full">
-                        <span>{addon.name}</span>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {addonGroups.map(groupName => {
+              if (!groupName) return null;
+              const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
+              const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
+              const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
+              
+              return (
+                <div key={groupName} className="space-y-3">
+                  <h3 className="font-medium text-coffee-800">
+                    {groupName} {isRequired && <span className="text-red-500">*</span>}
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {groupAddons.map(addon => (
+                      <Button
+                        key={addon.id}
+                        variant={isAddonSelected(addon) ? "default" : "outline"}
+                        className={`w-full h-auto text-left justify-between p-3 ${
+                          isAddonSelected(addon) 
+                            ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
+                            : 'hover:bg-coffee-50'
+                        }`}
+                        onClick={() => handleAddonToggle(addon, groupName)}
+                      >
+                        <span className="flex-1 text-left truncate pr-2">{addon.name}</span>
                         {Number(addon.price) > 0 && (
-                          <span className="text-orange-600 font-medium">
+                          <span className="text-orange-600 font-medium flex-shrink-0">
                             +฿{Number(addon.price)}
                           </span>
                         )}
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-4">
