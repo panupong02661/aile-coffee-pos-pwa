@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -185,33 +186,37 @@ const POS = () => {
           />
         </div>
         
-        {/* Content Area - Fixed height with independent scrolling */}
-        <div className="flex-1 flex gap-6 p-4 pt-0 h-0 min-h-0">
-          {/* Menu Grid - Independent scrolling */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
-            <MenuGrid
-              menuItems={filteredMenuItems}
-              addons={[]}
-              onAddToCart={handleMenuItemClick}
-              gridColumns={gridColumns}
-              itemSize={itemSize}
-            />
+        {/* Content Area - Fixed height layout */}
+        <div className="flex-1 flex gap-6 p-4 pt-0 min-h-0">
+          {/* Menu Grid - Independent scrolling container */}
+          <div className="flex-1 min-w-0">
+            <div className="h-full overflow-y-auto overflow-x-hidden">
+              <MenuGrid
+                menuItems={filteredMenuItems}
+                addons={[]}
+                onAddToCart={handleMenuItemClick}
+                gridColumns={gridColumns}
+                itemSize={itemSize}
+              />
+            </div>
           </div>
 
-          {/* Fixed Cart - Independent scrolling */}
-          <div className="w-80 flex-shrink-0 flex flex-col">
-            <Cart
-              cartItems={cartItems}
-              onUpdateQuantity={updateQuantity}
-              onRemoveItem={removeFromCart}
-              onUpdateDiscount={updateDiscount}
-              onClearCart={clearCart}
-              billDiscount={billDiscount}
-              billDiscountType={billDiscountType}
-              onUpdateBillDiscount={setBillDiscount}
-              onUpdateBillDiscountType={setBillDiscountType}
-              onRestoreCart={restoreCart}
-            />
+          {/* Cart - Independent scrolling container */}
+          <div className="w-80 flex-shrink-0 min-h-0">
+            <div className="h-full">
+              <Cart
+                cartItems={cartItems}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeFromCart}
+                onUpdateDiscount={updateDiscount}
+                onClearCart={clearCart}
+                billDiscount={billDiscount}
+                billDiscountType={billDiscountType}
+                onUpdateBillDiscount={setBillDiscount}
+                onUpdateBillDiscountType={setBillDiscountType}
+                onRestoreCart={restoreCart}
+              />
+            </div>
           </div>
         </div>
       </div>
