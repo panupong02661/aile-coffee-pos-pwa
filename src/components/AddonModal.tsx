@@ -57,7 +57,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -71,7 +71,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               
               return (
                 <div key={groupName} className="space-y-3">
-                  <h3 className="font-medium text-coffee-800">
+                  <h3 className="font-bold text-lg text-coffee-800">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
                   
@@ -80,7 +80,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                       <Button
                         key={addon.id}
                         variant={isAddonSelected(addon) ? "default" : "outline"}
-                        className={`w-full h-auto text-left justify-between p-3 ${
+                        className={`w-full h-auto text-left justify-between p-2 text-sm ${
                           isAddonSelected(addon) 
                             ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
                             : 'hover:bg-coffee-50'
@@ -103,17 +103,21 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
 
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-4">
-              <span className="font-medium">ราคารวม:</span>
-              <span className="text-xl font-bold text-coffee-600">฿{totalPrice}</span>
+              <span className="font-bold text-lg">ราคารวม:</span>
+              <span className="text-2xl font-bold text-coffee-600">฿{totalPrice}</span>
             </div>
             
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={onClose} className="flex-1">
+              <Button 
+                variant="outline" 
+                onClick={onClose} 
+                className="flex-1 font-bold text-lg h-12"
+              >
                 ยกเลิก
               </Button>
               <Button 
                 onClick={handleAddToCart} 
-                className="flex-1 bg-coffee-600 hover:bg-coffee-700"
+                className="flex-1 bg-coffee-600 hover:bg-coffee-700 font-bold text-lg h-12"
               >
                 เพิ่มลงตะกร้า
               </Button>
