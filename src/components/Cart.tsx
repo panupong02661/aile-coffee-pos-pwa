@@ -89,12 +89,12 @@ const Cart = ({
 
   return (
     <>
-      <Card className="h-full flex flex-col border-coffee-200">
+      <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
         <CardHeader className="pb-3 flex-shrink-0">
           <CardTitle className="text-coffee-800">ตะกร้าสินค้า</CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
           {/* Payment Summary Section - Fixed at top */}
           {cartItems.length > 0 && (
             <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50 flex-shrink-0">
@@ -173,8 +173,8 @@ const Cart = ({
             </div>
           )}
 
-          {/* Cart Items Section - Scrollable independently */}
-          <div className="flex-1 overflow-hidden">
+          {/* Cart Items Section - Independent scrollbar */}
+          <div className="flex-1 min-h-0 overflow-hidden">
             <div className="h-full overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin' }}>
               {cartItems.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
@@ -252,6 +252,7 @@ const Cart = ({
         </CardContent>
       </Card>
 
+      {/* Modals */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}

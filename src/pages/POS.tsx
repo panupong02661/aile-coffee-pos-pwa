@@ -161,17 +161,17 @@ const POS = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 flex overflow-hidden">
+    <div className="h-screen bg-cream-50 flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
-        {/* Fixed Header - ไม่เลื่อน */}
-        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0 z-10">
+        {/* Fixed Header - Sticky at top */}
+        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0 sticky top-0 z-10">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={convertedCategories}
@@ -185,12 +185,12 @@ const POS = () => {
           />
         </div>
         
-        {/* Content Area - ความสูงคงที่แยกการเลื่อน */}
-        <div className="flex-1 flex gap-6 p-4 pt-0 min-h-0">
-          {/* Menu Grid Container - เลื่อนแยกอิสระ */}
-          <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 min-h-0">
-              <div className="h-full overflow-y-auto overflow-x-hidden bg-white rounded-lg border border-coffee-200 p-4" style={{ scrollbarWidth: 'thin' }}>
+        {/* Content Area - Fixed height with independent scrolling */}
+        <div className="flex-1 flex gap-6 p-4 pt-0 overflow-hidden">
+          {/* Menu Grid Container - Independent scroll */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="h-full bg-white rounded-lg border border-coffee-200">
+              <div className="h-full overflow-y-auto overflow-x-hidden p-4" style={{ scrollbarWidth: 'thin' }}>
                 <MenuGrid
                   menuItems={filteredMenuItems}
                   addons={[]}
@@ -202,22 +202,20 @@ const POS = () => {
             </div>
           </div>
 
-          {/* Cart Container - เลื่อนแยกอิสระ */}
-          <div className="w-80 flex-shrink-0 flex flex-col">
-            <div className="flex-1 min-h-0">
-              <Cart
-                cartItems={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onUpdateDiscount={updateDiscount}
-                onClearCart={clearCart}
-                billDiscount={billDiscount}
-                billDiscountType={billDiscountType}
-                onUpdateBillDiscount={setBillDiscount}
-                onUpdateBillDiscountType={setBillDiscountType}
-                onRestoreCart={restoreCart}
-              />
-            </div>
+          {/* Cart Container - Independent scroll */}
+          <div className="w-80 flex-shrink-0 overflow-hidden">
+            <Cart
+              cartItems={cartItems}
+              onUpdateQuantity={updateQuantity}
+              onRemoveItem={removeFromCart}
+              onUpdateDiscount={updateDiscount}
+              onClearCart={clearCart}
+              billDiscount={billDiscount}
+              billDiscountType={billDiscountType}
+              onUpdateBillDiscount={setBillDiscount}
+              onUpdateBillDiscountType={setBillDiscountType}
+              onRestoreCart={restoreCart}
+            />
           </div>
         </div>
       </div>
