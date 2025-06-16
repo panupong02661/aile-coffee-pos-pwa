@@ -161,17 +161,17 @@ const POS = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-cream-50 flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Fixed Header - ไม่เลื่อน */}
-        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0 sticky top-0 z-10">
+        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0 z-10">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={convertedCategories}
@@ -185,24 +185,26 @@ const POS = () => {
           />
         </div>
         
-        {/* Content Area - ความสูงคงที่ */}
-        <div className="flex-1 flex gap-6 p-4 pt-0" style={{ height: 'calc(100vh - 140px)' }}>
-          {/* Menu Grid Container - เลื่อนแยก */}
-          <div className="flex-1 min-w-0">
-            <div className="h-full overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: 'thin' }}>
-              <MenuGrid
-                menuItems={filteredMenuItems}
-                addons={[]}
-                onAddToCart={handleMenuItemClick}
-                gridColumns={gridColumns}
-                itemSize={itemSize}
-              />
+        {/* Content Area - ความสูงคงที่แยกการเลื่อน */}
+        <div className="flex-1 flex gap-6 p-4 pt-0 min-h-0">
+          {/* Menu Grid Container - เลื่อนแยกอิสระ */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex-1 min-h-0">
+              <div className="h-full overflow-y-auto overflow-x-hidden bg-white rounded-lg border border-coffee-200 p-4" style={{ scrollbarWidth: 'thin' }}>
+                <MenuGrid
+                  menuItems={filteredMenuItems}
+                  addons={[]}
+                  onAddToCart={handleMenuItemClick}
+                  gridColumns={gridColumns}
+                  itemSize={itemSize}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Cart Container - เลื่อนแยก */}
-          <div className="w-80 flex-shrink-0">
-            <div className="h-full" style={{ scrollbarWidth: 'thin' }}>
+          {/* Cart Container - เลื่อนแยกอิสระ */}
+          <div className="w-80 flex-shrink-0 flex flex-col">
+            <div className="flex-1 min-h-0">
               <Cart
                 cartItems={cartItems}
                 onUpdateQuantity={updateQuantity}
