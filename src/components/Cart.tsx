@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,16 +87,16 @@ const Cart = ({
   };
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       <Card className="h-full flex flex-col border-coffee-200">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex-shrink-0">
           <CardTitle className="text-coffee-800">ตะกร้าสินค้า</CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col overflow-hidden">
-          {/* Payment Summary Section - Moved to top */}
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+          {/* Payment Summary Section - Fixed at top */}
           {cartItems.length > 0 && (
-            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50">
+            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50 flex-shrink-0">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>ยอดรวมย่อย:</span>
@@ -173,79 +172,81 @@ const Cart = ({
             </div>
           )}
 
-          {/* Cart Items Section */}
-          <div className="flex-1 overflow-y-auto space-y-3">
-            {cartItems.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                ไม่มีสินค้าในตะกร้า
-              </div>
-            ) : (
-              cartItems.map((item) => (
-                <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm text-coffee-800">
-                        {item.menu_item.name}
-                      </h4>
-                      {item.selected_addons.length > 0 && (
-                        <div className="text-xs text-coffee-600 mt-1">
-                          {item.selected_addons.map(addon => addon.name).join(', ')}
-                        </div>
-                      )}
+          {/* Cart Items Section - Scrollable independently */}
+          <div className="flex-1 min-h-0">
+            <div className="h-full overflow-y-auto overflow-x-hidden space-y-3">
+              {cartItems.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  ไม่มีสินค้าในตะกร้า
+                </div>
+              ) : (
+                cartItems.map((item) => (
+                  <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm text-coffee-800">
+                          {item.menu_item.name}
+                        </h4>
+                        {item.selected_addons.length > 0 && (
+                          <div className="text-xs text-coffee-600 mt-1">
+                            {item.selected_addons.map(addon => addon.name).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveItem(item.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveItem(item.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-8 p-0"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">
-                        {item.quantity}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-8 p-0"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleItemDiscountClick(item)}
-                        className={`ml-2 w-8 h-8 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
-                        title={item.item_discount > 0 
-                          ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
-                          : 'ส่วนลด'
-                        }
-                      >
-                        <Tag className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium text-coffee-600">
-                        ฿{item.total_price}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 p-0"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-8 text-center font-medium">
+                          {item.quantity}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 p-0"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleItemDiscountClick(item)}
+                          className={`ml-2 w-8 h-8 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                          title={item.item_discount > 0 
+                            ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
+                            : 'ส่วนลด'
+                          }
+                        >
+                          <Tag className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium text-coffee-600">
+                          ฿{item.total_price}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -289,7 +290,7 @@ const Cart = ({
           itemName={selectedItemForDiscount.menu_item.name}
         />
       )}
-    </>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -162,17 +161,17 @@ const POS = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-cream-50 flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Fixed Header */}
-        <div className="sticky top-0 z-10 bg-cream-50 p-4 pb-0">
+        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={convertedCategories}
@@ -186,10 +185,10 @@ const POS = () => {
           />
         </div>
         
-        {/* Content Area - Fixed height layout */}
-        <div className="flex-1 flex gap-6 p-4 pt-0 min-h-0">
+        {/* Content Area - Fixed height layout with independent scrolling */}
+        <div className="flex-1 flex gap-6 p-4 pt-0 min-h-0 overflow-hidden">
           {/* Menu Grid - Independent scrolling container */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <div className="h-full overflow-y-auto overflow-x-hidden">
               <MenuGrid
                 menuItems={filteredMenuItems}
@@ -202,21 +201,19 @@ const POS = () => {
           </div>
 
           {/* Cart - Independent scrolling container */}
-          <div className="w-80 flex-shrink-0 min-h-0">
-            <div className="h-full">
-              <Cart
-                cartItems={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onUpdateDiscount={updateDiscount}
-                onClearCart={clearCart}
-                billDiscount={billDiscount}
-                billDiscountType={billDiscountType}
-                onUpdateBillDiscount={setBillDiscount}
-                onUpdateBillDiscountType={setBillDiscountType}
-                onRestoreCart={restoreCart}
-              />
-            </div>
+          <div className="w-80 flex-shrink-0 overflow-hidden">
+            <Cart
+              cartItems={cartItems}
+              onUpdateQuantity={updateQuantity}
+              onRemoveItem={removeFromCart}
+              onUpdateDiscount={updateDiscount}
+              onClearCart={clearCart}
+              billDiscount={billDiscount}
+              billDiscountType={billDiscountType}
+              onUpdateBillDiscount={setBillDiscount}
+              onUpdateBillDiscountType={setBillDiscountType}
+              onRestoreCart={restoreCart}
+            />
           </div>
         </div>
       </div>
