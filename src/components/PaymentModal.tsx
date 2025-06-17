@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import QRCodeSVG from 'react-qr-code';
 import { PaymentMethod } from '@/types';
-import toast from 'react-hot-toast';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -21,29 +19,23 @@ const PaymentModal = ({ isOpen, onClose, total, onPayment }: PaymentModalProps) 
 
   const handleCashPayment = () => {
     if (cashReceived < total) {
-      toast.error('จำนวนเงินที่รับไม่เพียงพอ');
+      alert('จำนวนเงินที่รับไม่เพียงพอ');
       return;
     }
     onPayment('cash', cashReceived);
-    toast.success('ชำระเงินด้วยเงินสดเรียบร้อย');
   };
 
   const handleQRPayment = () => {
     onPayment('qr');
-    toast.success('ชำระเงินผ่าน QR Code เรียบร้อย');
   };
 
   const handlePointsPayment = () => {
     onPayment('points');
-    toast.success('ใช้แต้มชำระเงินเรียบร้อย');
   };
 
   const change = Math.max(0, cashReceived - total);
 
   const quickAmounts = [100, 200, 500, 1000];
-
-  // Generate QR Code data (ในระบบจริงจะเป็น payment URL หรือข้อมูลการชำระเงิน)
-  const qrData = `amount=${total}&ref=${Date.now()}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -118,19 +110,12 @@ const PaymentModal = ({ isOpen, onClose, total, onPayment }: PaymentModalProps) 
             </TabsContent>
 
             <TabsContent value="qr" className="space-y-4">
-              <div className="text-center py-4">
-                <div className="w-48 h-48 mx-auto rounded-lg flex items-center justify-center mb-4 bg-white border p-4">
-                  <QRCodeSVG 
-                    value={qrData}
-                    size={180}
-                    level="M"
-                  />
+              <div className="text-center py-8">
+                <div className="w-48 h-48 bg-gray-200 mx-auto rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-gray-500">QR Code</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   แสกน QR Code เพื่อชำระเงิน
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  ยอดเงิน: ฿{total}
                 </p>
               </div>
 
