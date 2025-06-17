@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,13 +43,85 @@ const PaymentModal = ({
 }: PaymentModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState<string>(total.toString());
+  const [pointsToUse, setPointsToUse] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
 
   // Banknote values
   const banknotes = [20, 50, 100, 500, 1000];
+
+  // Load membership settings when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadMembershipSettings();
+    }
+  }, [isOpen]);
+
+  // Set default points when switching to points payment
+  useEffect(() => {
+    if (paymentMethod === 'points' && selectedMember && membershipSettings) {
+      const maxPointsCanUse = Math.min(
+        selectedMember.points,
+        Math.floor(total / membershipSettings.redeem_value * membershipSettings.points_to_redeem)
+      );
+      setPointsToUse(maxPointsCanUse.toString());
+    }
+  }, [paymentMethod, selectedMember, membershipSettings, total]);
+
+  const loadMembershipSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('membership_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error loading membership settings:', error);
+        // Set default values if no settings found
+        setMembershipSettings({
+          points_to_redeem: 100,
+          redeem_value: 10,
+          points_per_baht: 1
+        });
+      } else {
+        setMembershipSettings(data);
+      }
+    } catch (error) {
+      console.error('Error loading membership settings:', error);
+      setMembershipSettings({
+        points_to_redeem: 100,
+        redeem_value: 10,
+        points_per_baht: 1
+      });
+    }
+  };
+
+  const calculatePointsValue = (points: number) => {
+    if (!membershipSettings) return 0;
+    return (points / membershipSettings.points_to_redeem) * membershipSettings.redeem_value;
+  };
+
+  const calculateRequiredPoints = (amount: number) => {
+    if (!membershipSettings) return 0;
+    return Math.ceil((amount / membershipSettings.redeem_value) * membershipSettings.points_to_redeem);
+  };
+
+  const getMinimumPoints = () => {
+    if (!membershipSettings) return 0;
+    return membershipSettings.points_to_redeem;
+  };
+
+  const getMaximumPoints = () => {
+    if (!selectedMember || !membershipSettings) return 0;
+    return Math.min(
+      selectedMember.points,
+      calculateRequiredPoints(total)
+    );
+  };
 
   const validateCartData = () => {
     console.log('=== Starting Cart Data Validation ===');
@@ -134,11 +206,21 @@ const PaymentModal = ({
       const orderNumber = orderNumberData;
       console.log('✅ Generated order number:', orderNumber);
 
+      // Calculate actual payment amount for points
+      let actualTotal = total;
+      let pointsUsed = 0;
+      
+      if (method === 'points' && pointsToUse) {
+        pointsUsed = parseInt(pointsToUse);
+        const pointsValue = calculatePointsValue(pointsUsed);
+        actualTotal = Math.max(0, total - pointsValue);
+      }
+
       // Prepare order data with explicit type conversion
       const orderData = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
-        total_amount: Number(total),
+        total_amount: Number(actualTotal),
         items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
         payment_method: String(method),
         bill_discount: Number(billDiscount) || 0,
@@ -239,21 +321,16 @@ const PaymentModal = ({
       if (selectedMember) {
         console.log('Processing member points...');
         
-        if (method === 'points') {
-          const pointsToDeduct = Math.ceil(total);
-          const newPoints = selectedMember.points - pointsToDeduct;
+        if (method === 'points' && pointsUsed > 0) {
+          const newPoints = selectedMember.points - pointsUsed;
 
-          if (newPoints < 0) {
-            throw new Error('แต้มไม่เพียงพอสำหรับการชำระเงิน');
-          }
-
-          console.log(`Deducting ${pointsToDeduct} points from member`);
+          console.log(`Deducting ${pointsUsed} points from member`);
           
           const { error: memberError } = await supabase
             .from('members')
             .update({
               points: newPoints,
-              total_spent: selectedMember.total_spent + total
+              total_spent: selectedMember.total_spent + actualTotal
             })
             .eq('id', selectedMember.id);
 
@@ -268,9 +345,9 @@ const PaymentModal = ({
             .insert({
               member_id: selectedMember.id,
               order_id: order.id,
-              points_change: -pointsToDeduct,
+              points_change: -pointsUsed,
               transaction_type: 'redeem',
-              description: `ใช้แต้มชำระเงิน ออเดอร์ ${orderNumber}`
+              description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
             });
 
           if (pointTransactionError) {
@@ -280,9 +357,9 @@ const PaymentModal = ({
           console.log('✅ Points deducted successfully');
         } else {
           // Award points for non-points payment
-          const pointsEarned = Math.floor(total);
+          const pointsEarned = Math.floor(actualTotal * (membershipSettings?.points_per_baht || 1));
           const newPoints = selectedMember.points + pointsEarned;
-          const newTotalSpent = selectedMember.total_spent + total;
+          const newTotalSpent = selectedMember.total_spent + actualTotal;
 
           console.log(`Awarding ${pointsEarned} points to member`);
 
@@ -354,6 +431,7 @@ const PaymentModal = ({
     console.log('Payment method:', paymentMethod);
     console.log('Total amount:', total);
     console.log('Cash received:', cashReceived);
+    console.log('Points to use:', pointsToUse);
     console.log('Cart items:', cartItems);
     console.log('Selected member:', selectedMember);
     
@@ -413,14 +491,45 @@ const PaymentModal = ({
           return;
         }
 
-        const requiredPoints = Math.ceil(total);
-        console.log('Points validation - required:', requiredPoints, 'available:', selectedMember.points);
-        
-        if (selectedMember.points < requiredPoints) {
+        if (!membershipSettings) {
+          console.log('❌ Points validation failed: No membership settings');
+          toast({
+            title: "ไม่พบการตั้งค่าระบบแต้ม",
+            description: "กรุณาตั้งค่าระบบแต้มในเมนูจัดการสมาชิก",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const pointsValue = parseInt(pointsToUse || '0');
+        const minimumPoints = getMinimumPoints();
+        const maximumPoints = getMaximumPoints();
+
+        if (pointsValue < minimumPoints) {
+          console.log('❌ Points validation failed: Below minimum');
+          toast({
+            title: "แต้มไม่เพียงพอ",
+            description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (pointsValue > maximumPoints) {
+          console.log('❌ Points validation failed: Exceeds maximum');
+          toast({
+            title: "แต้มเกินจำนวนที่มี",
+            description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (selectedMember.points < pointsValue) {
           console.log('❌ Points validation failed: Insufficient points');
           toast({
             title: "แต้มไม่เพียงพอ",
-            description: `ต้องการ ${requiredPoints} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
+            description: `ต้องการ ${pointsValue} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
             variant: "destructive"
           });
           return;
@@ -457,6 +566,9 @@ const PaymentModal = ({
     if (value !== 'cash') {
       setCashReceived(total.toString());
     }
+    if (value !== 'points') {
+      setPointsToUse('');
+    }
   };
 
   const handleBanknoteClick = (amount: number) => {
@@ -468,6 +580,16 @@ const PaymentModal = ({
   const handleExactPayment = () => {
     setCashReceived(total.toString());
   };
+
+  const handleUseAllPoints = () => {
+    if (selectedMember && membershipSettings) {
+      const maxPoints = getMaximumPoints();
+      setPointsToUse(maxPoints.toString());
+    }
+  };
+
+  const pointsValue = pointsToUse ? calculatePointsValue(parseInt(pointsToUse)) : 0;
+  const remainingAmount = Math.max(0, total - pointsValue);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -489,11 +611,9 @@ const PaymentModal = ({
             {selectedMember && (
               <div className="mt-2 text-sm text-gray-600">
                 สมาชิก: {selectedMember.name} ({selectedMember.phone})
-                {paymentMethod === 'points' && (
-                  <div className="text-blue-600">
-                    แต้มปัจจุบัน: {selectedMember.points} แต้ม
-                  </div>
-                )}
+                <div className="text-blue-600">
+                  แต้มปัจจุบัน: {selectedMember.points.toLocaleString()} แต้ม
+                </div>
               </div>
             )}
           </div>
@@ -588,16 +708,48 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* Points Payment Info */}
-          {paymentMethod === 'points' && (
-            <div className="space-y-2">
-              <div className="p-3 bg-purple-50 rounded border">
-                <div className="text-sm text-purple-700">
-                  <div>ต้องใช้แต้ม: {Math.ceil(total)} แต้ม</div>
-                  {selectedMember && (
-                    <div>แต้มคงเหลือหลังใช้: {selectedMember.points - Math.ceil(total)} แต้ม</div>
-                  )}
+          {/* Points Payment Input */}
+          {paymentMethod === 'points' && selectedMember && membershipSettings && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="points-input">จำนวนแต้มที่ต้องการใช้</Label>
+                <Input
+                  id="points-input"
+                  type="number"
+                  value={pointsToUse}
+                  onChange={(e) => setPointsToUse(e.target.value)}
+                  min={getMinimumPoints()}
+                  max={getMaximumPoints()}
+                  className="mt-1"
+                  placeholder={`ขั้นต่ำ ${getMinimumPoints()} แต้ม`}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="p-3 bg-purple-50 rounded border">
+                  <div className="text-sm text-purple-700 space-y-1">
+                    <div>แต้มที่มี: {selectedMember.points.toLocaleString()} แต้ม</div>
+                    <div>ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม = ฿{membershipSettings.redeem_value}</div>
+                    <div>สามารถใช้ได้สูงสุด: {getMaximumPoints().toLocaleString()} แต้ม</div>
+                    {pointsToUse && (
+                      <>
+                        <div className="font-medium">แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{pointsValue.toLocaleString()}</div>
+                        {remainingAmount > 0 && (
+                          <div className="text-orange-700">ยอดคงเหลือ: ฿{remainingAmount.toLocaleString()}</div>
+                        )}
+                        <div>แต้มคงเหลือ: {(selectedMember.points - parseInt(pointsToUse)).toLocaleString()} แต้ม</div>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                <Button
+                  variant="outline"
+                  onClick={handleUseAllPoints}
+                  className="w-full border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                >
+                  ใช้แต้มสูงสุด ({getMaximumPoints().toLocaleString()} แต้ม)
+                </Button>
               </div>
             </div>
           )}
