@@ -14,6 +14,7 @@ import ShopSettings from "./pages/ShopSettings";
 import MemberManagement from "./pages/MemberManagement";
 import MemberRegistration from "./pages/MemberRegistration";
 import Inventory from "./pages/Inventory";
+import PrinterSettings from "./pages/PrinterSettings";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
@@ -65,6 +66,11 @@ const App = () => {
               <Route path="/inventory" element={
                 <ProtectedRoute>
                   <Inventory />
+                </ProtectedRoute>
+              } />
+              <Route path="/printer-settings" element={
+                <ProtectedRoute>
+                  <PrinterSettings />
                 </ProtectedRoute>
               } />
               <Route path="/promotions" element={
