@@ -13,10 +13,7 @@ const ShopSettings = () => {
 
   return (
     <div className="min-h-screen bg-coffee-50">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-      />
+      <MainSidebar />
       
       <div className="flex-1">
         <div className="p-4">

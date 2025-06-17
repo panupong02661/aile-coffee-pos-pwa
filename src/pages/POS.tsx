@@ -211,10 +211,7 @@ const POS = () => {
 
   return (
     <div className="h-screen bg-cream-50 flex overflow-hidden">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={handleCloseSidebar}
-      />
+      <MainSidebar />
       
       <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
