@@ -1,6 +1,7 @@
 
 import { MenuItem, Addon } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -17,13 +18,19 @@ const MenuGrid = ({
   gridColumns = 4,
   itemSize = 'medium' 
 }: MenuGridProps) => {
+  const isMobile = useIsMobile();
+
   const handleItemClick = (item: MenuItem) => {
     // ส่งต่อการคลิกไปยัง POS เพื่อจัดการ addons
     onAddToCart(item);
   };
 
-  // Dynamic grid styling based on column count
+  // Dynamic grid styling based on column count and mobile
   const getGridStyle = () => {
+    if (isMobile) {
+      return 'grid-cols-2';
+    }
+    
     switch (gridColumns) {
       case 3:
         return 'grid-cols-3';
@@ -39,7 +46,15 @@ const MenuGrid = ({
   };
 
   const getSizeClasses = () => {
-    // Adjust size based on both itemSize and gridColumns for responsive design
+    if (isMobile) {
+      return {
+        small: 'h-32',
+        medium: 'h-36',
+        large: 'h-40'
+      };
+    }
+    
+    // Desktop sizing
     if (gridColumns >= 5) {
       return {
         small: 'h-24',
@@ -58,32 +73,35 @@ const MenuGrid = ({
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={`grid ${getGridStyle()} gap-4`}>
+    <div className={`grid ${getGridStyle()} gap-3 md:gap-4`}>
       {menuItems
         .filter(item => item.is_available)
         .map((item) => (
           <Card 
             key={item.id} 
-            className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border-coffee-200"
+            className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border-coffee-200 ${
+              isMobile ? 'active:scale-95 touch-manipulation' : ''
+            }`}
             onClick={() => handleItemClick(item)}
           >
-            <CardContent className="p-3">
+            <CardContent className={`${isMobile ? 'p-2' : 'p-3'}`}>
               <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                 {item.image && (
                   <img 
                     src={item.image} 
                     alt={item.name}
                     className="w-full h-2/3 object-cover rounded-md mb-2"
+                    loading="lazy"
                   />
                 )}
                 <div className="flex-1 flex flex-col justify-between">
                   <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
-                    gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile || gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     {item.name}
                   </h3>
                   <p className={`text-coffee-600 font-semibold ${
-                    gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile || gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     ฿{item.price}
                   </p>
