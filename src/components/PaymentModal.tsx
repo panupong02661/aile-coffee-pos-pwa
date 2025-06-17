@@ -88,7 +88,6 @@ const PaymentModal = ({
 
       if (error) {
         console.error('Error loading membership settings:', error);
-        // Set default values if no settings found
         setMembershipSettings([
           { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
           { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
@@ -193,10 +192,8 @@ const PaymentModal = ({
       console.log('Selected member:', selectedMember);
       console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
 
-      // Validate cart data first
       validateCartData();
 
-      // Test database connection
       console.log('Testing database connection...');
       const { data: testConnection, error: connectionError } = await supabase
         .from('categories')
@@ -209,7 +206,6 @@ const PaymentModal = ({
       }
       console.log('✅ Database connection successful');
 
-      // Generate order number
       console.log('Generating order number...');
       const { data: orderNumberData, error: orderNumberError } = await supabase
         .rpc('generate_order_number');
@@ -222,7 +218,6 @@ const PaymentModal = ({
       const orderNumber = orderNumberData;
       console.log('✅ Generated order number:', orderNumber);
 
-      // Calculate actual payment amount for points
       let actualTotal = total;
       let pointsUsed = 0;
       
@@ -232,7 +227,6 @@ const PaymentModal = ({
         actualTotal = Math.max(0, total - pointsValue);
       }
 
-      // Prepare order data with explicit type conversion
       const orderData = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
@@ -245,7 +239,6 @@ const PaymentModal = ({
 
       console.log('Order data prepared:', orderData);
 
-      // Validate order data
       if (!orderData.order_number) {
         throw new Error('Order number is required');
       }
@@ -256,7 +249,6 @@ const PaymentModal = ({
         throw new Error('Items count must be greater than 0');
       }
 
-      // Create order
       console.log('Creating order in database...');
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -282,7 +274,6 @@ const PaymentModal = ({
 
       console.log('✅ Order created successfully:', order);
 
-      // Prepare order items with detailed validation
       console.log('Preparing order items...');
       const orderItems = cartItems.map((item, index) => {
         const orderItem = {
@@ -305,7 +296,6 @@ const PaymentModal = ({
         return orderItem;
       });
 
-      // Validate order items
       orderItems.forEach((item, index) => {
         if (!item.order_id) throw new Error(`Order ID missing for item ${index + 1}`);
         if (!item.menu_item_id) throw new Error(`Menu item ID missing for item ${index + 1}`);
@@ -333,7 +323,6 @@ const PaymentModal = ({
 
       console.log('✅ Order items created successfully');
 
-      // Handle member points
       if (selectedMember) {
         console.log('Processing member points...');
         
@@ -355,7 +344,6 @@ const PaymentModal = ({
             throw new Error(`ไม่สามารถหักแต้มสมาชิกได้: ${memberError.message}`);
           }
 
-          // Create point transaction
           const { error: pointTransactionError } = await supabase
             .from('point_transactions')
             .insert({
@@ -372,7 +360,6 @@ const PaymentModal = ({
 
           console.log('✅ Points deducted successfully');
         } else {
-          // Award points for non-points payment
           const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
           const newPoints = selectedMember.points + pointsEarned;
           const newTotalSpent = selectedMember.total_spent + actualTotal;
@@ -389,9 +376,7 @@ const PaymentModal = ({
 
           if (memberError) {
             console.error('Member points update error:', memberError);
-            // Don't throw error for points awarding failure
           } else {
-            // Create point transaction
             const { error: pointTransactionError } = await supabase
               .from('point_transactions')
               .insert({
@@ -459,7 +444,6 @@ const PaymentModal = ({
     setIsProcessing(true);
 
     try {
-      // Basic validation
       console.log('Performing basic validations...');
       
       if (!cartItems || cartItems.length === 0) {
@@ -482,7 +466,6 @@ const PaymentModal = ({
         return;
       }
 
-      // Payment method specific validation
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
         console.log('Cash validation - received:', receivedAmount, 'total:', total);
@@ -554,13 +537,11 @@ const PaymentModal = ({
 
       console.log('✅ All validations passed');
       
-      // Save order to database
       console.log('Calling saveOrderToDatabase...');
       await saveOrderToDatabase(paymentMethod);
       
       console.log('Order saved successfully, calling onPayment callback...');
       
-      // Call the payment callback
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       
@@ -570,7 +551,6 @@ const PaymentModal = ({
     } catch (error) {
       console.error('=== Payment Process Failed ===');
       console.error('Payment error:', error);
-      // Error already handled in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
     }
@@ -609,7 +589,7 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
@@ -617,15 +597,15 @@ const PaymentModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Order Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-3 rounded-lg">
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>ยอดชำระทั้งหมด:</span>
               <span className="text-green-600">฿{total.toLocaleString()}</span>
             </div>
             {selectedMember && (
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-1 text-sm text-gray-600">
                 สมาชิก: {selectedMember.name} ({selectedMember.phone})
                 <div className="text-blue-600">
                   ระดับ: {getTierDisplayName(selectedMember.tier)} | แต้มปัจจุบัน: {selectedMember.points.toLocaleString()} แต้ม
@@ -640,10 +620,10 @@ const PaymentModal = ({
             <RadioGroup 
               value={paymentMethod} 
               onValueChange={handleMethodChange}
-              className="mt-3"
+              className="mt-2"
             >
               <div className="grid grid-cols-3 gap-2">
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                <div className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="cash" id="cash" />
                   <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
                     <DollarSign className="w-4 h-4" />
@@ -651,7 +631,7 @@ const PaymentModal = ({
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                <div className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="qr" id="qr" />
                   <Label htmlFor="qr" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
                     <CreditCard className="w-4 h-4" />
@@ -659,7 +639,7 @@ const PaymentModal = ({
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                <div className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="points" id="points" />
                   <Label htmlFor="points" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
                     <Gift className="w-4 h-4" />
@@ -672,7 +652,7 @@ const PaymentModal = ({
 
           {/* Cash Input and Banknotes */}
           {paymentMethod === 'cash' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <Label htmlFor="cash-received">จำนวนเงินที่รับ (บาท)</Label>
                 <Input
@@ -688,14 +668,14 @@ const PaymentModal = ({
 
               {/* Banknote Buttons */}
               <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">ธนบัตร</Label>
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                <Label className="text-sm font-medium text-gray-700 mb-1 block">ธนบัตร</Label>
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   {banknotes.map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"
                       onClick={() => handleBanknoteClick(amount)}
-                      className="h-12 text-base font-medium"
+                      className="h-10 text-sm font-medium"
                     >
                       ฿{amount}
                     </Button>
@@ -707,14 +687,14 @@ const PaymentModal = ({
                   <Button
                     variant="outline"
                     onClick={handleExactPayment}
-                    className="flex-1 h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                    className="flex-1 h-10 text-sm font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>
                   
                   {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-3 bg-blue-50 rounded border">
-                      <span className="text-blue-700 font-medium">
+                    <div className="flex-1 flex items-center justify-center p-2 bg-blue-50 rounded border">
+                      <span className="text-blue-700 font-medium text-sm">
                         เงินทอน: ฿{change.toLocaleString()}
                       </span>
                     </div>
@@ -726,7 +706,7 @@ const PaymentModal = ({
 
           {/* Points Payment Input */}
           {paymentMethod === 'points' && selectedMember && currentTierSettings && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <Label htmlFor="points-input">จำนวนแต้มที่ต้องการใช้</Label>
                 <Input
@@ -742,8 +722,8 @@ const PaymentModal = ({
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-purple-50 rounded border">
-                  <div className="text-sm text-purple-700 space-y-1">
+                <div className="p-2 bg-purple-50 rounded border">
+                  <div className="text-sm text-purple-700 space-y-0.5">
                     <div className="font-medium text-purple-800">
                       สมาชิกระดับ{getTierDisplayName(selectedMember.tier)}
                     </div>
