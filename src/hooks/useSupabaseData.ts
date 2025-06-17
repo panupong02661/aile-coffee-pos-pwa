@@ -277,7 +277,14 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลสมาชิกได้', variant: 'destructive' });
       return;
     }
-    setMembers(data || []);
+    
+    // Cast the data to the correct types
+    const typedMembers = (data || []).map(member => ({
+      ...member,
+      tier: member.tier as 'silver' | 'gold' | 'platinum'
+    }));
+    
+    setMembers(typedMembers);
   };
 
   const fetchMembershipSettings = async () => {
@@ -290,7 +297,14 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าสมาชิกได้', variant: 'destructive' });
       return;
     }
-    setMembershipSettings(data || []);
+    
+    // Cast the data to the correct types
+    const typedSettings = (data || []).map(setting => ({
+      ...setting,
+      tier: setting.tier as 'silver' | 'gold' | 'platinum'
+    }));
+    
+    setMembershipSettings(typedSettings);
   };
 
   const fetchPointTransactions = async () => {
@@ -304,7 +318,14 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติแต้มได้', variant: 'destructive' });
       return;
     }
-    setPointTransactions(data || []);
+    
+    // Cast the data to the correct types
+    const typedTransactions = (data || []).map(transaction => ({
+      ...transaction,
+      transaction_type: transaction.transaction_type as 'earn' | 'redeem' | 'adjust' | 'expire'
+    }));
+    
+    setPointTransactions(typedTransactions);
   };
 
   const uploadImage = async (file: File) => {

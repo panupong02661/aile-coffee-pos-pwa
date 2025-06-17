@@ -44,8 +44,14 @@ const MemberList = () => {
       return;
     }
     
-    setMembers(data || []);
-    setFilteredMembers(data || []);
+    // Cast the data to the correct types
+    const typedMembers = (data || []).map(member => ({
+      ...member,
+      tier: member.tier as 'silver' | 'gold' | 'platinum'
+    }));
+    
+    setMembers(typedMembers);
+    setFilteredMembers(typedMembers);
     setLoading(false);
   };
 
