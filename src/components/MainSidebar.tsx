@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -94,7 +95,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <UserProfile />
           
           <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="p-2 pb-32 md:pb-8">
+            <div className="p-2 pb-48 md:pb-16">
               <nav className="space-y-1">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
