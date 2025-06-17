@@ -23,7 +23,7 @@ const POS = () => {
   });
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
     const saved = localStorage.getItem('pos-item-size');
-    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
+    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'medium' : 'medium');
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
@@ -57,8 +57,8 @@ const POS = () => {
   // ปรับ grid columns สำหรับมือถือ
   useEffect(() => {
     if (isMobile) {
-      setGridColumns(2);
-      setItemSize('small');
+      setGridColumns(2); 
+      setItemSize('medium'); 
     } else {
       const saved = localStorage.getItem('pos-grid-columns');
       setGridColumns(saved ? parseInt(saved) : 4);

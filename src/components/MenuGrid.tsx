@@ -28,7 +28,7 @@ const MenuGrid = ({
   // Dynamic grid styling based on column count and mobile
   const getGridStyle = () => {
     if (isMobile) {
-      return 'grid-cols-2';
+      return 'grid-cols-2'; // เปลี่ยนจาก 1 เป็น 2 คอลัมน์บนมือถือ
     }
     
     switch (gridColumns) {
@@ -48,9 +48,9 @@ const MenuGrid = ({
   const getSizeClasses = () => {
     if (isMobile) {
       return {
-        small: 'h-32',
-        medium: 'h-36',
-        large: 'h-40'
+        small: 'h-36',  // เพิ่มความสูงสำหรับ 2 คอลัมน์
+        medium: 'h-40',
+        large: 'h-44'
       };
     }
     
@@ -84,7 +84,7 @@ const MenuGrid = ({
             }`}
             onClick={() => handleItemClick(item)}
           >
-            <CardContent className={`${isMobile ? 'p-2' : 'p-3'}`}>
+            <CardContent className={`${isMobile ? 'p-3' : 'p-3'}`}>
               <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                 {item.image && (
                   <img 
@@ -96,12 +96,12 @@ const MenuGrid = ({
                 )}
                 <div className="flex-1 flex flex-col justify-between">
                   <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
-                    isMobile || gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile ? 'text-sm' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     {item.name}
                   </h3>
                   <p className={`text-coffee-600 font-semibold ${
-                    isMobile || gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile ? 'text-sm' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     ฿{item.price}
                   </p>
