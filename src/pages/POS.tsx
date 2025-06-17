@@ -5,12 +5,24 @@ import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
+import MemberSearchModal from '@/components/MemberSearchModal';
+import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+
+interface Member {
+  id: string;
+  phone: string;
+  name: string;
+  email?: string;
+  tier: 'silver' | 'gold' | 'platinum';
+  points: number;
+  total_spent: number;
+}
 
 const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
@@ -28,8 +40,10 @@ const POS = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
+  const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   const {
     cartItems,
@@ -118,6 +132,18 @@ const POS = () => {
     setIsSidebarOpen(false);
   };
 
+  const handleMemberClick = () => {
+    setIsMemberSearchOpen(true);
+  };
+
+  const handleSelectMember = (member: Member) => {
+    setSelectedMember(member);
+  };
+
+  const handleRemoveMember = () => {
+    setSelectedMember(null);
+  };
+
   const handleMenuItemClick = (menuItem: any) => {
     console.log('Menu item clicked:', menuItem);
     
@@ -198,6 +224,7 @@ const POS = () => {
         }`}>
           <Header 
             onToggleSidebar={handleToggleSidebar}
+            onMemberClick={handleMemberClick}
             categories={convertedCategories}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
@@ -233,18 +260,30 @@ const POS = () => {
           {/* Desktop Cart */}
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
-              <Cart
-                cartItems={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onUpdateDiscount={updateDiscount}
-                onClearCart={clearCart}
-                billDiscount={billDiscount}
-                billDiscountType={billDiscountType}
-                onUpdateBillDiscount={setBillDiscount}
-                onUpdateBillDiscountType={setBillDiscountType}
-                onRestoreCart={restoreCart}
-              />
+              <div className="h-full flex flex-col">
+                {/* Selected Member Display */}
+                {selectedMember && (
+                  <SelectedMemberDisplay
+                    member={selectedMember}
+                    onRemove={handleRemoveMember}
+                  />
+                )}
+                
+                <div className="flex-1 overflow-hidden">
+                  <Cart
+                    cartItems={cartItems}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={removeFromCart}
+                    onUpdateDiscount={updateDiscount}
+                    onClearCart={clearCart}
+                    billDiscount={billDiscount}
+                    billDiscountType={billDiscountType}
+                    onUpdateBillDiscount={setBillDiscount}
+                    onUpdateBillDiscountType={setBillDiscountType}
+                    onRestoreCart={restoreCart}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -285,6 +324,13 @@ const POS = () => {
           onRestoreCart={restoreCart}
         />
       )}
+
+      {/* Member Search Modal */}
+      <MemberSearchModal
+        isOpen={isMemberSearchOpen}
+        onClose={() => setIsMemberSearchOpen(false)}
+        onSelectMember={handleSelectMember}
+      />
 
       {/* Addon Modal */}
       {selectedMenuItem && (

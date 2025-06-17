@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Edit, Trash2, Award } from 'lucide-react';
+import { Edit, Trash2, Award, Receipt } from 'lucide-react';
 import MemberEditForm from '@/components/MemberEditForm';
+import MemberPurchaseHistoryModal from '@/components/MemberPurchaseHistoryModal';
 
 interface Member {
   id: string;
@@ -30,6 +31,7 @@ const MemberList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [purchaseHistoryMember, setPurchaseHistoryMember] = useState<{id: string, name: string} | null>(null);
   const { toast } = useToast();
 
   const fetchMembers = async () => {
@@ -127,113 +129,135 @@ const MemberList = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Award className="w-5 h-5" />
-          รายชื่อสมาชิก
-        </CardTitle>
-        <CardDescription>จัดการข้อมูลสมาชิกทั้งหมด</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Input
-            placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรืออีเมล..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1"
-          />
-          <Select value={tierFilter} onValueChange={setTierFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="เลือกระดับสมาชิก" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกระดับ</SelectItem>
-              <SelectItem value="silver">เงิน</SelectItem>
-              <SelectItem value="gold">ทอง</SelectItem>
-              <SelectItem value="platinum">แพลตินัม</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ชื่อ</TableHead>
-                <TableHead>เบอร์โทร</TableHead>
-                <TableHead>อีเมล</TableHead>
-                <TableHead>ระดับ</TableHead>
-                <TableHead>แต้ม</TableHead>
-                <TableHead>ยอดซื้อรวม</TableHead>
-                <TableHead>วันที่เข้าร่วม</TableHead>
-                <TableHead>จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.name}</TableCell>
-                  <TableCell>{member.phone}</TableCell>
-                  <TableCell>{member.email || '-'}</TableCell>
-                  <TableCell>
-                    <Badge className={getTierBadgeColor(member.tier)}>
-                      {getTierName(member.tier)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{member.points.toLocaleString()}</TableCell>
-                  <TableCell>฿{member.total_spent.toLocaleString()}</TableCell>
-                  <TableCell>{new Date(member.join_date).toLocaleDateString('th-TH')}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingMember(member)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>แก้ไขข้อมูลสมาชิก</DialogTitle>
-                          </DialogHeader>
-                          {editingMember && (
-                            <MemberEditForm
-                              member={editingMember}
-                              onSuccess={() => {
-                                fetchMembers();
-                                setEditingMember(null);
-                              }}
-                            />
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteMember(member.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {filteredMembers.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            ไม่พบข้อมูลสมาชิก
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="w-5 h-5" />
+            รายชื่อสมาชิก
+          </CardTitle>
+          <CardDescription>จัดการข้อมูลสมาชิกทั้งหมด</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <Input
+              placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรืออีเมล..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={tierFilter} onValueChange={setTierFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="เลือกระดับสมาชิก" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกระดับ</SelectItem>
+                <SelectItem value="silver">เงิน</SelectItem>
+                <SelectItem value="gold">ทอง</SelectItem>
+                <SelectItem value="platinum">แพลตินัม</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ชื่อ</TableHead>
+                  <TableHead>เบอร์โทร</TableHead>
+                  <TableHead>อีเมล</TableHead>
+                  <TableHead>ระดับ</TableHead>
+                  <TableHead>แต้ม</TableHead>
+                  <TableHead>ยอดซื้อรวม</TableHead>
+                  <TableHead>วันที่เข้าร่วม</TableHead>
+                  <TableHead>จัดการ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.name}</TableCell>
+                    <TableCell>{member.phone}</TableCell>
+                    <TableCell>{member.email || '-'}</TableCell>
+                    <TableCell>
+                      <Badge className={getTierBadgeColor(member.tier)}>
+                        {getTierName(member.tier)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{member.points.toLocaleString()}</TableCell>
+                    <TableCell>฿{member.total_spent.toLocaleString()}</TableCell>
+                    <TableCell>{new Date(member.join_date).toLocaleDateString('th-TH')}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPurchaseHistoryMember({id: member.id, name: member.name})}
+                          title="ดูประวัติการซื้อ"
+                        >
+                          <Receipt className="w-4 h-4" />
+                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingMember(member)}
+                              title="แก้ไขข้อมูล"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>แก้ไขข้อมูลสมาชิก</DialogTitle>
+                            </DialogHeader>
+                            {editingMember && (
+                              <MemberEditForm
+                                member={editingMember}
+                                onSuccess={() => {
+                                  fetchMembers();
+                                  setEditingMember(null);
+                                }}
+                              />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMember(member.id)}
+                          className="text-red-600 hover:text-red-700"
+                          title="ลบสมาชิก"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredMembers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              ไม่พบข้อมูลสมาชิก
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Purchase History Modal */}
+      {purchaseHistoryMember && (
+        <MemberPurchaseHistoryModal
+          isOpen={!!purchaseHistoryMember}
+          onClose={() => setPurchaseHistoryMember(null)}
+          memberId={purchaseHistoryMember.id}
+          memberName={purchaseHistoryMember.name}
+        />
+      )}
+    </>
   );
 };
 
