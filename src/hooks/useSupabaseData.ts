@@ -403,7 +403,14 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติการเคลื่อนไหวสต็อกได้', variant: 'destructive' });
       return;
     }
-    setStockMovements(data || []);
+    
+    // Cast the data to the correct types
+    const typedMovements = (data || []).map(movement => ({
+      ...movement,
+      movement_type: movement.movement_type as 'purchase' | 'adjustment' | 'usage' | 'waste'
+    }));
+    
+    setStockMovements(typedMovements);
   };
 
   const uploadImage = async (file: File) => {

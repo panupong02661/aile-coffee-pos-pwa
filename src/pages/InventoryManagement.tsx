@@ -38,7 +38,17 @@ const InventoryManagement = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <Header 
+          onToggleSidebar={() => {}}
+          categories={[]}
+          selectedCategory=""
+          onCategorySelect={() => {}}
+          gridColumns={4}
+          setGridColumns={() => {}}
+          itemSize="medium"
+          setItemSize={() => {}}
+          page="other"
+        />
         <div className="flex items-center justify-center h-96">
           <div className="text-lg">กำลังโหลดข้อมูล...</div>
         </div>
@@ -48,7 +58,17 @@ const InventoryManagement = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header 
+        onToggleSidebar={() => {}}
+        categories={[]}
+        selectedCategory=""
+        onCategorySelect={() => {}}
+        gridColumns={4}
+        setGridColumns={() => {}}
+        itemSize="medium"
+        setItemSize={() => {}}
+        page="other"
+      />
       
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
