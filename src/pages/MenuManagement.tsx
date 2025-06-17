@@ -112,7 +112,10 @@ const MenuManagement = () => {
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
-      <MainSidebar />
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={handleCloseSidebar}
+      />
       
       <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'

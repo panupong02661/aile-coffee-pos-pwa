@@ -134,42 +134,6 @@ export interface DatabasePointTransaction {
   created_at: string;
 }
 
-export interface DatabaseIngredient {
-  id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  unit: string;
-  cost_per_unit: number;
-  minimum_stock: number;
-  supplier?: string;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MenuIngredient {
-  id: string;
-  menu_item_id: string;
-  ingredient_id: string;
-  quantity_needed: number;
-  created_at: string;
-}
-
-export interface StockMovement {
-  id: string;
-  ingredient_id: string;
-  movement_type: 'purchase' | 'adjustment' | 'usage' | 'waste';
-  quantity_change: number;
-  cost_per_unit?: number;
-  reference_number?: string;
-  order_id?: string;
-  notes?: string;
-  created_at: string;
-  created_by?: string;
-}
-
 export const useSupabaseData = () => {
   const [categories, setCategories] = useState<DatabaseCategory[]>([]);
   const [menuItems, setMenuItems] = useState<DatabaseMenuItem[]>([]);
@@ -182,9 +146,6 @@ export const useSupabaseData = () => {
   const [members, setMembers] = useState<DatabaseMember[]>([]);
   const [membershipSettings, setMembershipSettings] = useState<DatabaseMembershipSetting[]>([]);
   const [pointTransactions, setPointTransactions] = useState<DatabasePointTransaction[]>([]);
-  const [ingredients, setIngredients] = useState<DatabaseIngredient[]>([]);
-  const [menuIngredients, setMenuIngredients] = useState<MenuIngredient[]>([]);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -367,52 +328,6 @@ export const useSupabaseData = () => {
     setPointTransactions(typedTransactions);
   };
 
-  const fetchIngredients = async () => {
-    const { data, error } = await supabase
-      .from('ingredients')
-      .select('*')
-      .order('sort_order');
-    
-    if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลวัตถุดิบได้', variant: 'destructive' });
-      return;
-    }
-    setIngredients(data || []);
-  };
-
-  const fetchMenuIngredients = async () => {
-    const { data, error } = await supabase
-      .from('menu_ingredients')
-      .select('*');
-    
-    if (error) {
-      console.error('Error fetching menu ingredients:', error);
-      return;
-    }
-    setMenuIngredients(data || []);
-  };
-
-  const fetchStockMovements = async () => {
-    const { data, error } = await supabase
-      .from('stock_movements')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    
-    if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติการเคลื่อนไหวสต็อกได้', variant: 'destructive' });
-      return;
-    }
-    
-    // Cast the data to the correct types
-    const typedMovements = (data || []).map(movement => ({
-      ...movement,
-      movement_type: movement.movement_type as 'purchase' | 'adjustment' | 'usage' | 'waste'
-    }));
-    
-    setStockMovements(typedMovements);
-  };
-
   const uploadImage = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
@@ -464,9 +379,6 @@ export const useSupabaseData = () => {
         fetchMembers(),
         fetchMembershipSettings(),
         fetchPointTransactions(),
-        fetchIngredients(),
-        fetchMenuIngredients(),
-        fetchStockMovements(),
       ]);
       setLoading(false);
     };
@@ -486,9 +398,6 @@ export const useSupabaseData = () => {
     members,
     membershipSettings,
     pointTransactions,
-    ingredients,
-    menuIngredients,
-    stockMovements,
     loading,
     refetch: {
       categories: fetchCategories,
@@ -502,9 +411,6 @@ export const useSupabaseData = () => {
       members: fetchMembers,
       membershipSettings: fetchMembershipSettings,
       pointTransactions: fetchPointTransactions,
-      ingredients: fetchIngredients,
-      menuIngredients: fetchMenuIngredients,
-      stockMovements: fetchStockMovements,
     },
     uploadImage,
     getAddonGroupsForMenuItem,

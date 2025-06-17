@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import MainSidebar from '@/components/MainSidebar';
 import Header from '@/components/Header';
@@ -15,7 +16,10 @@ const MemberManagement = () => {
 
   return (
     <div className="min-h-screen bg-coffee-50">
-      <MainSidebar />
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
       
       <div className="flex-1">
         <div className="p-4">
