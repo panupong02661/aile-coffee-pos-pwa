@@ -5,6 +5,7 @@ import { useState } from 'react';
 import DisplaySettingsModal from './DisplaySettingsModal';
 import CategoryFilter from './CategoryFilter';
 import { Category } from '@/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   onSettingsClick?: () => void;
@@ -34,34 +35,24 @@ const Header = ({
   page = 'other'
 }: HeaderProps) => {
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <div className="bg-coffee-600 text-white p-3 rounded-lg mb-6 shadow-lg">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleSidebar}
-              className="text-white hover:bg-coffee-500 p-2"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-            
-            {page === 'pos' && (
-              <div className="flex items-center space-x-2">
-                <CategoryFilter
-                  categories={categories}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={onCategorySelect}
-                  variant="header"
-                />
-              </div>
-            )}
-          </div>
+      <div className={`bg-coffee-600 text-white rounded-lg shadow-lg ${
+        isMobile ? 'p-2' : 'p-3'
+      } mb-4`}>
+        <div className="flex justify-between items-center mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleSidebar}
+            className="text-white hover:bg-coffee-500 p-2"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             {page === 'pos' && (
               <>
                 <Button
@@ -70,8 +61,8 @@ const Header = ({
                   onClick={onMemberClick}
                   className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
                 >
-                  <User className="w-4 h-4 mr-2" />
-                  สมาชิก
+                  <User className="w-4 h-4 mr-1" />
+                  {!isMobile && 'สมาชิก'}
                 </Button>
                 
                 <Button
@@ -86,6 +77,15 @@ const Header = ({
             )}
           </div>
         </div>
+        
+        {page === 'pos' && (
+          <CategoryFilter
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategorySelect={onCategorySelect}
+            variant="header"
+          />
+        )}
       </div>
 
       {page === 'pos' && (

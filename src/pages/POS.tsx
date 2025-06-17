@@ -19,11 +19,11 @@ const POS = () => {
   // โหลดการตั้งค่าจาก localStorage
   const [gridColumns, setGridColumns] = useState(() => {
     const saved = localStorage.getItem('pos-grid-columns');
-    return saved ? parseInt(saved) : (isMobile ? 2 : 4);
+    return saved ? parseInt(saved) : (isMobile ? 3 : 4);
   });
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
     const saved = localStorage.getItem('pos-item-size');
-    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'medium' : 'medium');
+    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
@@ -57,8 +57,8 @@ const POS = () => {
   // ปรับ grid columns สำหรับมือถือ
   useEffect(() => {
     if (isMobile) {
-      setGridColumns(2); 
-      setItemSize('medium'); 
+      setGridColumns(3); 
+      setItemSize('small'); 
     } else {
       const saved = localStorage.getItem('pos-grid-columns');
       setGridColumns(saved ? parseInt(saved) : 4);
@@ -193,7 +193,9 @@ const POS = () => {
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Header */}
-        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0 sticky top-0 z-10">
+        <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
+          isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
+        }`}>
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={convertedCategories}
@@ -208,11 +210,15 @@ const POS = () => {
         </div>
         
         {/* Content Area */}
-        <div className={`flex-1 flex gap-6 p-4 pt-0 overflow-hidden ${isMobile ? 'flex-col' : ''}`}>
+        <div className={`flex-1 flex gap-6 overflow-hidden ${
+          isMobile ? 'flex-col p-2 pt-0' : 'p-4 pt-0'
+        }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="h-full bg-white rounded-lg border border-coffee-200">
-              <div className="h-full overflow-y-auto overflow-x-hidden p-4" style={{ scrollbarWidth: 'thin' }}>
+              <div className={`h-full overflow-y-auto overflow-x-hidden ${
+                isMobile ? 'p-2' : 'p-4'
+              }`} style={{ scrollbarWidth: 'thin' }}>
                 <MenuGrid
                   menuItems={filteredMenuItems}
                   addons={[]}
