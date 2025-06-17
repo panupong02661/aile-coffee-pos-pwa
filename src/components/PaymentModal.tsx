@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -171,24 +170,12 @@ const PaymentModal = ({
   };
 
   const handlePayment = async () => {
-    const receivedAmount = parseFloat(cashReceived || '0');
-    
     console.log('Payment attempt:', {
       paymentMethod,
       total,
-      receivedAmount,
       cartItems: cartItems.length
     });
     
-    if (paymentMethod === 'cash' && receivedAmount < total) {
-      toast({
-        title: "จำนวนเงินไม่เพียงพอ",
-        description: "กรุณากรอกจำนวนเงินที่รับมาให้ถูกต้อง",
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Check if cart has items
     if (cartItems.length === 0) {
       toast({
@@ -199,11 +186,54 @@ const PaymentModal = ({
       return;
     }
 
+    // Validate cash payment amount only for cash payment method
+    if (paymentMethod === 'cash') {
+      const receivedAmount = parseFloat(cashReceived || '0');
+      if (receivedAmount < total) {
+        toast({
+          title: "จำนวนเงินไม่เพียงพอ",
+          description: "กรุณากรอกจำนวนเงินที่รับมาให้ถูกต้อง",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // Validate points payment
+    if (paymentMethod === 'points') {
+      if (!selectedMember) {
+        toast({
+          title: "กรุณาเลือกสมาชิก",
+          description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const requiredPoints = Math.ceil(total); // 1 point per baht
+      if (selectedMember.points < requiredPoints) {
+        toast({
+          title: "แต้มไม่เพียงพอ",
+          description: `ต้องการ ${requiredPoints} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     try {
       await saveOrderToDatabase(paymentMethod);
-      onPayment(paymentMethod, paymentMethod === 'cash' ? receivedAmount : undefined);
+      
+      // For cash payment, pass the received amount
+      if (paymentMethod === 'cash') {
+        const receivedAmount = parseFloat(cashReceived || '0');
+        onPayment(paymentMethod, receivedAmount);
+      } else {
+        onPayment(paymentMethod);
+      }
+      
       onClose(); // Close modal after successful payment
     } catch (error) {
       console.error('Payment processing error:', error);
@@ -250,6 +280,11 @@ const PaymentModal = ({
             {selectedMember && (
               <div className="mt-2 text-sm text-gray-600">
                 สมาชิก: {selectedMember.name} ({selectedMember.phone})
+                {paymentMethod === 'points' && (
+                  <div className="text-blue-600">
+                    แต้มปัจจุบัน: {selectedMember.points} แต้ม
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -339,6 +374,34 @@ const PaymentModal = ({
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Points Payment Info */}
+          {paymentMethod === 'points' && (
+            <div className="space-y-2">
+              <div className="p-3 bg-purple-50 rounded border">
+                <div className="text-sm text-purple-700">
+                  <div>ต้องใช้แต้ม: {Math.ceil(total)} แต้ม</div>
+                  {selectedMember && (
+                    <div>แต้มคงเหลือหลังใช้: {selectedMember.points - Math.ceil(total)} แต้ม</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* QR Code Payment Info */}
+          {paymentMethod === 'qr' && (
+            <div className="space-y-2">
+              <div className="p-3 bg-blue-50 rounded border text-center">
+                <div className="text-sm text-blue-700">
+                  แสดง QR Code สำหรับการชำระเงิน
+                </div>
+                <div className="text-lg font-semibold text-blue-800 mt-1">
+                  ฿{total.toLocaleString()}
+                </div>
+              </div>
             </div>
           )}
 
