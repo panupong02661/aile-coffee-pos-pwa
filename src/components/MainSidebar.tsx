@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,7 +64,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
     { id: 'line-notify', label: 'แจ้งเตือน LINE', icon: MessageCircle, path: '/line-notify' },
-    { id: 'printer', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer' },
+    { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
   ];
 
   const handleMenuClick = () => {
@@ -95,7 +94,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <UserProfile />
           
           <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="p-2 pb-24 md:pb-2">
+            <div className="p-2 pb-32 md:pb-8">
               <nav className="space-y-1">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
