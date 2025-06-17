@@ -53,6 +53,10 @@ const PaymentModal = ({
 
   const saveOrderToDatabase = async (method: PaymentMethod) => {
     try {
+      console.log('Starting saveOrderToDatabase with method:', method);
+      console.log('Cart items:', cartItems);
+      console.log('Total:', total);
+      
       // Generate order number
       const { data: orderNumberData, error: orderNumberError } = await supabase
         .rpc('generate_order_number');
@@ -63,6 +67,7 @@ const PaymentModal = ({
       }
 
       const orderNumber = orderNumberData;
+      console.log('Generated order number:', orderNumber);
 
       // Create order
       const orderData = {
@@ -74,6 +79,8 @@ const PaymentModal = ({
         bill_discount: billDiscount,
         bill_discount_type: billDiscountType
       };
+
+      console.log('Order data to insert:', orderData);
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -105,6 +112,8 @@ const PaymentModal = ({
         })))
       }));
 
+      console.log('Order items to insert:', orderItems);
+
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
@@ -118,7 +127,7 @@ const PaymentModal = ({
 
       // Update member points and total spent if member is selected
       if (selectedMember) {
-        const pointsEarned = Math.floor(total); // 1 point per baht spent
+        const pointsEarned = Math.floor(total);
         const newPoints = selectedMember.points + pointsEarned;
         const newTotalSpent = selectedMember.total_spent + total;
 
@@ -132,7 +141,6 @@ const PaymentModal = ({
 
         if (memberError) {
           console.error('Error updating member points:', memberError);
-          // Don't throw error here as order is already created
         } else {
           console.log('Member points updated successfully');
         }
@@ -171,7 +179,7 @@ const PaymentModal = ({
   };
 
   const handlePayment = async () => {
-    console.log('Payment attempt:', {
+    console.log('Payment attempt started:', {
       paymentMethod,
       total,
       cartItems: cartItems.length,
@@ -179,7 +187,8 @@ const PaymentModal = ({
     });
     
     // Check if cart has items
-    if (cartItems.length === 0) {
+    if (!cartItems || cartItems.length === 0) {
+      console.log('No items in cart');
       toast({
         title: "ไม่มีสินค้าในตะกร้า",
         description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
@@ -194,6 +203,7 @@ const PaymentModal = ({
       console.log('Cash validation:', { receivedAmount, total });
       
       if (isNaN(receivedAmount) || receivedAmount < total) {
+        console.log('Invalid cash amount');
         toast({
           title: "จำนวนเงินไม่เพียงพอ",
           description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
@@ -203,6 +213,7 @@ const PaymentModal = ({
       }
     } else if (paymentMethod === 'points') {
       if (!selectedMember) {
+        console.log('No member selected for points payment');
         toast({
           title: "กรุณาเลือกสมาชิก",
           description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
@@ -215,6 +226,7 @@ const PaymentModal = ({
       console.log('Points validation:', { requiredPoints, memberPoints: selectedMember.points });
       
       if (selectedMember.points < requiredPoints) {
+        console.log('Insufficient points');
         toast({
           title: "แต้มไม่เพียงพอ",
           description: `ต้องการ ${requiredPoints} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
@@ -230,15 +242,10 @@ const PaymentModal = ({
       console.log('Saving order to database...');
       await saveOrderToDatabase(paymentMethod);
       
-      console.log('Order saved, calling onPayment...');
-      if (paymentMethod === 'cash') {
-        const receivedAmount = parseFloat(cashReceived || '0');
-        onPayment(paymentMethod, receivedAmount);
-      } else {
-        onPayment(paymentMethod);
-      }
+      console.log('Order saved successfully, calling onPayment callback...');
+      onPayment(paymentMethod, paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined);
       
-      console.log('Payment completed, closing modal...');
+      console.log('Payment completed successfully, closing modal...');
       onClose();
     } catch (error) {
       console.error('Payment processing error:', error);
@@ -248,6 +255,7 @@ const PaymentModal = ({
   };
 
   const handleMethodChange = (value: string) => {
+    console.log('Payment method changed to:', value);
     setPaymentMethod(value as PaymentMethod);
     if (value !== 'cash') {
       setCashReceived(total.toString());
