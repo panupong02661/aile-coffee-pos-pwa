@@ -2,15 +2,17 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Gift, ArrowLeft } from 'lucide-react';
+import { CreditCard, ArrowLeft } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
+import PaymentSummary from './PaymentSummary';
+import PaymentMethodSelector from './PaymentMethodSelector';
+import CashPaymentInput from './CashPaymentInput';
+import PointsPaymentInfo from './PointsPaymentInfo';
+import QRPaymentInfo from './QRPaymentInfo';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -47,9 +49,6 @@ const PaymentModal = ({
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
-
-  // Banknote values
-  const banknotes = [20, 50, 100, 500, 1000];
 
   const validateCartData = () => {
     console.log('=== Starting Cart Data Validation ===');
@@ -105,10 +104,8 @@ const PaymentModal = ({
       console.log('Selected member:', selectedMember);
       console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
 
-      // Validate cart data first
       validateCartData();
 
-      // Test database connection
       console.log('Testing database connection...');
       const { data: testConnection, error: connectionError } = await supabase
         .from('categories')
@@ -121,7 +118,6 @@ const PaymentModal = ({
       }
       console.log('✅ Database connection successful');
 
-      // Generate order number
       console.log('Generating order number...');
       const { data: orderNumberData, error: orderNumberError } = await supabase
         .rpc('generate_order_number');
@@ -134,7 +130,6 @@ const PaymentModal = ({
       const orderNumber = orderNumberData;
       console.log('✅ Generated order number:', orderNumber);
 
-      // Prepare order data with explicit type conversion
       const orderData = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
@@ -147,7 +142,6 @@ const PaymentModal = ({
 
       console.log('Order data prepared:', orderData);
 
-      // Validate order data
       if (!orderData.order_number) {
         throw new Error('Order number is required');
       }
@@ -158,7 +152,6 @@ const PaymentModal = ({
         throw new Error('Items count must be greater than 0');
       }
 
-      // Create order
       console.log('Creating order in database...');
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -184,7 +177,6 @@ const PaymentModal = ({
 
       console.log('✅ Order created successfully:', order);
 
-      // Prepare order items with detailed validation
       console.log('Preparing order items...');
       const orderItems = cartItems.map((item, index) => {
         const orderItem = {
@@ -207,7 +199,6 @@ const PaymentModal = ({
         return orderItem;
       });
 
-      // Validate order items
       orderItems.forEach((item, index) => {
         if (!item.order_id) throw new Error(`Order ID missing for item ${index + 1}`);
         if (!item.menu_item_id) throw new Error(`Menu item ID missing for item ${index + 1}`);
@@ -235,7 +226,6 @@ const PaymentModal = ({
 
       console.log('✅ Order items created successfully');
 
-      // Handle member points
       if (selectedMember) {
         console.log('Processing member points...');
         
@@ -262,7 +252,6 @@ const PaymentModal = ({
             throw new Error(`ไม่สามารถหักแต้มสมาชิกได้: ${memberError.message}`);
           }
 
-          // Create point transaction
           const { error: pointTransactionError } = await supabase
             .from('point_transactions')
             .insert({
@@ -279,7 +268,6 @@ const PaymentModal = ({
 
           console.log('✅ Points deducted successfully');
         } else {
-          // Award points for non-points payment
           const pointsEarned = Math.floor(total);
           const newPoints = selectedMember.points + pointsEarned;
           const newTotalSpent = selectedMember.total_spent + total;
@@ -296,9 +284,7 @@ const PaymentModal = ({
 
           if (memberError) {
             console.error('Member points update error:', memberError);
-            // Don't throw error for points awarding failure
           } else {
-            // Create point transaction
             const { error: pointTransactionError } = await supabase
               .from('point_transactions')
               .insert({
@@ -365,7 +351,6 @@ const PaymentModal = ({
     setIsProcessing(true);
 
     try {
-      // Basic validation
       console.log('Performing basic validations...');
       
       if (!cartItems || cartItems.length === 0) {
@@ -388,7 +373,6 @@ const PaymentModal = ({
         return;
       }
 
-      // Payment method specific validation
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
         console.log('Cash validation - received:', receivedAmount, 'total:', total);
@@ -429,13 +413,11 @@ const PaymentModal = ({
 
       console.log('✅ All validations passed');
       
-      // Save order to database
       console.log('Calling saveOrderToDatabase...');
       await saveOrderToDatabase(paymentMethod);
       
       console.log('Order saved successfully, calling onPayment callback...');
       
-      // Call the payment callback
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       
@@ -445,7 +427,6 @@ const PaymentModal = ({
     } catch (error) {
       console.error('=== Payment Process Failed ===');
       console.error('Payment error:', error);
-      // Error already handled in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
     }
@@ -459,16 +440,6 @@ const PaymentModal = ({
     }
   };
 
-  const handleBanknoteClick = (amount: number) => {
-    const currentAmount = parseFloat(cashReceived || '0');
-    const newAmount = currentAmount + amount;
-    setCashReceived(newAmount.toString());
-  };
-
-  const handleExactPayment = () => {
-    setCashReceived(total.toString());
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -480,145 +451,36 @@ const PaymentModal = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Order Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center text-lg font-semibold">
-              <span>ยอดชำระทั้งหมด:</span>
-              <span className="text-green-600">฿{total.toLocaleString()}</span>
-            </div>
-            {selectedMember && (
-              <div className="mt-2 text-sm text-gray-600">
-                สมาชิก: {selectedMember.name} ({selectedMember.phone})
-                {paymentMethod === 'points' && (
-                  <div className="text-blue-600">
-                    แต้มปัจจุบัน: {selectedMember.points} แต้ม
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <PaymentSummary 
+            total={total} 
+            selectedMember={selectedMember} 
+            paymentMethod={paymentMethod} 
+          />
 
-          {/* Payment Method Selection */}
-          <div>
-            <Label className="text-base font-medium">เลือกวิธีการชำระเงิน</Label>
-            <RadioGroup 
-              value={paymentMethod} 
-              onValueChange={handleMethodChange}
-              className="mt-3"
-            >
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
-                    <DollarSign className="w-4 h-4" />
-                    เงินสด
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="qr" id="qr" />
-                  <Label htmlFor="qr" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
-                    <CreditCard className="w-4 h-4" />
-                    QR Code
-                  </Label>
-                </div>
+          <PaymentMethodSelector 
+            paymentMethod={paymentMethod} 
+            onMethodChange={handleMethodChange} 
+          />
 
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                  <RadioGroupItem value="points" id="points" />
-                  <Label htmlFor="points" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
-                    <Gift className="w-4 h-4" />
-                    แต้มสะสม
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Cash Input and Banknotes */}
           {paymentMethod === 'cash' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="cash-received">จำนวนเงินที่รับ (บาท)</Label>
-                <Input
-                  id="cash-received"
-                  type="number"
-                  value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
-                  min={total}
-                  step="0.01"
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Banknote Buttons */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">ธนบัตร</Label>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {banknotes.map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      onClick={() => handleBanknoteClick(amount)}
-                      className="h-12 text-base font-medium"
-                    >
-                      ฿{amount}
-                    </Button>
-                  ))}
-                </div>
-                
-                {/* Exact Payment and Change display in same row */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleExactPayment}
-                    className="flex-1 h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
-                  >
-                    จ่ายพอดี (฿{total.toLocaleString()})
-                  </Button>
-                  
-                  {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-3 bg-blue-50 rounded border">
-                      <span className="text-blue-700 font-medium">
-                        เงินทอน: ฿{change.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <CashPaymentInput
+              cashReceived={cashReceived}
+              setCashReceived={setCashReceived}
+              total={total}
+              change={change}
+            />
           )}
 
-          {/* Points Payment Info */}
           {paymentMethod === 'points' && (
-            <div className="space-y-2">
-              <div className="p-3 bg-purple-50 rounded border">
-                <div className="text-sm text-purple-700">
-                  <div>ต้องใช้แต้ม: {Math.ceil(total)} แต้ม</div>
-                  {selectedMember && (
-                    <div>แต้มคงเหลือหลังใช้: {selectedMember.points - Math.ceil(total)} แต้ม</div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <PointsPaymentInfo total={total} selectedMember={selectedMember} />
           )}
 
-          {/* QR Code Payment Info */}
           {paymentMethod === 'qr' && (
-            <div className="space-y-2">
-              <div className="p-3 bg-blue-50 rounded border text-center">
-                <div className="text-sm text-blue-700">
-                  แสดง QR Code สำหรับการชำระเงิน
-                </div>
-                <div className="text-lg font-semibold text-blue-800 mt-1">
-                  ฿{total.toLocaleString()}
-                </div>
-              </div>
-            </div>
+            <QRPaymentInfo total={total} />
           )}
 
           <Separator />
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
             <Button 
               variant="outline" 
