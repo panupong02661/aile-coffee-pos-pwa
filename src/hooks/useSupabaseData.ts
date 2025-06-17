@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -134,6 +135,53 @@ export interface DatabasePointTransaction {
   created_at: string;
 }
 
+export interface DatabaseIngredient {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  minimum_stock: number;
+  cost_per_unit: number;
+  supplier?: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DatabaseStockMovement {
+  id: string;
+  ingredient_id: string;
+  movement_type: 'purchase' | 'adjustment' | 'usage' | 'waste';
+  quantity_change: number;
+  cost_per_unit?: number;
+  reference_number?: string;
+  notes?: string;
+  created_by: string;
+  order_id?: string;
+  created_at: string;
+  ingredients?: {
+    id: string;
+    name: string;
+    unit: string;
+  };
+}
+
+export interface DatabaseMenuIngredient {
+  id: string;
+  menu_item_id: string;
+  ingredient_id: string;
+  quantity_needed: number;
+  created_at: string;
+  ingredients?: {
+    id: string;
+    name: string;
+    unit: string;
+    cost_per_unit: number;
+  };
+}
+
 export const useSupabaseData = () => {
   const [categories, setCategories] = useState<DatabaseCategory[]>([]);
   const [menuItems, setMenuItems] = useState<DatabaseMenuItem[]>([]);
@@ -146,6 +194,9 @@ export const useSupabaseData = () => {
   const [members, setMembers] = useState<DatabaseMember[]>([]);
   const [membershipSettings, setMembershipSettings] = useState<DatabaseMembershipSetting[]>([]);
   const [pointTransactions, setPointTransactions] = useState<DatabasePointTransaction[]>([]);
+  const [ingredients, setIngredients] = useState<DatabaseIngredient[]>([]);
+  const [stockMovements, setStockMovements] = useState<DatabaseStockMovement[]>([]);
+  const [menuIngredients, setMenuIngredients] = useState<DatabaseMenuIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -278,7 +329,6 @@ export const useSupabaseData = () => {
       return;
     }
     
-    // Cast the data to the correct types
     const typedMembers = (data || []).map(member => ({
       ...member,
       tier: member.tier as 'silver' | 'gold' | 'platinum'
@@ -298,7 +348,6 @@ export const useSupabaseData = () => {
       return;
     }
     
-    // Cast the data to the correct types
     const typedSettings = (data || []).map(setting => ({
       ...setting,
       tier: setting.tier as 'silver' | 'gold' | 'platinum'
@@ -319,13 +368,72 @@ export const useSupabaseData = () => {
       return;
     }
     
-    // Cast the data to the correct types
     const typedTransactions = (data || []).map(transaction => ({
       ...transaction,
       transaction_type: transaction.transaction_type as 'earn' | 'redeem' | 'adjust' | 'expire'
     }));
     
     setPointTransactions(typedTransactions);
+  };
+
+  const fetchIngredients = async () => {
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .order('sort_order');
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดวัตถุดิบได้', variant: 'destructive' });
+      return;
+    }
+    setIngredients(data || []);
+  };
+
+  const fetchStockMovements = async () => {
+    const { data, error } = await supabase
+      .from('stock_movements')
+      .select(`
+        *,
+        ingredients!stock_movements_ingredient_id_fkey (
+          id,
+          name,
+          unit
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติการเคลื่อนไหวสต็อกได้', variant: 'destructive' });
+      return;
+    }
+    
+    const typedMovements = (data || []).map(movement => ({
+      ...movement,
+      movement_type: movement.movement_type as 'purchase' | 'adjustment' | 'usage' | 'waste'
+    }));
+    
+    setStockMovements(typedMovements);
+  };
+
+  const fetchMenuIngredients = async () => {
+    const { data, error } = await supabase
+      .from('menu_ingredients')
+      .select(`
+        *,
+        ingredients!menu_ingredients_ingredient_id_fkey (
+          id,
+          name,
+          unit,
+          cost_per_unit
+        )
+      `);
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดสูตรเมนูได้', variant: 'destructive' });
+      return;
+    }
+    setMenuIngredients(data || []);
   };
 
   const uploadImage = async (file: File) => {
@@ -364,6 +472,40 @@ export const useSupabaseData = () => {
     return addonGroups.filter(ag => categoryAddonGroupIds.includes(ag.id));
   };
 
+  const getLowStockIngredients = () => {
+    return ingredients.filter(ingredient => 
+      ingredient.quantity <= ingredient.minimum_stock && ingredient.is_active
+    );
+  };
+
+  const getIngredientsForMenuItem = (menuItemId: string) => {
+    return menuIngredients.filter(mi => mi.menu_item_id === menuItemId);
+  };
+
+  const calculateMenuItemCost = (menuItemId: string) => {
+    const itemIngredients = getIngredientsForMenuItem(menuItemId);
+    return itemIngredients.reduce((total, mi) => {
+      const costPerUnit = mi.ingredients?.cost_per_unit || 0;
+      return total + (mi.quantity_needed * costPerUnit);
+    }, 0);
+  };
+
+  const calculateMenuItemProfit = (menuItemId: string) => {
+    const menuItem = menuItems.find(item => item.id === menuItemId);
+    if (!menuItem) return 0;
+    
+    const cost = calculateMenuItemCost(menuItemId);
+    return menuItem.price - cost;
+  };
+
+  const calculateMenuItemMargin = (menuItemId: string) => {
+    const menuItem = menuItems.find(item => item.id === menuItemId);
+    if (!menuItem || menuItem.price === 0) return 0;
+    
+    const profit = calculateMenuItemProfit(menuItemId);
+    return (profit / menuItem.price) * 100;
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -379,6 +521,9 @@ export const useSupabaseData = () => {
         fetchMembers(),
         fetchMembershipSettings(),
         fetchPointTransactions(),
+        fetchIngredients(),
+        fetchStockMovements(),
+        fetchMenuIngredients(),
       ]);
       setLoading(false);
     };
@@ -398,6 +543,9 @@ export const useSupabaseData = () => {
     members,
     membershipSettings,
     pointTransactions,
+    ingredients,
+    stockMovements,
+    menuIngredients,
     loading,
     refetch: {
       categories: fetchCategories,
@@ -411,9 +559,17 @@ export const useSupabaseData = () => {
       members: fetchMembers,
       membershipSettings: fetchMembershipSettings,
       pointTransactions: fetchPointTransactions,
+      ingredients: fetchIngredients,
+      stockMovements: fetchStockMovements,
+      menuIngredients: fetchMenuIngredients,
     },
     uploadImage,
     getAddonGroupsForMenuItem,
     getAddonGroupsForCategory,
+    getLowStockIngredients,
+    getIngredientsForMenuItem,
+    calculateMenuItemCost,
+    calculateMenuItemProfit,
+    calculateMenuItemMargin,
   };
 };

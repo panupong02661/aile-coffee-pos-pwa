@@ -12,6 +12,7 @@ import MenuManagement from "./pages/MenuManagement";
 import ShopSettings from "./pages/ShopSettings";
 import MemberManagement from "./pages/MemberManagement";
 import MemberRegistration from "./pages/MemberRegistration";
+import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
@@ -49,6 +50,11 @@ const App = () => (
             <Route path="/shop-settings" element={
               <ProtectedRoute>
                 <ShopSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/inventory" element={
+              <ProtectedRoute>
+                <Inventory />
               </ProtectedRoute>
             } />
             <Route path="/promotions" element={
