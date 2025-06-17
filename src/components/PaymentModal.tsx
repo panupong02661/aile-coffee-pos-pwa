@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -46,6 +45,7 @@ const PaymentModal = ({
   const [pointsToUse, setPointsToUse] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
+  const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -60,67 +60,83 @@ const PaymentModal = ({
     }
   }, [isOpen]);
 
+  // Load current tier settings when member or settings change
+  useEffect(() => {
+    if (selectedMember && membershipSettings) {
+      const tierSettings = membershipSettings.find((setting: any) => setting.tier === selectedMember.tier);
+      setCurrentTierSettings(tierSettings);
+    }
+  }, [selectedMember, membershipSettings]);
+
   // Set default points when switching to points payment
   useEffect(() => {
-    if (paymentMethod === 'points' && selectedMember && membershipSettings) {
+    if (paymentMethod === 'points' && selectedMember && currentTierSettings) {
       const maxPointsCanUse = Math.min(
         selectedMember.points,
-        Math.floor(total / membershipSettings.redeem_value * membershipSettings.points_to_redeem)
+        Math.floor(total / currentTierSettings.redeem_value * currentTierSettings.points_to_redeem)
       );
       setPointsToUse(maxPointsCanUse.toString());
     }
-  }, [paymentMethod, selectedMember, membershipSettings, total]);
+  }, [paymentMethod, selectedMember, currentTierSettings, total]);
 
   const loadMembershipSettings = async () => {
     try {
       const { data, error } = await supabase
         .from('membership_settings')
         .select('*')
-        .limit(1)
-        .single();
+        .order('tier');
 
       if (error) {
         console.error('Error loading membership settings:', error);
         // Set default values if no settings found
-        setMembershipSettings({
-          points_to_redeem: 100,
-          redeem_value: 10,
-          points_per_baht: 1
-        });
+        setMembershipSettings([
+          { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+          { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+          { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+        ]);
       } else {
         setMembershipSettings(data);
       }
     } catch (error) {
       console.error('Error loading membership settings:', error);
-      setMembershipSettings({
-        points_to_redeem: 100,
-        redeem_value: 10,
-        points_per_baht: 1
-      });
+      setMembershipSettings([
+        { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+        { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+        { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+      ]);
     }
   };
 
   const calculatePointsValue = (points: number) => {
-    if (!membershipSettings) return 0;
-    return (points / membershipSettings.points_to_redeem) * membershipSettings.redeem_value;
+    if (!currentTierSettings) return 0;
+    return (points / currentTierSettings.points_to_redeem) * currentTierSettings.redeem_value;
   };
 
   const calculateRequiredPoints = (amount: number) => {
-    if (!membershipSettings) return 0;
-    return Math.ceil((amount / membershipSettings.redeem_value) * membershipSettings.points_to_redeem);
+    if (!currentTierSettings) return 0;
+    return Math.ceil((amount / currentTierSettings.redeem_value) * currentTierSettings.points_to_redeem);
   };
 
   const getMinimumPoints = () => {
-    if (!membershipSettings) return 0;
-    return membershipSettings.points_to_redeem;
+    if (!currentTierSettings) return 0;
+    return currentTierSettings.points_to_redeem;
   };
 
   const getMaximumPoints = () => {
-    if (!selectedMember || !membershipSettings) return 0;
+    if (!selectedMember || !currentTierSettings) return 0;
     return Math.min(
       selectedMember.points,
       calculateRequiredPoints(total)
     );
+  };
+
+  const getTierDisplayName = (tier: string) => {
+    switch (tier) {
+      case 'silver': return 'เงิน';
+      case 'gold': return 'ทอง';
+      case 'platinum': return 'แพลตินัม';
+      default: return tier;
+    }
   };
 
   const validateCartData = () => {
@@ -357,7 +373,7 @@ const PaymentModal = ({
           console.log('✅ Points deducted successfully');
         } else {
           // Award points for non-points payment
-          const pointsEarned = Math.floor(actualTotal * (membershipSettings?.points_per_baht || 1));
+          const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
           const newPoints = selectedMember.points + pointsEarned;
           const newTotalSpent = selectedMember.total_spent + actualTotal;
 
@@ -582,7 +598,7 @@ const PaymentModal = ({
   };
 
   const handleUseAllPoints = () => {
-    if (selectedMember && membershipSettings) {
+    if (selectedMember && currentTierSettings) {
       const maxPoints = getMaximumPoints();
       setPointsToUse(maxPoints.toString());
     }
@@ -612,7 +628,7 @@ const PaymentModal = ({
               <div className="mt-2 text-sm text-gray-600">
                 สมาชิก: {selectedMember.name} ({selectedMember.phone})
                 <div className="text-blue-600">
-                  แต้มปัจจุบัน: {selectedMember.points.toLocaleString()} แต้ม
+                  ระดับ: {getTierDisplayName(selectedMember.tier)} | แต้มปัจจุบัน: {selectedMember.points.toLocaleString()} แต้ม
                 </div>
               </div>
             )}
@@ -709,7 +725,7 @@ const PaymentModal = ({
           )}
 
           {/* Points Payment Input */}
-          {paymentMethod === 'points' && selectedMember && membershipSettings && (
+          {paymentMethod === 'points' && selectedMember && currentTierSettings && (
             <div className="space-y-4">
               <div>
                 <Label htmlFor="points-input">จำนวนแต้มที่ต้องการใช้</Label>
@@ -728,14 +744,20 @@ const PaymentModal = ({
               <div className="space-y-2">
                 <div className="p-3 bg-purple-50 rounded border">
                   <div className="text-sm text-purple-700 space-y-1">
+                    <div className="font-medium text-purple-800">
+                      สมาชิกระดับ{getTierDisplayName(selectedMember.tier)}
+                    </div>
                     <div>แต้มที่มี: {selectedMember.points.toLocaleString()} แต้ม</div>
-                    <div>ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม = ฿{membershipSettings.redeem_value}</div>
+                    <div className="font-medium">
+                      อัตราแลกแต้ม: {currentTierSettings.points_to_redeem} แต้ม = ฿{currentTierSettings.redeem_value}
+                    </div>
+                    <div>ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม = ฿{currentTierSettings.redeem_value}</div>
                     <div>สามารถใช้ได้สูงสุด: {getMaximumPoints().toLocaleString()} แต้ม</div>
                     {pointsToUse && (
                       <>
-                        <div className="font-medium">แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{pointsValue.toLocaleString()}</div>
+                        <div className="font-medium text-purple-800">แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{pointsValue.toLocaleString()}</div>
                         {remainingAmount > 0 && (
-                          <div className="text-orange-700">ยอดคงเหลือ: ฿{remainingAmount.toLocaleString()}</div>
+                          <div className="text-orange-700 font-medium">ยอดคงเหลือ: ฿{remainingAmount.toLocaleString()}</div>
                         )}
                         <div>แต้มคงเหลือ: {(selectedMember.points - parseInt(pointsToUse)).toLocaleString()} แต้ม</div>
                       </>
