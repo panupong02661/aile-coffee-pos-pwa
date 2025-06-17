@@ -79,8 +79,17 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
         let addons: string[] = [];
         try {
           if (item.selected_addons) {
-            const parsedAddons = JSON.parse(item.selected_addons);
-            addons = Array.isArray(parsedAddons) ? parsedAddons.map((addon: any) => addon.name || addon) : [];
+            // Handle different types of selected_addons
+            if (typeof item.selected_addons === 'string') {
+              const parsedAddons = JSON.parse(item.selected_addons);
+              addons = Array.isArray(parsedAddons) ? parsedAddons.map((addon: any) => 
+                typeof addon === 'string' ? addon : (addon.name || String(addon))
+              ) : [];
+            } else if (Array.isArray(item.selected_addons)) {
+              addons = item.selected_addons.map((addon: any) => 
+                typeof addon === 'string' ? addon : (addon.name || String(addon))
+              );
+            }
           }
         } catch (e) {
           console.warn('Failed to parse addons for item:', item.id);
