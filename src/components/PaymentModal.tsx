@@ -46,7 +46,10 @@ const PaymentModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
-  const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived) - total) : 0;
+  const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
+
+  // Banknote values
+  const banknotes = [20, 50, 100, 500, 1000];
 
   const saveOrderToDatabase = async (method: PaymentMethod) => {
     try {
@@ -168,7 +171,9 @@ const PaymentModal = ({
   };
 
   const handlePayment = async () => {
-    if (paymentMethod === 'cash' && parseFloat(cashReceived) < total) {
+    const receivedAmount = parseFloat(cashReceived || '0');
+    
+    if (paymentMethod === 'cash' && receivedAmount < total) {
       toast({
         title: "จำนวนเงินไม่เพียงพอ",
         description: "กรุณากรอกจำนวนเงินที่รับมาให้ถูกต้อง",
@@ -181,7 +186,7 @@ const PaymentModal = ({
 
     try {
       await saveOrderToDatabase(paymentMethod);
-      onPayment(paymentMethod, paymentMethod === 'cash' ? parseFloat(cashReceived) : undefined);
+      onPayment(paymentMethod, paymentMethod === 'cash' ? receivedAmount : undefined);
     } catch (error) {
       // Error already handled in saveOrderToDatabase
     } finally {
@@ -194,6 +199,16 @@ const PaymentModal = ({
     if (value !== 'cash') {
       setCashReceived(total.toString());
     }
+  };
+
+  const handleBanknoteClick = (amount: number) => {
+    const currentAmount = parseFloat(cashReceived || '0');
+    const newAmount = currentAmount + amount;
+    setCashReceived(newAmount.toString());
+  };
+
+  const handleExactPayment = () => {
+    setCashReceived(total.toString());
   };
 
   return (
@@ -254,21 +269,50 @@ const PaymentModal = ({
             </RadioGroup>
           </div>
 
-          {/* Cash Input */}
+          {/* Cash Input and Banknotes */}
           {paymentMethod === 'cash' && (
-            <div>
-              <Label htmlFor="cash-received">จำนวนเงินที่รับ (บาท)</Label>
-              <Input
-                id="cash-received"
-                type="number"
-                value={cashReceived}
-                onChange={(e) => setCashReceived(e.target.value)}
-                min={total}
-                step="0.01"
-                className="mt-1"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="cash-received">จำนวนเงินที่รับ (บาท)</Label>
+                <Input
+                  id="cash-received"
+                  type="number"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(e.target.value)}
+                  min={total}
+                  step="0.01"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Banknote Buttons */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">ธนบัตร</Label>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {banknotes.map((amount) => (
+                    <Button
+                      key={amount}
+                      variant="outline"
+                      onClick={() => handleBanknoteClick(amount)}
+                      className="h-12 text-base font-medium"
+                    >
+                      ฿{amount}
+                    </Button>
+                  ))}
+                </div>
+                
+                {/* Exact Payment Button */}
+                <Button
+                  variant="outline"
+                  onClick={handleExactPayment}
+                  className="w-full h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                >
+                  จ่ายพอดี (฿{total.toLocaleString()})
+                </Button>
+              </div>
+
               {change > 0 && (
-                <div className="mt-2 p-2 bg-blue-50 rounded border text-center">
+                <div className="p-3 bg-blue-50 rounded border text-center">
                   <span className="text-blue-700 font-medium">
                     เงินทอน: ฿{change.toLocaleString()}
                   </span>
