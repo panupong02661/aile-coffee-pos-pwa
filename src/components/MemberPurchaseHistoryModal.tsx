@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, Calendar, DollarSign, Package } from 'lucide-react';
-import OrderDetailsModal from '@/components/OrderDetailsModal';
+import OrderDetailsModal from './OrderDetailsModal';
 
 interface PurchaseHistory {
   id: string;
@@ -89,10 +89,16 @@ const MemberPurchaseHistoryModal = ({ isOpen, onClose, memberId, memberName }: M
   };
 
   const handleOrderClick = (purchase: PurchaseHistory) => {
+    console.log('Clicking order:', purchase.id, purchase.order_number);
     setSelectedOrder({
       id: purchase.id,
       orderNumber: purchase.order_number
     });
+  };
+
+  const handleCloseOrderDetails = () => {
+    console.log('Closing order details modal');
+    setSelectedOrder(null);
   };
 
   useEffect(() => {
@@ -120,7 +126,7 @@ const MemberPurchaseHistoryModal = ({ isOpen, onClose, memberId, memberName }: M
                 {purchases.map((purchase) => (
                   <Card 
                     key={purchase.id} 
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="cursor-pointer hover:bg-gray-50 transition-colors border-2 hover:border-blue-200"
                     onClick={() => handleOrderClick(purchase)}
                   >
                     <CardHeader className="pb-3">
@@ -184,14 +190,12 @@ const MemberPurchaseHistoryModal = ({ isOpen, onClose, memberId, memberName }: M
       </Dialog>
 
       {/* Order Details Modal */}
-      {selectedOrder && (
-        <OrderDetailsModal
-          isOpen={!!selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          orderId={selectedOrder.id}
-          orderNumber={selectedOrder.orderNumber}
-        />
-      )}
+      <OrderDetailsModal
+        isOpen={!!selectedOrder}
+        onClose={handleCloseOrderDetails}
+        orderId={selectedOrder?.id || ''}
+        orderNumber={selectedOrder?.orderNumber || ''}
+      />
     </>
   );
 };

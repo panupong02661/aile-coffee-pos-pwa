@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, Package, DollarSign } from 'lucide-react';
 
@@ -41,7 +40,10 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
   const { toast } = useToast();
 
   const fetchOrderDetails = async () => {
+    if (!orderId) return;
+    
     setLoading(true);
+    console.log('Fetching order details for:', orderId, orderNumber);
     
     // Mock implementation since we don't have actual order items table yet
     const mockOrderDetails: OrderDetails = {
@@ -63,22 +65,30 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
         {
           id: '2',
           name: 'กาแฟลาเต้',
-          quantity: 2,
+          quantity: orderId === '1' ? 2 : 1,
           unit_price: 55,
-          total_price: 110,
+          total_price: orderId === '1' ? 110 : 55,
           addons: ['นมอัลมอนด์', 'ไซรัปวานิลลา']
         },
         ...(orderId === '1' ? [{
           id: '3',
-          name: 'คุกกี้',
+          name: 'คุกกี้ช็อกโกแลต',
           quantity: 1,
           unit_price: 25,
           total_price: 25,
           addons: []
         }] : []),
+        ...(orderId === '2' ? [{
+          id: '4',
+          name: 'เค้กมะพร้าว',
+          quantity: 1,
+          unit_price: 30,
+          total_price: 30,
+          addons: []
+        }] : []),
         ...(orderId === '3' ? [
           {
-            id: '4',
+            id: '5',
             name: 'กาแฟคาปูชิโน่',
             quantity: 1,
             unit_price: 50,
@@ -86,12 +96,20 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
             addons: []
           },
           {
-            id: '5',
+            id: '6',
             name: 'เค้กช็อกโกแลต',
-            quantity: 1,
+            quantity: 2,
             unit_price: 65,
-            total_price: 65,
+            total_price: 130,
             addons: []
+          },
+          {
+            id: '7',
+            name: 'น้ำส้มคั้นสด',
+            quantity: 1,
+            unit_price: 35,
+            total_price: 35,
+            addons: ['น้ำแข็งเพิ่ม']
           }
         ] : [])
       ]
@@ -99,6 +117,7 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
     
     // Simulate API delay
     setTimeout(() => {
+      console.log('Order details loaded:', mockOrderDetails);
       setOrderDetails(mockOrderDetails);
       setLoading(false);
     }, 500);
