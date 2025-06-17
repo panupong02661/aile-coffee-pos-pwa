@@ -349,6 +349,110 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_discount: number | null
+          item_discount_type: string | null
+          menu_item_id: string | null
+          menu_item_name: string
+          order_id: string
+          quantity: number
+          selected_addons: Json | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_discount?: number | null
+          item_discount_type?: string | null
+          menu_item_id?: string | null
+          menu_item_name: string
+          order_id: string
+          quantity?: number
+          selected_addons?: Json | null
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_discount?: number | null
+          item_discount_type?: string | null
+          menu_item_id?: string | null
+          menu_item_name?: string
+          order_id?: string
+          quantity?: number
+          selected_addons?: Json | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          bill_discount: number | null
+          bill_discount_type: string | null
+          created_at: string
+          id: string
+          items_count: number
+          member_id: string | null
+          order_number: string
+          payment_method: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          bill_discount?: number | null
+          bill_discount_type?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          member_id?: string | null
+          order_number: string
+          payment_method?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          bill_discount?: number | null
+          bill_discount_type?: string | null
+          created_at?: string
+          id?: string
+          items_count?: number
+          member_id?: string | null
+          order_number?: string
+          payment_method?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       point_transactions: {
         Row: {
           created_at: string
@@ -587,7 +691,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, Package, DollarSign } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OrderItem {
   id: string;
@@ -45,82 +46,78 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
     setLoading(true);
     console.log('Fetching order details for:', orderId, orderNumber);
     
-    // Mock implementation since we don't have actual order items table yet
-    const mockOrderDetails: OrderDetails = {
-      id: orderId,
-      order_number: orderNumber,
-      total_amount: orderId === '1' ? 150 : orderId === '2' ? 85 : 200,
-      items_count: orderId === '1' ? 3 : orderId === '2' ? 2 : 4,
-      created_at: new Date().toISOString(),
-      payment_method: orderId === '1' ? 'cash' : orderId === '2' ? 'qr' : 'points',
-      items: [
-        {
-          id: '1',
-          name: 'กาแฟอเมริกาโน่',
-          quantity: 1,
-          unit_price: 45,
-          total_price: 45,
-          addons: ['เพิ่มช็อต']
-        },
-        {
-          id: '2',
-          name: 'กาแฟลาเต้',
-          quantity: orderId === '1' ? 2 : 1,
-          unit_price: 55,
-          total_price: orderId === '1' ? 110 : 55,
-          addons: ['นมอัลมอนด์', 'ไซรัปวานิลลา']
-        },
-        ...(orderId === '1' ? [{
-          id: '3',
-          name: 'คุกกี้ช็อกโกแลต',
-          quantity: 1,
-          unit_price: 25,
-          total_price: 25,
-          addons: []
-        }] : []),
-        ...(orderId === '2' ? [{
-          id: '4',
-          name: 'เค้กมะพร้าว',
-          quantity: 1,
-          unit_price: 30,
-          total_price: 30,
-          addons: []
-        }] : []),
-        ...(orderId === '3' ? [
-          {
-            id: '5',
-            name: 'กาแฟคาปูชิโน่',
-            quantity: 1,
-            unit_price: 50,
-            total_price: 50,
-            addons: []
-          },
-          {
-            id: '6',
-            name: 'เค้กช็อกโกแลต',
-            quantity: 2,
-            unit_price: 65,
-            total_price: 130,
-            addons: []
-          },
-          {
-            id: '7',
-            name: 'น้ำส้มคั้นสด',
-            quantity: 1,
-            unit_price: 35,
-            total_price: 35,
-            addons: ['น้ำแข็งเพิ่ม']
+    try {
+      // Fetch order details
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (orderError) {
+        console.error('Error fetching order:', orderError);
+        throw orderError;
+      }
+
+      // Fetch order items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at');
+
+      if (itemsError) {
+        console.error('Error fetching order items:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('Order fetched:', order);
+      console.log('Order items fetched:', orderItems);
+
+      // Transform the data
+      const transformedItems: OrderItem[] = orderItems?.map(item => {
+        let addons: string[] = [];
+        try {
+          if (item.selected_addons) {
+            const parsedAddons = JSON.parse(item.selected_addons);
+            addons = Array.isArray(parsedAddons) ? parsedAddons.map((addon: any) => addon.name || addon) : [];
           }
-        ] : [])
-      ]
-    };
-    
-    // Simulate API delay
-    setTimeout(() => {
-      console.log('Order details loaded:', mockOrderDetails);
-      setOrderDetails(mockOrderDetails);
+        } catch (e) {
+          console.warn('Failed to parse addons for item:', item.id);
+        }
+
+        return {
+          id: item.id,
+          name: item.menu_item_name,
+          quantity: item.quantity,
+          unit_price: Number(item.unit_price),
+          total_price: Number(item.total_price),
+          addons
+        };
+      }) || [];
+
+      const orderDetailsData: OrderDetails = {
+        id: order.id,
+        order_number: order.order_number,
+        total_amount: Number(order.total_amount),
+        items_count: order.items_count,
+        created_at: order.created_at,
+        payment_method: order.payment_method,
+        items: transformedItems
+      };
+
+      console.log('Order details loaded:', orderDetailsData);
+      setOrderDetails(orderDetailsData);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดรายละเอียดออเดอร์ได้",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const getPaymentMethodName = (method: string) => {

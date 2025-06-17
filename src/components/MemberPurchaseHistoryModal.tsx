@@ -34,40 +34,47 @@ const MemberPurchaseHistoryModal = ({ isOpen, onClose, memberId, memberName }: M
   const fetchPurchaseHistory = async () => {
     setLoading(true);
     
-    // Note: This is a mock implementation since we don't have orders table yet
-    // In a real implementation, you would fetch from an orders table
-    const mockPurchases: PurchaseHistory[] = [
-      {
-        id: '1',
-        order_number: 'ORD-001',
-        total_amount: 150,
-        items_count: 3,
-        created_at: new Date().toISOString(),
-        payment_method: 'cash'
-      },
-      {
-        id: '2',
-        order_number: 'ORD-002',
-        total_amount: 85,
-        items_count: 2,
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        payment_method: 'qr'
-      },
-      {
-        id: '3',
-        order_number: 'ORD-003',
-        total_amount: 200,
-        items_count: 4,
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        payment_method: 'points'
+    try {
+      console.log('Fetching purchase history for member:', memberId);
+      
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('member_id', memberId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching purchase history:', error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถโหลดประวัติการซื้อได้",
+          variant: "destructive"
+        });
+        return;
       }
-    ];
-    
-    // Simulate API delay
-    setTimeout(() => {
-      setPurchases(mockPurchases);
+
+      console.log('Purchase history loaded:', orders);
+      
+      const formattedPurchases: PurchaseHistory[] = orders?.map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        total_amount: Number(order.total_amount),
+        items_count: order.items_count,
+        created_at: order.created_at,
+        payment_method: order.payment_method
+      })) || [];
+
+      setPurchases(formattedPurchases);
+    } catch (error) {
+      console.error('Error in fetchPurchaseHistory:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดประวัติการซื้อได้",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const getPaymentMethodName = (method: string) => {

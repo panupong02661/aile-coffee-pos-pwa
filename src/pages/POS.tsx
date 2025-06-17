@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -281,6 +282,7 @@ const POS = () => {
                     onUpdateBillDiscount={setBillDiscount}
                     onUpdateBillDiscountType={setBillDiscountType}
                     onRestoreCart={restoreCart}
+                    selectedMember={selectedMember}
                   />
                 </div>
               </div>
@@ -322,6 +324,7 @@ const POS = () => {
           onUpdateBillDiscount={setBillDiscount}
           onUpdateBillDiscountType={setBillDiscountType}
           onRestoreCart={restoreCart}
+          selectedMember={selectedMember}
         />
       )}
 

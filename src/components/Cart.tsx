@@ -21,6 +21,15 @@ interface CartProps {
   onUpdateBillDiscount: (discount: number) => void;
   onUpdateBillDiscountType: (type: 'percent' | 'amount') => void;
   onRestoreCart: (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
+  selectedMember?: {
+    id: string;
+    phone: string;
+    name: string;
+    email?: string;
+    tier: 'silver' | 'gold' | 'platinum';
+    points: number;
+    total_spent: number;
+  } | null;
 }
 
 const Cart = ({ 
@@ -33,7 +42,8 @@ const Cart = ({
   billDiscountType,
   onUpdateBillDiscount,
   onUpdateBillDiscountType,
-  onRestoreCart
+  onRestoreCart,
+  selectedMember
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
@@ -258,6 +268,10 @@ const Cart = ({
         onClose={() => setIsPaymentModalOpen(false)}
         total={total}
         onPayment={handlePayment}
+        cartItems={cartItems}
+        billDiscount={billDiscount}
+        billDiscountType={billDiscountType}
+        selectedMember={selectedMember}
       />
 
       <DiscountModal
