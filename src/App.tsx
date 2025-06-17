@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import POS from "./pages/POS";
 import Dashboard from "./pages/Dashboard";
 import MenuManagement from "./pages/MenuManagement";
+import ShopSettings from "./pages/ShopSettings";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
@@ -35,6 +36,11 @@ const App = () => (
             <Route path="/menu" element={
               <ProtectedRoute>
                 <MenuManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/shop-settings" element={
+              <ProtectedRoute>
+                <ShopSettings />
               </ProtectedRoute>
             } />
             <Route path="/promotions" element={

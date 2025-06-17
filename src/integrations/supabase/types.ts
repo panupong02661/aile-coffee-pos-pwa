@@ -358,6 +358,90 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_settings: {
+        Row: {
+          created_at: string
+          footer_message: string | null
+          id: string
+          show_customer_info: boolean
+          show_date_time: boolean
+          show_item_details: boolean
+          show_logo: boolean
+          show_order_number: boolean
+          show_payment_method: boolean
+          show_shop_info: boolean
+          show_tax_id: boolean
+          show_total: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          footer_message?: string | null
+          id?: string
+          show_customer_info?: boolean
+          show_date_time?: boolean
+          show_item_details?: boolean
+          show_logo?: boolean
+          show_order_number?: boolean
+          show_payment_method?: boolean
+          show_shop_info?: boolean
+          show_tax_id?: boolean
+          show_total?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          footer_message?: string | null
+          id?: string
+          show_customer_info?: boolean
+          show_date_time?: boolean
+          show_item_details?: boolean
+          show_logo?: boolean
+          show_order_number?: boolean
+          show_payment_method?: boolean
+          show_shop_info?: boolean
+          show_tax_id?: boolean
+          show_total?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shop_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          shop_name: string
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string

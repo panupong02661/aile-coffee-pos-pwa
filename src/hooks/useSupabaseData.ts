@@ -71,6 +71,34 @@ export interface CategoryAddonGroup {
   created_at: string;
 }
 
+export interface ShopSettings {
+  id: string;
+  shop_name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  tax_id?: string;
+  logo_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReceiptSettings {
+  id: string;
+  show_logo: boolean;
+  show_shop_info: boolean;
+  show_tax_id: boolean;
+  show_date_time: boolean;
+  show_order_number: boolean;
+  show_item_details: boolean;
+  show_total: boolean;
+  show_payment_method: boolean;
+  show_customer_info: boolean;
+  footer_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useSupabaseData = () => {
   const [categories, setCategories] = useState<DatabaseCategory[]>([]);
   const [menuItems, setMenuItems] = useState<DatabaseMenuItem[]>([]);
@@ -78,8 +106,38 @@ export const useSupabaseData = () => {
   const [addons, setAddons] = useState<DatabaseAddon[]>([]);
   const [menuAddonGroups, setMenuAddonGroups] = useState<MenuAddonGroup[]>([]);
   const [categoryAddonGroups, setCategoryAddonGroups] = useState<CategoryAddonGroup[]>([]);
+  const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
+  const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const fetchShopSettings = async () => {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าร้านได้', variant: 'destructive' });
+      return;
+    }
+    setShopSettings(data);
+  };
+
+  const fetchReceiptSettings = async () => {
+    const { data, error } = await supabase
+      .from('receipt_settings')
+      .select('*')
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าใบเสร็จได้', variant: 'destructive' });
+      return;
+    }
+    setReceiptSettings(data);
+  };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase
@@ -217,6 +275,8 @@ export const useSupabaseData = () => {
         fetchAddons(),
         fetchMenuAddonGroups(),
         fetchCategoryAddonGroups(),
+        fetchShopSettings(),
+        fetchReceiptSettings(),
       ]);
       setLoading(false);
     };
@@ -231,6 +291,8 @@ export const useSupabaseData = () => {
     addons,
     menuAddonGroups,
     categoryAddonGroups,
+    shopSettings,
+    receiptSettings,
     loading,
     refetch: {
       categories: fetchCategories,
@@ -239,6 +301,8 @@ export const useSupabaseData = () => {
       addons: fetchAddons,
       menuAddonGroups: fetchMenuAddonGroups,
       categoryAddonGroups: fetchCategoryAddonGroups,
+      shopSettings: fetchShopSettings,
+      receiptSettings: fetchReceiptSettings,
     },
     uploadImage,
     getAddonGroupsForMenuItem,
