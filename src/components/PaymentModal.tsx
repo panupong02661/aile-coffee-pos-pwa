@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -173,7 +174,8 @@ const PaymentModal = ({
     console.log('Payment attempt:', {
       paymentMethod,
       total,
-      cartItems: cartItems.length
+      cartItems: cartItems.length,
+      selectedMember
     });
     
     // Check if cart has items
@@ -186,21 +188,20 @@ const PaymentModal = ({
       return;
     }
 
-    // Validate cash payment amount only for cash payment method
+    // Validate based on payment method
     if (paymentMethod === 'cash') {
       const receivedAmount = parseFloat(cashReceived || '0');
-      if (receivedAmount < total) {
+      console.log('Cash validation:', { receivedAmount, total });
+      
+      if (isNaN(receivedAmount) || receivedAmount < total) {
         toast({
           title: "จำนวนเงินไม่เพียงพอ",
-          description: "กรุณากรอกจำนวนเงินที่รับมาให้ถูกต้อง",
+          description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
           variant: "destructive"
         });
         return;
       }
-    }
-
-    // Validate points payment
-    if (paymentMethod === 'points') {
+    } else if (paymentMethod === 'points') {
       if (!selectedMember) {
         toast({
           title: "กรุณาเลือกสมาชิก",
@@ -210,7 +211,9 @@ const PaymentModal = ({
         return;
       }
 
-      const requiredPoints = Math.ceil(total); // 1 point per baht
+      const requiredPoints = Math.ceil(total);
+      console.log('Points validation:', { requiredPoints, memberPoints: selectedMember.points });
+      
       if (selectedMember.points < requiredPoints) {
         toast({
           title: "แต้มไม่เพียงพอ",
@@ -224,9 +227,10 @@ const PaymentModal = ({
     setIsProcessing(true);
 
     try {
+      console.log('Saving order to database...');
       await saveOrderToDatabase(paymentMethod);
       
-      // For cash payment, pass the received amount
+      console.log('Order saved, calling onPayment...');
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
         onPayment(paymentMethod, receivedAmount);
@@ -234,10 +238,10 @@ const PaymentModal = ({
         onPayment(paymentMethod);
       }
       
-      onClose(); // Close modal after successful payment
+      console.log('Payment completed, closing modal...');
+      onClose();
     } catch (error) {
       console.error('Payment processing error:', error);
-      // Error already handled in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
     }
@@ -357,23 +361,25 @@ const PaymentModal = ({
                   ))}
                 </div>
                 
-                {/* Exact Payment Button */}
-                <Button
-                  variant="outline"
-                  onClick={handleExactPayment}
-                  className="w-full h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
-                >
-                  จ่ายพอดี (฿{total.toLocaleString()})
-                </Button>
-              </div>
-
-              {change > 0 && (
-                <div className="p-3 bg-blue-50 rounded border text-center">
-                  <span className="text-blue-700 font-medium">
-                    เงินทอน: ฿{change.toLocaleString()}
-                  </span>
+                {/* Exact Payment and Change display in same row */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleExactPayment}
+                    className="flex-1 h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                  >
+                    จ่ายพอดี (฿{total.toLocaleString()})
+                  </Button>
+                  
+                  {change > 0 && (
+                    <div className="flex-1 flex items-center justify-center p-3 bg-blue-50 rounded border">
+                      <span className="text-blue-700 font-medium">
+                        เงินทอน: ฿{change.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -421,7 +427,7 @@ const PaymentModal = ({
             <Button 
               onClick={handlePayment}
               className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={isProcessing || cartItems.length === 0}
+              disabled={isProcessing}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
             </Button>
