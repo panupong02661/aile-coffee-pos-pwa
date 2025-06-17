@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as HotToaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
+import { AuthProvider } from '@/hooks/useAuth';
 import POS from '@/pages/POS';
 import Dashboard from '@/pages/Dashboard';
 import MenuManagement from '@/pages/MenuManagement';
@@ -38,62 +39,64 @@ const AnimatedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <div className="App">
-          <AnimatedRoute>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route 
-                path="/pos" 
-                element={
-                  <ProtectedRoute>
-                    <POS />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/menu-management" 
-                element={
-                  <ProtectedRoute>
-                    <MenuManagement />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/promotions" 
-                element={
-                  <ProtectedRoute>
-                    <Promotions />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/404" element={<NotFound />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-          </AnimatedRoute>
-          <Toaster />
-          <HotToaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#8B4513',
-                color: '#fff',
-                fontWeight: '500',
-              },
-            }}
-          />
-        </div>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="App">
+            <AnimatedRoute>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route 
+                  path="/pos" 
+                  element={
+                    <ProtectedRoute>
+                      <POS />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/menu-management" 
+                  element={
+                    <ProtectedRoute>
+                      <MenuManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/promotions" 
+                  element={
+                    <ProtectedRoute>
+                      <Promotions />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="/404" element={<NotFound />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </AnimatedRoute>
+            <Toaster />
+            <HotToaster 
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
+                style: {
+                  background: '#8B4513',
+                  color: '#fff',
+                  fontWeight: '500',
+                },
+              }}
+            />
+          </div>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
