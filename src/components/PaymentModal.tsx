@@ -51,37 +51,75 @@ const PaymentModal = ({
   // Banknote values
   const banknotes = [20, 50, 100, 500, 1000];
 
-  const saveOrderToDatabase = async (method: PaymentMethod) => {
-    try {
-      console.log('=== Starting Order Save Process ===');
-      console.log('Payment method:', method);
-      console.log('Cart items:', JSON.stringify(cartItems, null, 2));
-      console.log('Total amount:', total);
-      console.log('Selected member:', selectedMember);
-      console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
-      
-      // Validate cart items first
-      if (!cartItems || cartItems.length === 0) {
-        console.error('No cart items found');
-        throw new Error('ไม่มีสินค้าในตะกร้า');
+  const validateCartData = () => {
+    console.log('=== Starting Cart Data Validation ===');
+    
+    if (!cartItems || cartItems.length === 0) {
+      throw new Error('Cart is empty');
+    }
+
+    cartItems.forEach((item, index) => {
+      console.log(`Validating item ${index + 1}:`, {
+        id: item.id,
+        menu_item: item.menu_item,
+        quantity: item.quantity,
+        total_price: item.total_price,
+        selected_addons: item.selected_addons
+      });
+
+      if (!item.menu_item) {
+        throw new Error(`Menu item is missing for cart item ${index + 1}`);
       }
 
-      // Validate required fields for each cart item
-      cartItems.forEach((item, index) => {
-        console.log(`Validating cart item ${index}:`, item);
-        if (!item.menu_item || !item.menu_item.id || !item.menu_item.name) {
-          console.error(`Invalid menu item at index ${index}:`, item);
-          throw new Error(`ข้อมูลสินค้าไม่ถูกต้องที่รายการที่ ${index + 1}`);
-        }
-        if (!item.quantity || item.quantity <= 0) {
-          console.error(`Invalid quantity at index ${index}:`, item.quantity);
-          throw new Error(`จำนวนสินค้าไม่ถูกต้องที่รายการที่ ${index + 1}`);
-        }
-        if (typeof item.total_price !== 'number' || item.total_price < 0) {
-          console.error(`Invalid total_price at index ${index}:`, item.total_price);
-          throw new Error(`ราคาสินค้าไม่ถูกต้องที่รายการที่ ${index + 1}`);
-        }
-      });
+      if (!item.menu_item.id) {
+        throw new Error(`Menu item ID is missing for cart item ${index + 1}`);
+      }
+
+      if (!item.menu_item.name) {
+        throw new Error(`Menu item name is missing for cart item ${index + 1}`);
+      }
+
+      if (!item.quantity || item.quantity <= 0) {
+        throw new Error(`Invalid quantity for cart item ${index + 1}: ${item.quantity}`);
+      }
+
+      if (typeof item.total_price !== 'number' || item.total_price < 0) {
+        throw new Error(`Invalid total price for cart item ${index + 1}: ${item.total_price}`);
+      }
+
+      if (typeof item.menu_item.price !== 'number' || item.menu_item.price < 0) {
+        throw new Error(`Invalid menu item price for cart item ${index + 1}: ${item.menu_item.price}`);
+      }
+    });
+
+    console.log('✅ Cart data validation passed');
+    return true;
+  };
+
+  const saveOrderToDatabase = async (method: PaymentMethod) => {
+    try {
+      console.log('=== Starting Database Save Process ===');
+      console.log('Payment method:', method);
+      console.log('Total amount:', total);
+      console.log('Cart items count:', cartItems.length);
+      console.log('Selected member:', selectedMember);
+      console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
+
+      // Validate cart data first
+      validateCartData();
+
+      // Test database connection
+      console.log('Testing database connection...');
+      const { data: testConnection, error: connectionError } = await supabase
+        .from('categories')
+        .select('id')
+        .limit(1);
+
+      if (connectionError) {
+        console.error('Database connection failed:', connectionError);
+        throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+      }
+      console.log('✅ Database connection successful');
 
       // Generate order number
       console.log('Generating order number...');
@@ -90,26 +128,38 @@ const PaymentModal = ({
 
       if (orderNumberError) {
         console.error('Error generating order number:', orderNumberError);
-        throw new Error('ไม่สามารถสร้างเลขที่คำสั่งซื้อได้');
+        throw new Error(`ไม่สามารถสร้างเลขที่คำสั่งซื้อได้: ${orderNumberError.message}`);
       }
 
       const orderNumber = orderNumberData;
-      console.log('Generated order number:', orderNumber);
+      console.log('✅ Generated order number:', orderNumber);
 
-      // Prepare order data
+      // Prepare order data with explicit type conversion
       const orderData = {
-        order_number: orderNumber,
+        order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
         total_amount: Number(total),
-        items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-        payment_method: method,
+        items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+        payment_method: String(method),
         bill_discount: Number(billDiscount) || 0,
-        bill_discount_type: billDiscountType || 'amount'
+        bill_discount_type: String(billDiscountType) || 'amount'
       };
 
-      console.log('Order data to insert:', JSON.stringify(orderData, null, 2));
+      console.log('Order data prepared:', orderData);
+
+      // Validate order data
+      if (!orderData.order_number) {
+        throw new Error('Order number is required');
+      }
+      if (orderData.total_amount <= 0) {
+        throw new Error('Total amount must be greater than 0');
+      }
+      if (orderData.items_count <= 0) {
+        throw new Error('Items count must be greater than 0');
+      }
 
       // Create order
+      console.log('Creating order in database...');
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
@@ -117,157 +167,184 @@ const PaymentModal = ({
         .single();
 
       if (orderError) {
-        console.error('Error creating order:', orderError);
-        console.error('Error details:', JSON.stringify(orderError, null, 2));
-        throw new Error('ไม่สามารถบันทึกคำสั่งซื้อได้');
+        console.error('❌ Order creation failed:', orderError);
+        console.error('Order error details:', {
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint,
+          code: orderError.code
+        });
+        throw new Error(`ไม่สามารถบันทึกคำสั่งซื้อได้: ${orderError.message}`);
       }
 
-      console.log('Order created successfully:', order);
+      if (!order || !order.id) {
+        console.error('❌ Order created but no ID returned');
+        throw new Error('ไม่สามารถรับ ID ของคำสั่งซื้อได้');
+      }
 
-      // Prepare order items
+      console.log('✅ Order created successfully:', order);
+
+      // Prepare order items with detailed validation
+      console.log('Preparing order items...');
       const orderItems = cartItems.map((item, index) => {
-        console.log(`Preparing order item ${index}:`, item);
-        
         const orderItem = {
           order_id: order.id,
-          menu_item_id: item.menu_item.id,
-          menu_item_name: item.menu_item.name,
+          menu_item_id: String(item.menu_item.id),
+          menu_item_name: String(item.menu_item.name),
           quantity: Number(item.quantity),
           unit_price: Number(item.menu_item.price),
           item_discount: Number(item.item_discount) || 0,
-          item_discount_type: item.item_discount_type || 'amount',
+          item_discount_type: String(item.item_discount_type) || 'amount',
           total_price: Number(item.total_price),
           selected_addons: JSON.stringify(item.selected_addons?.map(addon => ({
-            id: addon.id,
-            name: addon.name,
+            id: String(addon.id),
+            name: String(addon.name),
             price: Number(addon.price)
           })) || [])
         };
-        
-        console.log(`Prepared order item ${index}:`, orderItem);
+
+        console.log(`Order item ${index + 1} prepared:`, orderItem);
         return orderItem;
       });
 
-      console.log('All order items to insert:', JSON.stringify(orderItems, null, 2));
+      // Validate order items
+      orderItems.forEach((item, index) => {
+        if (!item.order_id) throw new Error(`Order ID missing for item ${index + 1}`);
+        if (!item.menu_item_id) throw new Error(`Menu item ID missing for item ${index + 1}`);
+        if (!item.menu_item_name) throw new Error(`Menu item name missing for item ${index + 1}`);
+        if (item.quantity <= 0) throw new Error(`Invalid quantity for item ${index + 1}`);
+        if (item.unit_price < 0) throw new Error(`Invalid unit price for item ${index + 1}`);
+        if (item.total_price < 0) throw new Error(`Invalid total price for item ${index + 1}`);
+      });
 
-      // Create order items
+      console.log('Creating order items in database...');
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
       if (itemsError) {
-        console.error('Error creating order items:', itemsError);
-        console.error('Items error details:', JSON.stringify(itemsError, null, 2));
-        throw new Error('ไม่สามารถบันทึกรายการสินค้าได้');
+        console.error('❌ Order items creation failed:', itemsError);
+        console.error('Items error details:', {
+          message: itemsError.message,
+          details: itemsError.details,
+          hint: itemsError.hint,
+          code: itemsError.code
+        });
+        throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
       }
 
-      console.log('Order items created successfully');
+      console.log('✅ Order items created successfully');
 
-      // Update member points and total spent if member is selected
-      if (selectedMember && method !== 'points') {
-        console.log('Updating member points for member:', selectedMember.id);
-        const pointsEarned = Math.floor(total);
-        const newPoints = selectedMember.points + pointsEarned;
-        const newTotalSpent = selectedMember.total_spent + total;
+      // Handle member points
+      if (selectedMember) {
+        console.log('Processing member points...');
+        
+        if (method === 'points') {
+          const pointsToDeduct = Math.ceil(total);
+          const newPoints = selectedMember.points - pointsToDeduct;
 
-        console.log('Points calculation:', {
-          currentPoints: selectedMember.points,
-          pointsEarned,
-          newPoints,
-          currentTotalSpent: selectedMember.total_spent,
-          newTotalSpent
-        });
+          if (newPoints < 0) {
+            throw new Error('แต้มไม่เพียงพอสำหรับการชำระเงิน');
+          }
 
-        const { error: memberError } = await supabase
-          .from('members')
-          .update({
-            points: newPoints,
-            total_spent: newTotalSpent
-          })
-          .eq('id', selectedMember.id);
+          console.log(`Deducting ${pointsToDeduct} points from member`);
+          
+          const { error: memberError } = await supabase
+            .from('members')
+            .update({
+              points: newPoints,
+              total_spent: selectedMember.total_spent + total
+            })
+            .eq('id', selectedMember.id);
 
-        if (memberError) {
-          console.error('Error updating member points:', memberError);
-          // Don't throw here, just log the error
-        } else {
-          console.log('Member points updated successfully');
+          if (memberError) {
+            console.error('❌ Member points deduction failed:', memberError);
+            throw new Error(`ไม่สามารถหักแต้มสมาชิกได้: ${memberError.message}`);
+          }
 
-          // Create point transaction record
+          // Create point transaction
           const { error: pointTransactionError } = await supabase
             .from('point_transactions')
             .insert({
               member_id: selectedMember.id,
               order_id: order.id,
-              points_change: pointsEarned,
-              transaction_type: 'earn',
-              description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
+              points_change: -pointsToDeduct,
+              transaction_type: 'redeem',
+              description: `ใช้แต้มชำระเงิน ออเดอร์ ${orderNumber}`
             });
 
           if (pointTransactionError) {
-            console.error('Error creating point transaction:', pointTransactionError);
+            console.error('Point transaction error:', pointTransactionError);
           }
-        }
-      } else if (selectedMember && method === 'points') {
-        console.log('Deducting points for points payment');
-        const pointsToDeduct = Math.ceil(total);
-        const newPoints = selectedMember.points - pointsToDeduct;
 
-        console.log('Points deduction:', {
-          currentPoints: selectedMember.points,
-          pointsToDeduct,
-          newPoints
-        });
+          console.log('✅ Points deducted successfully');
+        } else {
+          // Award points for non-points payment
+          const pointsEarned = Math.floor(total);
+          const newPoints = selectedMember.points + pointsEarned;
+          const newTotalSpent = selectedMember.total_spent + total;
 
-        const { error: memberError } = await supabase
-          .from('members')
-          .update({
-            points: newPoints,
-            total_spent: selectedMember.total_spent + total
-          })
-          .eq('id', selectedMember.id);
+          console.log(`Awarding ${pointsEarned} points to member`);
 
-        if (memberError) {
-          console.error('Error deducting member points:', memberError);
-          throw new Error('ไม่สามารถหักแต้มสมาชิกได้');
-        }
+          const { error: memberError } = await supabase
+            .from('members')
+            .update({
+              points: newPoints,
+              total_spent: newTotalSpent
+            })
+            .eq('id', selectedMember.id);
 
-        // Create point transaction record for redemption
-        const { error: pointTransactionError } = await supabase
-          .from('point_transactions')
-          .insert({
-            member_id: selectedMember.id,
-            order_id: order.id,
-            points_change: -pointsToDeduct,
-            transaction_type: 'redeem',
-            description: `ใช้แต้มชำระเงิน ออเดอร์ ${orderNumber}`
-          });
+          if (memberError) {
+            console.error('Member points update error:', memberError);
+            // Don't throw error for points awarding failure
+          } else {
+            // Create point transaction
+            const { error: pointTransactionError } = await supabase
+              .from('point_transactions')
+              .insert({
+                member_id: selectedMember.id,
+                order_id: order.id,
+                points_change: pointsEarned,
+                transaction_type: 'earn',
+                description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
+              });
 
-        if (pointTransactionError) {
-          console.error('Error creating point transaction for redemption:', pointTransactionError);
+            if (pointTransactionError) {
+              console.error('Point transaction error:', pointTransactionError);
+            }
+
+            console.log('✅ Points awarded successfully');
+          }
         }
       }
 
       console.log('=== Order Save Process Completed Successfully ===');
 
       toast({
-        title: "บันทึกการสั่งซื้อสำเร็จ",
+        title: "ชำระเงินสำเร็จ",
         description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
       });
 
       return order;
     } catch (error) {
-      console.error('=== Error in saveOrderToDatabase ===');
+      console.error('=== PAYMENT ERROR DETAILS ===');
+      console.error('Error type:', typeof error);
+      console.error('Error instanceof Error:', error instanceof Error);
       console.error('Error object:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       
-      const errorMessage = error instanceof Error ? error.message : 'ไม่สามารถบันทึกข้อมูลการสั่งซื้อได้';
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
       
       toast({
         title: "เกิดข้อผิดพลาด",
         description: errorMessage,
         variant: "destructive"
       });
+      
       throw error;
     }
   };
@@ -276,15 +353,23 @@ const PaymentModal = ({
     console.log('=== Payment Process Started ===');
     console.log('Payment method:', paymentMethod);
     console.log('Total amount:', total);
-    console.log('Cart items count:', cartItems?.length || 0);
+    console.log('Cash received:', cashReceived);
+    console.log('Cart items:', cartItems);
     console.log('Selected member:', selectedMember);
     
+    if (isProcessing) {
+      console.log('Payment already in progress, ignoring');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       // Basic validation
+      console.log('Performing basic validations...');
+      
       if (!cartItems || cartItems.length === 0) {
-        console.log('Validation failed: No items in cart');
+        console.log('❌ Validation failed: No items in cart');
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
           description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
@@ -294,7 +379,7 @@ const PaymentModal = ({
       }
 
       if (total <= 0) {
-        console.log('Validation failed: Invalid total amount');
+        console.log('❌ Validation failed: Invalid total amount');
         toast({
           title: "ยอดเงินไม่ถูกต้อง",
           description: "ยอดเงินต้องมากกว่า 0",
@@ -309,7 +394,7 @@ const PaymentModal = ({
         console.log('Cash validation - received:', receivedAmount, 'total:', total);
         
         if (isNaN(receivedAmount) || receivedAmount < total) {
-          console.log('Cash validation failed');
+          console.log('❌ Cash validation failed');
           toast({
             title: "จำนวนเงินไม่เพียงพอ",
             description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
@@ -319,7 +404,7 @@ const PaymentModal = ({
         }
       } else if (paymentMethod === 'points') {
         if (!selectedMember) {
-          console.log('Points validation failed: No member selected');
+          console.log('❌ Points validation failed: No member selected');
           toast({
             title: "กรุณาเลือกสมาชิก",
             description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
@@ -332,7 +417,7 @@ const PaymentModal = ({
         console.log('Points validation - required:', requiredPoints, 'available:', selectedMember.points);
         
         if (selectedMember.points < requiredPoints) {
-          console.log('Points validation failed: Insufficient points');
+          console.log('❌ Points validation failed: Insufficient points');
           toast({
             title: "แต้มไม่เพียงพอ",
             description: `ต้องการ ${requiredPoints} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
@@ -342,9 +427,10 @@ const PaymentModal = ({
         }
       }
 
-      console.log('All validations passed, saving order...');
+      console.log('✅ All validations passed');
       
       // Save order to database
+      console.log('Calling saveOrderToDatabase...');
       await saveOrderToDatabase(paymentMethod);
       
       console.log('Order saved successfully, calling onPayment callback...');
@@ -353,7 +439,7 @@ const PaymentModal = ({
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       
-      console.log('Payment process completed successfully');
+      console.log('✅ Payment process completed successfully');
       onClose();
       
     } catch (error) {
