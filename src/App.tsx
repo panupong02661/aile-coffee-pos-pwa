@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import MenuManagement from "./pages/MenuManagement";
 import ShopSettings from "./pages/ShopSettings";
 import MemberManagement from "./pages/MemberManagement";
+import MemberRegistration from "./pages/MemberRegistration";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
@@ -44,6 +45,7 @@ const App = () => (
                 <MemberManagement />
               </ProtectedRoute>
             } />
+            <Route path="/member-registration" element={<MemberRegistration />} />
             <Route path="/shop-settings" element={
               <ProtectedRoute>
                 <ShopSettings />

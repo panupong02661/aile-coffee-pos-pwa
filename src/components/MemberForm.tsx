@@ -37,7 +37,10 @@ const MemberForm = () => {
     try {
       const { error } = await supabase
         .from('members')
-        .insert([formData]);
+        .insert([{
+          ...formData,
+          join_date: new Date().toISOString(),
+        }]);
 
       if (error) {
         if (error.code === '23505') {
@@ -80,7 +83,7 @@ const MemberForm = () => {
           <UserPlus className="w-5 h-5" />
           เพิ่มสมาชิกใหม่
         </CardTitle>
-        <CardDescription>กรอกข้อมูลสมาชิกใหม่</CardDescription>
+        <CardDescription>กรอกข้อมูลสมาชิกใหม่ (วันที่สมัครจะถูกบันทึกอัตโนมัติ)</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
@@ -154,6 +157,12 @@ const MemberForm = () => {
               onChange={(e) => handleInputChange('total_spent', parseFloat(e.target.value) || 0)}
               placeholder="0.00"
             />
+          </div>
+
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-700">
+              📅 วันที่สมัครจะถูกบันทึกอัตโนมัติเป็นวันที่ปัจจุบัน
+            </p>
           </div>
 
           <Button type="submit" disabled={loading} className="w-full">
