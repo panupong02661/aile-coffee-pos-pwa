@@ -170,6 +170,51 @@ export type Database = {
           },
         ]
       }
+      ingredients: {
+        Row: {
+          category: string
+          cost_per_unit: number
+          created_at: string
+          id: string
+          is_active: boolean
+          minimum_stock: number
+          name: string
+          quantity: number
+          sort_order: number
+          supplier: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_stock?: number
+          name: string
+          quantity?: number
+          sort_order?: number
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_stock?: number
+          name?: string
+          quantity?: number
+          sort_order?: number
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           created_at: string
@@ -288,6 +333,45 @@ export type Database = {
           },
           {
             foreignKeyName: "menu_addon_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string | null
+          menu_item_id: string | null
+          quantity_needed: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          menu_item_id?: string | null
+          quantity_needed?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          menu_item_id?: string | null
+          quantity_needed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_ingredients_menu_item_id_fkey"
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "menu_items"
@@ -659,6 +743,53 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          ingredient_id: string | null
+          movement_type: string
+          notes: string | null
+          order_id: string | null
+          quantity_change: number
+          reference_number: string | null
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id?: string | null
+          movement_type: string
+          notes?: string | null
+          order_id?: string | null
+          quantity_change: number
+          reference_number?: string | null
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id?: string | null
+          movement_type?: string
+          notes?: string | null
+          order_id?: string | null
+          quantity_change?: number
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -691,9 +822,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_menu_cost: {
+        Args: { menu_id: string }
+        Returns: number
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_low_stock_ingredients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          category: string
+          quantity: number
+          unit: string
+          minimum_stock: number
+          shortage: number
+        }[]
       }
     }
     Enums: {

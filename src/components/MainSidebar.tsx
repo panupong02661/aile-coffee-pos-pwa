@@ -1,128 +1,71 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import UserProfile from './UserProfile';
+import { cn } from '@/lib/utils';
 import { 
-  BarChart3, 
-  Calculator, 
-  Clock,
-  Table,
-  Menu as MenuIcon,
-  Users,
-  Award,
-  Cog,
-  FileText,
-  CreditCard,
+  LayoutDashboard, 
+  ShoppingCart, 
+  Coffee, 
   Package,
-  UserCheck,
-  Bell,
-  Smartphone,
-  ChefHat,
-  Truck,
-  UserCog,
-  Brain,
-  Settings,
-  Percent,
-  Shield,
-  Store,
-  Building,
-  MessageCircle,
-  Printer
+  Users, 
+  Settings, 
+  Gift,
+  LogOut 
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
-interface MainSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
+const MainSidebar = () => {
   const location = useLocation();
-  
-  const menuItems = [
-    { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
-    { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
-    { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
-    { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
-    { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
-    { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
-    { id: 'points', label: 'จัดการแต้ม', icon: Award, path: '/points' },
-    { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
-    { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: FileText, path: '/advanced-reports' },
-    { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
-    { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
-    { id: 'staff', label: 'จัดการพนักงาน', icon: UserCheck, path: '/staff' },
-    { id: 'notifications', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notifications' },
-    { id: 'mobile-app', label: 'แอปมือถือ', icon: Smartphone, path: '/mobile-app' },
-    { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
-    { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
-    { id: 'crm', label: 'ระบบ CRM', icon: UserCog, path: '/crm' },
-    { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
-    { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
-    { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-    { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
-    { id: 'permissions', label: 'สิทธิ์การเข้าถึง', icon: Shield, path: '/permissions' },
-    { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
-    { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
-    { id: 'line-notify', label: 'แจ้งเตือน LINE', icon: MessageCircle, path: '/line-notify' },
-    { id: 'printer', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer' },
+  const { logout } = useAuth();
+
+  const navigation = [
+    { name: 'ขายหน้าร้าน', href: '/', icon: ShoppingCart },
+    { name: 'แดชบอร์ด', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'จัดการเมนู', href: '/menu', icon: Coffee },
+    { name: 'จัดการคลัง', href: '/inventory', icon: Package },
+    { name: 'สมาชิก', href: '/members', icon: Users },
+    { name: 'โปรโมชั่น', href: '/promotions', icon: Gift },
+    { name: 'ตั้งค่าร้าน', href: '/shop-settings', icon: Settings },
   ];
 
-  const handleMenuClick = () => {
-    onClose();
-  };
-
   return (
-    <>
-      {/* Overlay for mobile */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <Card className="h-full border-coffee-200 rounded-none">
-          <div className="p-4 border-b border-coffee-200">
-            <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
-          </div>
-          
-          {/* User Profile Section */}
-          <UserProfile />
-          
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="p-2 pb-24 md:pb-2">
-              <nav className="space-y-1">
-                {menuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.path}
-                      onClick={handleMenuClick}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
-                        isActive
-                          ? 'bg-coffee-600 text-white'
-                          : 'text-coffee-700 hover:bg-coffee-50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          </ScrollArea>
-        </Card>
+    <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
+      <div className="p-6 border-b">
+        <h1 className="text-xl font-bold text-coffee-800">ระบบ POS</h1>
       </div>
-    </>
+      
+      <nav className="flex-1 p-4 space-y-2">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.href;
+          
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                isActive
+                  ? 'bg-coffee-100 text-coffee-800 border-r-2 border-coffee-600'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <Icon className="mr-3 h-5 w-5" />
+              {item.name}
+            </Link>
+          );
+        })}
+      </nav>
+      
+      <div className="p-4 border-t">
+        <button
+          onClick={logout}
+          className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <LogOut className="mr-3 h-5 w-5" />
+          ออกจากระบบ
+        </button>
+      </div>
+    </div>
   );
 };
 
