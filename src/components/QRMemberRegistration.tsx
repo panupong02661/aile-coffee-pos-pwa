@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,33 @@ const QRMemberRegistration = () => {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [shopName, setShopName] = useState('ร้านกาแฟแสนดี');
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchShopSettings();
+  }, []);
+
+  const fetchShopSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shop_settings')
+        .select('shop_name')
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching shop settings:', error);
+        return;
+      }
+
+      if (data?.shop_name) {
+        setShopName(data.shop_name);
+      }
+    } catch (error) {
+      console.error('Error fetching shop settings:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
