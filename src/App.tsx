@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,58 +17,68 @@ import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
-const queryClient = new QueryClient();
+// Create QueryClient instance inside the component to avoid SSR issues
+const App = () => {
+  const [queryClient] = React.useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 1,
+      },
+    },
+  }));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={
-              <ProtectedRoute>
-                <POS />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/menu" element={
-              <ProtectedRoute>
-                <MenuManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/members" element={
-              <ProtectedRoute>
-                <MemberManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/member-registration" element={<MemberRegistration />} />
-            <Route path="/shop-settings" element={
-              <ProtectedRoute>
-                <ShopSettings />
-              </ProtectedRoute>
-            } />
-            <Route path="/inventory" element={
-              <ProtectedRoute>
-                <Inventory />
-              </ProtectedRoute>
-            } />
-            <Route path="/promotions" element={
-              <ProtectedRoute>
-                <Promotions />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <POS />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/menu" element={
+                <ProtectedRoute>
+                  <MenuManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/members" element={
+                <ProtectedRoute>
+                  <MemberManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/member-registration" element={<MemberRegistration />} />
+              <Route path="/shop-settings" element={
+                <ProtectedRoute>
+                  <ShopSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/inventory" element={
+                <ProtectedRoute>
+                  <Inventory />
+                </ProtectedRoute>
+              } />
+              <Route path="/promotions" element={
+                <ProtectedRoute>
+                  <Promotions />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
