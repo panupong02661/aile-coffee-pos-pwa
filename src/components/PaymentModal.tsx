@@ -173,10 +173,27 @@ const PaymentModal = ({
   const handlePayment = async () => {
     const receivedAmount = parseFloat(cashReceived || '0');
     
+    console.log('Payment attempt:', {
+      paymentMethod,
+      total,
+      receivedAmount,
+      cartItems: cartItems.length
+    });
+    
     if (paymentMethod === 'cash' && receivedAmount < total) {
       toast({
         title: "จำนวนเงินไม่เพียงพอ",
         description: "กรุณากรอกจำนวนเงินที่รับมาให้ถูกต้อง",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if cart has items
+    if (cartItems.length === 0) {
+      toast({
+        title: "ไม่มีสินค้าในตะกร้า",
+        description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
         variant: "destructive"
       });
       return;
@@ -187,7 +204,9 @@ const PaymentModal = ({
     try {
       await saveOrderToDatabase(paymentMethod);
       onPayment(paymentMethod, paymentMethod === 'cash' ? receivedAmount : undefined);
+      onClose(); // Close modal after successful payment
     } catch (error) {
+      console.error('Payment processing error:', error);
       // Error already handled in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
@@ -243,28 +262,30 @@ const PaymentModal = ({
               onValueChange={handleMethodChange}
               className="mt-3"
             >
-              <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="cash" id="cash" />
-                <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <DollarSign className="w-4 h-4" />
-                  เงินสด
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="qr" id="qr" />
-                <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <CreditCard className="w-4 h-4" />
-                  QR Code / โอนเงิน
-                </Label>
-              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
+                    <DollarSign className="w-4 h-4" />
+                    เงินสด
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="qr" id="qr" />
+                  <Label htmlFor="qr" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
+                    <CreditCard className="w-4 h-4" />
+                    QR Code
+                  </Label>
+                </div>
 
-              <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                <RadioGroupItem value="points" id="points" />
-                <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <Gift className="w-4 h-4" />
-                  แต้มสะสม
-                </Label>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="points" id="points" />
+                  <Label htmlFor="points" className="flex items-center gap-1 cursor-pointer flex-1 text-sm">
+                    <Gift className="w-4 h-4" />
+                    แต้มสะสม
+                  </Label>
+                </div>
               </div>
             </RadioGroup>
           </div>
@@ -337,7 +358,7 @@ const PaymentModal = ({
             <Button 
               onClick={handlePayment}
               className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={isProcessing}
+              disabled={isProcessing || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
             </Button>
