@@ -10,6 +10,7 @@ import POS from "./pages/POS";
 import Dashboard from "./pages/Dashboard";
 import MenuManagement from "./pages/MenuManagement";
 import ShopSettings from "./pages/ShopSettings";
+import MemberManagement from "./pages/MemberManagement";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 
@@ -36,6 +37,11 @@ const App = () => (
             <Route path="/menu" element={
               <ProtectedRoute>
                 <MenuManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/members" element={
+              <ProtectedRoute>
+                <MemberManagement />
               </ProtectedRoute>
             } />
             <Route path="/shop-settings" element={

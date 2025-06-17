@@ -99,6 +99,41 @@ export interface ReceiptSettings {
   updated_at: string;
 }
 
+export interface DatabaseMember {
+  id: string;
+  phone: string;
+  name: string;
+  email?: string;
+  tier: 'silver' | 'gold' | 'platinum';
+  points: number;
+  total_spent: number;
+  join_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DatabaseMembershipSetting {
+  id: string;
+  tier: 'silver' | 'gold' | 'platinum';
+  discount_percentage: number;
+  points_per_baht: number;
+  points_to_redeem: number;
+  redeem_value: number;
+  minimum_spend_for_upgrade: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DatabasePointTransaction {
+  id: string;
+  member_id: string;
+  points_change: number;
+  transaction_type: 'earn' | 'redeem' | 'adjust' | 'expire';
+  description?: string;
+  order_id?: string;
+  created_at: string;
+}
+
 export const useSupabaseData = () => {
   const [categories, setCategories] = useState<DatabaseCategory[]>([]);
   const [menuItems, setMenuItems] = useState<DatabaseMenuItem[]>([]);
@@ -108,6 +143,9 @@ export const useSupabaseData = () => {
   const [categoryAddonGroups, setCategoryAddonGroups] = useState<CategoryAddonGroup[]>([]);
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
+  const [members, setMembers] = useState<DatabaseMember[]>([]);
+  const [membershipSettings, setMembershipSettings] = useState<DatabaseMembershipSetting[]>([]);
+  const [pointTransactions, setPointTransactions] = useState<DatabasePointTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -229,6 +267,46 @@ export const useSupabaseData = () => {
     setCategoryAddonGroups(data || []);
   };
 
+  const fetchMembers = async () => {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลสมาชิกได้', variant: 'destructive' });
+      return;
+    }
+    setMembers(data || []);
+  };
+
+  const fetchMembershipSettings = async () => {
+    const { data, error } = await supabase
+      .from('membership_settings')
+      .select('*')
+      .order('tier');
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าสมาชิกได้', variant: 'destructive' });
+      return;
+    }
+    setMembershipSettings(data || []);
+  };
+
+  const fetchPointTransactions = async () => {
+    const { data, error } = await supabase
+      .from('point_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติแต้มได้', variant: 'destructive' });
+      return;
+    }
+    setPointTransactions(data || []);
+  };
+
   const uploadImage = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
@@ -277,6 +355,9 @@ export const useSupabaseData = () => {
         fetchCategoryAddonGroups(),
         fetchShopSettings(),
         fetchReceiptSettings(),
+        fetchMembers(),
+        fetchMembershipSettings(),
+        fetchPointTransactions(),
       ]);
       setLoading(false);
     };
@@ -293,6 +374,9 @@ export const useSupabaseData = () => {
     categoryAddonGroups,
     shopSettings,
     receiptSettings,
+    members,
+    membershipSettings,
+    pointTransactions,
     loading,
     refetch: {
       categories: fetchCategories,
@@ -303,6 +387,9 @@ export const useSupabaseData = () => {
       categoryAddonGroups: fetchCategoryAddonGroups,
       shopSettings: fetchShopSettings,
       receiptSettings: fetchReceiptSettings,
+      members: fetchMembers,
+      membershipSettings: fetchMembershipSettings,
+      pointTransactions: fetchPointTransactions,
     },
     uploadImage,
     getAddonGroupsForMenuItem,

@@ -170,6 +170,81 @@ export type Database = {
           },
         ]
       }
+      members: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          join_date: string
+          name: string
+          phone: string
+          points: number
+          tier: string
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name: string
+          phone: string
+          points?: number
+          tier?: string
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name?: string
+          phone?: string
+          points?: number
+          tier?: string
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      membership_settings: {
+        Row: {
+          created_at: string
+          discount_percentage: number
+          id: string
+          minimum_spend_for_upgrade: number
+          points_per_baht: number
+          points_to_redeem: number
+          redeem_value: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          minimum_spend_for_upgrade?: number
+          points_per_baht?: number
+          points_to_redeem?: number
+          redeem_value?: number
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          minimum_spend_for_upgrade?: number
+          points_per_baht?: number
+          points_to_redeem?: number
+          redeem_value?: number
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_addon_groups: {
         Row: {
           addon_group_id: string | null
@@ -270,6 +345,44 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_transactions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          member_id: string
+          order_id: string | null
+          points_change: number
+          transaction_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id: string
+          order_id?: string | null
+          points_change: number
+          transaction_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id?: string
+          order_id?: string | null
+          points_change?: number
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_transactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
