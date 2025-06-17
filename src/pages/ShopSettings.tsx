@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ShopBasicSettings from '@/components/ShopBasicSettings';
 import ReceiptSettings from '@/components/ReceiptSettings';
+import ReceiptPreview from '@/components/ReceiptPreview';
 
 const ShopSettings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -31,7 +32,7 @@ const ShopSettings = () => {
             page="other"
           />
           
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl text-coffee-800">ตั้งค่าร้าน</CardTitle>
@@ -39,9 +40,10 @@ const ShopSettings = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="shop" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="shop">ข้อมูลร้าน</TabsTrigger>
                     <TabsTrigger value="receipt">ตั้งค่าใบเสร็จ</TabsTrigger>
+                    <TabsTrigger value="preview">ตัวอย่างใบเสร็จ</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="shop" className="mt-6">
@@ -50,6 +52,10 @@ const ShopSettings = () => {
                   
                   <TabsContent value="receipt" className="mt-6">
                     <ReceiptSettings />
+                  </TabsContent>
+                  
+                  <TabsContent value="preview" className="mt-6">
+                    <ReceiptPreview />
                   </TabsContent>
                 </Tabs>
               </CardContent>
