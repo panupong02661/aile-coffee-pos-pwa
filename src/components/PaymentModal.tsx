@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -184,7 +183,7 @@ const PaymentModal = ({
     return true;
   };
 
-  const saveOrderToDatabase = async (method: PaymentMethod) => {
+  const saveOrderToDatabase = async (method: PaymentMethod, retryCount = 0) => {
     try {
       console.log('=== Starting Database Save Process ===');
       console.log('Payment method:', method);
@@ -192,6 +191,7 @@ const PaymentModal = ({
       console.log('Cart items count:', cartItems.length);
       console.log('Selected member:', selectedMember);
       console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
+      console.log('Retry count:', retryCount);
 
       validateCartData();
 
@@ -207,6 +207,24 @@ const PaymentModal = ({
       }
       console.log('✅ Database connection successful');
 
+      let actualTotal = total;
+      let pointsUsed = 0;
+      
+      if (method === 'points' && pointsToUse) {
+        pointsUsed = parseInt(pointsToUse);
+        const pointsValue = calculatePointsValue(pointsUsed);
+        actualTotal = Math.max(0, total - pointsValue);
+        console.log('Points payment calculation:', {
+          pointsUsed,
+          pointsValue,
+          originalTotal: total,
+          actualTotal
+        });
+      }
+
+      // สำหรับการชำระด้วยแต้ม ถ้า actualTotal เป็น 0 ให้ใช้ 0.01 เพื่อหลีกเลี่ยง validation error
+      const finalTotal = actualTotal === 0 ? 0.01 : actualTotal;
+
       console.log('Generating order number...');
       const { data: orderNumberData, error: orderNumberError } = await supabase
         .rpc('generate_order_number');
@@ -219,19 +237,10 @@ const PaymentModal = ({
       const orderNumber = orderNumberData;
       console.log('✅ Generated order number:', orderNumber);
 
-      let actualTotal = total;
-      let pointsUsed = 0;
-      
-      if (method === 'points' && pointsToUse) {
-        pointsUsed = parseInt(pointsToUse);
-        const pointsValue = calculatePointsValue(pointsUsed);
-        actualTotal = Math.max(0, total - pointsValue);
-      }
-
       const orderData = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
-        total_amount: Number(actualTotal),
+        total_amount: Number(finalTotal),
         items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
         payment_method: String(method),
         bill_discount: Number(billDiscount) || 0,
@@ -259,12 +268,15 @@ const PaymentModal = ({
 
       if (orderError) {
         console.error('❌ Order creation failed:', orderError);
-        console.error('Order error details:', {
-          message: orderError.message,
-          details: orderError.details,
-          hint: orderError.hint,
-          code: orderError.code
-        });
+        
+        // ถ้าเป็น duplicate key error และยังไม่ retry เกิน 3 ครั้ง
+        if (orderError.message.includes('duplicate key value violates unique constraint') && retryCount < 3) {
+          console.log(`Retrying order creation (attempt ${retryCount + 1})...`);
+          // รอ 100ms แล้วลอง retry
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return saveOrderToDatabase(method, retryCount + 1);
+        }
+        
         throw new Error(`ไม่สามารถบันทึกคำสั่งซื้อได้: ${orderError.message}`);
       }
 
