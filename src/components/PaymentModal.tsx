@@ -49,18 +49,14 @@ const PaymentModal = ({
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
-
-  // Banknote values
   const banknotes = [20, 50, 100, 500, 1000];
 
-  // Load membership settings when modal opens
   useEffect(() => {
     if (isOpen) {
       loadMembershipSettings();
     }
   }, [isOpen]);
 
-  // Load current tier settings when member or settings change
   useEffect(() => {
     if (selectedMember && membershipSettings) {
       const tierSettings = membershipSettings.find((setting: any) => setting.tier === selectedMember.tier);
@@ -68,7 +64,6 @@ const PaymentModal = ({
     }
   }, [selectedMember, membershipSettings]);
 
-  // Set default points when switching to points payment
   useEffect(() => {
     if (paymentMethod === 'points' && selectedMember && currentTierSettings) {
       const maxPointsCanUse = Math.min(
@@ -138,198 +133,113 @@ const PaymentModal = ({
     }
   };
 
-  // แก้ไข validation function ให้ครอบคลุมมากขึ้น
-  const validateCartData = () => {
-    console.log('=== Starting Cart Data Validation ===');
-    
-    if (!cartItems || cartItems.length === 0) {
-      throw new Error('Cart is empty');
+  // แก้ไขฟังก์ชันสำหรับสร้างเลขออเดอร์ที่ไม่ซ้ำ
+  const generateUniqueOrderNumber = async (maxRetries = 10) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempting to generate order number (attempt ${attempt}/${maxRetries})`);
+        
+        const { data: orderNumber, error } = await supabase.rpc('generate_order_number');
+        
+        if (error) {
+          console.error(`Order number generation failed (attempt ${attempt}):`, error);
+          if (attempt === maxRetries) {
+            throw new Error(`Failed to generate order number after ${maxRetries} attempts: ${error.message}`);
+          }
+          // รอก่อนลองใหม่
+          await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+          continue;
+        }
+        
+        console.log(`Generated order number: ${orderNumber}`);
+        return orderNumber;
+        
+      } catch (error) {
+        console.error(`Order number generation error (attempt ${attempt}):`, error);
+        if (attempt === maxRetries) {
+          // ใช้ fallback method
+          const fallbackOrderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          console.log(`Using fallback order number: ${fallbackOrderNumber}`);
+          return fallbackOrderNumber;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+      }
     }
-
-    cartItems.forEach((item, index) => {
-      console.log(`Validating item ${index + 1}:`, {
-        id: item.id,
-        menu_item: item.menu_item,
-        quantity: item.quantity,
-        total_price: item.total_price,
-        selected_addons: item.selected_addons
-      });
-
-      if (!item.menu_item) {
-        throw new Error(`Menu item is missing for cart item ${index + 1}`);
-      }
-
-      if (!item.menu_item.id) {
-        throw new Error(`Menu item ID is missing for cart item ${index + 1}`);
-      }
-
-      if (!item.menu_item.name || typeof item.menu_item.name !== 'string') {
-        throw new Error(`Menu item name is missing or invalid for cart item ${index + 1}`);
-      }
-
-      if (!item.quantity || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
-        throw new Error(`Invalid quantity for cart item ${index + 1}: ${item.quantity}`);
-      }
-
-      if (typeof item.total_price !== 'number' || item.total_price < 0 || !isFinite(item.total_price)) {
-        throw new Error(`Invalid total price for cart item ${index + 1}: ${item.total_price}`);
-      }
-
-      if (typeof item.menu_item.price !== 'number' || item.menu_item.price < 0 || !isFinite(item.menu_item.price)) {
-        throw new Error(`Invalid menu item price for cart item ${index + 1}: ${item.menu_item.price}`);
-      }
-    });
-
-    console.log('✅ Cart data validation passed');
-    return true;
   };
 
-  // แก้ไข saveOrderToDatabase function ให้มี error handling ที่ดีขึ้น
-  const saveOrderToDatabase = async (method: PaymentMethod, retryCount = 0) => {
+  // แก้ไขฟังก์ชันบันทึกออเดอร์ให้มีการจัดการ error ที่ดีขึ้น
+  const saveOrderToDatabase = async (method: PaymentMethod) => {
     const maxRetries = 5;
-    const baseDelay = 100; // milliseconds
-    
-    try {
-      console.log('=== Starting Database Save Process ===');
-      console.log('Payment method:', method);
-      console.log('Total amount:', total);
-      console.log('Cart items count:', cartItems.length);
-      console.log('Selected member:', selectedMember);
-      console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
-      console.log('Retry count:', retryCount);
+    let lastError: any = null;
 
-      // ตรวจสอบข้อมูลตะกร้า
-      validateCartData();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`=== Order Save Attempt ${attempt}/${maxRetries} ===`);
+        
+        // ตรวจสอบข้อมูลพื้นฐาน
+        if (!cartItems || cartItems.length === 0) {
+          throw new Error('Cart is empty');
+        }
 
-      // ทดสอบการเชื่อมต่อฐานข้อมูล
-      console.log('Testing database connection...');
-      const { data: testConnection, error: connectionError } = await supabase
-        .from('categories')
-        .select('id')
-        .limit(1);
+        if (total < 0) {
+          throw new Error('Invalid total amount');
+        }
 
-      if (connectionError) {
-        console.error('Database connection failed:', connectionError);
-        throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
-      }
-      console.log('✅ Database connection successful');
+        // คำนวณยอดเงินสุดท้าย
+        let actualTotal = total;
+        let pointsUsed = 0;
+        
+        if (method === 'points' && pointsToUse) {
+          pointsUsed = parseInt(pointsToUse);
+          const pointsValue = calculatePointsValue(pointsUsed);
+          actualTotal = Math.max(0.01, total - pointsValue); // ให้ค่าขั้นต่ำ 0.01 บาท
+        }
 
-      // คำนวณยอดเงินสุดท้าย
-      let actualTotal = total;
-      let pointsUsed = 0;
-      
-      if (method === 'points' && pointsToUse) {
-        pointsUsed = parseInt(pointsToUse);
-        const pointsValue = calculatePointsValue(pointsUsed);
-        actualTotal = Math.max(0, total - pointsValue);
-        console.log('Points payment calculation:', {
-          pointsUsed,
-          pointsValue,
-          originalTotal: total,
-          actualTotal
-        });
-      }
+        // สร้างเลขออเดอร์
+        const orderNumber = await generateUniqueOrderNumber();
+        
+        // เตรียมข้อมูลออเดอร์
+        const orderData = {
+          order_number: String(orderNumber),
+          member_id: selectedMember?.id || null,
+          total_amount: Number(actualTotal),
+          items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+          payment_method: String(method),
+          bill_discount: Number(billDiscount) || 0,
+          bill_discount_type: String(billDiscountType) || 'amount'
+        };
 
-      // ตรวจสอบยอดเงิน
-      if (actualTotal < 0) {
-        throw new Error('ยอดเงินไม่ถูกต้อง');
-      }
+        console.log('Creating order with data:', orderData);
 
-      // สร้างเลขที่ออเดอร์ด้วย retry mechanism
-      console.log('Generating order number...');
-      let orderNumber;
-      let orderGenerationAttempts = 0;
-      const maxOrderGenerationAttempts = 3;
+        // บันทึกออเดอร์
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert(orderData)
+          .select()
+          .single();
 
-      while (orderGenerationAttempts < maxOrderGenerationAttempts) {
-        try {
-          const { data: orderNumberData, error: orderNumberError } = await supabase
-            .rpc('generate_order_number');
-
-          if (orderNumberError) {
-            throw orderNumberError;
-          }
-
-          orderNumber = orderNumberData;
-          console.log('✅ Generated order number:', orderNumber);
-          break;
-        } catch (error) {
-          orderGenerationAttempts++;
-          console.error(`Order number generation attempt ${orderGenerationAttempts} failed:`, error);
+        if (orderError) {
+          console.error(`Order creation failed (attempt ${attempt}):`, orderError);
+          lastError = orderError;
           
-          if (orderGenerationAttempts >= maxOrderGenerationAttempts) {
-            // ใช้ timestamp เป็น fallback
-            orderNumber = `ORD-${Date.now()}`;
-            console.log('Using timestamp fallback for order number:', orderNumber);
-            break;
+          // ถ้าเป็น duplicate key error ลองใหม่
+          if (orderError.message.includes('duplicate key') && attempt < maxRetries) {
+            console.log('Duplicate key detected, retrying...');
+            await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+            continue;
           }
           
-          // รอสักครู่แล้วลองใหม่
-          await new Promise(resolve => setTimeout(resolve, 50));
+          throw orderError;
         }
-      }
 
-      if (!orderNumber) {
-        throw new Error('ไม่สามารถสร้างเลขที่คำสั่งซื้อได้');
-      }
-
-      // เตรียมข้อมูลออเดอร์
-      const orderData = {
-        order_number: String(orderNumber),
-        member_id: selectedMember?.id || null,
-        total_amount: Number(actualTotal),
-        items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
-        payment_method: String(method),
-        bill_discount: Number(billDiscount) || 0,
-        bill_discount_type: String(billDiscountType) || 'amount'
-      };
-
-      console.log('Order data prepared:', orderData);
-
-      // ตรวจสอบข้อมูลออเดอร์
-      if (!orderData.order_number) {
-        throw new Error('Order number is required');
-      }
-      if (orderData.total_amount < 0) {
-        throw new Error('Total amount cannot be negative');
-      }
-      if (orderData.items_count <= 0) {
-        throw new Error('Items count must be greater than 0');
-      }
-
-      // บันทึกออเดอร์
-      console.log('Creating order in database...');
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error('❌ Order creation failed:', orderError);
-        
-        // ถ้าเป็น duplicate key error และยังไม่ retry เกิน max
-        if (orderError.message.includes('duplicate key value violates unique constraint') && retryCount < maxRetries) {
-          console.log(`Retrying order creation (attempt ${retryCount + 1})...`);
-          const delay = baseDelay * Math.pow(2, retryCount); // exponential backoff
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return saveOrderToDatabase(method, retryCount + 1);
+        if (!order || !order.id) {
+          throw new Error('Order created but no ID returned');
         }
-        
-        throw new Error(`ไม่สามารถบันทึกคำสั่งซื้อได้: ${orderError.message}`);
-      }
 
-      if (!order || !order.id) {
-        console.error('❌ Order created but no ID returned');
-        throw new Error('ไม่สามารถรับ ID ของคำสั่งซื้อได้');
-      }
+        console.log('Order created successfully:', order);
 
-      console.log('✅ Order created successfully:', order);
-
-      // เตรียมรายการสินค้า
-      console.log('Preparing order items...');
-      const orderItems = cartItems.map((item, index) => {
-        const orderItem = {
+        // เตรียมรายการสินค้า
+        const orderItems = cartItems.map(item => ({
           order_id: order.id,
           menu_item_id: String(item.menu_item.id),
           menu_item_name: String(item.menu_item.name),
@@ -343,160 +253,110 @@ const PaymentModal = ({
             name: String(addon.name),
             price: Number(addon.price)
           })) || [])
-        };
+        }));
 
-        console.log(`Order item ${index + 1} prepared:`, orderItem);
-        return orderItem;
-      });
+        // บันทึกรายการสินค้า
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
 
-      // ตรวจสอบรายการสินค้า
-      orderItems.forEach((item, index) => {
-        if (!item.order_id) throw new Error(`Order ID missing for item ${index + 1}`);
-        if (!item.menu_item_id) throw new Error(`Menu item ID missing for item ${index + 1}`);
-        if (!item.menu_item_name) throw new Error(`Menu item name missing for item ${index + 1}`);
-        if (item.quantity <= 0) throw new Error(`Invalid quantity for item ${index + 1}`);
-        if (item.unit_price < 0) throw new Error(`Invalid unit price for item ${index + 1}`);
-        if (item.total_price < 0) throw new Error(`Invalid total price for item ${index + 1}`);
-      });
+        if (itemsError) {
+          console.error('Order items creation failed:', itemsError);
+          throw new Error(`Failed to save order items: ${itemsError.message}`);
+        }
 
-      console.log('Creating order items in database...');
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+        // จัดการแต้มสมาชิก
+        if (selectedMember) {
+          if (method === 'points' && pointsUsed > 0) {
+            const newPoints = selectedMember.points - pointsUsed;
 
-      if (itemsError) {
-        console.error('❌ Order items creation failed:', itemsError);
-        throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
-      }
+            const { error: memberError } = await supabase
+              .from('members')
+              .update({
+                points: newPoints,
+                total_spent: selectedMember.total_spent + actualTotal
+              })
+              .eq('id', selectedMember.id);
 
-      console.log('✅ Order items created successfully');
-
-      // จัดการแต้มสมาชิก
-      if (selectedMember) {
-        console.log('Processing member points...');
-        
-        if (method === 'points' && pointsUsed > 0) {
-          const newPoints = selectedMember.points - pointsUsed;
-
-          console.log(`Deducting ${pointsUsed} points from member`);
-          
-          const { error: memberError } = await supabase
-            .from('members')
-            .update({
-              points: newPoints,
-              total_spent: selectedMember.total_spent + actualTotal
-            })
-            .eq('id', selectedMember.id);
-
-          if (memberError) {
-            console.error('❌ Member points deduction failed:', memberError);
-            throw new Error(`ไม่สามารถหักแต้มสมาชิกได้: ${memberError.message}`);
-          }
-
-          const { error: pointTransactionError } = await supabase
-            .from('point_transactions')
-            .insert({
-              member_id: selectedMember.id,
-              order_id: order.id,
-              points_change: -pointsUsed,
-              transaction_type: 'redeem',
-              description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
-            });
-
-          if (pointTransactionError) {
-            console.error('Point transaction error:', pointTransactionError);
-          }
-
-          console.log('✅ Points deducted successfully');
-        } else {
-          const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
-          const newPoints = selectedMember.points + pointsEarned;
-          const newTotalSpent = selectedMember.total_spent + actualTotal;
-
-          console.log(`Awarding ${pointsEarned} points to member`);
-
-          const { error: memberError } = await supabase
-            .from('members')
-            .update({
-              points: newPoints,
-              total_spent: newTotalSpent
-            })
-            .eq('id', selectedMember.id);
-
-          if (memberError) {
-            console.error('Member points update error:', memberError);
-          } else {
-            const { error: pointTransactionError } = await supabase
-              .from('point_transactions')
-              .insert({
-                member_id: selectedMember.id,
-                order_id: order.id,
-                points_change: pointsEarned,
-                transaction_type: 'earn',
-                description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
-              });
-
-            if (pointTransactionError) {
-              console.error('Point transaction error:', pointTransactionError);
+            if (memberError) {
+              console.error('Member points update failed:', memberError);
+            } else {
+              await supabase
+                .from('point_transactions')
+                .insert({
+                  member_id: selectedMember.id,
+                  order_id: order.id,
+                  points_change: -pointsUsed,
+                  transaction_type: 'redeem',
+                  description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
+                });
             }
+          } else {
+            const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
+            const newPoints = selectedMember.points + pointsEarned;
 
-            console.log('✅ Points awarded successfully');
+            const { error: memberError } = await supabase
+              .from('members')
+              .update({
+                points: newPoints,
+                total_spent: selectedMember.total_spent + actualTotal
+              })
+              .eq('id', selectedMember.id);
+
+            if (!memberError) {
+              await supabase
+                .from('point_transactions')
+                .insert({
+                  member_id: selectedMember.id,
+                  order_id: order.id,
+                  points_change: pointsEarned,
+                  transaction_type: 'earn',
+                  description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
+                });
+            }
           }
         }
+
+        console.log('Order saved successfully');
+        toast({
+          title: "ชำระเงินสำเร็จ",
+          description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
+        });
+
+        return order;
+
+      } catch (error) {
+        console.error(`Order save attempt ${attempt} failed:`, error);
+        lastError = error;
+        
+        if (attempt < maxRetries) {
+          const delay = 200 * Math.pow(2, attempt - 1); // exponential backoff
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-
-      console.log('=== Order Save Process Completed Successfully ===');
-
-      toast({
-        title: "ชำระเงินสำเร็จ",
-        description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
-      });
-
-      return order;
-    } catch (error) {
-      console.error('=== PAYMENT ERROR DETAILS ===');
-      console.error('Error type:', typeof error);
-      console.error('Error instanceof Error:', error instanceof Error);
-      console.error('Error object:', error);
-      
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-      
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      throw error;
     }
+
+    // ถ้าล้มเหลวทุก attempt
+    const errorMessage = lastError instanceof Error ? lastError.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+    
+    toast({
+      title: "เกิดข้อผิดพลาด",
+      description: errorMessage,
+      variant: "destructive"
+    });
+    
+    throw lastError;
   };
 
   const handlePayment = async () => {
-    console.log('=== Payment Process Started ===');
-    console.log('Payment method:', paymentMethod);
-    console.log('Total amount:', total);
-    console.log('Cash received:', cashReceived);
-    console.log('Points to use:', pointsToUse);
-    console.log('Cart items:', cartItems);
-    console.log('Selected member:', selectedMember);
-    
-    if (isProcessing) {
-      console.log('Payment already in progress, ignoring');
-      return;
-    }
+    if (isProcessing) return;
 
     setIsProcessing(true);
 
     try {
-      console.log('Performing basic validations...');
-      
+      // ตรวจสอบข้อมูลพื้นฐาน
       if (!cartItems || cartItems.length === 0) {
-        console.log('❌ Validation failed: No items in cart');
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
           description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
@@ -506,7 +366,6 @@ const PaymentModal = ({
       }
 
       if (total <= 0) {
-        console.log('❌ Validation failed: Invalid total amount');
         toast({
           title: "ยอดเงินไม่ถูกต้อง",
           description: "ยอดเงินต้องมากกว่า 0",
@@ -515,12 +374,10 @@ const PaymentModal = ({
         return;
       }
 
+      // ตรวจสอบตามวิธีการชำระเงิน
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
-        console.log('Cash validation - received:', receivedAmount, 'total:', total);
-        
         if (isNaN(receivedAmount) || receivedAmount < total) {
-          console.log('❌ Cash validation failed');
           toast({
             title: "จำนวนเงินไม่เพียงพอ",
             description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
@@ -530,20 +387,9 @@ const PaymentModal = ({
         }
       } else if (paymentMethod === 'points') {
         if (!selectedMember) {
-          console.log('❌ Points validation failed: No member selected');
           toast({
             title: "กรุณาเลือกสมาชิก",
             description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        if (!membershipSettings) {
-          console.log('❌ Points validation failed: No membership settings');
-          toast({
-            title: "ไม่พบการตั้งค่าระบบแต้ม",
-            description: "กรุณาตั้งค่าระบบแต้มในเมนูจัดการสมาชิก",
             variant: "destructive"
           });
           return;
@@ -554,7 +400,6 @@ const PaymentModal = ({
         const maximumPoints = getMaximumPoints();
 
         if (pointsValue < minimumPoints) {
-          console.log('❌ Points validation failed: Below minimum');
           toast({
             title: "แต้มไม่เพียงพอ",
             description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
@@ -564,7 +409,6 @@ const PaymentModal = ({
         }
 
         if (pointsValue > maximumPoints) {
-          console.log('❌ Points validation failed: Exceeds maximum');
           toast({
             title: "แต้มเกินจำนวนที่มี",
             description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
@@ -572,41 +416,24 @@ const PaymentModal = ({
           });
           return;
         }
-
-        if (selectedMember.points < pointsValue) {
-          console.log('❌ Points validation failed: Insufficient points');
-          toast({
-            title: "แต้มไม่เพียงพอ",
-            description: `ต้องการ ${pointsValue} แต้ม แต่มีเพียง ${selectedMember.points} แต้ม`,
-            variant: "destructive"
-          });
-          return;
-        }
       }
 
-      console.log('✅ All validations passed');
-      
-      console.log('Calling saveOrderToDatabase...');
+      // บันทึกออเดอร์
       await saveOrderToDatabase(paymentMethod);
       
-      console.log('Order saved successfully, calling onPayment callback...');
-      
+      // ชำระเงินสำเร็จ
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
-      
-      console.log('✅ Payment process completed successfully');
       onClose();
       
     } catch (error) {
-      console.error('=== Payment Process Failed ===');
-      console.error('Payment error:', error);
+      console.error('Payment process failed:', error);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleMethodChange = (value: string) => {
-    console.log('Payment method changed to:', value);
     setPaymentMethod(value as PaymentMethod);
     if (value !== 'cash') {
       setCashReceived(total.toString());
