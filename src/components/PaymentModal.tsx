@@ -138,6 +138,7 @@ const PaymentModal = ({
     }
   };
 
+  // แก้ไข validation function ให้ครอบคลุมมากขึ้น
   const validateCartData = () => {
     console.log('=== Starting Cart Data Validation ===');
     
@@ -162,19 +163,19 @@ const PaymentModal = ({
         throw new Error(`Menu item ID is missing for cart item ${index + 1}`);
       }
 
-      if (!item.menu_item.name) {
-        throw new Error(`Menu item name is missing for cart item ${index + 1}`);
+      if (!item.menu_item.name || typeof item.menu_item.name !== 'string') {
+        throw new Error(`Menu item name is missing or invalid for cart item ${index + 1}`);
       }
 
-      if (!item.quantity || item.quantity <= 0) {
+      if (!item.quantity || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
         throw new Error(`Invalid quantity for cart item ${index + 1}: ${item.quantity}`);
       }
 
-      if (typeof item.total_price !== 'number' || item.total_price < 0) {
+      if (typeof item.total_price !== 'number' || item.total_price < 0 || !isFinite(item.total_price)) {
         throw new Error(`Invalid total price for cart item ${index + 1}: ${item.total_price}`);
       }
 
-      if (typeof item.menu_item.price !== 'number' || item.menu_item.price < 0) {
+      if (typeof item.menu_item.price !== 'number' || item.menu_item.price < 0 || !isFinite(item.menu_item.price)) {
         throw new Error(`Invalid menu item price for cart item ${index + 1}: ${item.menu_item.price}`);
       }
     });
@@ -183,7 +184,11 @@ const PaymentModal = ({
     return true;
   };
 
+  // แก้ไข saveOrderToDatabase function ให้มี error handling ที่ดีขึ้น
   const saveOrderToDatabase = async (method: PaymentMethod, retryCount = 0) => {
+    const maxRetries = 5;
+    const baseDelay = 100; // milliseconds
+    
     try {
       console.log('=== Starting Database Save Process ===');
       console.log('Payment method:', method);
@@ -193,8 +198,10 @@ const PaymentModal = ({
       console.log('Bill discount:', billDiscount, 'Type:', billDiscountType);
       console.log('Retry count:', retryCount);
 
+      // ตรวจสอบข้อมูลตะกร้า
       validateCartData();
 
+      // ทดสอบการเชื่อมต่อฐานข้อมูล
       console.log('Testing database connection...');
       const { data: testConnection, error: connectionError } = await supabase
         .from('categories')
@@ -207,6 +214,7 @@ const PaymentModal = ({
       }
       console.log('✅ Database connection successful');
 
+      // คำนวณยอดเงินสุดท้าย
       let actualTotal = total;
       let pointsUsed = 0;
       
@@ -222,25 +230,54 @@ const PaymentModal = ({
         });
       }
 
-      // สำหรับการชำระด้วยแต้ม ถ้า actualTotal เป็น 0 ให้ใช้ 0.01 เพื่อหลีกเลี่ยง validation error
-      const finalTotal = actualTotal === 0 ? 0.01 : actualTotal;
-
-      console.log('Generating order number...');
-      const { data: orderNumberData, error: orderNumberError } = await supabase
-        .rpc('generate_order_number');
-
-      if (orderNumberError) {
-        console.error('Error generating order number:', orderNumberError);
-        throw new Error(`ไม่สามารถสร้างเลขที่คำสั่งซื้อได้: ${orderNumberError.message}`);
+      // ตรวจสอบยอดเงิน
+      if (actualTotal < 0) {
+        throw new Error('ยอดเงินไม่ถูกต้อง');
       }
 
-      const orderNumber = orderNumberData;
-      console.log('✅ Generated order number:', orderNumber);
+      // สร้างเลขที่ออเดอร์ด้วย retry mechanism
+      console.log('Generating order number...');
+      let orderNumber;
+      let orderGenerationAttempts = 0;
+      const maxOrderGenerationAttempts = 3;
 
+      while (orderGenerationAttempts < maxOrderGenerationAttempts) {
+        try {
+          const { data: orderNumberData, error: orderNumberError } = await supabase
+            .rpc('generate_order_number');
+
+          if (orderNumberError) {
+            throw orderNumberError;
+          }
+
+          orderNumber = orderNumberData;
+          console.log('✅ Generated order number:', orderNumber);
+          break;
+        } catch (error) {
+          orderGenerationAttempts++;
+          console.error(`Order number generation attempt ${orderGenerationAttempts} failed:`, error);
+          
+          if (orderGenerationAttempts >= maxOrderGenerationAttempts) {
+            // ใช้ timestamp เป็น fallback
+            orderNumber = `ORD-${Date.now()}`;
+            console.log('Using timestamp fallback for order number:', orderNumber);
+            break;
+          }
+          
+          // รอสักครู่แล้วลองใหม่
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      }
+
+      if (!orderNumber) {
+        throw new Error('ไม่สามารถสร้างเลขที่คำสั่งซื้อได้');
+      }
+
+      // เตรียมข้อมูลออเดอร์
       const orderData = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
-        total_amount: Number(finalTotal),
+        total_amount: Number(actualTotal),
         items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
         payment_method: String(method),
         bill_discount: Number(billDiscount) || 0,
@@ -249,16 +286,18 @@ const PaymentModal = ({
 
       console.log('Order data prepared:', orderData);
 
+      // ตรวจสอบข้อมูลออเดอร์
       if (!orderData.order_number) {
         throw new Error('Order number is required');
       }
-      if (orderData.total_amount <= 0) {
-        throw new Error('Total amount must be greater than 0');
+      if (orderData.total_amount < 0) {
+        throw new Error('Total amount cannot be negative');
       }
       if (orderData.items_count <= 0) {
         throw new Error('Items count must be greater than 0');
       }
 
+      // บันทึกออเดอร์
       console.log('Creating order in database...');
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -269,11 +308,11 @@ const PaymentModal = ({
       if (orderError) {
         console.error('❌ Order creation failed:', orderError);
         
-        // ถ้าเป็น duplicate key error และยังไม่ retry เกิน 3 ครั้ง
-        if (orderError.message.includes('duplicate key value violates unique constraint') && retryCount < 3) {
+        // ถ้าเป็น duplicate key error และยังไม่ retry เกิน max
+        if (orderError.message.includes('duplicate key value violates unique constraint') && retryCount < maxRetries) {
           console.log(`Retrying order creation (attempt ${retryCount + 1})...`);
-          // รอ 100ms แล้วลอง retry
-          await new Promise(resolve => setTimeout(resolve, 100));
+          const delay = baseDelay * Math.pow(2, retryCount); // exponential backoff
+          await new Promise(resolve => setTimeout(resolve, delay));
           return saveOrderToDatabase(method, retryCount + 1);
         }
         
@@ -287,6 +326,7 @@ const PaymentModal = ({
 
       console.log('✅ Order created successfully:', order);
 
+      // เตรียมรายการสินค้า
       console.log('Preparing order items...');
       const orderItems = cartItems.map((item, index) => {
         const orderItem = {
@@ -309,6 +349,7 @@ const PaymentModal = ({
         return orderItem;
       });
 
+      // ตรวจสอบรายการสินค้า
       orderItems.forEach((item, index) => {
         if (!item.order_id) throw new Error(`Order ID missing for item ${index + 1}`);
         if (!item.menu_item_id) throw new Error(`Menu item ID missing for item ${index + 1}`);
@@ -325,17 +366,12 @@ const PaymentModal = ({
 
       if (itemsError) {
         console.error('❌ Order items creation failed:', itemsError);
-        console.error('Items error details:', {
-          message: itemsError.message,
-          details: itemsError.details,
-          hint: itemsError.hint,
-          code: itemsError.code
-        });
         throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
       }
 
       console.log('✅ Order items created successfully');
 
+      // จัดการแต้มสมาชิก
       if (selectedMember) {
         console.log('Processing member points...');
         
