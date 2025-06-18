@@ -82,7 +82,7 @@ const PaymentModal = ({
         .order('tier');
 
       if (error) {
-        console.error('Error loading membership settings:', error);
+        console.warn('Failed to load membership settings, using defaults:', error);
         setMembershipSettings([
           { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
           { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
@@ -92,7 +92,7 @@ const PaymentModal = ({
         setMembershipSettings(data);
       }
     } catch (error) {
-      console.error('Error loading membership settings:', error);
+      console.warn('Error loading membership settings, using defaults:', error);
       setMembershipSettings([
         { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
         { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
@@ -133,47 +133,40 @@ const PaymentModal = ({
     }
   };
 
-  // แก้ไขฟังก์ชันสำหรับสร้างเลขออเดอร์ที่ไม่ซ้ำ
-  const generateUniqueOrderNumber = async (maxRetries = 10) => {
+  const generateUniqueOrderNumber = async (maxRetries = 5) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[PaymentModal.generateUniqueOrderNumber] Attempt ${attempt}/${maxRetries}`);
+        console.log(`[PaymentModal] Generating order number, attempt ${attempt}/${maxRetries}`);
         
         const { data: orderNumber, error } = await supabase.rpc('generate_order_number');
         
         if (error) {
-          console.error(`[PaymentModal.generateUniqueOrderNumber] RPC Error (attempt ${attempt}):`, {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
+          console.warn(`[PaymentModal] Order number generation failed (attempt ${attempt}):`, error.message);
           
           if (attempt === maxRetries) {
-            throw new Error(`ไม่สามารถสร้างเลขออเดอร์ได้หลังจากพยายาม ${maxRetries} ครั้ง: ${error.message}`);
+            const fallbackOrderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            console.log(`[PaymentModal] Using fallback order number: ${fallbackOrderNumber}`);
+            return fallbackOrderNumber;
           }
           
-          // รอก่อนลองใหม่ (exponential backoff)
           const delay = 100 * Math.pow(2, attempt - 1);
-          console.log(`[PaymentModal.generateUniqueOrderNumber] Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
         
         if (!orderNumber) {
-          throw new Error('ไม่ได้รับเลขออเดอร์จาก database function');
+          throw new Error('No order number returned from database function');
         }
         
-        console.log(`[PaymentModal.generateUniqueOrderNumber] Generated: ${orderNumber}`);
+        console.log(`[PaymentModal] Generated order number: ${orderNumber}`);
         return orderNumber;
         
       } catch (error) {
-        console.error(`[PaymentModal.generateUniqueOrderNumber] Unexpected error (attempt ${attempt}):`, error);
+        console.warn(`[PaymentModal] Unexpected error generating order number (attempt ${attempt}):`, error);
         
         if (attempt === maxRetries) {
-          // สร้างเลขออเดอร์สำรองด้วย timestamp และ random
           const fallbackOrderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-          console.log(`[PaymentModal.generateUniqueOrderNumber] Using fallback: ${fallbackOrderNumber}`);
+          console.log(`[PaymentModal] Using fallback order number: ${fallbackOrderNumber}`);
           return fallbackOrderNumber;
         }
         
@@ -183,25 +176,23 @@ const PaymentModal = ({
     }
   };
 
-  // แก้ไขฟังก์ชันบันทึกออเดอร์ให้มีการจัดการ error ที่ดีขึ้น
   const saveOrderToDatabase = async (method: PaymentMethod) => {
-    const maxRetries = 5;
-    let lastError: any = null;
-
+    const maxRetries = 3;
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[PaymentModal.saveOrderToDatabase] === Attempt ${attempt}/${maxRetries} ===`);
+        console.log(`[PaymentModal] Saving order, attempt ${attempt}/${maxRetries}`);
         
-        // ตรวจสอบข้อมูลพื้นฐาน
+        // Validate basic data
         if (!cartItems || cartItems.length === 0) {
-          throw new Error('[PaymentModal.saveOrderToDatabase] ตะกร้าสินค้าว่างเปล่า');
+          throw new Error('Cart is empty');
         }
 
         if (total < 0) {
-          throw new Error('[PaymentModal.saveOrderToDatabase] ยอดเงินไม่ถูกต้อง (ติดลบ)');
+          throw new Error('Invalid total amount');
         }
 
-        // คำนวณยอดเงินสุดท้าย
+        // Calculate final amounts
         let actualTotal = total;
         let pointsUsed = 0;
         
@@ -209,13 +200,13 @@ const PaymentModal = ({
           pointsUsed = parseInt(pointsToUse);
           const pointsValue = calculatePointsValue(pointsUsed);
           actualTotal = Math.max(0.01, total - pointsValue);
-          console.log(`[PaymentModal.saveOrderToDatabase] Points payment: ${pointsUsed} points = ฿${pointsValue}, remaining: ฿${actualTotal}`);
+          console.log(`[PaymentModal] Points payment: ${pointsUsed} points = ฿${pointsValue}, remaining: ฿${actualTotal}`);
         }
 
-        // สร้างเลขออเดอร์
+        // Generate order number
         const orderNumber = await generateUniqueOrderNumber();
         
-        // เตรียมข้อมูลออเดอร์
+        // Prepare order data
         const orderData = {
           order_number: String(orderNumber),
           member_id: selectedMember?.id || null,
@@ -226,9 +217,9 @@ const PaymentModal = ({
           bill_discount_type: String(billDiscountType) || 'amount'
         };
 
-        console.log(`[PaymentModal.saveOrderToDatabase] Order data:`, orderData);
+        console.log(`[PaymentModal] Order data:`, orderData);
 
-        // บันทึกออเดอร์
+        // Save order
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert(orderData)
@@ -236,35 +227,26 @@ const PaymentModal = ({
           .single();
 
         if (orderError) {
-          console.error(`[PaymentModal.saveOrderToDatabase] Order insert error (attempt ${attempt}):`, {
-            message: orderError.message,
-            details: orderError.details,
-            hint: orderError.hint,
-            code: orderError.code,
-            orderData
-          });
+          console.warn(`[PaymentModal] Order insert failed (attempt ${attempt}):`, orderError.message);
           
-          lastError = orderError;
-          
-          // ถ้าเป็น duplicate key error ลองใหม่
-          if (orderError.message.includes('duplicate key') || orderError.message.includes('orders_order_number_key')) {
-            console.log(`[PaymentModal.saveOrderToDatabase] Duplicate key detected, retrying...`);
+          // Retry on duplicate key error
+          if (orderError.message.includes('duplicate key') && attempt < maxRetries) {
             const delay = 200 * Math.pow(2, attempt - 1);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
           
-          throw new Error(`ไม่สามารถบันทึกออเดอร์ได้: ${orderError.message}`);
+          throw new Error(`Failed to save order: ${orderError.message}`);
         }
 
         if (!order || !order.id) {
-          throw new Error('[PaymentModal.saveOrderToDatabase] ไม่ได้รับ ID ออเดอร์จากฐานข้อมูล');
+          throw new Error('No order ID returned from database');
         }
 
-        console.log(`[PaymentModal.saveOrderToDatabase] Order created successfully:`, order);
+        console.log(`[PaymentModal] Order saved successfully:`, order);
 
-        // เตรียมรายการสินค้า
-        const orderItems = cartItems.map((item, index) => ({
+        // Prepare order items
+        const orderItems = cartItems.map((item) => ({
           order_id: order.id,
           menu_item_id: String(item.menu_item.id),
           menu_item_name: String(item.menu_item.name),
@@ -280,34 +262,28 @@ const PaymentModal = ({
           })) || [])
         }));
 
-        console.log(`[PaymentModal.saveOrderToDatabase] Order items (${orderItems.length} items):`, orderItems);
+        console.log(`[PaymentModal] Saving ${orderItems.length} order items`);
 
-        // บันทึกรายการสินค้า
+        // Save order items
         const { error: itemsError } = await supabase
           .from('order_items')
           .insert(orderItems);
 
         if (itemsError) {
-          console.error(`[PaymentModal.saveOrderToDatabase] Order items insert error:`, {
-            message: itemsError.message,
-            details: itemsError.details,
-            hint: itemsError.hint,
-            code: itemsError.code,
-            orderItems
-          });
-          throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
+          console.error(`[PaymentModal] Order items insert failed:`, itemsError.message);
+          throw new Error(`Failed to save order items: ${itemsError.message}`);
         }
 
-        console.log(`[PaymentModal.saveOrderToDatabase] Order items saved successfully`);
+        console.log(`[PaymentModal] Order items saved successfully`);
 
-        // จัดการแต้มสมาชิก
+        // Handle member points (don't throw errors for point operations)
         if (selectedMember) {
           try {
             if (method === 'points' && pointsUsed > 0) {
               const newPoints = selectedMember.points - pointsUsed;
-              console.log(`[PaymentModal.saveOrderToDatabase] Updating member points: ${selectedMember.points} - ${pointsUsed} = ${newPoints}`);
+              console.log(`[PaymentModal] Updating member points: ${selectedMember.points} - ${pointsUsed} = ${newPoints}`);
 
-              const { error: memberError } = await supabase
+              await supabase
                 .from('members')
                 .update({
                   points: newPoints,
@@ -315,29 +291,23 @@ const PaymentModal = ({
                 })
                 .eq('id', selectedMember.id);
 
-              if (memberError) {
-                console.error(`[PaymentModal.saveOrderToDatabase] Member update error:`, memberError);
-                // ไม่ throw error เพราะออเดอร์สำเร็จแล้ว
-              } else {
-                // บันทึกประวัติการใช้แต้ม
-                await supabase
-                  .from('point_transactions')
-                  .insert({
-                    member_id: selectedMember.id,
-                    order_id: order.id,
-                    points_change: -pointsUsed,
-                    transaction_type: 'redeem',
-                    description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
-                  });
-                console.log(`[PaymentModal.saveOrderToDatabase] Points transaction saved`);
-              }
+              // Log point transaction
+              await supabase
+                .from('point_transactions')
+                .insert({
+                  member_id: selectedMember.id,
+                  order_id: order.id,
+                  points_change: -pointsUsed,
+                  transaction_type: 'redeem',
+                  description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
+                });
             } else {
-              // สะสมแต้มจากการซื้อ
+              // Earn points from purchase
               const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
               const newPoints = selectedMember.points + pointsEarned;
-              console.log(`[PaymentModal.saveOrderToDatabase] Adding points: ${selectedMember.points} + ${pointsEarned} = ${newPoints}`);
+              console.log(`[PaymentModal] Adding points: ${selectedMember.points} + ${pointsEarned} = ${newPoints}`);
 
-              const { error: memberError } = await supabase
+              await supabase
                 .from('members')
                 .update({
                   points: newPoints,
@@ -345,7 +315,7 @@ const PaymentModal = ({
                 })
                 .eq('id', selectedMember.id);
 
-              if (!memberError && pointsEarned > 0) {
+              if (pointsEarned > 0) {
                 await supabase
                   .from('point_transactions')
                   .insert({
@@ -355,16 +325,17 @@ const PaymentModal = ({
                     transaction_type: 'earn',
                     description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
                   });
-                console.log(`[PaymentModal.saveOrderToDatabase] Points earned transaction saved`);
               }
             }
           } catch (pointError) {
-            console.error(`[PaymentModal.saveOrderToDatabase] Points handling error:`, pointError);
-            // ไม่ throw error เพราะออเดอร์สำเร็จแล้ว
+            console.warn(`[PaymentModal] Points handling warning:`, pointError);
+            // Don't throw error for point operations
           }
         }
 
-        console.log(`[PaymentModal.saveOrderToDatabase] Order saved successfully`);
+        console.log(`[PaymentModal] Order processing completed successfully`);
+        
+        // Show success message only once
         toast({
           title: "ชำระเงินสำเร็จ",
           description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
@@ -373,46 +344,43 @@ const PaymentModal = ({
         return order;
 
       } catch (error) {
-        console.error(`[PaymentModal.saveOrderToDatabase] Attempt ${attempt} failed:`, error);
-        lastError = error;
+        console.warn(`[PaymentModal] Save order failed (attempt ${attempt}):`, error);
         
         if (attempt < maxRetries) {
           const delay = 200 * Math.pow(2, attempt - 1);
-          console.log(`[PaymentModal.saveOrderToDatabase] Retrying in ${delay}ms...`);
+          console.log(`[PaymentModal] Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Only show error toast on final failure
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          console.error(`[PaymentModal] All save attempts failed:`, error);
+          
+          toast({
+            title: "เกิดข้อผิดพลาด",
+            description: `ไม่สามารถบันทึกออเดอร์ได้: ${errorMessage}`,
+            variant: "destructive"
+          });
+          
+          throw error;
         }
       }
     }
-
-    // ถ้าล้มเหลวทุก attempt
-    const errorMessage = lastError instanceof Error ? lastError.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-    
-    console.error(`[PaymentModal.saveOrderToDatabase] All attempts failed. Final error:`, lastError);
-    
-    toast({
-      title: "เกิดข้อผิดพลาด",
-      description: `ไฟล์: PaymentModal.tsx - ${errorMessage}`,
-      variant: "destructive"
-    });
-    
-    throw lastError;
   };
 
   const handlePayment = async () => {
     if (isProcessing) {
-      console.log(`[PaymentModal.handlePayment] Already processing, ignoring click`);
       return;
     }
 
     setIsProcessing(true);
-    console.log(`[PaymentModal.handlePayment] Starting payment process...`);
+    console.log(`[PaymentModal] Starting payment process with method: ${paymentMethod}`);
 
     try {
-      // ตรวจสอบข้อมูลพื้นฐาน
+      // Validate input
       if (!cartItems || cartItems.length === 0) {
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
-          description: "ไฟล์: PaymentModal.tsx - กรุณาเพิ่มสินค้าก่อนชำระเงิน",
+          description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
           variant: "destructive"
         });
         return;
@@ -421,19 +389,19 @@ const PaymentModal = ({
       if (total <= 0) {
         toast({
           title: "ยอดเงินไม่ถูกต้อง",
-          description: "ไฟล์: PaymentModal.tsx - ยอดเงินต้องมากกว่า 0",
+          description: "ยอดเงินต้องมากกว่า 0",
           variant: "destructive"
         });
         return;
       }
 
-      // ตรวจสอบตามวิธีการชำระเงิน
+      // Validate payment method specific requirements
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
         if (isNaN(receivedAmount) || receivedAmount < total) {
           toast({
             title: "จำนวนเงินไม่เพียงพอ",
-            description: `ไฟล์: PaymentModal.tsx - กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
+            description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
             variant: "destructive"
           });
           return;
@@ -442,7 +410,7 @@ const PaymentModal = ({
         if (!selectedMember) {
           toast({
             title: "กรุณาเลือกสมาชิก",
-            description: "ไฟล์: PaymentModal.tsx - การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
+            description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
             variant: "destructive"
           });
           return;
@@ -455,7 +423,7 @@ const PaymentModal = ({
         if (pointsValue < minimumPoints) {
           toast({
             title: "แต้มไม่เพียงพอ",
-            description: `ไฟล์: PaymentModal.tsx - ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
+            description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
             variant: "destructive"
           });
           return;
@@ -464,24 +432,24 @@ const PaymentModal = ({
         if (pointsValue > maximumPoints) {
           toast({
             title: "แต้มเกินจำนวนที่มี",
-            description: `ไฟล์: PaymentModal.tsx - สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
+            description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
             variant: "destructive"
           });
           return;
         }
       }
 
-      // บันทึกออเดอร์
+      // Save order to database
       await saveOrderToDatabase(paymentMethod);
       
-      // ชำระเงินสำเร็จ
+      // Complete payment
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       onClose();
       
     } catch (error) {
-      console.error(`[PaymentModal.handlePayment] Payment process failed:`, error);
-      // Error message จะถูกแสดงใน saveOrderToDatabase แล้ว
+      console.error(`[PaymentModal] Payment process failed:`, error);
+      // Error toast is already shown in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
     }
@@ -718,7 +686,7 @@ const PaymentModal = ({
               className="flex-1 h-9 bg-green-600 hover:bg-green-700"
               disabled={isProcessing}
             >
-              {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
+              {isProcessing ? 'กำลังประมวลผ ล...' : 'ชำระเงิน'}
             </Button>
           </div>
         </div>
