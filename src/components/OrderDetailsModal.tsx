@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, Package, DollarSign } from 'lucide-react';
+import { Receipt, Package, DollarSign, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OrderItem {
@@ -127,6 +127,70 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrintReceipt = () => {
+    if (!orderDetails) return;
+
+    // Create print content
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2>ใบเสร็จรับเงิน</h2>
+          <p>หมายเลขออเดอร์: ${orderDetails.order_number}</p>
+          <p>วันที่: ${new Date(orderDetails.created_at).toLocaleDateString('th-TH')}</p>
+          <p>เวลา: ${new Date(orderDetails.created_at).toLocaleTimeString('th-TH')}</p>
+        </div>
+        
+        <div style="border-top: 1px solid #000; padding-top: 10px;">
+          <h3>รายการสินค้า</h3>
+          ${orderDetails.items.map(item => `
+            <div style="margin-bottom: 10px;">
+              <div>${item.name} x ${item.quantity}</div>
+              ${item.addons && item.addons.length > 0 ? `<div style="font-size: 12px; color: #666;">+ ${item.addons.join(', ')}</div>` : ''}
+              <div style="text-align: right;">฿${item.total_price.toLocaleString()}</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div style="border-top: 1px solid #000; padding-top: 10px; margin-top: 20px;">
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px;">
+            <span>ยอดรวมทั้งหมด</span>
+            <span>฿${orderDetails.total_amount.toLocaleString()}</span>
+          </div>
+          <div style="margin-top: 10px;">
+            <span>วิธีชำระเงิน: ${getPaymentMethodName(orderDetails.payment_method)}</span>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; font-size: 12px;">
+          <p>ขอบคุณที่ใช้บริการ</p>
+        </div>
+      </div>
+    `;
+
+    // Open print window
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>ใบเสร็จ - ${orderDetails.order_number}</title>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+      printWindow.close();
+    }
+
+    toast({
+      title: "พิมพ์ใบเสร็จ",
+      description: "เปิดหน้าต่างพิมพ์ใบเสร็จแล้ว",
+    });
   };
 
   const getPaymentMethodName = (method: string) => {
@@ -254,8 +318,17 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
           )}
         </div>
         
-        <div className="pt-4 border-t">
-          <Button variant="outline" onClick={onClose} className="w-full">
+        <div className="pt-4 border-t flex gap-2">
+          {orderDetails && (
+            <Button
+              onClick={handlePrintReceipt}
+              className="flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
+            >
+              <Printer className="w-4 h-4" />
+              พิมพ์ใบเสร็จ
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose} className="flex-1">
             ปิด
           </Button>
         </div>

@@ -11,7 +11,8 @@ interface Member {
   id: string;
   phone: string;
   name: string;
-  email?: string;
+  birth_date?: string;
+  gender?: string;
   tier: 'silver' | 'gold' | 'platinum';
   points: number;
   total_spent: number;
@@ -26,7 +27,8 @@ const MemberEditForm = ({ member, onSuccess }: MemberEditFormProps) => {
   const [formData, setFormData] = useState({
     name: member.name,
     phone: member.phone,
-    email: member.email || '',
+    birth_date: member.birth_date || '',
+    gender: member.gender || '',
     tier: member.tier,
     points: member.points,
     total_spent: member.total_spent,
@@ -88,13 +90,27 @@ const MemberEditForm = ({ member, onSuccess }: MemberEditFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="edit-email">อีเมล</Label>
+        <Label htmlFor="edit-birth-date">วันเดือนปีเกิด</Label>
         <Input
-          id="edit-email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleInputChange('email', e.target.value)}
+          id="edit-birth-date"
+          type="date"
+          value={formData.birth_date}
+          onChange={(e) => handleInputChange('birth_date', e.target.value)}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="edit-gender">เพศ</Label>
+        <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="เลือกเพศ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="male">ชาย</SelectItem>
+            <SelectItem value="female">หญิง</SelectItem>
+            <SelectItem value="other">อื่นๆ</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
