@@ -439,16 +439,37 @@ const PaymentModal = ({
         }
       }
 
-      // Save order to database and wait for completion (including stock reduction)
-      await saveOrderToDatabase(paymentMethod);
-      
-      // Complete payment and close modal
+      // ทำ payment ทันทีก่อน - ไม่รอการบันทึกฐานข้อมูล
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
+      
+      // แสดงข้อความสำเร็จทันที
+      toast({
+        title: "ชำระเงินสำเร็จ",
+        description: `ยอดชำระ ฿${total.toLocaleString()}`,
+      });
+      
+      // ปิด modal ทันที
       onClose();
+
+      // บันทึกข้อมูลในฐานข้อมูลในพื้นหลัง (ไม่ await)
+      saveOrderToDatabase(paymentMethod).catch(error => {
+        console.error('Background save error:', error);
+        // แสดงข้อความแจ้งเตือนถ้าบันทึกไม่สำเร็จ แต่ไม่บล็อก UI
+        toast({
+          title: "คำเตือน",
+          description: "การชำระเงินสำเร็จแล้ว แต่อาจมีปัญหาในการบันทึกข้อมูล",
+          variant: "destructive"
+        });
+      });
       
     } catch (error) {
       console.error(`[PaymentModal] Payment process failed:`, error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถประมวลผลการชำระเงินได้",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }

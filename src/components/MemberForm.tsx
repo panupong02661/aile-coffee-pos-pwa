@@ -12,7 +12,8 @@ import { UserPlus } from 'lucide-react';
 interface MemberFormData {
   name: string;
   phone: string;
-  email: string;
+  birth_date: string;
+  gender: string;
   tier: 'silver' | 'gold' | 'platinum';
   points: number;
   total_spent: number;
@@ -22,7 +23,8 @@ const MemberForm = () => {
   const [formData, setFormData] = useState<MemberFormData>({
     name: '',
     phone: '',
-    email: '',
+    birth_date: '',
+    gender: '',
     tier: 'silver',
     points: 0,
     total_spent: 0,
@@ -57,7 +59,8 @@ const MemberForm = () => {
       setFormData({
         name: '',
         phone: '',
-        email: '',
+        birth_date: '',
+        gender: '',
         tier: 'silver',
         points: 0,
         total_spent: 0,
@@ -110,14 +113,28 @@ const MemberForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">อีเมล</Label>
+            <Label htmlFor="birth_date">วันเดือนปีเกิด *</Label>
             <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="กรอกอีเมล (ไม่บังคับ)"
+              id="birth_date"
+              type="date"
+              value={formData.birth_date}
+              onChange={(e) => handleInputChange('birth_date', e.target.value)}
+              required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gender">เพศ *</Label>
+            <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกเพศ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">ชาย</SelectItem>
+                <SelectItem value="female">หญิง</SelectItem>
+                <SelectItem value="other">อื่นๆ</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

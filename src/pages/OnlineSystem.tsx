@@ -1,435 +1,287 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Toggle } from '@/components/ui/toggle';
-import { Eye, Globe, Menu as MenuIcon } from 'lucide-react';
-import Header from '@/components/Header';
-import MainSidebar from '@/components/MainSidebar';
-import MenuGrid from '@/components/MenuGrid';
-import Cart from '@/components/Cart';
-import MobileCart from '@/components/MobileCart';
-import AddonModal from '@/components/AddonModal';
-import MemberSearchModal from '@/components/MemberSearchModal';
-import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
-import { useCart } from '@/hooks/useCart';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { DatabaseAddon } from '@/hooks/useSupabaseData';
-import { ShoppingCart } from 'lucide-react';
 
-interface Member {
-  id: string;
-  phone: string;
-  name: string;
-  email?: string;
-  tier: 'silver' | 'gold' | 'platinum';
-  points: number;
-  total_spent: number;
-}
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Globe, Smartphone, QrCode, Users, Settings, BarChart3 } from 'lucide-react';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
+import OnlineSystemHeader from '@/components/OnlineSystemHeader';
 
 const OnlineSystem = () => {
-  const [selectedCategory, setSelectedCategory] = useState('1');
-  const [showPreview, setShowPreview] = useState(false);
-  const [isMenuEnabled, setIsMenuEnabled] = useState(true);
-  const isMobile = useIsMobile();
-  
-  // Load settings from localStorage
-  const [gridColumns, setGridColumns] = useState(() => {
-    const saved = localStorage.getItem('online-pos-grid-columns');
-    return saved ? parseInt(saved) : (isMobile ? 3 : 4);
-  });
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
-    const saved = localStorage.getItem('online-pos-item-size');
-    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
-  });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
-  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
-  const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
-  const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
-  const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOnlineMode, setIsOnlineMode] = useState(true);
 
-  const {
-    cartItems,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    updateDiscount,
-    clearCart,
-    billDiscount,
-    billDiscountType,
-    setBillDiscount,
-    setBillDiscountType,
-    restoreCart
-  } = useCart();
-
-  const { 
-    categories, 
-    menuItems, 
-    addons, 
-    loading, 
-    getAddonGroupsForMenuItem, 
-    getAddonGroupsForCategory 
-  } = useSupabaseData();
-
-  // Adjust grid columns for mobile
-  useEffect(() => {
-    if (isMobile) {
-      setGridColumns(3); 
-      setItemSize('small'); 
-    } else {
-      const saved = localStorage.getItem('online-pos-grid-columns');
-      setGridColumns(saved ? parseInt(saved) : 4);
-      const savedSize = localStorage.getItem('online-pos-item-size');
-      setItemSize(savedSize ? savedSize as 'small' | 'medium' | 'large' : 'medium');
-    }
-  }, [isMobile]);
-
-  // Save settings to localStorage when changed
-  useEffect(() => {
-    localStorage.setItem('online-pos-grid-columns', gridColumns.toString());
-  }, [gridColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('online-pos-item-size', itemSize);
-  }, [itemSize]);
-
-  // Convert database categories to the format expected by components
-  const convertedCategories = [
-    { 
-      id: '1', 
-      name: 'ทั้งหมด',
-      description: 'แสดงสินค้าทั้งหมด',
-      sort_order: 0,
-      is_active: true
-    },
-    ...categories.map(cat => ({ 
-      id: cat.id, 
-      name: cat.name,
-      description: cat.description || '',
-      sort_order: cat.sort_order,
-      is_active: cat.is_active
-    }))
+  const menuItems = [
+    { id: 'overview', label: 'ภาพรวม', icon: BarChart3 },
+    { id: 'qr-code', label: 'QR Code', icon: QrCode },
+    { id: 'website', label: 'เว็บไซต์', icon: Globe },
+    { id: 'mobile', label: 'แอปมือถือ', icon: Smartphone },
+    { id: 'customers', label: 'ลูกค้าออนไลน์', icon: Users },
+    { id: 'settings', label: 'ตั้งค่า', icon: Settings },
   ];
 
-  // Convert database menu items to the format expected by components
-  const convertedMenuItems = menuItems.map(item => ({
-    id: item.id,
-    name: item.name,
-    price: Number(item.price),
-    category_id: item.category_id || '',
-    image: item.image_url || '',
-    is_available: item.is_available && isMenuEnabled,
-    description: item.description || '',
-    calculated_cost: Number(item.cost_price)
-  }));
-
-  const filteredMenuItems = selectedCategory === '1' 
-    ? convertedMenuItems 
-    : convertedMenuItems.filter(item => item.category_id === selectedCategory);
-
-  const handleToggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const handleCloseSidebar = () => {
-    setIsSidebarOpen(false);
-  };
-
-  const handleMemberClick = () => {
-    setIsMemberSearchOpen(true);
-  };
-
-  const handleSelectMember = (member: Member) => {
-    setSelectedMember(member);
-  };
-
-  const handleRemoveMember = () => {
-    setSelectedMember(null);
-  };
-
-  const handleMenuItemClick = (menuItem: any) => {
-    if (!isMenuEnabled) return;
-    
-    console.log('Menu item clicked:', menuItem);
-    
-    const menuAddonGroups = getAddonGroupsForMenuItem(menuItem.id);
-    const categoryAddonGroups = menuItem.category_id 
-      ? getAddonGroupsForCategory(menuItem.category_id) 
-      : [];
-
-    const allAddonGroupIds = new Set([
-      ...menuAddonGroups.map(ag => ag.id),
-      ...categoryAddonGroups.map(ag => ag.id)
-    ]);
-
-    const relevantAddons = addons.filter(addon => 
-      addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
-    );
-
-    if (relevantAddons.length > 0) {
-      setSelectedMenuItem(menuItem);
-      setAvailableAddons(relevantAddons);
-      setIsAddonModalOpen(true);
-    } else {
-      addToCart(menuItem, []);
-    }
-  };
-
-  const handleAddToCartWithAddons = (menuItem: any, selectedAddons: DatabaseAddon[]) => {
-    const convertedAddons = selectedAddons.map(addon => ({
-      id: addon.id,
-      name: addon.name,
-      price: Number(addon.price),
-      category: 'other' as const,
-      is_required: addon.addon_groups?.is_required || false,
-      allow_multiple: addon.addon_groups?.allow_multiple || false,
-      addon_group_id: addon.addon_group_id || undefined
-    }));
-
-    addToCart(menuItem, convertedAddons);
-    setIsAddonModalOpen(false);
-    setSelectedMenuItem(null);
-    setAvailableAddons([]);
-  };
-
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
-      </div>
-    );
-  }
-
-  if (!showPreview) {
-    return (
-      <div className="h-screen bg-cream-50 flex overflow-hidden">
-        <MainSidebar 
-          isOpen={isSidebarOpen} 
-          onClose={handleCloseSidebar}
-        />
-        
-        <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-          isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
-        }`}>
-          <div className="flex-1 flex items-center justify-center p-8">
-            <Card className="max-w-2xl w-full">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-coffee-800 flex items-center justify-center gap-2">
-                  <Globe className="w-8 h-8" />
-                  ระบบออนไลน์
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-center text-coffee-600">
-                  จัดการระบบ POS ออนไลน์สำหรับลูกค้า
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-coffee-200 rounded-lg">
-                    <div>
-                      <h3 className="font-medium text-coffee-800">เปิด/ปิด เมนู</h3>
-                      <p className="text-sm text-coffee-600">ควบคุมการแสดงเมนูสำหรับลูกค้าออนไลน์</p>
-                    </div>
-                    <Toggle
-                      pressed={isMenuEnabled}
-                      onPressedChange={setIsMenuEnabled}
-                      className="data-[state=on]:bg-coffee-600"
-                    >
-                      <MenuIcon className="w-4 h-4" />
-                    </Toggle>
-                  </div>
-                  
-                  <div className="flex gap-4">
-                    <Button 
-                      onClick={() => setShowPreview(true)}
-                      className="flex-1 bg-coffee-600 hover:bg-coffee-700"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={handleCloseSidebar}
+    <div className="space-y-6">
+      {/* Header พร้อมเมนู */}
+      <OnlineSystemHeader 
+        onMenuToggle={setIsMenuOpen}
+        isMenuOpen={isMenuOpen}
+        isOnlineMode={isOnlineMode}
+        onOnlineModeToggle={setIsOnlineMode}
       />
-      
-      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
-      }`}>
-        {/* Header with Back Button */}
-        <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
-          isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
-        }`}>
-          <div className="flex items-center gap-4 mb-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowPreview(false)}
-              className="border-coffee-300"
-            >
-              ← กลับ
-            </Button>
-            <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-coffee-600" />
-              <span className="text-coffee-800 font-medium">POS ออนไลน์ (Preview)</span>
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-coffee-600">เมนู:</span>
-              <span className={`text-sm font-medium ${isMenuEnabled ? 'text-green-600' : 'text-red-600'}`}>
-                {isMenuEnabled ? 'เปิด' : 'ปิด'}
-              </span>
-            </div>
-          </div>
-          
-          <Header 
-            onToggleSidebar={handleToggleSidebar}
-            onMemberClick={handleMemberClick}
-            categories={convertedCategories}
-            selectedCategory={selectedCategory}
-            onCategorySelect={setSelectedCategory}
-            gridColumns={gridColumns}
-            setGridColumns={setGridColumns}
-            itemSize={itemSize}
-            setItemSize={setItemSize}
-            page="other"
-          />
-        </div>
-        
-        {/* Content Area */}
-        <div className={`flex-1 flex gap-6 overflow-hidden ${
-          isMobile ? 'flex-col p-2 pt-0' : 'p-4 pt-0'
-        }`}>
-          {/* Menu Grid Container */}
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-white rounded-lg border border-coffee-200">
-              <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-2' : 'p-4'
-              }`} style={{ scrollbarWidth: 'thin' }}>
-                {!isMenuEnabled ? (
-                  <div className="flex items-center justify-center h-full text-coffee-500">
-                    <div className="text-center">
-                      <MenuIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg">เมนูถูกปิดใช้งาน</p>
-                      <p className="text-sm">กรุณาเปิดเมนูเพื่อแสดงรายการอาหาร</p>
+
+      <div className="flex gap-6">
+        {/* เมนูด้านข้าง */}
+        {isMenuOpen && (
+          <Card className="w-64 h-fit">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">เมนูระบบออนไลน์</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <nav className="space-y-1 p-3">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.id}
+                      variant="ghost"
+                      className="w-full justify-start h-10 text-left"
+                    >
+                      <Icon className="w-4 h-4 mr-3" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </nav>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* เนื้อหาหลัก */}
+        <div className="flex-1">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview" className="text-xs">ภาพรวม</TabsTrigger>
+              <TabsTrigger value="qr-code" className="text-xs">QR Code</TabsTrigger>
+              <TabsTrigger value="website" className="text-xs">เว็บไซต์</TabsTrigger>
+              <TabsTrigger value="mobile" className="text-xs">แอป</TabsTrigger>
+              <TabsTrigger value="customers" className="text-xs">ลูกค้า</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs">ตั้งค่า</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">สถานะระบบ</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge variant={isOnlineMode ? "default" : "secondary"}>
+                      {isOnlineMode ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                    </Badge>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">ออเดอร์ออนไลน์วันนี้</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">25</div>
+                    <p className="text-xs text-muted-foreground">+12% จากเมื่อวาน</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">ยอดขายออนไลน์</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">฿4,250</div>
+                    <p className="text-xs text-muted-foreground">+8% จากเมื่อวาน</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">ลูกค้าใหม่</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">12</div>
+                    <p className="text-xs text-muted-foreground">สมัครสมาชิกใหม่</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>การใช้งานระบบออนไลน์</CardTitle>
+                  <CardDescription>
+                    ภาพรวมการใช้งานระบบออนไลน์ของร้าน
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-medium">เว็บไซต์สั่งอาหาร</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        ให้ลูกค้าสั่งอาหารผ่านเว็บไซต์และชำระเงินออนไลน์
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="w-4 h-4 text-green-500" />
+                        <span className="text-sm font-medium">QR Code สมัครสมาชิก</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        ลูกค้าสแกน QR Code เพื่อสมัครสมาชิกและรับสิทธิประโยชน์
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  <MenuGrid
-                    menuItems={filteredMenuItems}
-                    addons={[]}
-                    onAddToCart={handleMenuItemClick}
-                    gridColumns={gridColumns}
-                    itemSize={itemSize}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Desktop Cart */}
-          {!isMobile && (
-            <div className="w-80 flex-shrink-0 overflow-hidden">
-              <div className="h-full flex flex-col">
-                {selectedMember && (
-                  <SelectedMemberDisplay
-                    member={selectedMember}
-                    onRemove={handleRemoveMember}
-                  />
-                )}
-                
-                <div className="flex-1 overflow-hidden">
-                  <Cart
-                    cartItems={cartItems}
-                    onUpdateQuantity={updateQuantity}
-                    onRemoveItem={removeFromCart}
-                    onUpdateDiscount={updateDiscount}
-                    onClearCart={clearCart}
-                    billDiscount={billDiscount}
-                    billDiscountType={billDiscountType}
-                    onUpdateBillDiscount={setBillDiscount}
-                    onUpdateBillDiscountType={setBillDiscountType}
-                    onRestoreCart={restoreCart}
-                    selectedMember={selectedMember}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+            <TabsContent value="qr-code">
+              <QRCodeGenerator />
+            </TabsContent>
+
+            <TabsContent value="website" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>เว็บไซต์สั่งอาหาร</CardTitle>
+                  <CardDescription>
+                    จัดการเว็บไซต์สำหรับให้ลูกค้าสั่งอาหารออนไลน์
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">สถานะเว็บไซต์</h3>
+                        <p className="text-sm text-muted-foreground">เว็บไซต์พร้อมใช้งาน</p>
+                      </div>
+                      <Badge variant="default">เปิดใช้งาน</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button variant="outline" className="h-auto p-4">
+                        <div className="text-left">
+                          <div className="font-medium">ปรับแต่งเมนู</div>
+                          <div className="text-sm text-muted-foreground">จัดการเมนูที่แสดงบนเว็บไซต์</div>
+                        </div>
+                      </Button>
+
+                      <Button variant="outline" className="h-auto p-4">
+                        <div className="text-left">
+                          <div className="font-medium">ตั้งค่าการชำระเงิน</div>
+                          <div className="text-sm text-muted-foreground">เพิ่มช่องทางการชำระเงิน</div>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="mobile" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>แอปมือถือ</CardTitle>
+                  <CardDescription>
+                    แอปมือถือสำหรับลูกค้าสั่งอาหาร
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Smartphone className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">แอปมือถือ</h3>
+                    <p className="text-muted-foreground mb-4">
+                      ฟีเจอร์นี้จะพร้อมใช้งานในอนาคต
+                    </p>
+                    <Button variant="outline">แจ้งให้ทราบเมื่อพร้อม</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="customers" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>ลูกค้าออนไลน์</CardTitle>
+                  <CardDescription>
+                    จัดการลูกค้าที่สั่งอาหารผ่านระบบออนไลน์
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold">156</div>
+                        <div className="text-sm text-muted-foreground">ลูกค้าทั้งหมด</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold">89</div>
+                        <div className="text-sm text-muted-foreground">ลูกค้าประจำ</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold">12</div>
+                        <div className="text-sm text-muted-foreground">ลูกค้าใหม่เดือนนี้</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>ตั้งค่าระบบออนไลน์</CardTitle>
+                  <CardDescription>
+                    จัดการการตั้งค่าต่างๆ ของระบบออนไลน์
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">เปิด/ปิดระบบออนไลน์</h3>
+                        <p className="text-sm text-muted-foreground">เปิดหรือปิดการรับออเดอร์ออนไลน์</p>
+                      </div>
+                      <Switch 
+                        checked={isOnlineMode}
+                        onCheckedChange={setIsOnlineMode}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">การแจ้งเตือนออเดอร์ใหม่</h3>
+                        <p className="text-sm text-muted-foreground">รับการแจ้งเตือนเมื่อมีออเดอร์ใหม่</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">ยืนยันออเดอร์อัตโนมัติ</h3>
+                        <p className="text-sm text-muted-foreground">ยืนยันออเดอร์โดยอัตโนมัติ</p>
+                      </div>
+                      <Switch />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-
-        {/* Mobile Cart Button */}
-        {isMobile && (
-          <div className="fixed bottom-4 right-4 z-20">
-            <Button
-              onClick={() => setIsMobileCartOpen(true)}
-              className="w-14 h-14 rounded-full bg-coffee-600 hover:bg-coffee-700 shadow-lg relative"
-              size="sm"
-            >
-              <ShoppingCart className="w-6 h-6" />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
-                  {totalItems}
-                </span>
-              )}
-            </Button>
-          </div>
-        )}
       </div>
-
-      {/* Mobile Cart Drawer */}
-      {isMobile && (
-        <MobileCart
-          isOpen={isMobileCartOpen}
-          onClose={() => setIsMobileCartOpen(false)}
-          cartItems={cartItems}
-          onUpdateQuantity={updateQuantity}
-          onRemoveItem={removeFromCart}
-          onUpdateDiscount={updateDiscount}
-          onClearCart={clearCart}
-          billDiscount={billDiscount}
-          billDiscountType={billDiscountType}
-          onUpdateBillDiscount={setBillDiscount}
-          onUpdateBillDiscountType={setBillDiscountType}
-          onRestoreCart={restoreCart}
-          selectedMember={selectedMember}
-        />
-      )}
-
-      {/* Member Search Modal */}
-      <MemberSearchModal
-        isOpen={isMemberSearchOpen}
-        onClose={() => setIsMemberSearchOpen(false)}
-        onSelectMember={handleSelectMember}
-      />
-
-      {/* Addon Modal */}
-      {selectedMenuItem && (
-        <AddonModal
-          isOpen={isAddonModalOpen}
-          onClose={() => {
-            setIsAddonModalOpen(false);
-            setSelectedMenuItem(null);
-            setAvailableAddons([]);
-          }}
-          menuItem={selectedMenuItem}
-          addons={availableAddons}
-          onAddToCart={handleAddToCartWithAddons}
-        />
-      )}
     </div>
   );
 };
