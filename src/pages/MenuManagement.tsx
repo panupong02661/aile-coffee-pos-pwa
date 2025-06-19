@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ const MenuManagement = () => {
   const [showAddonGroupForm, setShowAddonGroupForm] = useState(false);
   const [imageEditingItem, setImageEditingItem] = useState<DatabaseMenuItem | null>(null);
   const [showImageCropper, setShowImageCropper] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState('');
   
   const { 
     menuItems, 
@@ -76,6 +76,8 @@ const MenuManagement = () => {
 
   const handleAddImage = (item: DatabaseMenuItem) => {
     setImageEditingItem(item);
+    // For now, we'll use a placeholder image source since we need file upload
+    setCropperImageSrc('/placeholder.svg');
     setShowImageCropper(true);
   };
 
@@ -93,6 +95,7 @@ const MenuManagement = () => {
       toast({ title: 'สำเร็จ', description: 'อัพเดทรูปภาพเรียบร้อยแล้ว' });
       setShowImageCropper(false);
       setImageEditingItem(null);
+      setCropperImageSrc('');
       refetch.menuItems();
     } catch (error: any) {
       toast({ 
@@ -453,9 +456,9 @@ const MenuManagement = () => {
       {/* Forms and Modals */}
       {showItemForm && (
         <MenuItemForm
+          isOpen={showItemForm}
           editItem={editingItem}
           categories={categories}
-          addonGroups={addonGroups}
           onSuccess={handleFormSuccess}
           onClose={() => {
             setShowItemForm(false);
@@ -466,23 +469,38 @@ const MenuManagement = () => {
 
       {showCategoryForm && (
         <CategoryForm
+          isOpen={showCategoryForm}
+          editCategory={editingCategory}
           onSuccess={handleFormSuccess}
-          onClose={() => setShowCategoryForm(false)}
+          onClose={() => {
+            setShowCategoryForm(false);
+            setEditingCategory(null);
+          }}
         />
       )}
 
       {showAddonForm && (
         <AddonForm
+          isOpen={showAddonForm}
+          editAddon={editingAddon}
           addonGroups={addonGroups}
           onSuccess={handleFormSuccess}
-          onClose={() => setShowAddonForm(false)}
+          onClose={() => {
+            setShowAddonForm(false);
+            setEditingAddon(null);
+          }}
         />
       )}
 
       {showAddonGroupForm && (
         <AddonGroupForm
+          isOpen={showAddonGroupForm}
+          editAddonGroup={editingAddonGroup}
           onSuccess={handleFormSuccess}
-          onClose={() => setShowAddonGroupForm(false)}
+          onClose={() => {
+            setShowAddonGroupForm(false);
+            setEditingAddonGroup(null);
+          }}
         />
       )}
 
@@ -492,9 +510,10 @@ const MenuManagement = () => {
           onClose={() => {
             setShowImageCropper(false);
             setImageEditingItem(null);
+            setCropperImageSrc('');
           }}
           onCrop={handleImageSave}
-          itemName={imageEditingItem.name}
+          imageSrc={cropperImageSrc}
         />
       )}
     </div>
