@@ -3,14 +3,20 @@ import { useState } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Package, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SalesChart from '@/components/charts/SalesChart';
+import MemberStatsChart from '@/components/charts/MemberStatsChart';
+import { AlertTriangle, Package, TrendingUp, DollarSign, ShoppingCart, Users, Clock, Calendar, CalendarDays, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
   
   const {
     ingredients,
@@ -19,8 +25,19 @@ const Dashboard = () => {
     calculateMenuItemCost,
     calculateMenuItemProfit,
     calculateMenuItemMargin,
-    loading
+    loading: dataLoading
   } = useSupabaseData();
+
+  const {
+    hourlyData,
+    dailyData,
+    monthlyData,
+    genderStats,
+    tierStats,
+    dashboardStats,
+    loading: statsLoading,
+    refreshData
+  } = useDashboardStats();
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -30,7 +47,7 @@ const Dashboard = () => {
     setIsSidebarOpen(false);
   };
 
-  if (loading) {
+  if (dataLoading || statsLoading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-center">
@@ -46,12 +63,6 @@ const Dashboard = () => {
     total + (ingredient.quantity * ingredient.cost_per_unit), 0
   );
 
-  // Calculate today's metrics (mock data for demonstration)
-  const todayCost = 2500;
-  const todayProfit = 8750;
-  const profitMargin = todayProfit > 0 ? ((todayProfit / (todayCost + todayProfit)) * 100) : 0;
-
-  // Get best sellers with profit info
   const bestSellers = menuItems.slice(0, 5).map(item => ({
     ...item,
     cost: calculateMenuItemCost(item.id),
@@ -82,12 +93,18 @@ const Dashboard = () => {
             page="dashboard"
           />
           
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-coffee-800">แดชบอร์ด</h1>
-            <p className="text-coffee-600 mt-2">ภาพรวมการดำเนินงานและการจัดการคลังสินค้า</p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-coffee-800">แดชบอร์ดรายงาน</h1>
+              <p className="text-coffee-600 mt-2">ภาพรวมการดำเนินงานและการจัดการคลังสินค้า</p>
+            </div>
+            <Button onClick={refreshData} variant="outline" className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              รีเฟรช
+            </Button>
           </div>
 
-          {/* Key Metrics */}
+          {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -95,51 +112,195 @@ const Dashboard = () => {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">฿12,500</div>
+                <div className="text-2xl font-bold">฿{dashboardStats.todaySales.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  +15% จากเมื่อวาน
+                  {dashboardStats.todayOrders} ออเดอร์
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ต้นทุนวันนี้</CardTitle>
+                <CardTitle className="text-sm font-medium">ส่วนลดวันนี้</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">฿{todayCost.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-orange-600">฿{dashboardStats.todayDiscount.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  ต้นทุนการผลิต
+                  ส่วนลดที่ให้
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">กำไรวันนี้</CardTitle>
+                <CardTitle className="text-sm font-medium">ยอดสุทธิวันนี้</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">฿{todayProfit.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-green-600">฿{dashboardStats.todayNetSales.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  Margin {profitMargin.toFixed(1)}%
+                  หลังหักส่วนลด
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">มูลค่าสต็อก</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">สมาชิกทั้งหมด</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">฿{totalStockValue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{dashboardStats.totalMembers.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
+                  +{dashboardStats.newMembersToday} วันนี้
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">สรุปประจำเดือน</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">ยอดขาย:</span>
+                  <span className="font-medium">฿{dashboardStats.monthSales.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">ส่วนลด:</span>
+                  <span className="font-medium text-orange-600">฿{dashboardStats.monthDiscount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">ยอดสุทธิ:</span>
+                  <span className="font-medium text-green-600">฿{dashboardStats.monthNetSales.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">จำนวนออเดอร์:</span>
+                  <span className="font-medium">{dashboardStats.monthOrders.toLocaleString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">สมาชิกใหม่เดือนนี้</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600">{dashboardStats.newMembersMonth}</div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  เพิ่มขึ้นจากเดือนที่แล้ว
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">มูลค่าสต็อก</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">฿{totalStockValue.toLocaleString()}</div>
+                <p className="text-sm text-muted-foreground mt-2">
                   {ingredients.length} รายการวัตถุดิบ
                 </p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Charts Section */}
+          <Tabs defaultValue="hourly" className="mb-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="hourly" className="gap-2">
+                <Clock className="w-4 h-4" />
+                รายชั่วโมง
+              </TabsTrigger>
+              <TabsTrigger value="daily" className="gap-2">
+                <Calendar className="w-4 h-4" />
+                รายวัน
+              </TabsTrigger>
+              <TabsTrigger value="monthly" className="gap-2">
+                <CalendarDays className="w-4 h-4" />
+                รายเดือน
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="hourly" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SalesChart
+                  data={hourlyData}
+                  type="line"
+                  title="ยอดขายรายชั่วโมง"
+                  description="ยอดขายในวันนี้แบ่งตามชั่วโมง"
+                  dataKey="sales"
+                  xAxisKey="hour"
+                  color="#8b5cf6"
+                />
+                <SalesChart
+                  data={hourlyData}
+                  type="bar"
+                  title="จำนวนออเดอร์รายชั่วโมง"
+                  description="จำนวนออเดอร์ในวันนี้แบ่งตามชั่วโมง"
+                  dataKey="orders"
+                  xAxisKey="hour"
+                  color="#06b6d4"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="daily" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SalesChart
+                  data={dailyData}
+                  type="line"
+                  title="ยอดขายรายวัน"
+                  description="ยอดขาย 30 วันที่ผ่านมา"
+                  dataKey="net_sales"
+                  xAxisKey="date"
+                  color="#10b981"
+                />
+                <SalesChart
+                  data={dailyData}
+                  type="bar"
+                  title="ส่วนลดรายวัน"
+                  description="ส่วนลดที่ให้ 30 วันที่ผ่านมา"
+                  dataKey="discount"
+                  xAxisKey="date"
+                  color="#f59e0b"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="monthly" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SalesChart
+                  data={monthlyData}
+                  type="bar"
+                  title="ยอดขายรายเดือน"
+                  description="ยอดขาย 12 เดือนที่ผ่านมา"
+                  dataKey="net_sales"
+                  xAxisKey="month"
+                  color="#10b981"
+                />
+                <SalesChart
+                  data={monthlyData}
+                  type="line"
+                  title="จำนวนออเดอร์รายเดือน"
+                  description="จำนวนออเดอร์ 12 เดือนที่ผ่านมา"
+                  dataKey="orders"
+                  xAxisKey="month"
+                  color="#06b6d4"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Member Statistics */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-coffee-800 mb-4">สถิติสมาชิก</h2>
+            <MemberStatsChart genderData={genderStats} tierData={tierStats} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -244,7 +405,7 @@ const Dashboard = () => {
                 </Link>
                 <Link to="/members">
                   <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center gap-2">
-                    <ShoppingCart className="h-6 w-6" />
+                    <Users className="h-6 w-6" />
                     <span className="text-sm">สมาชิก</span>
                   </Button>
                 </Link>
