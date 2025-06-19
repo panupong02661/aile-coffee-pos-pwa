@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, Eye } from 'lucide-react';
 import { useAllOrders } from '@/hooks/useAllOrders';
 import OrderCancellationModal from './OrderCancellationModal';
+import OrderDetailsModal from './OrderDetailsModal';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 
@@ -14,10 +15,20 @@ const AllOrdersList = () => {
   const { orders, loading, refreshOrders } = useAllOrders();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<{id: string; orderNumber: string} | null>(null);
 
   const handleCancelOrder = (order: any) => {
     setSelectedOrder(order);
     setShowCancelModal(true);
+  };
+
+  const handleViewDetails = (order: any) => {
+    setSelectedOrderForDetails({
+      id: order.id,
+      orderNumber: order.order_number
+    });
+    setShowDetailsModal(true);
   };
 
   const handleOrderCancelled = () => {
@@ -81,7 +92,7 @@ const AllOrdersList = () => {
                     const netAmount = order.total_amount - discountAmount;
                     
                     return (
-                      <TableRow key={order.id}>
+                      <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50">
                         <TableCell className="font-medium">
                           {order.order_number}
                         </TableCell>
@@ -114,15 +125,32 @@ const AllOrdersList = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleCancelOrder(order)}
-                            className="flex items-center gap-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            ยกเลิก
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewDetails(order);
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              ดูรายละเอียด
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelOrder(order);
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              ยกเลิก
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -143,6 +171,18 @@ const AllOrdersList = () => {
         order={selectedOrder}
         onOrderCancelled={handleOrderCancelled}
       />
+
+      {selectedOrderForDetails && (
+        <OrderDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedOrderForDetails(null);
+          }}
+          orderId={selectedOrderForDetails.id}
+          orderNumber={selectedOrderForDetails.orderNumber}
+        />
+      )}
     </>
   );
 };
