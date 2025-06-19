@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -306,7 +305,7 @@ const OnlineSystem = () => {
             setGridColumns={setGridColumns}
             itemSize={itemSize}
             setItemSize={setItemSize}
-            page="online-pos"
+            page="other"
           />
         </div>
         

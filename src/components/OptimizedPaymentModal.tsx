@@ -109,17 +109,17 @@ const OptimizedPaymentModal = ({
       // Update member points if applicable (non-blocking)
       if (selectedMember) {
         const pointsToAdd = Math.floor(total / 10);
-        supabase
-          .from('members')
-          .update({ 
-            points: selectedMember.points + pointsToAdd,
-            total_spent: selectedMember.total_spent + total
-          })
-          .eq('id', selectedMember.id)
-          .then(() => {
-            console.log(`Added ${pointsToAdd} points to member ${selectedMember.name}`);
-          })
-          .catch(console.error);
+        Promise.resolve(
+          supabase
+            .from('members')
+            .update({ 
+              points: selectedMember.points + pointsToAdd,
+              total_spent: selectedMember.total_spent + total
+            })
+            .eq('id', selectedMember.id)
+        ).then(() => {
+          console.log(`Added ${pointsToAdd} points to member ${selectedMember.name}`);
+        }).catch(console.error);
       }
 
       // Process payment immediately
@@ -132,7 +132,7 @@ const OptimizedPaymentModal = ({
       });
 
       // Wait for order creation in background
-      orderPromise
+      Promise.resolve(orderPromise)
         .then(({ data, error }) => {
           if (error) {
             console.error('Order creation error:', error);
