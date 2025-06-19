@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,7 +10,7 @@ import {
   Table,
   Menu as MenuIcon,
   Users,
-  Award,
+  Globe,
   Cog,
   FileText,
   CreditCard,
@@ -45,7 +46,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
-    { id: 'points', label: 'จัดการแต้ม', icon: Award, path: '/points' },
+    { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: FileText, path: '/advanced-reports' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },

@@ -17,6 +17,7 @@ import Inventory from "./pages/Inventory";
 import PrinterSettings from "./pages/PrinterSettings";
 import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
+import OnlineSystem from "./pages/OnlineSystem";
 
 // Create QueryClient instance inside the component to avoid SSR issues
 const App = () => {
@@ -76,6 +77,11 @@ const App = () => {
               <Route path="/promotions" element={
                 <ProtectedRoute>
                   <Promotions />
+                </ProtectedRoute>
+              } />
+              <Route path="/online-system" element={
+                <ProtectedRoute>
+                  <OnlineSystem />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
