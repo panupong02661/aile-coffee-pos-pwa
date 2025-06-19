@@ -217,8 +217,10 @@ export type Database = {
       }
       members: {
         Row: {
+          birth_date: string | null
           created_at: string
           email: string | null
+          gender: string | null
           id: string
           join_date: string
           name: string
@@ -229,8 +231,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birth_date?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           join_date?: string
           name: string
@@ -241,8 +245,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birth_date?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           join_date?: string
           name?: string

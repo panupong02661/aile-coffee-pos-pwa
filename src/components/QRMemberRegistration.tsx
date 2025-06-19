@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, CheckCircle } from 'lucide-react';
@@ -12,6 +13,8 @@ const QRMemberRegistration = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    birth_date: '',
+    gender: '',
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -46,7 +49,7 @@ const QRMemberRegistration = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.birth_date || !formData.gender) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
       return;
     }
@@ -59,6 +62,8 @@ const QRMemberRegistration = () => {
         .insert([{
           name: formData.name.trim(),
           phone: formData.phone.trim(),
+          birth_date: formData.birth_date,
+          gender: formData.gender,
           tier: 'silver',
           points: 0,
           total_spent: 0,
@@ -81,6 +86,8 @@ const QRMemberRegistration = () => {
       setFormData({
         name: '',
         phone: '',
+        birth_date: '',
+        gender: '',
       });
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดที่ไม่คาดคิด', variant: 'destructive' });
@@ -145,6 +152,31 @@ const QRMemberRegistration = () => {
               placeholder="กรอกหมายเลขโทรศัพท์"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="birth_date">วันเกิด *</Label>
+            <Input
+              id="birth_date"
+              type="date"
+              value={formData.birth_date}
+              onChange={(e) => handleInputChange('birth_date', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gender">เพศ *</Label>
+            <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกเพศ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">ชาย</SelectItem>
+                <SelectItem value="female">หญิง</SelectItem>
+                <SelectItem value="other">อื่นๆ</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
