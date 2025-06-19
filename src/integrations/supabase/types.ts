@@ -90,6 +90,51 @@ export type Database = {
           },
         ]
       }
+      cancelled_orders: {
+        Row: {
+          cancelled_at: string
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          original_items_count: number
+          original_member_id: string | null
+          original_order_id: string
+          original_order_number: string
+          original_payment_method: string
+          original_total_amount: number
+          reason: string | null
+          stock_restored: boolean
+        }
+        Insert: {
+          cancelled_at?: string
+          cancelled_by?: string | null
+          created_at?: string
+          id?: string
+          original_items_count?: number
+          original_member_id?: string | null
+          original_order_id: string
+          original_order_number: string
+          original_payment_method?: string
+          original_total_amount?: number
+          reason?: string | null
+          stock_restored?: boolean
+        }
+        Update: {
+          cancelled_at?: string
+          cancelled_by?: string | null
+          created_at?: string
+          id?: string
+          original_items_count?: number
+          original_member_id?: string | null
+          original_order_id?: string
+          original_order_number?: string
+          original_payment_method?: string
+          original_total_amount?: number
+          reason?: string | null
+          stock_restored?: boolean
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -847,6 +892,10 @@ export type Database = {
           minimum_stock: number
           shortage: number
         }[]
+      }
+      restore_stock_for_cancelled_order: {
+        Args: { order_id_param: string }
+        Returns: Json
       }
       test_order_number_generation: {
         Args: { test_count?: number }

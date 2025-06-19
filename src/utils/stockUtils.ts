@@ -160,3 +160,106 @@ export const reduceStockForOrder = async (orderItems: any[]) => {
     };
   }
 };
+
+// ฟังก์ชันใหม่สำหรับการยกเลิกออเดอร์และคืนสต็อก
+export const cancelOrderAndRestoreStock = async (orderId: string, reason: string, restoreStock: boolean = true) => {
+  try {
+    console.log('[StockUtils] Starting order cancellation process for order:', orderId);
+
+    // ดึงข้อมูลออเดอร์
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      console.error('[StockUtils] Error fetching order:', orderError);
+      return { success: false, error: 'Order not found' };
+    }
+
+    // ดึงรายการสินค้าในออเดอร์
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', orderId);
+
+    if (itemsError) {
+      console.error('[StockUtils] Error fetching order items:', itemsError);
+      return { success: false, error: 'Failed to fetch order items' };
+    }
+
+    // บันทึกข้อมูลการยกเลิก
+    const { error: cancelError } = await supabase
+      .from('cancelled_orders')
+      .insert({
+        original_order_id: orderId,
+        original_order_number: order.order_number,
+        cancelled_by: 'system',
+        reason,
+        original_total_amount: order.total_amount,
+        original_items_count: order.items_count,
+        original_payment_method: order.payment_method,
+        original_member_id: order.member_id,
+        stock_restored: restoreStock
+      });
+
+    if (cancelError) {
+      console.error('[StockUtils] Error recording cancellation:', cancelError);
+      return { success: false, error: 'Failed to record cancellation' };
+    }
+
+    // คืนสต็อกถ้าต้องการ
+    let stockResult = null;
+    if (restoreStock) {
+      const { data: result, error: stockError } = await supabase
+        .rpc('restore_stock_for_cancelled_order', {
+          order_id_param: orderId
+        });
+
+      if (stockError) {
+        console.error('[StockUtils] Error restoring stock:', stockError);
+        stockResult = { success: false, error: stockError.message };
+      } else {
+        stockResult = result;
+        console.log('[StockUtils] Stock restoration result:', result);
+      }
+    }
+
+    // ลบออเดอร์และรายการ
+    const { error: deleteItemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .eq('order_id', orderId);
+
+    if (deleteItemsError) {
+      console.error('[StockUtils] Error deleting order items:', deleteItemsError);
+    }
+
+    const { error: deleteOrderError } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+
+    if (deleteOrderError) {
+      console.error('[StockUtils] Error deleting order:', deleteOrderError);
+      return { success: false, error: 'Failed to delete order' };
+    }
+
+    console.log('[StockUtils] Order cancellation completed successfully');
+
+    return {
+      success: true,
+      message: `Order ${order.order_number} cancelled successfully`,
+      stockResult,
+      orderNumber: order.order_number
+    };
+
+  } catch (error) {
+    console.error('[StockUtils] Unexpected error in order cancellation:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error in order cancellation'
+    };
+  }
+};
