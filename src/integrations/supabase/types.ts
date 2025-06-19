@@ -842,6 +842,15 @@ export type Database = {
           shortage: number
         }[]
       }
+      test_order_number_generation: {
+        Args: { test_count?: number }
+        Returns: {
+          test_num: number
+          order_number: string
+          success: boolean
+          error_message: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
