@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
+import AllOrdersList from '@/components/AllOrdersList';
 import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
@@ -48,12 +49,17 @@ const Reports = () => {
             <p className="text-coffee-600 mt-2">รายงานยอดขายและข้อมูลต่างๆ ของร้าน</p>
           </div>
 
-          <Tabs defaultValue="cancelled-orders" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="all-orders" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all-orders">ประวัติบิลทั้งหมด</TabsTrigger>
               <TabsTrigger value="cancelled-orders">ออเดอร์ที่ยกเลิก</TabsTrigger>
               <TabsTrigger value="daily-sales">ยอดขายรายวัน</TabsTrigger>
               <TabsTrigger value="monthly-sales">ยอดขายรายเดือน</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="all-orders">
+              <AllOrdersList />
+            </TabsContent>
 
             <TabsContent value="cancelled-orders">
               <CancelledOrdersList />
