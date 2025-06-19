@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -266,67 +267,81 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order items saved successfully`);
 
-      // Reduce stock for ingredients - run in background
-      Promise.resolve(reduceStockForOrder(orderItems)).catch(error => {
-        console.error(`[PaymentModal] Stock reduction warning (non-critical):`, error);
-      });
+      // Reduce stock for ingredients - wait for this to complete
+      console.log(`[PaymentModal] Starting stock reduction...`);
+      const stockResult = await reduceStockForOrder(orderItems);
+      
+      if (stockResult.success) {
+        console.log(`[PaymentModal] Stock reduction completed:`, stockResult.message);
+        if (stockResult.successCount > 0) {
+          toast({
+            title: "ปรับปรุงสต็อกสำเร็จ",
+            description: `ปรับปรุงสต็อกวัตถุดิบ ${stockResult.successCount} รายการแล้ว`,
+          });
+        }
+      } else {
+        console.warn(`[PaymentModal] Stock reduction issues:`, stockResult.error);
+        toast({
+          title: "คำเตือนเกี่ยวกับสต็อก",
+          description: stockResult.error || "มีปัญหาในการปรับปรุงสต็อกบางรายการ",
+          variant: "destructive"
+        });
+      }
 
-      // Handle member points in background - don't wait for it
+      // Handle member points
       if (selectedMember) {
-        Promise.resolve().then(async () => {
-          try {
-            if (method === 'points' && pointsUsed > 0) {
-              const newPoints = selectedMember.points - pointsUsed;
-              console.log(`[PaymentModal] Updating member points: ${selectedMember.points} - ${pointsUsed} = ${newPoints}`);
+        try {
+          if (method === 'points' && pointsUsed > 0) {
+            const newPoints = selectedMember.points - pointsUsed;
+            console.log(`[PaymentModal] Updating member points: ${selectedMember.points} - ${pointsUsed} = ${newPoints}`);
 
-              await supabase
-                .from('members')
-                .update({
-                  points: newPoints,
-                  total_spent: selectedMember.total_spent + actualTotal
-                })
-                .eq('id', selectedMember.id);
+            await supabase
+              .from('members')
+              .update({
+                points: newPoints,
+                total_spent: selectedMember.total_spent + actualTotal
+              })
+              .eq('id', selectedMember.id);
 
-              // Log point transaction
+            // Log point transaction
+            await supabase
+              .from('point_transactions')
+              .insert({
+                member_id: selectedMember.id,
+                order_id: order.id,
+                points_change: -pointsUsed,
+                transaction_type: 'redeem',
+                description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
+              });
+          } else {
+            // Earn points from purchase
+            const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
+            const newPoints = selectedMember.points + pointsEarned;
+            console.log(`[PaymentModal] Adding points: ${selectedMember.points} + ${pointsEarned} = ${newPoints}`);
+
+            await supabase
+              .from('members')
+              .update({
+                points: newPoints,
+                total_spent: selectedMember.total_spent + actualTotal
+              })
+              .eq('id', selectedMember.id);
+
+            if (pointsEarned > 0) {
               await supabase
                 .from('point_transactions')
                 .insert({
                   member_id: selectedMember.id,
                   order_id: order.id,
-                  points_change: -pointsUsed,
-                  transaction_type: 'redeem',
-                  description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
+                  points_change: pointsEarned,
+                  transaction_type: 'earn',
+                  description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
                 });
-            } else {
-              // Earn points from purchase
-              const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
-              const newPoints = selectedMember.points + pointsEarned;
-              console.log(`[PaymentModal] Adding points: ${selectedMember.points} + ${pointsEarned} = ${newPoints}`);
-
-              await supabase
-                .from('members')
-                .update({
-                  points: newPoints,
-                  total_spent: selectedMember.total_spent + actualTotal
-                })
-                .eq('id', selectedMember.id);
-
-              if (pointsEarned > 0) {
-                await supabase
-                  .from('point_transactions')
-                  .insert({
-                    member_id: selectedMember.id,
-                    order_id: order.id,
-                    points_change: pointsEarned,
-                    transaction_type: 'earn',
-                    description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
-                  });
-              }
             }
-          } catch (pointError) {
-            console.warn(`[PaymentModal] Points handling warning (non-critical):`, pointError);
           }
-        }).catch(console.error);
+        } catch (pointError) {
+          console.warn(`[PaymentModal] Points handling error (non-critical):`, pointError);
+        }
       }
 
       console.log(`[PaymentModal] Order processing completed successfully`);
@@ -424,13 +439,13 @@ const PaymentModal = ({
         }
       }
 
-      // Complete payment immediately
+      // Save order to database and wait for completion (including stock reduction)
+      await saveOrderToDatabase(paymentMethod);
+      
+      // Complete payment and close modal
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       onClose();
-      
-      // Save order to database in background - don't wait for it
-      Promise.resolve(saveOrderToDatabase(paymentMethod)).catch(console.error);
       
     } catch (error) {
       console.error(`[PaymentModal] Payment process failed:`, error);

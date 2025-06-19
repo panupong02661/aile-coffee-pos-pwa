@@ -10,8 +10,14 @@ export const reduceStockForOrder = async (orderItems: any[]) => {
   try {
     console.log('[StockUtils] Starting stock reduction for order items:', orderItems);
     
+    if (!orderItems || orderItems.length === 0) {
+      console.log('[StockUtils] No order items provided');
+      return { success: false, error: 'No order items provided' };
+    }
+
     // Get all menu ingredients for the ordered items
     const menuItemIds = orderItems.map(item => item.menu_item_id);
+    console.log('[StockUtils] Looking for ingredients for menu items:', menuItemIds);
     
     const { data: menuIngredients, error: ingredientsError } = await supabase
       .from('menu_ingredients')
@@ -24,13 +30,15 @@ export const reduceStockForOrder = async (orderItems: any[]) => {
 
     if (ingredientsError) {
       console.error('[StockUtils] Error fetching menu ingredients:', ingredientsError);
-      return;
+      return { success: false, error: `Failed to fetch ingredients: ${ingredientsError.message}` };
     }
 
     if (!menuIngredients || menuIngredients.length === 0) {
-      console.log('[StockUtils] No ingredients found for menu items');
-      return;
+      console.log('[StockUtils] No ingredients found for menu items - this might be normal if items have no recipes');
+      return { success: true, message: 'No ingredients to reduce' };
     }
+
+    console.log('[StockUtils] Found ingredients:', menuIngredients);
 
     // Calculate total ingredient usage
     const ingredientUsage = new Map<string, number>();
@@ -40,62 +48,115 @@ export const reduceStockForOrder = async (orderItems: any[]) => {
         ing => ing.menu_item_id === orderItem.menu_item_id
       );
 
+      console.log(`[StockUtils] Ingredients for ${orderItem.menu_item_name}:`, itemIngredients);
+
       itemIngredients.forEach(ingredient => {
         const totalUsage = ingredient.quantity_needed * orderItem.quantity;
         const currentUsage = ingredientUsage.get(ingredient.ingredient_id) || 0;
         ingredientUsage.set(ingredient.ingredient_id, currentUsage + totalUsage);
+        console.log(`[StockUtils] ${ingredient.ingredient_id}: ${ingredient.quantity_needed} × ${orderItem.quantity} = ${totalUsage}`);
       });
     });
 
-    console.log('[StockUtils] Calculated ingredient usage:', Object.fromEntries(ingredientUsage));
+    console.log('[StockUtils] Total ingredient usage:', Object.fromEntries(ingredientUsage));
 
-    // Update ingredient quantities
+    if (ingredientUsage.size === 0) {
+      console.log('[StockUtils] No ingredient usage calculated');
+      return { success: true, message: 'No ingredients to reduce' };
+    }
+
+    // Update ingredient quantities with better error handling
+    const updateResults = [];
     for (const [ingredientId, usageAmount] of ingredientUsage) {
-      // Get current ingredient quantity
-      const { data: ingredient, error: getError } = await supabase
-        .from('ingredients')
-        .select('quantity, name')
-        .eq('id', ingredientId)
-        .single();
+      try {
+        // Get current ingredient quantity
+        const { data: ingredient, error: getError } = await supabase
+          .from('ingredients')
+          .select('quantity, name, id')
+          .eq('id', ingredientId)
+          .single();
 
-      if (getError || !ingredient) {
-        console.error('[StockUtils] Error getting ingredient:', getError);
-        continue;
-      }
+        if (getError) {
+          console.error(`[StockUtils] Error getting ingredient ${ingredientId}:`, getError);
+          updateResults.push({ ingredientId, success: false, error: getError.message });
+          continue;
+        }
 
-      const newQuantity = Math.max(0, ingredient.quantity - usageAmount);
-      
-      console.log(`[StockUtils] Updating ${ingredient.name}: ${ingredient.quantity} - ${usageAmount} = ${newQuantity}`);
+        if (!ingredient) {
+          console.error(`[StockUtils] Ingredient ${ingredientId} not found`);
+          updateResults.push({ ingredientId, success: false, error: 'Ingredient not found' });
+          continue;
+        }
 
-      // Update ingredient quantity
-      const { error: updateError } = await supabase
-        .from('ingredients')
-        .update({ quantity: newQuantity })
-        .eq('id', ingredientId);
+        const oldQuantity = ingredient.quantity;
+        const newQuantity = Math.max(0, oldQuantity - usageAmount);
+        
+        console.log(`[StockUtils] Updating ${ingredient.name} (${ingredient.id}): ${oldQuantity} - ${usageAmount} = ${newQuantity}`);
 
-      if (updateError) {
-        console.error('[StockUtils] Error updating ingredient quantity:', updateError);
-        continue;
-      }
+        // Update ingredient quantity
+        const { error: updateError } = await supabase
+          .from('ingredients')
+          .update({ quantity: newQuantity })
+          .eq('id', ingredientId);
 
-      // Log stock movement
-      const { error: movementError } = await supabase
-        .from('stock_movements')
-        .insert({
-          ingredient_id: ingredientId,
-          movement_type: 'usage',
-          quantity_change: -usageAmount,
-          notes: `การใช้วัตถุดิบจากการสั่งซื้อ`,
-          created_by: 'system'
+        if (updateError) {
+          console.error(`[StockUtils] Error updating ingredient ${ingredientId}:`, updateError);
+          updateResults.push({ ingredientId, success: false, error: updateError.message });
+          continue;
+        }
+
+        console.log(`[StockUtils] Successfully updated ${ingredient.name}: ${oldQuantity} → ${newQuantity}`);
+
+        // Log stock movement
+        const { error: movementError } = await supabase
+          .from('stock_movements')
+          .insert({
+            ingredient_id: ingredientId,
+            movement_type: 'usage',
+            quantity_change: -usageAmount,
+            notes: `การใช้วัตถุดิบจากการสั่งซื้อ - ${ingredient.name}`,
+            created_by: 'system'
+          });
+
+        if (movementError) {
+          console.error(`[StockUtils] Error logging stock movement for ${ingredientId}:`, movementError);
+          // Don't fail the whole operation for logging errors
+        }
+
+        updateResults.push({ 
+          ingredientId, 
+          ingredientName: ingredient.name,
+          success: true, 
+          oldQuantity, 
+          newQuantity, 
+          usageAmount 
         });
 
-      if (movementError) {
-        console.error('[StockUtils] Error logging stock movement:', movementError);
+      } catch (error) {
+        console.error(`[StockUtils] Unexpected error processing ingredient ${ingredientId}:`, error);
+        updateResults.push({ ingredientId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 
-    console.log('[StockUtils] Stock reduction completed successfully');
+    const successCount = updateResults.filter(r => r.success).length;
+    const failCount = updateResults.filter(r => !r.success).length;
+
+    console.log(`[StockUtils] Stock reduction completed: ${successCount} success, ${failCount} failed`);
+    console.log('[StockUtils] Update results:', updateResults);
+
+    return { 
+      success: failCount === 0, 
+      successCount, 
+      failCount, 
+      results: updateResults,
+      message: `Updated ${successCount} ingredients${failCount > 0 ? `, ${failCount} failed` : ''}`
+    };
+
   } catch (error) {
     console.error('[StockUtils] Unexpected error in stock reduction:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error in stock reduction' 
+    };
   }
 };
