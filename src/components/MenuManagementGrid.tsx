@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { MenuItem } from '@/types';
+import { DatabaseMenuItem } from '@/hooks/useSupabaseData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +8,10 @@ import { Edit, Trash2, ImageIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MenuManagementGridProps {
-  menuItems: MenuItem[];
-  onEdit: (item: MenuItem) => void;
-  onDelete: (item: MenuItem) => void;
-  onAddImage: (item: MenuItem) => void;
+  menuItems: DatabaseMenuItem[];
+  onEdit: (item: DatabaseMenuItem) => void;
+  onDelete: (item: DatabaseMenuItem) => void;
+  onAddImage: (item: DatabaseMenuItem) => void;
 }
 
 const MenuManagementGrid = ({ 
@@ -29,15 +29,6 @@ const MenuManagementGrid = ({
     return 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
   };
 
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'silver': return 'bg-gray-100 text-gray-800';
-      case 'gold': return 'bg-yellow-100 text-yellow-800';
-      case 'platinum': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className={`grid ${getGridStyle()} gap-4`}>
       {menuItems.map((item) => (
@@ -46,9 +37,9 @@ const MenuManagementGrid = ({
             <div className="space-y-3">
               {/* รูปภาพเมนู */}
               <div className="relative aspect-square w-full bg-gray-100 rounded-md overflow-hidden">
-                {item.image ? (
+                {item.image_url ? (
                   <img 
-                    src={item.image} 
+                    src={item.image_url} 
                     alt={item.name}
                     className="w-full h-full object-cover"
                   />
@@ -60,7 +51,7 @@ const MenuManagementGrid = ({
                 )}
                 
                 {/* ปุ่มเพิ่มรูปภาพ */}
-                {!item.image && (
+                {!item.image_url && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     <Button
                       size="sm"
@@ -82,7 +73,7 @@ const MenuManagementGrid = ({
                     {item.name}
                   </h3>
                   <p className="text-xs text-gray-600 line-clamp-1">
-                    หมวด: {item.category}
+                    หมวด: {item.categories?.name || 'ไม่ระบุ'}
                   </p>
                 </div>
 

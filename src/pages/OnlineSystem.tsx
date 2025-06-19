@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Globe, Smartphone, QrCode, Users, Settings, BarChart3 } from 'lucide-react';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import OnlineSystemHeader from '@/components/OnlineSystemHeader';

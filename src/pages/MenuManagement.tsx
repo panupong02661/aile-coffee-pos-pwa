@@ -1,30 +1,33 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search } from 'lucide-react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { useSupabaseData, DatabaseMenuItem, DatabaseCategory, DatabaseAddonGroup, DatabaseAddon } from '@/hooks/useSupabaseData';
 import MenuItemForm from '@/components/MenuItemForm';
 import CategoryForm from '@/components/CategoryForm';
 import AddonForm from '@/components/AddonForm';
 import AddonGroupForm from '@/components/AddonGroupForm';
 import MenuManagementGrid from '@/components/MenuManagementGrid';
 import ImageCropper from '@/components/ImageCropper';
-import { MenuItem } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const MenuManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [editingItem, setEditingItem] = useState<DatabaseMenuItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<DatabaseCategory | null>(null);
+  const [editingAddonGroup, setEditingAddonGroup] = useState<DatabaseAddonGroup | null>(null);
+  const [editingAddon, setEditingAddon] = useState<DatabaseAddon | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showAddonForm, setShowAddonForm] = useState(false);
   const [showAddonGroupForm, setShowAddonGroupForm] = useState(false);
-  const [imageEditingItem, setImageEditingItem] = useState<MenuItem | null>(null);
+  const [imageEditingItem, setImageEditingItem] = useState<DatabaseMenuItem | null>(null);
   const [showImageCropper, setShowImageCropper] = useState(false);
   
   const { 
@@ -40,16 +43,16 @@ const MenuManagement = () => {
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || item.categories?.name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const handleEdit = (item: MenuItem) => {
+  const handleEdit = (item: DatabaseMenuItem) => {
     setEditingItem(item);
     setShowItemForm(true);
   };
 
-  const handleDelete = async (item: MenuItem) => {
+  const handleDelete = async (item: DatabaseMenuItem) => {
     if (confirm(`คุณต้องการลบเมนู "${item.name}" หรือไม่?`)) {
       try {
         const { error } = await supabase
@@ -60,7 +63,7 @@ const MenuManagement = () => {
         if (error) throw error;
 
         toast({ title: 'สำเร็จ', description: 'ลบเมนูเรียบร้อยแล้ว' });
-        refetch();
+        refetch.menuItems();
       } catch (error: any) {
         toast({ 
           title: 'ข้อผิดพลาด', 
@@ -71,7 +74,7 @@ const MenuManagement = () => {
     }
   };
 
-  const handleAddImage = (item: MenuItem) => {
+  const handleAddImage = (item: DatabaseMenuItem) => {
     setImageEditingItem(item);
     setShowImageCropper(true);
   };
@@ -82,7 +85,7 @@ const MenuManagement = () => {
     try {
       const { error } = await supabase
         .from('menu_items')
-        .update({ image: croppedImageUrl })
+        .update({ image_url: croppedImageUrl })
         .eq('id', imageEditingItem.id);
 
       if (error) throw error;
@@ -90,7 +93,7 @@ const MenuManagement = () => {
       toast({ title: 'สำเร็จ', description: 'อัพเดทรูปภาพเรียบร้อยแล้ว' });
       setShowImageCropper(false);
       setImageEditingItem(null);
-      refetch();
+      refetch.menuItems();
     } catch (error: any) {
       toast({ 
         title: 'ข้อผิดพลาด', 
@@ -100,13 +103,85 @@ const MenuManagement = () => {
     }
   };
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (confirm('คุณต้องการลบหมวดหมู่นี้หรือไม่?')) {
+      try {
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', categoryId);
+
+        if (error) throw error;
+
+        toast({ title: 'สำเร็จ', description: 'ลบหมวดหมู่เรียบร้อยแล้ว' });
+        refetch.categories();
+      } catch (error: any) {
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: error.message, 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
+  const handleDeleteAddonGroup = async (addonGroupId: string) => {
+    if (confirm('คุณต้องการลบกลุ่ม Add-on นี้หรือไม่?')) {
+      try {
+        const { error } = await supabase
+          .from('addon_groups')
+          .delete()
+          .eq('id', addonGroupId);
+
+        if (error) throw error;
+
+        toast({ title: 'สำเร็จ', description: 'ลบกลุ่ม Add-on เรียบร้อยแล้ว' });
+        refetch.addonGroups();
+      } catch (error: any) {
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: error.message, 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
+  const handleDeleteAddon = async (addonId: string) => {
+    if (confirm('คุณต้องการลบ Add-on นี้หรือไม่?')) {
+      try {
+        const { error } = await supabase
+          .from('addons')
+          .delete()
+          .eq('id', addonId);
+
+        if (error) throw error;
+
+        toast({ title: 'สำเร็จ', description: 'ลบ Add-on เรียบร้อยแล้ว' });
+        refetch.addons();
+      } catch (error: any) {
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: error.message, 
+          variant: 'destructive' 
+        });
+      }
+    }
+  };
+
   const handleFormSuccess = () => {
     setShowItemForm(false);
     setShowCategoryForm(false);
     setShowAddonForm(false);
     setShowAddonGroupForm(false);
     setEditingItem(null);
-    refetch();
+    setEditingCategory(null);
+    setEditingAddonGroup(null);
+    setEditingAddon(null);
+    refetch.menuItems();
+    refetch.categories();
+    refetch.addonGroups();
+    refetch.addons();
   };
 
   if (loading) {
@@ -378,11 +453,11 @@ const MenuManagement = () => {
       {/* Forms and Modals */}
       {showItemForm && (
         <MenuItemForm
-          editingItem={editingItem}
+          editItem={editingItem}
           categories={categories}
           addonGroups={addonGroups}
           onSuccess={handleFormSuccess}
-          onCancel={() => {
+          onClose={() => {
             setShowItemForm(false);
             setEditingItem(null);
           }}
@@ -392,7 +467,7 @@ const MenuManagement = () => {
       {showCategoryForm && (
         <CategoryForm
           onSuccess={handleFormSuccess}
-          onCancel={() => setShowCategoryForm(false)}
+          onClose={() => setShowCategoryForm(false)}
         />
       )}
 
@@ -400,14 +475,14 @@ const MenuManagement = () => {
         <AddonForm
           addonGroups={addonGroups}
           onSuccess={handleFormSuccess}
-          onCancel={() => setShowAddonForm(false)}
+          onClose={() => setShowAddonForm(false)}
         />
       )}
 
       {showAddonGroupForm && (
         <AddonGroupForm
           onSuccess={handleFormSuccess}
-          onCancel={() => setShowAddonGroupForm(false)}
+          onClose={() => setShowAddonGroupForm(false)}
         />
       )}
 
@@ -418,7 +493,7 @@ const MenuManagement = () => {
             setShowImageCropper(false);
             setImageEditingItem(null);
           }}
-          onSave={handleImageSave}
+          onCrop={handleImageSave}
           itemName={imageEditingItem.name}
         />
       )}
