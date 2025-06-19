@@ -10,6 +10,7 @@ import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
+import { reduceStockForOrder } from '@/utils/stockUtils';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -253,16 +254,22 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Saving ${orderItems.length} order items`);
 
-      // Save order items in background - don't wait for it
-      Promise.resolve(supabase.from('order_items').insert(orderItems))
-        .then(({ error: itemsError }) => {
-          if (itemsError) {
-            console.error(`[PaymentModal] Order items insert failed:`, itemsError);
-          } else {
-            console.log(`[PaymentModal] Order items saved successfully`);
-          }
-        })
-        .catch(console.error);
+      // Save order items
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error(`[PaymentModal] Order items insert failed:`, itemsError);
+        throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
+      }
+
+      console.log(`[PaymentModal] Order items saved successfully`);
+
+      // Reduce stock for ingredients - run in background
+      Promise.resolve(reduceStockForOrder(orderItems)).catch(error => {
+        console.error(`[PaymentModal] Stock reduction warning (non-critical):`, error);
+      });
 
       // Handle member points in background - don't wait for it
       if (selectedMember) {
