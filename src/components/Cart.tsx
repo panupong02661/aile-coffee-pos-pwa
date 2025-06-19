@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Minus, Trash2, Percent, Clock, Tag } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
-import OptimizedPaymentModal from './OptimizedPaymentModal';
+import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
@@ -263,7 +263,7 @@ const Cart = ({
       </Card>
 
       {/* Modals */}
-      <OptimizedPaymentModal
+      <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         total={total}
