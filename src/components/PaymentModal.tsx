@@ -143,14 +143,12 @@ const PaymentModal = ({
         if (error) {
           console.warn(`[PaymentModal] Order number generation failed (attempt ${attempt}):`, error.message);
           
-          // ถ้าเป็นความพยายามสุดท้าย ให้ใช้ fallback
           if (attempt === maxRetries) {
             const fallbackOrderNumber = `ORD-FB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             console.log(`[PaymentModal] Using fallback order number: ${fallbackOrderNumber}`);
             return fallbackOrderNumber;
           }
           
-          // รอแล้วลองใหม่
           const delay = 50 * Math.pow(2, Math.min(attempt - 1, 5));
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
@@ -179,120 +177,96 @@ const PaymentModal = ({
   };
 
   const saveOrderToDatabase = async (method: PaymentMethod) => {
-    const maxRetries = 5;
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[PaymentModal] Saving order, attempt ${attempt}/${maxRetries}`);
-        
-        // Validate basic data
-        if (!cartItems || cartItems.length === 0) {
-          throw new Error('ตะกร้าสินค้าว่างเปล่า (src/components/PaymentModal.tsx:saveOrderToDatabase)');
-        }
+    try {
+      console.log(`[PaymentModal] Starting order save process`);
+      
+      // Validate basic data
+      if (!cartItems || cartItems.length === 0) {
+        throw new Error('ตะกร้าสินค้าว่างเปล่า');
+      }
 
-        if (total < 0) {
-          throw new Error('ยอดเงินไม่ถูกต้อง (src/components/PaymentModal.tsx:saveOrderToDatabase)');
-        }
+      if (total < 0) {
+        throw new Error('ยอดเงินไม่ถูกต้อง');
+      }
 
-        // Calculate final amounts
-        let actualTotal = total;
-        let pointsUsed = 0;
-        
-        if (method === 'points' && pointsToUse) {
-          pointsUsed = parseInt(pointsToUse);
-          const pointsValue = calculatePointsValue(pointsUsed);
-          actualTotal = Math.max(0.01, total - pointsValue);
-          console.log(`[PaymentModal] Points payment: ${pointsUsed} points = ฿${pointsValue}, remaining: ฿${actualTotal}`);
-        }
+      // Calculate final amounts
+      let actualTotal = total;
+      let pointsUsed = 0;
+      
+      if (method === 'points' && pointsToUse) {
+        pointsUsed = parseInt(pointsToUse);
+        const pointsValue = calculatePointsValue(pointsUsed);
+        actualTotal = Math.max(0.01, total - pointsValue);
+        console.log(`[PaymentModal] Points payment: ${pointsUsed} points = ฿${pointsValue}, remaining: ฿${actualTotal}`);
+      }
 
-        // Generate order number with retry
-        const orderNumber = await generateUniqueOrderNumber();
-        
-        // Prepare order data
-        const orderData = {
-          order_number: String(orderNumber),
-          member_id: selectedMember?.id || null,
-          total_amount: Number(actualTotal),
-          items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
-          payment_method: String(method),
-          bill_discount: Number(billDiscount) || 0,
-          bill_discount_type: String(billDiscountType) || 'amount'
-        };
+      // Generate order number
+      const orderNumber = await generateUniqueOrderNumber();
+      
+      // Prepare order data
+      const orderData = {
+        order_number: String(orderNumber),
+        member_id: selectedMember?.id || null,
+        total_amount: Number(actualTotal),
+        items_count: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+        payment_method: String(method),
+        bill_discount: Number(billDiscount) || 0,
+        bill_discount_type: String(billDiscountType) || 'amount'
+      };
 
-        console.log(`[PaymentModal] Order data:`, orderData);
+      console.log(`[PaymentModal] Order data:`, orderData);
 
-        // Save order with explicit error handling
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert(orderData)
-          .select()
-          .single();
+      // Save order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
 
-        if (orderError) {
-          console.warn(`[PaymentModal] Order insert failed (attempt ${attempt}):`, orderError);
-          
-          // Handle specific error types
-          if (orderError.code === '23505' && orderError.message.includes('orders_order_number_key')) {
-            // Duplicate order number - retry with new number
-            if (attempt < maxRetries) {
-              console.log(`[PaymentModal] Duplicate order number detected, retrying...`);
-              const delay = 100 * Math.pow(2, attempt - 1);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              continue;
-            }
-          }
-          
-          lastError = new Error(`ไม่สามารถบันทึกออเดอร์ได้: ${orderError.message} (src/components/PaymentModal.tsx:saveOrderToDatabase)`);
-          
-          if (attempt < maxRetries) {
-            const delay = 200 * Math.pow(2, attempt - 1);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
+      if (orderError) {
+        console.error(`[PaymentModal] Order insert failed:`, orderError);
+        throw new Error(`ไม่สามารถบันทึกออเดอร์ได้: ${orderError.message}`);
+      }
+
+      if (!order || !order.id) {
+        throw new Error('ไม่ได้รับ ID ออเดอร์จากฐานข้อมูล');
+      }
+
+      console.log(`[PaymentModal] Order saved successfully:`, order);
+
+      // Prepare order items
+      const orderItems = cartItems.map((item) => ({
+        order_id: order.id,
+        menu_item_id: String(item.menu_item.id),
+        menu_item_name: String(item.menu_item.name),
+        quantity: Number(item.quantity),
+        unit_price: Number(item.menu_item.price),
+        item_discount: Number(item.item_discount) || 0,
+        item_discount_type: String(item.item_discount_type) || 'amount',
+        total_price: Number(item.total_price),
+        selected_addons: JSON.stringify(item.selected_addons?.map(addon => ({
+          id: String(addon.id),
+          name: String(addon.name),
+          price: Number(addon.price)
+        })) || [])
+      }));
+
+      console.log(`[PaymentModal] Saving ${orderItems.length} order items`);
+
+      // Save order items in background - don't wait for it
+      Promise.resolve(supabase.from('order_items').insert(orderItems))
+        .then(({ error: itemsError }) => {
+          if (itemsError) {
+            console.error(`[PaymentModal] Order items insert failed:`, itemsError);
           } else {
-            throw lastError;
+            console.log(`[PaymentModal] Order items saved successfully`);
           }
-        }
+        })
+        .catch(console.error);
 
-        if (!order || !order.id) {
-          throw new Error('ไม่ได้รับ ID ออเดอร์จากฐานข้อมูล (src/components/PaymentModal.tsx:saveOrderToDatabase)');
-        }
-
-        console.log(`[PaymentModal] Order saved successfully:`, order);
-
-        // Prepare order items
-        const orderItems = cartItems.map((item) => ({
-          order_id: order.id,
-          menu_item_id: String(item.menu_item.id),
-          menu_item_name: String(item.menu_item.name),
-          quantity: Number(item.quantity),
-          unit_price: Number(item.menu_item.price),
-          item_discount: Number(item.item_discount) || 0,
-          item_discount_type: String(item.item_discount_type) || 'amount',
-          total_price: Number(item.total_price),
-          selected_addons: JSON.stringify(item.selected_addons?.map(addon => ({
-            id: String(addon.id),
-            name: String(addon.name),
-            price: Number(addon.price)
-          })) || [])
-        }));
-
-        console.log(`[PaymentModal] Saving ${orderItems.length} order items`);
-
-        // Save order items
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
-
-        if (itemsError) {
-          console.error(`[PaymentModal] Order items insert failed:`, itemsError);
-          throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message} (src/components/PaymentModal.tsx:saveOrderToDatabase)`);
-        }
-
-        console.log(`[PaymentModal] Order items saved successfully`);
-
-        // Handle member points (don't throw errors for point operations)
-        if (selectedMember) {
+      // Handle member points in background - don't wait for it
+      if (selectedMember) {
+        Promise.resolve().then(async () => {
           try {
             if (method === 'points' && pointsUsed > 0) {
               const newPoints = selectedMember.points - pointsUsed;
@@ -344,42 +318,31 @@ const PaymentModal = ({
             }
           } catch (pointError) {
             console.warn(`[PaymentModal] Points handling warning (non-critical):`, pointError);
-            // Don't throw error for point operations
           }
-        }
-
-        console.log(`[PaymentModal] Order processing completed successfully`);
-        
-        // Show success message only once
-        toast({
-          title: "ชำระเงินสำเร็จ",
-          description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
-        });
-
-        return order;
-
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error occurred');
-        console.warn(`[PaymentModal] Save order failed (attempt ${attempt}):`, lastError);
-        
-        if (attempt < maxRetries) {
-          const delay = 200 * Math.pow(2, attempt - 1);
-          console.log(`[PaymentModal] Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+        }).catch(console.error);
       }
+
+      console.log(`[PaymentModal] Order processing completed successfully`);
+      
+      // Show success message
+      toast({
+        title: "ชำระเงินสำเร็จ",
+        description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
+      });
+
+      return order;
+
+    } catch (error) {
+      console.error(`[PaymentModal] Save order failed:`, error);
+      
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error instanceof Error ? error.message : 'ไม่สามารถบันทึกออเดอร์ได้',
+        variant: "destructive"
+      });
+      
+      throw error;
     }
-    
-    // If all attempts failed
-    console.error(`[PaymentModal] All save attempts failed:`, lastError);
-    
-    toast({
-      title: "เกิดข้อผิดพลาด",
-      description: lastError?.message || 'ไม่สามารถบันทึกออเดอร์ได้',
-      variant: "destructive"
-    });
-    
-    throw lastError;
   };
 
   const handlePayment = async () => {
@@ -395,7 +358,7 @@ const PaymentModal = ({
       if (!cartItems || cartItems.length === 0) {
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
-          description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน (src/components/PaymentModal.tsx:handlePayment)",
+          description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
           variant: "destructive"
         });
         return;
@@ -404,7 +367,7 @@ const PaymentModal = ({
       if (total <= 0) {
         toast({
           title: "ยอดเงินไม่ถูกต้อง",
-          description: "ยอดเงินต้องมากกว่า 0 (src/components/PaymentModal.tsx:handlePayment)",
+          description: "ยอดเงินต้องมากกว่า 0",
           variant: "destructive"
         });
         return;
@@ -416,7 +379,7 @@ const PaymentModal = ({
         if (isNaN(receivedAmount) || receivedAmount < total) {
           toast({
             title: "จำนวนเงินไม่เพียงพอ",
-            description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total}) (src/components/PaymentModal.tsx:handlePayment)`,
+            description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
             variant: "destructive"
           });
           return;
@@ -425,7 +388,7 @@ const PaymentModal = ({
         if (!selectedMember) {
           toast({
             title: "กรุณาเลือกสมาชิก",
-            description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น (src/components/PaymentModal.tsx:handlePayment)",
+            description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
             variant: "destructive"
           });
           return;
@@ -438,7 +401,7 @@ const PaymentModal = ({
         if (pointsValue < minimumPoints) {
           toast({
             title: "แต้มไม่เพียงพอ",
-            description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม (src/components/PaymentModal.tsx:handlePayment)`,
+            description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
             variant: "destructive"
           });
           return;
@@ -447,24 +410,23 @@ const PaymentModal = ({
         if (pointsValue > maximumPoints) {
           toast({
             title: "แต้มเกินจำนวนที่มี",
-            description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม (src/components/PaymentModal.tsx:handlePayment)`,
+            description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
             variant: "destructive"
           });
           return;
         }
       }
 
-      // Save order to database
-      await saveOrderToDatabase(paymentMethod);
-      
-      // Complete payment
+      // Complete payment immediately
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       onClose();
       
+      // Save order to database in background - don't wait for it
+      Promise.resolve(saveOrderToDatabase(paymentMethod)).catch(console.error);
+      
     } catch (error) {
       console.error(`[PaymentModal] Payment process failed:`, error);
-      // Error toast is already shown in saveOrderToDatabase
     } finally {
       setIsProcessing(false);
     }
