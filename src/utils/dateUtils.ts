@@ -131,33 +131,98 @@ export const cleanPhoneNumber = (phone: string): string => {
   return cleaned;
 };
 
-// ฟังก์ชันสำหรับสร้าง array ของวันที่ที่เป็นไปได้สำหรับการค้นหา
-export const generateDateVariants = (inputDate: string): string[] => {
+// ฟังก์ชันใหม่สำหรับสร้าง variants ของวันที่เพื่อการค้นหา
+export const generateDateSearchVariants = (inputDate: string): string[] => {
   if (!inputDate) return [];
   
   const variants: string[] = [];
-  const isoDate = convertThaiDateToISO(inputDate);
   
-  if (isoDate) {
+  // เพิ่ม input ต้นฉบับ
+  variants.push(inputDate.trim());
+  
+  // แปลงเป็น ISO format
+  const isoDate = convertThaiDateToISO(inputDate);
+  if (isoDate && isoDate !== inputDate.trim()) {
     variants.push(isoDate);
+  }
+  
+  // ถ้าแปลงได้ ให้สร้าง variants เพิ่ม
+  if (isoDate) {
+    try {
+      const date = new Date(isoDate);
+      if (!isNaN(date.getTime())) {
+        // ISO format standard
+        const standardISO = date.toISOString().split('T')[0];
+        variants.push(standardISO);
+        
+        // รูปแบบ YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        variants.push(`${year}-${month}-${day}`);
+        
+        // รูปแบบไทย DD/MM/YYYY (พ.ศ.)
+        const thaiYear = year + 543;
+        variants.push(`${day}/${month}/${thaiYear}`);
+        
+        // รูปแบบไทย DD/MM/YYYY (ค.ศ.)
+        variants.push(`${day}/${month}/${year}`);
+        
+        // รูปแบบ D/M/YYYY (ไม่มี leading zero)
+        const dayNoZero = date.getDate().toString();
+        const monthNoZero = (date.getMonth() + 1).toString();
+        variants.push(`${dayNoZero}/${monthNoZero}/${thaiYear}`);
+        variants.push(`${dayNoZero}/${monthNoZero}/${year}`);
+      }
+    } catch (error) {
+      console.error('Error generating date variants:', error);
+    }
+  }
+  
+  // เอาค่าที่ซ้ำออกและ filter ค่าว่าง
+  const uniqueVariants = [...new Set(variants)].filter(v => v && v.trim());
+  console.log('Generated date variants:', uniqueVariants);
+  return uniqueVariants;
+};
+
+// ฟังก์ชันสำหรับสร้าง variants ของเบอร์โทร
+export const generatePhoneVariants = (phone: string): string[] => {
+  if (!phone) return [];
+  
+  const variants: string[] = [];
+  const cleaned = cleanPhoneNumber(phone);
+  
+  // เพิ่ม phone ต้นฉบับ
+  variants.push(phone.trim());
+  
+  // เพิ่ม cleaned version
+  if (cleaned && cleaned !== phone.trim()) {
+    variants.push(cleaned);
+  }
+  
+  // สร้าง variants เพิ่มเติม
+  if (cleaned) {
+    // ถ้าขึ้นต้นด้วย 0 ให้ลองเป็น +66 และ 66
+    if (cleaned.startsWith('0')) {
+      const withoutZero = cleaned.substring(1);
+      variants.push(`+66${withoutZero}`);
+      variants.push(`66${withoutZero}`);
+    }
     
-    // เพิ่มรูปแบบที่อาจจะเก็บไว้ในฐานข้อมูล
-    const date = new Date(isoDate);
-    if (!isNaN(date.getTime())) {
-      // รูปแบบ YYYY-MM-DD
-      variants.push(date.toISOString().split('T')[0]);
-      
-      // รูปแบบ DD/MM/YYYY (พ.ศ.)
-      const thaiYear = date.getFullYear() + 543;
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      variants.push(`${day}/${month}/${thaiYear}`);
-      
-      // รูปแบบ DD/MM/YYYY (ค.ศ.)
-      variants.push(`${day}/${month}/${date.getFullYear()}`);
+    // ถ้าขึ้นต้นด้วย +66 ลองเป็น 0
+    if (cleaned.startsWith('+66')) {
+      variants.push(`0${cleaned.substring(3)}`);
+    }
+    
+    // ถ้าขึ้นต้นด้วย 66 ลองเป็น 0
+    if (cleaned.startsWith('66') && cleaned.length === 11) {
+      variants.push(`0${cleaned.substring(2)}`);
     }
   }
   
   // เอาค่าที่ซ้ำออก
-  return [...new Set(variants)];
+  return [...new Set(variants)].filter(v => v && v.trim());
 };
+
+// เก็บ function เดิมไว้เพื่อ backward compatibility
+export const generateDateVariants = generateDateSearchVariants;
