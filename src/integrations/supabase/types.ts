@@ -308,6 +308,109 @@ export type Database = {
           },
         ]
       }
+      customer_mobile_sessions: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          device_id: string
+          device_type: string | null
+          expires_at: string | null
+          id: string
+          last_active: string | null
+          session_token: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          device_id: string
+          device_type?: string | null
+          expires_at?: string | null
+          id?: string
+          last_active?: string | null
+          session_token: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          device_id?: string
+          device_type?: string | null
+          expires_at?: string | null
+          id?: string
+          last_active?: string | null
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_mobile_sessions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_orders: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          delivery_address: string | null
+          delivery_type: string | null
+          discount_amount: number | null
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string
+          order_status: string | null
+          payment_method: string | null
+          payment_status: string | null
+          subtotal: number
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          delivery_address?: string | null
+          delivery_type?: string | null
+          discount_amount?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number: string
+          order_status?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          delivery_address?: string | null
+          delivery_type?: string | null
+          discount_amount?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number?: string
+          order_status?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_profiles: {
         Row: {
           birth_date: string | null
@@ -317,6 +420,7 @@ export type Database = {
           id: string
           phone: string
           points: number | null
+          reward_points: number | null
           tier: string | null
           total_spent: number | null
           updated_at: string | null
@@ -330,6 +434,7 @@ export type Database = {
           id?: string
           phone: string
           points?: number | null
+          reward_points?: number | null
           tier?: string | null
           total_spent?: number | null
           updated_at?: string | null
@@ -343,6 +448,7 @@ export type Database = {
           id?: string
           phone?: string
           points?: number | null
+          reward_points?: number | null
           tier?: string | null
           total_spent?: number | null
           updated_at?: string | null
@@ -388,6 +494,63 @@ export type Database = {
             columns: ["reward_id"]
             isOneToOne: false
             referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          customer_id: string
+          description: string | null
+          id: string
+          order_id: string | null
+          payment_method: string | null
+          points_change: number | null
+          reference_number: string | null
+          transaction_status: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          customer_id: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          points_change?: number | null
+          reference_number?: string | null
+          transaction_status?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          customer_id?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          points_change?: number | null
+          reference_number?: string | null
+          transaction_status?: string | null
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "customer_orders"
             referencedColumns: ["id"]
           },
         ]

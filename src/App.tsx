@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -19,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Promotions from "./pages/Promotions";
 import OnlineSystem from "./pages/OnlineSystem";
 import Reports from "./pages/Reports";
+import CustomerMobileApp from "./pages/CustomerMobileApp";
 
 // Create QueryClient instance inside the component to avoid SSR issues
 const App = () => {
@@ -90,6 +90,7 @@ const App = () => {
                   <Reports />
                 </ProtectedRoute>
               } />
+              <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

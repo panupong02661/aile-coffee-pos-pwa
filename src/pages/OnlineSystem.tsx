@@ -16,7 +16,7 @@ const OnlineSystem = () => {
     { id: 'overview', label: 'ภาพรวม', icon: BarChart3 },
     { id: 'qr-code', label: 'QR Code', icon: QrCode },
     { id: 'website', label: 'เว็บไซต์', icon: Globe },
-    { id: 'mobile', label: 'แอปมือถือ', icon: Smartphone },
+    { id: 'mobile', label: 'แอปมือถือสำหรับลูกค้า', icon: Smartphone },
     { id: 'customers', label: 'ลูกค้าออนไลน์', icon: Users },
     { id: 'settings', label: 'ตั้งค่า', icon: Settings },
   ];
@@ -65,7 +65,7 @@ const OnlineSystem = () => {
               <TabsTrigger value="overview" className="text-xs">ภาพรวม</TabsTrigger>
               <TabsTrigger value="qr-code" className="text-xs">QR Code</TabsTrigger>
               <TabsTrigger value="website" className="text-xs">เว็บไซต์</TabsTrigger>
-              <TabsTrigger value="mobile" className="text-xs">แอปมือถือ</TabsTrigger>
+              <TabsTrigger value="mobile" className="text-xs">แอปมือถือสำหรับลูกค้า</TabsTrigger>
               <TabsTrigger value="customers" className="text-xs">ลูกค้า</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs">ตั้งค่า</TabsTrigger>
             </TabsList>
@@ -192,19 +192,125 @@ const OnlineSystem = () => {
             <TabsContent value="mobile" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>แอปมือถือ</CardTitle>
+                  <CardTitle>แอปมือถือสำหรับลูกค้า</CardTitle>
                   <CardDescription>
-                    แอปมือถือสำหรับลูกค้าสั่งอาหาร
+                    แอปมือถือสำหรับลูกค้าสั่งอาหารออนไลน์และชำระเงิน
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <Smartphone className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">แอปมือถือ</h3>
-                    <p className="text-muted-foreground mb-4">
-                      ฟีเจอร์นี้จะพร้อมใช้งานในอนาคต
-                    </p>
-                    <Button variant="outline">แจ้งให้ทราบเมื่อพร้อม</Button>
+                  <div className="space-y-6">
+                    {/* สถานะแอปมือถือ */}
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">สถานะแอปมือถือ</h3>
+                        <p className="text-sm text-muted-foreground">แอปพร้อมใช้งานสำหรับลูกค้า</p>
+                      </div>
+                      <Badge variant="default">เปิดใช้งาน</Badge>
+                    </div>
+
+                    {/* ฟีเจอร์หลัก */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Smartphone className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">ระบบสมาชิก</h4>
+                            <p className="text-sm text-muted-foreground">ลงทะเบียนและเข้าสู่ระบบ</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • ลูกค้าต้องสมัครสมาชิกก่อนใช้งาน<br/>
+                          • รองรับมือถือและแท็บแล็ต<br/>
+                          • ระบบแก้ไขข้อมูลส่วนตัว
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Users className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">บัตรสมาชิก</h4>
+                            <p className="text-sm text-muted-foreground">แสดงระดับและแต้ม</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • บัตรสมาชิกแต่ละระดับ<br/>
+                          • แสดงแต้มและยอดใช้จ่าย<br/>
+                          • ระบบอัพเกรดอัตโนมัติ
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Globe className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Rewards & Coupons</h4>
+                            <p className="text-sm text-muted-foreground">ของรางวัลและคูปอง</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • แลกของรางวัลด้วยแต้ม<br/>
+                          • เก็บและใช้คูปองส่วนลด<br/>
+                          • ระบบจัดการคูปอง
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <BarChart3 className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">ระบบสั่งอาหาร</h4>
+                            <p className="text-sm text-muted-foreground">สั่งและชำระเงินออนไลน์</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • เลือกเมนูจากร้าน<br/>
+                          • ชำระเงินออนไลน์<br/>
+                          • ตรวจสอบสถานะออเดอร์
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ลิงก์ไปยังแอป */}
+                    <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                      <div className="text-center">
+                        <Smartphone className="w-16 h-16 mx-auto text-blue-500 mb-4" />
+                        <h3 className="text-lg font-medium mb-2">ทดลองใช้แอปมือถือ</h3>
+                        <p className="text-muted-foreground mb-4">
+                          ทดสอบฟีเจอร์แอปมือถือสำหรับลูกค้า
+                        </p>
+                        <Button 
+                          onClick={() => window.open('/customer-app', '_blank')}
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                        >
+                          เปิดแอปมือถือ
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* สถิติการใช้งาน */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-600">45</div>
+                        <div className="text-sm text-muted-foreground">ผู้ใช้แอป</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">128</div>
+                        <div className="text-sm text-muted-foreground">ออเดอร์จากแอป</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">฿8,450</div>
+                        <div className="text-sm text-muted-foreground">ยอดขายจากแอป</div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
