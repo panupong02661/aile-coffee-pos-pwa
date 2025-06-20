@@ -288,7 +288,7 @@ const OnlineSystem = () => {
                           ทดสอบฟีเจอร์แอปมือถือสำหรับลูกค้า
                         </p>
                         <Button 
-                          onClick={() => window.open('/customer-app', '_blank')}
+                          onClick={() => window.open('/customer-mobile-app', '_blank')}
                           className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                         >
                           เปิดแอปมือถือ
