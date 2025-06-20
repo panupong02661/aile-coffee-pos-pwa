@@ -16,7 +16,9 @@ import {
   formatDateToThai, 
   parseThaiDateInput,
   formatDateForDisplay,
-  isValidThaiDateFormat
+  isValidThaiDateFormat,
+  cleanPhoneNumber,
+  generateDateVariants
 } from '@/utils/dateUtils';
 
 interface CustomerProfile {
@@ -159,6 +161,10 @@ const CustomerMobileApp = () => {
       console.log('=== REGISTER DEBUG INFO ===');
       console.log('Original form data:', registerForm);
       
+      // ทำความสะอาดเบอร์โทรศัพท์
+      const cleanedPhone = cleanPhoneNumber(registerForm.phone);
+      console.log('Cleaned phone:', cleanedPhone);
+      
       // แปลงวันที่ให้ถูกต้อง
       const convertedBirthDate = parseThaiDateInput(registerForm.birth_date);
       console.log('Converted birth date for registration:', convertedBirthDate);
@@ -168,32 +174,41 @@ const CustomerMobileApp = () => {
         return;
       }
 
-      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่
-      const { data: existingCustomer } = await supabase
-        .from('customer_profiles')
-        .select('id, phone, birth_date')
-        .eq('phone', registerForm.phone.trim())
-        .maybeSingle();
+      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่ (ทั้งใน customer_profiles และ members)
+      const [customerResult, memberResult] = await Promise.all([
+        supabase
+          .from('customer_profiles')
+          .select('id, phone, birth_date')
+          .eq('phone', cleanedPhone)
+          .maybeSingle(),
+        supabase
+          .from('members')
+          .select('id, phone, birth_date')
+          .eq('phone', cleanedPhone)
+          .maybeSingle()
+      ]);
 
-      if (existingCustomer) {
-        console.log('Existing customer found:', existingCustomer);
+      console.log('Existing customer check:', customerResult);
+      console.log('Existing member check:', memberResult);
+
+      if (customerResult.data || memberResult.data) {
         toast({ title: 'ข้อผิดพลาด', description: 'เบอร์โทรนี้ได้ลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ', variant: 'destructive' });
         return;
       }
 
       console.log('Creating new profile with data:', {
         full_name: registerForm.full_name.trim(),
-        phone: registerForm.phone.trim(),
+        phone: cleanedPhone,
         birth_date: convertedBirthDate,
         gender: registerForm.gender || null
       });
 
-      // ปิด RLS ชั่วคราวสำหรับการสร้างโปรไฟล์ใหม่โดยใช้ service role
+      // สร้างโปรไฟล์ใหม่
       const { error: profileError } = await supabase
         .from('customer_profiles')
         .insert({
           full_name: registerForm.full_name.trim(),
-          phone: registerForm.phone.trim(),
+          phone: cleanedPhone,
           birth_date: convertedBirthDate,
           gender: registerForm.gender || null,
           tier: 'bronze',
@@ -204,21 +219,11 @@ const CustomerMobileApp = () => {
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        
-        // ตรวจสอบประเภทของ error
-        if (profileError.message?.includes('row-level security policy')) {
-          toast({ 
-            title: 'ข้อผิดพลาดระบบ', 
-            description: 'ไม่สามารถสร้างบัญชีได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ', 
-            variant: 'destructive' 
-          });
-        } else {
-          toast({ 
-            title: 'ข้อผิดพลาด', 
-            description: `ไม่สามารถสร้างโปรไฟล์ได้: ${profileError.message}`, 
-            variant: 'destructive' 
-          });
-        }
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: `ไม่สามารถสร้างโปรไฟล์ได้: ${profileError.message}`, 
+          variant: 'destructive' 
+        });
         return;
       }
 
@@ -254,26 +259,87 @@ const CustomerMobileApp = () => {
       console.log('=== LOGIN DEBUG INFO ===');
       console.log('Login form data:', loginForm);
       
-      // แปลงวันที่ให้อยู่ในรูปแบบที่ถูกต้อง
-      const convertedBirthDate = parseThaiDateInput(loginForm.birth_date);
-      console.log('Converted birth date for login:', convertedBirthDate);
+      // ทำความสะอาดเบอร์โทรศัพท์
+      const cleanedPhone = cleanPhoneNumber(loginForm.phone);
+      console.log('Cleaned phone:', cleanedPhone);
       
-      if (!convertedBirthDate) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแปลงวันที่ได้ กรุณาตรวจสอบรูปแบบวันที่', variant: 'destructive' });
-        return;
+      // สร้าง variants ของวันที่สำหรับการค้นหา
+      const dateVariants = generateDateVariants(loginForm.birth_date);
+      console.log('Date variants for search:', dateVariants);
+      
+      // ค้นหาจาก customer_profiles ก่อน
+      let profileData = null;
+      let profileError = null;
+
+      for (const dateVariant of dateVariants) {
+        console.log(`Searching customer_profiles with phone: ${cleanedPhone}, birth_date: ${dateVariant}`);
+        
+        const result = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .eq('phone', cleanedPhone)
+          .eq('birth_date', dateVariant)
+          .maybeSingle();
+
+        console.log(`Search result for date ${dateVariant}:`, result);
+
+        if (result.data) {
+          profileData = result.data;
+          break;
+        }
+        if (result.error && !result.error.message.includes('PGRST116')) {
+          profileError = result.error;
+        }
       }
-      
-      // ค้นหาผู้ใช้ด้วยเบอร์โทรและวันเกิด
-      const { data: profileData, error: profileError } = await supabase
-        .from('customer_profiles')
-        .select('*')
-        .eq('phone', loginForm.phone.trim())
-        .eq('birth_date', convertedBirthDate)
-        .maybeSingle();
 
-      console.log('Login query result:', { profileData, profileError });
+      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members และ migrate ข้อมูล
+      if (!profileData) {
+        console.log('Not found in customer_profiles, searching in members table...');
+        
+        for (const dateVariant of dateVariants) {
+          console.log(`Searching members with phone: ${cleanedPhone}, birth_date: ${dateVariant}`);
+          
+          const memberResult = await supabase
+            .from('members')
+            .select('*')
+            .eq('phone', cleanedPhone)
+            .eq('birth_date', dateVariant)
+            .maybeSingle();
 
-      if (profileError) {
+          console.log(`Member search result for date ${dateVariant}:`, memberResult);
+
+          if (memberResult.data) {
+            const memberData = memberResult.data;
+            console.log('Found in members table, migrating to customer_profiles...');
+            
+            // Migrate ข้อมูลจาก members ไป customer_profiles
+            const migrationResult = await supabase
+              .from('customer_profiles')
+              .insert({
+                full_name: memberData.name,
+                phone: memberData.phone,
+                birth_date: memberData.birth_date,
+                gender: memberData.gender,
+                tier: memberData.tier || 'bronze',
+                points: memberData.points || 0,
+                reward_points: 0,
+                total_spent: memberData.total_spent || 0
+              })
+              .select()
+              .single();
+
+            if (migrationResult.error) {
+              console.error('Migration error:', migrationResult.error);
+            } else {
+              console.log('Migration successful:', migrationResult.data);
+              profileData = migrationResult.data;
+              break;
+            }
+          }
+        }
+      }
+
+      if (profileError && !profileData) {
         console.error('Login query error:', profileError);
         toast({ 
           title: 'ข้อผิดพลาด', 
@@ -284,20 +350,40 @@ const CustomerMobileApp = () => {
       }
 
       if (!profileData) {
-        // ถ้าไม่เจอ ลองดูข้อมูลทั้งหมดของเบอร์นี้เพื่อ debug
-        const { data: allProfilesWithPhone } = await supabase
-          .from('customer_profiles')
-          .select('*')
-          .eq('phone', loginForm.phone.trim());
+        // Debug: ดูข้อมูลทั้งหมดของเบอร์นี้
+        const [customerProfilesWithPhone, membersWithPhone] = await Promise.all([
+          supabase
+            .from('customer_profiles')
+            .select('*')
+            .eq('phone', cleanedPhone),
+          supabase
+            .from('members')
+            .select('*')
+            .eq('phone', cleanedPhone)
+        ]);
 
-        console.log('All profiles with this phone:', allProfilesWithPhone);
+        console.log('All customer_profiles with this phone:', customerProfilesWithPhone.data);
+        console.log('All members with this phone:', membersWithPhone.data);
 
-        if (allProfilesWithPhone && allProfilesWithPhone.length > 0) {
-          console.log('Found profiles but birth_date mismatch. Expected:', convertedBirthDate);
-          allProfilesWithPhone.forEach((profile, index) => {
-            console.log(`Profile ${index + 1} birth_date:`, profile.birth_date);
-            console.log(`Profile ${index + 1} birth_date in Thai format:`, formatDateToThai(profile.birth_date));
-          });
+        if ((customerProfilesWithPhone.data && customerProfilesWithPhone.data.length > 0) || 
+            (membersWithPhone.data && membersWithPhone.data.length > 0)) {
+          
+          console.log('Found profiles but birth_date mismatch.');
+          console.log('Expected date variants:', dateVariants);
+          
+          if (customerProfilesWithPhone.data) {
+            customerProfilesWithPhone.data.forEach((profile, index) => {
+              console.log(`Customer Profile ${index + 1} birth_date:`, profile.birth_date);
+              console.log(`Customer Profile ${index + 1} birth_date in Thai format:`, formatDateToThai(profile.birth_date));
+            });
+          }
+          
+          if (membersWithPhone.data) {
+            membersWithPhone.data.forEach((member, index) => {
+              console.log(`Member ${index + 1} birth_date:`, member.birth_date);
+              console.log(`Member ${index + 1} birth_date in Thai format:`, formatDateToThai(member.birth_date));
+            });
+          }
           
           toast({ 
             title: 'ข้อมูลไม่ตรงกัน', 

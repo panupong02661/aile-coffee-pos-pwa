@@ -5,7 +5,7 @@ export const convertThaiDateToISO = (thaiDate: string): string => {
   
   console.log('Converting Thai date:', thaiDate);
   
-  // รองรับรูปแบบ DD/MM/YYYY หรือ YYYY-MM-DD
+  // ทำความสะอาดข้อมูล - เอาช่องว่างออก
   let dateString = thaiDate.trim();
   
   // ถ้าเป็นรูปแบบ DD/MM/YYYY
@@ -109,4 +109,55 @@ export const isValidThaiDateFormat = (dateString: string): boolean => {
   const year = parseInt(parts[2]);
   
   return day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2400 && year <= 2700;
+};
+
+// ฟังก์ชันสำหรับทำความสะอาดเบอร์โทรศัพท์
+export const cleanPhoneNumber = (phone: string): string => {
+  if (!phone) return '';
+  
+  // เอาเครื่องหมายและช่องว่างออก
+  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  
+  // ถ้าขึ้นต้นด้วย +66 ให้เปลี่ยนเป็น 0
+  if (cleaned.startsWith('+66')) {
+    cleaned = '0' + cleaned.substring(3);
+  }
+  
+  // ถ้าขึ้นต้นด้วย 66 และมีความยาว 11 หลัก ให้เปลี่ยนเป็น 0 แทน 66
+  if (cleaned.startsWith('66') && cleaned.length === 11) {
+    cleaned = '0' + cleaned.substring(2);
+  }
+  
+  return cleaned;
+};
+
+// ฟังก์ชันสำหรับสร้าง array ของวันที่ที่เป็นไปได้สำหรับการค้นหา
+export const generateDateVariants = (inputDate: string): string[] => {
+  if (!inputDate) return [];
+  
+  const variants: string[] = [];
+  const isoDate = convertThaiDateToISO(inputDate);
+  
+  if (isoDate) {
+    variants.push(isoDate);
+    
+    // เพิ่มรูปแบบที่อาจจะเก็บไว้ในฐานข้อมูล
+    const date = new Date(isoDate);
+    if (!isNaN(date.getTime())) {
+      // รูปแบบ YYYY-MM-DD
+      variants.push(date.toISOString().split('T')[0]);
+      
+      // รูปแบบ DD/MM/YYYY (พ.ศ.)
+      const thaiYear = date.getFullYear() + 543;
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      variants.push(`${day}/${month}/${thaiYear}`);
+      
+      // รูปแบบ DD/MM/YYYY (ค.ศ.)
+      variants.push(`${day}/${month}/${date.getFullYear()}`);
+    }
+  }
+  
+  // เอาค่าที่ซ้ำออก
+  return [...new Set(variants)];
 };
