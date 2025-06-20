@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Menu } from 'lucide-react';
 import { useSupabaseData, DatabaseMenuItem, DatabaseCategory, DatabaseAddonGroup, DatabaseAddon } from '@/hooks/useSupabaseData';
 import MenuItemForm from '@/components/MenuItemForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -15,7 +16,11 @@ import ImageCropper from '@/components/ImageCropper';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-const MenuManagement = () => {
+interface MenuManagementProps {
+  onToggleSidebar?: () => void;
+}
+
+const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<DatabaseMenuItem | null>(null);
@@ -194,7 +199,19 @@ const MenuManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
+        <div className="flex items-center gap-3">
+          {onToggleSidebar && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={onToggleSidebar}
+              className="text-coffee-600 hover:text-coffee-800 hover:bg-coffee-50"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
+          <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
+        </div>
       </div>
 
       <Tabs defaultValue="menu" className="w-full">

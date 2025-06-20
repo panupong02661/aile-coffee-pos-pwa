@@ -215,6 +215,183 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_type: string | null
+          discount_value: number
+          end_date: string
+          id: string
+          is_active: boolean | null
+          max_discount: number | null
+          min_purchase: number | null
+          name: string
+          start_date: string
+          usage_limit: number | null
+          used_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value: number
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          max_discount?: number | null
+          min_purchase?: number | null
+          name: string
+          start_date: string
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          max_discount?: number | null
+          min_purchase?: number | null
+          name?: string
+          start_date?: string
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Relationships: []
+      }
+      customer_coupons: {
+        Row: {
+          coupon_id: string | null
+          customer_id: string | null
+          id: string
+          is_used: boolean | null
+          received_at: string | null
+          used_at: string | null
+        }
+        Insert: {
+          coupon_id?: string | null
+          customer_id?: string | null
+          id?: string
+          is_used?: boolean | null
+          received_at?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          coupon_id?: string | null
+          customer_id?: string | null
+          id?: string
+          is_used?: boolean | null
+          received_at?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_coupons_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_coupons_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_profiles: {
+        Row: {
+          birth_date: string | null
+          created_at: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          phone: string
+          points: number | null
+          tier: string | null
+          total_spent: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          phone: string
+          points?: number | null
+          tier?: string | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          phone?: string
+          points?: number | null
+          tier?: string | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_rewards: {
+        Row: {
+          customer_id: string | null
+          id: string
+          is_used: boolean | null
+          redeemed_at: string | null
+          reward_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          id?: string
+          is_used?: boolean | null
+          redeemed_at?: string | null
+          reward_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          id?: string
+          is_used?: boolean | null
+          redeemed_at?: string | null
+          reward_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_rewards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           category: string
@@ -480,6 +657,68 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      online_orders: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          delivery_address: string | null
+          delivery_type: string | null
+          discount_amount: number | null
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string
+          order_status: string | null
+          payment_method: string | null
+          payment_status: string | null
+          subtotal: number
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          delivery_address?: string | null
+          delivery_type?: string | null
+          discount_amount?: number | null
+          id?: string
+          items: Json
+          notes?: string | null
+          order_number: string
+          order_status?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          subtotal: number
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          delivery_address?: string | null
+          delivery_type?: string | null
+          discount_amount?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number?: string
+          order_status?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -755,6 +994,36 @@ export type Database = {
           show_tax_id?: boolean
           show_total?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          points_required: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          points_required: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          points_required?: number
         }
         Relationships: []
       }
