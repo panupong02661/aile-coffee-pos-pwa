@@ -34,7 +34,7 @@ export const formatDateForDisplay = (isoDate: string): string => {
   
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
+  const year = date.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
   
   return `${day}/${month}/${year}`;
 };
@@ -50,7 +50,7 @@ export const convertDisplayDateToISO = (displayDate: string): string => {
       const month = parts[1].padStart(2, '0');
       let year = parseInt(parts[2]);
       
-      // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่ า 2500
+      // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่า 2500
       if (year > 2500) {
         year = year - 543;
       }
@@ -60,4 +60,28 @@ export const convertDisplayDateToISO = (displayDate: string): string => {
   }
   
   return displayDate;
+};
+
+// ฟังก์ชันสำหรับแปลงวันที่จาก ISO เป็นรูปแบบไทย พ.ศ.
+export const formatDateToThai = (isoDate: string): string => {
+  if (!isoDate) return '';
+  
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) return isoDate;
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
+  
+  return `${day}/${month}/${year}`;
+};
+
+// ฟังก์ชันสำหรับแปลงวันที่ปัจจุบันเป็นรูปแบบไทย พ.ศ.
+export const getCurrentThaiDate = (): string => {
+  const now = new Date();
+  const day = now.getDate().toString().padStart(2, '0');
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const year = now.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
+  
+  return `${day}/${month}/${year}`;
 };

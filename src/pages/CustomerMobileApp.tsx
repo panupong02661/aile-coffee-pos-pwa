@@ -11,7 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { User, Gift, Tag, ShoppingBag, Star, Phone, Calendar, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { convertThaiDateToISO, formatDateForDisplay, convertDisplayDateToISO } from '@/utils/dateUtils';
+import { convertThaiDateToISO, formatDateToThai, convertDisplayDateToISO } from '@/utils/dateUtils';
 
 interface CustomerProfile {
   id: string;
@@ -398,10 +398,10 @@ const CustomerMobileApp = () => {
                       id="login-birth"
                       value={loginForm.birth_date}
                       onChange={(e) => setLoginForm({...loginForm, birth_date: e.target.value})}
-                      placeholder="วว/ดด/ปปปป (เช่น 22/10/2535)"
+                      placeholder="22/10/2535 (รูปแบบไทย พ.ศ.)"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)
+                      กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
                     </p>
                   </div>
                   
@@ -426,8 +426,8 @@ const CustomerMobileApp = () => {
           </Card>
 
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>เข้าสู่ระบบด้วยเบอร์โทรและวันเดือนปีเกิดที่ลงทะเบียนไว้</p>
-            <p className="text-xs mt-1">รองรับปี พ.ศ. และ ค.ศ.</p>
+            <p>เข้าสู่ระบบด้วยเบอร์โทรและวันเดือนปีเกิด</p>
+            <p className="text-xs mt-1">รูปแบบไทย พ.ศ. เช่น 22/10/2535</p>
           </div>
         </div>
       </div>
@@ -524,12 +524,19 @@ const CustomerMobileApp = () => {
                 </div>
                 <div>
                   <Label>วันเดือนปีเกิด</Label>
-                  <Input
-                    type="date"
-                    value={currentUser?.birth_date || ''}
-                    onChange={(e) => setCurrentUser(prev => prev ? {...prev, birth_date: e.target.value} : null)}
-                    disabled={!editMode}
-                  />
+                  {editMode ? (
+                    <Input
+                      type="date"
+                      value={currentUser?.birth_date || ''}
+                      onChange={(e) => setCurrentUser(prev => prev ? {...prev, birth_date: e.target.value} : null)}
+                      disabled={!editMode}
+                    />
+                  ) : (
+                    <Input
+                      value={currentUser?.birth_date ? formatDateToThai(currentUser.birth_date) : ''}
+                      disabled={true}
+                    />
+                  )}
                 </div>
                 <div>
                   <Label>เพศ</Label>
