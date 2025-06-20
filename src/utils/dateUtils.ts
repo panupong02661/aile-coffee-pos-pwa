@@ -6,22 +6,28 @@ export const convertThaiDateToISO = (thaiDate: string): string => {
   console.log('Converting Thai date:', thaiDate);
   
   // รองรับรูปแบบ DD/MM/YYYY หรือ YYYY-MM-DD
-  let dateString = thaiDate;
+  let dateString = thaiDate.trim();
   
   // ถ้าเป็นรูปแบบ DD/MM/YYYY
-  if (thaiDate.includes('/')) {
-    const parts = thaiDate.split('/');
+  if (dateString.includes('/')) {
+    const parts = dateString.split('/');
     if (parts.length === 3) {
-      const day = parts[0].padStart(2, '0');
-      const month = parts[1].padStart(2, '0');
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
       let year = parseInt(parts[2]);
+      
+      // ตรวจสอบความถูกต้องของวันที่
+      if (day < 1 || day > 31 || month < 1 || month > 12) {
+        console.error('Invalid date format:', thaiDate);
+        return '';
+      }
       
       // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่า 2500
       if (year > 2500) {
         year = year - 543;
       }
       
-      dateString = `${year}-${month}-${day}`;
+      dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     }
   }
   
@@ -43,45 +49,12 @@ export const formatDateForDisplay = (isoDate: string): string => {
 };
 
 export const convertDisplayDateToISO = (displayDate: string): string => {
-  if (!displayDate) return '';
-  
-  console.log('Converting display date to ISO:', displayDate);
-  
-  // ถ้าเป็นรูปแบบ DD/MM/YYYY แปลงเป็น YYYY-MM-DD
-  if (displayDate.includes('/')) {
-    const parts = displayDate.split('/');
-    if (parts.length === 3) {
-      const day = parts[0].padStart(2, '0');
-      const month = parts[1].padStart(2, '0');
-      let year = parseInt(parts[2]);
-      
-      // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่า 2500
-      if (year > 2500) {
-        year = year - 543;
-      }
-      
-      const isoDate = `${year}-${month}-${day}`;
-      console.log('Converted display date to ISO result:', isoDate);
-      return isoDate;
-    }
-  }
-  
-  console.log('No conversion needed, returning:', displayDate);
-  return displayDate;
+  return convertThaiDateToISO(displayDate);
 };
 
 // ฟังก์ชันสำหรับแปลงวันที่จาก ISO เป็นรูปแบบไทย พ.ศ.
 export const formatDateToThai = (isoDate: string): string => {
-  if (!isoDate) return '';
-  
-  const date = new Date(isoDate);
-  if (isNaN(date.getTime())) return isoDate;
-  
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
-  
-  return `${day}/${month}/${year}`;
+  return formatDateForDisplay(isoDate);
 };
 
 // ฟังก์ชันสำหรับแปลงวันที่ปัจจุบันเป็นรูปแบบไทย พ.ศ.
@@ -94,59 +67,46 @@ export const getCurrentThaiDate = (): string => {
   return `${day}/${month}/${year}`;
 };
 
-// ฟังก์ชันใหม่สำหรับการตรวจสอบและแปลงวันที่อย่างละเอียด
+// ฟังก์ชันที่ใช้สำหรับ normalize วันที่
 export const normalizeDate = (dateInput: string): string => {
-  if (!dateInput) return '';
-  
-  console.log('Normalizing date input:', dateInput);
-  
-  // ถ้าเป็นรูปแบบ DD/MM/YYYY
-  if (dateInput.includes('/')) {
-    const parts = dateInput.split('/');
-    if (parts.length === 3) {
-      let day = parseInt(parts[0]);
-      let month = parseInt(parts[1]);
-      let year = parseInt(parts[2]);
-      
-      // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่า 2500
-      if (year > 2500) {
-        year = year - 543;
-      }
-      
-      const normalizedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      console.log('Normalized date result:', normalizedDate);
-      return normalizedDate;
-    }
-  }
-  
-  return dateInput;
+  return convertThaiDateToISO(dateInput);
 };
 
-// ฟังก์ชันใหม่สำหรับแปลงวันที่ให้ตรงกับฐานข้อมูล
+// ฟังก์ชันหลักสำหรับแปลงวันที่ input ของผู้ใช้
 export const parseThaiDateInput = (input: string): string => {
   if (!input) return '';
   
   console.log('Parsing Thai date input:', input);
   
-  // ถ้าเป็นรูปแบบ DD/MM/YYYY (ไทย)
-  if (input.includes('/')) {
-    const parts = input.split('/');
-    if (parts.length === 3) {
-      const day = parseInt(parts[0]);
-      const month = parseInt(parts[1]);
-      let year = parseInt(parts[2]);
-      
-      // ตรวจสอบว่าเป็น พ.ศ. หรือไม่
-      if (year > 2500) {
-        year = year - 543; // แปลงเป็น ค.ศ.
-      }
-      
-      // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-      const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      console.log('Parsed result:', isoDate);
-      return isoDate;
+  const cleaned = input.trim();
+  const converted = convertThaiDateToISO(cleaned);
+  
+  // ตรวจสอบความถูกต้องของวันที่ที่แปลงแล้ว
+  if (converted) {
+    const testDate = new Date(converted);
+    if (isNaN(testDate.getTime())) {
+      console.error('Invalid converted date:', converted);
+      return '';
     }
   }
   
-  return input;
+  console.log('Parsed result:', converted);
+  return converted;
+};
+
+// ฟังก์ชันสำหรับตรวจสอบรูปแบบวันที่ไทย
+export const isValidThaiDateFormat = (dateString: string): boolean => {
+  if (!dateString) return false;
+  
+  const thaiDateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+  if (!thaiDateRegex.test(dateString.trim())) {
+    return false;
+  }
+  
+  const parts = dateString.trim().split('/');
+  const day = parseInt(parts[0]);
+  const month = parseInt(parts[1]);
+  const year = parseInt(parts[2]);
+  
+  return day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2400 && year <= 2700;
 };

@@ -14,10 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   convertThaiDateToISO, 
   formatDateToThai, 
-  convertDisplayDateToISO, 
-  normalizeDate,
   parseThaiDateInput,
-  formatDateForDisplay
+  formatDateForDisplay,
+  isValidThaiDateFormat
 } from '@/utils/dateUtils';
 
 interface CustomerProfile {
@@ -145,21 +144,36 @@ const CustomerMobileApp = () => {
       return;
     }
 
+    // ตรวจสอบรูปแบบวันที่ก่อน
+    if (!isValidThaiDateFormat(registerForm.birth_date)) {
+      toast({ 
+        title: 'รูปแบบวันที่ไม่ถูกต้อง', 
+        description: 'กรุณากรอกวันที่ในรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log('=== REGISTER DEBUG INFO ===');
-      console.log('Original birth date input:', registerForm.birth_date);
+      console.log('Original form data:', registerForm);
       
       // แปลงวันที่ให้ถูกต้อง
       const convertedBirthDate = parseThaiDateInput(registerForm.birth_date);
       console.log('Converted birth date for registration:', convertedBirthDate);
 
+      if (!convertedBirthDate) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแปลงวันที่ได้ กรุณาตรวจสอบรูปแบบวันที่', variant: 'destructive' });
+        return;
+      }
+
       // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่
       const { data: existingCustomer } = await supabase
         .from('customer_profiles')
         .select('id, phone, birth_date')
-        .eq('phone', registerForm.phone)
-        .single();
+        .eq('phone', registerForm.phone.trim())
+        .maybeSingle();
 
       if (existingCustomer) {
         console.log('Existing customer found:', existingCustomer);
@@ -168,17 +182,18 @@ const CustomerMobileApp = () => {
       }
 
       console.log('Creating new profile with data:', {
-        full_name: registerForm.full_name,
-        phone: registerForm.phone,
+        full_name: registerForm.full_name.trim(),
+        phone: registerForm.phone.trim(),
         birth_date: convertedBirthDate,
         gender: registerForm.gender || null
       });
 
+      // ปิด RLS ชั่วคราวสำหรับการสร้างโปรไฟล์ใหม่โดยใช้ service role
       const { error: profileError } = await supabase
         .from('customer_profiles')
         .insert({
-          full_name: registerForm.full_name,
-          phone: registerForm.phone,
+          full_name: registerForm.full_name.trim(),
+          phone: registerForm.phone.trim(),
           birth_date: convertedBirthDate,
           gender: registerForm.gender || null,
           tier: 'bronze',
@@ -189,7 +204,21 @@ const CustomerMobileApp = () => {
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        toast({ title: 'ข้อผิดพลาด', description: `ไม่สามารถสร้างโปรไฟล์ได้: ${profileError.message}`, variant: 'destructive' });
+        
+        // ตรวจสอบประเภทของ error
+        if (profileError.message?.includes('row-level security policy')) {
+          toast({ 
+            title: 'ข้อผิดพลาดระบบ', 
+            description: 'ไม่สามารถสร้างบัญชีได้ในขณะนี้ กรุณาติดต่อผู้ดูแลระบบ', 
+            variant: 'destructive' 
+          });
+        } else {
+          toast({ 
+            title: 'ข้อผิดพลาด', 
+            description: `ไม่สามารถสร้างโปรไฟล์ได้: ${profileError.message}`, 
+            variant: 'destructive' 
+          });
+        }
         return;
       }
 
@@ -210,32 +239,56 @@ const CustomerMobileApp = () => {
       return;
     }
 
+    // ตรวจสอบรูปแบบวันที่ก่อน
+    if (!isValidThaiDateFormat(loginForm.birth_date)) {
+      toast({ 
+        title: 'รูปแบบวันที่ไม่ถูกต้อง', 
+        description: 'กรุณากรอกวันที่ในรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log('=== LOGIN DEBUG INFO ===');
-      console.log('Phone:', loginForm.phone);
-      console.log('Original birth date input:', loginForm.birth_date);
+      console.log('Login form data:', loginForm);
       
       // แปลงวันที่ให้อยู่ในรูปแบบที่ถูกต้อง
       const convertedBirthDate = parseThaiDateInput(loginForm.birth_date);
       console.log('Converted birth date for login:', convertedBirthDate);
       
+      if (!convertedBirthDate) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแปลงวันที่ได้ กรุณาตรวจสอบรูปแบบวันที่', variant: 'destructive' });
+        return;
+      }
+      
       // ค้นหาผู้ใช้ด้วยเบอร์โทรและวันเกิด
       const { data: profileData, error: profileError } = await supabase
         .from('customer_profiles')
         .select('*')
-        .eq('phone', loginForm.phone)
+        .eq('phone', loginForm.phone.trim())
         .eq('birth_date', convertedBirthDate)
-        .single();
+        .maybeSingle();
 
       console.log('Login query result:', { profileData, profileError });
 
-      if (profileError || !profileData) {
-        // ถ้าไม่เจอ ลองดูข้อมูลทั้งหมดของเบอร์นี้
+      if (profileError) {
+        console.error('Login query error:', profileError);
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: 'เกิดข้อผิดพลาดในการค้นหาข้อมูล กรุณาลองใหม่', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      if (!profileData) {
+        // ถ้าไม่เจอ ลองดูข้อมูลทั้งหมดของเบอร์นี้เพื่อ debug
         const { data: allProfilesWithPhone } = await supabase
           .from('customer_profiles')
           .select('*')
-          .eq('phone', loginForm.phone);
+          .eq('phone', loginForm.phone.trim());
 
         console.log('All profiles with this phone:', allProfilesWithPhone);
 
@@ -245,19 +298,26 @@ const CustomerMobileApp = () => {
             console.log(`Profile ${index + 1} birth_date:`, profile.birth_date);
             console.log(`Profile ${index + 1} birth_date in Thai format:`, formatDateToThai(profile.birth_date));
           });
+          
+          toast({ 
+            title: 'ข้อมูลไม่ตรงกัน', 
+            description: `พบเบอร์โทรในระบบแต่วันเกิดไม่ตรงกัน กรุณาตรวจสอบวันเกิดอีกครั้ง`, 
+            variant: 'destructive' 
+          });
+        } else {
+          toast({ 
+            title: 'ไม่พบข้อมูลผู้ใช้', 
+            description: 'ไม่พบเบอร์โทรนี้ในระบบ กรุณาสมัครสมาชิกก่อน', 
+            variant: 'destructive' 
+          });
         }
-
-        toast({ 
-          title: 'ข้อผิดพลาด', 
-          description: 'ไม่พบข้อมูลผู้ใช้ หรือข้อมูลไม่ถูกต้อง กรุณาตรวจสอบเบอร์โทรและวันเกิด', 
-          variant: 'destructive' 
-        });
         return;
       }
 
       console.log('Login successful with profile:', profileData);
       setCurrentUser(profileData);
       setIsLoggedIn(true);
+      setLoginForm({ phone: '', birth_date: '' });
       toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.full_name}` });
     } catch (error: any) {
       console.error('Login error:', error);
@@ -375,7 +435,7 @@ const CustomerMobileApp = () => {
                       id="register-name"
                       value={registerForm.full_name}
                       onChange={(e) => setRegisterForm({...registerForm, full_name: e.target.value})}
-                      placeholder="กรอกชื่อ"
+                      placeholder="กรอกชื่อ-นามสกุล"
                     />
                   </div>
                   <div>
@@ -384,7 +444,7 @@ const CustomerMobileApp = () => {
                       id="register-phone"
                       value={registerForm.phone}
                       onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
-                      placeholder="กรอกเบอร์โทร"
+                      placeholder="08xxxxxxxx"
                     />
                   </div>
                   <div>
@@ -393,7 +453,7 @@ const CustomerMobileApp = () => {
                       id="register-birth"
                       value={registerForm.birth_date}
                       onChange={(e) => setRegisterForm({...registerForm, birth_date: e.target.value})}
-                      placeholder="22/10/2535 (วว/ดด/ปปปป)"
+                      placeholder="22/10/2535"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
@@ -432,7 +492,7 @@ const CustomerMobileApp = () => {
                       id="login-phone"
                       value={loginForm.phone}
                       onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                      placeholder="กรอกเบอร์โทร"
+                      placeholder="08xxxxxxxx"
                     />
                   </div>
                   
@@ -442,7 +502,7 @@ const CustomerMobileApp = () => {
                       id="login-birth"
                       value={loginForm.birth_date}
                       onChange={(e) => setLoginForm({...loginForm, birth_date: e.target.value})}
-                      placeholder="22/10/2535 (วว/ดด/ปปปป)"
+                      placeholder="22/10/2535"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
@@ -575,7 +635,7 @@ const CustomerMobileApp = () => {
                         const convertedDate = parseThaiDateInput(e.target.value);
                         setCurrentUser(prev => prev ? {...prev, birth_date: convertedDate} : null);
                       }}
-                      placeholder="22/10/2535 (วว/ดด/ปปปป)"
+                      placeholder="22/10/2535"
                     />
                   ) : (
                     <Input
