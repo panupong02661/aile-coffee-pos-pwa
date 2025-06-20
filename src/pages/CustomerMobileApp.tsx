@@ -296,80 +296,132 @@ const CustomerMobileApp = () => {
       let profileData = null;
       let foundInTable = null;
 
-      // ค้นหาจาก customer_profiles ก่อน
+      // ค้นหาจาก customer_profiles ก่อน - ใช้วิธีการค้นหาแบบ comprehensive
       console.log('=== SEARCHING IN CUSTOMER_PROFILES ===');
+      
+      // ค้นหาแบบ OR condition ทั้งหมดในครั้งเดียว
+      let searchConditions = [];
+      for (const phoneVariant of phoneVariants) {
+        for (const dateVariant of dateVariants) {
+          searchConditions.push(`(phone.eq.${phoneVariant},birth_date.eq.${dateVariant})`);
+        }
+      }
+      
+      // ลองค้นหาใน customer_profiles ทีละ variant แต่ละคู่
       for (const phoneVariant of phoneVariants) {
         console.log(`Trying phone variant: ${phoneVariant}`);
         
-        for (const dateVariant of dateVariants) {
-          console.log(`  Trying date variant: ${dateVariant}`);
+        // ค้นหาแบบ LIKE และ exact match
+        const phoneSearches = [
+          supabase.from('customer_profiles').select('*').eq('phone', phoneVariant),
+          supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant}%`),
+          supabase.from('customer_profiles').select('*').like('phone', `${phoneVariant}%`),
+          supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant}`)
+        ];
+        
+        for (const phoneSearch of phoneSearches) {
+          const { data: phoneResults } = await phoneSearch;
           
-          const { data, error } = await supabase
-            .from('customer_profiles')
-            .select('*')
-            .eq('phone', phoneVariant)
-            .eq('birth_date', dateVariant)
-            .maybeSingle();
-
-          console.log(`  Result for phone ${phoneVariant} + date ${dateVariant}:`, { data, error });
-
-          if (data) {
-            console.log('*** FOUND IN CUSTOMER_PROFILES ***', data);
-            profileData = data;
-            foundInTable = 'customer_profiles';
-            break;
+          if (phoneResults && phoneResults.length > 0) {
+            console.log(`Found ${phoneResults.length} profiles with phone ${phoneVariant}:`, phoneResults);
+            
+            // ตรวจสอบวันที่ของแต่ละ profile
+            for (const profile of phoneResults) {
+              console.log(`Checking profile ${profile.id} with birth_date: ${profile.birth_date}`);
+              
+              // สร้าง date variants จากวันที่ที่เก็บในฐานข้อมูล
+              const storedDateVariants = generateDateSearchVariants(profile.birth_date);
+              console.log(`Stored date variants for ${profile.birth_date}:`, storedDateVariants);
+              
+              // ตรวจสอบว่า date variants ของ input ตรงกับ stored date variants หรือไม่
+              const dateMatch = dateVariants.some(inputVariant => 
+                storedDateVariants.some(storedVariant => 
+                  inputVariant === storedVariant ||
+                  inputVariant === profile.birth_date ||
+                  storedVariant === loginForm.birth_date
+                )
+              );
+              
+              if (dateMatch) {
+                console.log('*** DATE MATCH FOUND ***', profile);
+                profileData = profile;
+                foundInTable = 'customer_profiles';
+                break;
+              }
+            }
+            
+            if (profileData) break;
           }
         }
         
         if (profileData) break;
       }
 
-      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members
+      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members แบบเดียวกัน
       if (!profileData) {
         console.log('=== SEARCHING IN MEMBERS ===');
         
         for (const phoneVariant of phoneVariants) {
           console.log(`Trying phone variant in members: ${phoneVariant}`);
           
-          for (const dateVariant of dateVariants) {
-            console.log(`  Trying date variant in members: ${dateVariant}`);
+          const phoneSearches = [
+            supabase.from('members').select('*').eq('phone', phoneVariant),
+            supabase.from('members').select('*').like('phone', `%${phoneVariant}%`),
+            supabase.from('members').select('*').like('phone', `${phoneVariant}%`),
+            supabase.from('members').select('*').like('phone', `%${phoneVariant}`)
+          ];
+          
+          for (const phoneSearch of phoneSearches) {
+            const { data: phoneResults } = await phoneSearch;
             
-            const { data, error } = await supabase
-              .from('members')
-              .select('*')
-              .eq('phone', phoneVariant)
-              .eq('birth_date', dateVariant)
-              .maybeSingle();
-
-            console.log(`  Members result for phone ${phoneVariant} + date ${dateVariant}:`, { data, error });
-
-            if (data) {
-              console.log('*** FOUND IN MEMBERS - MIGRATING ***', data);
+            if (phoneResults && phoneResults.length > 0) {
+              console.log(`Found ${phoneResults.length} members with phone ${phoneVariant}:`, phoneResults);
               
-              // Migrate ข้อมูลจาก members ไป customer_profiles
-              const migrationResult = await supabase
-                .from('customer_profiles')
-                .insert({
-                  full_name: data.name,
-                  phone: data.phone,
-                  birth_date: data.birth_date,
-                  gender: data.gender,
-                  tier: data.tier || 'bronze',
-                  points: data.points || 0,
-                  reward_points: 0,
-                  total_spent: data.total_spent || 0
-                })
-                .select()
-                .single();
+              for (const member of phoneResults) {
+                console.log(`Checking member ${member.id} with birth_date: ${member.birth_date}`);
+                
+                const storedDateVariants = generateDateSearchVariants(member.birth_date);
+                console.log(`Member stored date variants for ${member.birth_date}:`, storedDateVariants);
+                
+                const dateMatch = dateVariants.some(inputVariant => 
+                  storedDateVariants.some(storedVariant => 
+                    inputVariant === storedVariant ||
+                    inputVariant === member.birth_date ||
+                    storedVariant === loginForm.birth_date
+                  )
+                );
+                
+                if (dateMatch) {
+                  console.log('*** MEMBER DATE MATCH FOUND - MIGRATING ***', member);
+                  
+                  // Migrate ข้อมูลจาก members ไป customer_profiles
+                  const migrationResult = await supabase
+                    .from('customer_profiles')
+                    .insert({
+                      full_name: member.name,
+                      phone: member.phone,
+                      birth_date: member.birth_date,
+                      gender: member.gender,
+                      tier: member.tier || 'bronze',
+                      points: member.points || 0,
+                      reward_points: 0,
+                      total_spent: member.total_spent || 0
+                    })
+                    .select()
+                    .single();
 
-              if (migrationResult.error) {
-                console.error('Migration error:', migrationResult.error);
-              } else {
-                console.log('Migration successful:', migrationResult.data);
-                profileData = migrationResult.data;
-                foundInTable = 'members_migrated';
-                break;
+                  if (migrationResult.error) {
+                    console.error('Migration error:', migrationResult.error);
+                  } else {
+                    console.log('Migration successful:', migrationResult.data);
+                    profileData = migrationResult.data;
+                    foundInTable = 'members_migrated';
+                    break;
+                  }
+                }
               }
+              
+              if (profileData) break;
             }
           }
           
@@ -378,13 +430,13 @@ const CustomerMobileApp = () => {
       }
 
       if (!profileData) {
-        console.log('=== NOT FOUND - DEBUGGING ===');
+        console.log('=== NOT FOUND - COMPREHENSIVE DEBUGGING ===');
         
         // Debug: ดูข้อมูลทั้งหมดของเบอร์นี้
         const debugPromises = phoneVariants.map(async (phoneVariant) => {
           const [customerResult, memberResult] = await Promise.all([
-            supabase.from('customer_profiles').select('*').eq('phone', phoneVariant),
-            supabase.from('members').select('*').eq('phone', phoneVariant)
+            supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant.slice(-8)}%`),
+            supabase.from('members').select('*').like('phone', `%${phoneVariant.slice(-8)}%`)
           ]);
           
           return {
@@ -404,20 +456,24 @@ const CustomerMobileApp = () => {
         );
         
         if (hasAnyData) {
-          console.log('*** FOUND DATA BUT DATE MISMATCH ***');
+          console.log('*** FOUND DATA BUT MISMATCH ***');
           debugResults.forEach((result, index) => {
             if (result.customers && result.customers.length > 0) {
               console.log(`Customer profiles for ${result.phone}:`, result.customers.map(c => ({
                 name: c.full_name,
+                phone: c.phone,
                 birth_date: c.birth_date,
-                birth_date_thai: formatDateToThai(c.birth_date)
+                birth_date_thai: formatDateToThai(c.birth_date),
+                date_variants: generateDateSearchVariants(c.birth_date)
               })));
             }
             if (result.members && result.members.length > 0) {
               console.log(`Members for ${result.phone}:`, result.members.map(m => ({
                 name: m.name,
+                phone: m.phone,
                 birth_date: m.birth_date,
-                birth_date_thai: formatDateToThai(m.birth_date)
+                birth_date_thai: formatDateToThai(m.birth_date),
+                date_variants: generateDateSearchVariants(m.birth_date)
               })));
             }
           });

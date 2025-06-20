@@ -1,4 +1,3 @@
-
 // ฟังก์ชันช่วยเหลือสำหรับการแปลงวันที่
 export const convertThaiDateToISO = (thaiDate: string): string => {
   if (!thaiDate) return '';
@@ -131,7 +130,7 @@ export const cleanPhoneNumber = (phone: string): string => {
   return cleaned;
 };
 
-// ฟังก์ชันใหม่สำหรับสร้าง variants ของวันที่เพื่อการค้นหา
+// ฟังก์ชันใหม่สำหรับสร้าง variants ของวันที่เพื่อการค้นหา - ปรับปรุงให้ครอบคลุมมากขึ้น
 export const generateDateSearchVariants = (inputDate: string): string[] => {
   if (!inputDate) return [];
   
@@ -173,15 +172,51 @@ export const generateDateSearchVariants = (inputDate: string): string[] => {
         const monthNoZero = (date.getMonth() + 1).toString();
         variants.push(`${dayNoZero}/${monthNoZero}/${thaiYear}`);
         variants.push(`${dayNoZero}/${monthNoZero}/${year}`);
+        
+        // เพิ่ม date format แบบ PostgreSQL
+        variants.push(date.toISOString().substring(0, 10));
+        
+        // เพิ่มรูปแบบที่อาจจะเก็บในฐานข้อมูล
+        const dbFormats = [
+          `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+          `${thaiYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
+          `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`,
+          `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${thaiYear}`
+        ];
+        variants.push(...dbFormats);
       }
     } catch (error) {
       console.error('Error generating date variants:', error);
     }
   }
   
+  // ถ้า input เป็นรูปแบบไทย ให้ลองแปลงเป็นค.ศ.ด้วย
+  if (inputDate.includes('/')) {
+    const parts = inputDate.split('/');
+    if (parts.length === 3) {
+      const day = parts[0];
+      const month = parts[1];
+      const year = parseInt(parts[2]);
+      
+      // ถ้าเป็น พ.ศ. ให้แปลงเป็น ค.ศ.
+      if (year > 2500) {
+        const adYear = year - 543;
+        variants.push(`${day}/${month}/${adYear}`);
+        variants.push(`${day.padStart(2, '0')}/${month.padStart(2, '0')}/${adYear}`);
+        variants.push(`${adYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      }
+      // ถ้าเป็น ค.ศ. ให้แปลงเป็น พ.ศ.
+      else if (year < 2500) {
+        const beYear = year + 543;
+        variants.push(`${day}/${month}/${beYear}`);
+        variants.push(`${day.padStart(2, '0')}/${month.padStart(2, '0')}/${beYear}`);
+      }
+    }
+  }
+  
   // เอาค่าที่ซ้ำออกและ filter ค่าว่าง
   const uniqueVariants = [...new Set(variants)].filter(v => v && v.trim());
-  console.log('Generated date variants:', uniqueVariants);
+  console.log('Generated date variants for:', inputDate, '→', uniqueVariants);
   return uniqueVariants;
 };
 
