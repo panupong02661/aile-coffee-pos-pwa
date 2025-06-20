@@ -3,6 +3,8 @@
 export const convertThaiDateToISO = (thaiDate: string): string => {
   if (!thaiDate) return '';
   
+  console.log('Converting Thai date:', thaiDate);
+  
   // รองรับรูปแบบ DD/MM/YYYY หรือ YYYY-MM-DD
   let dateString = thaiDate;
   
@@ -23,6 +25,7 @@ export const convertThaiDateToISO = (thaiDate: string): string => {
     }
   }
   
+  console.log('Converted to ISO:', dateString);
   return dateString;
 };
 
@@ -42,6 +45,8 @@ export const formatDateForDisplay = (isoDate: string): string => {
 export const convertDisplayDateToISO = (displayDate: string): string => {
   if (!displayDate) return '';
   
+  console.log('Converting display date to ISO:', displayDate);
+  
   // ถ้าเป็นรูปแบบ DD/MM/YYYY แปลงเป็น YYYY-MM-DD
   if (displayDate.includes('/')) {
     const parts = displayDate.split('/');
@@ -55,10 +60,13 @@ export const convertDisplayDateToISO = (displayDate: string): string => {
         year = year - 543;
       }
       
-      return `${year}-${month}-${day}`;
+      const isoDate = `${year}-${month}-${day}`;
+      console.log('Converted display date to ISO result:', isoDate);
+      return isoDate;
     }
   }
   
+  console.log('No conversion needed, returning:', displayDate);
   return displayDate;
 };
 
@@ -84,4 +92,32 @@ export const getCurrentThaiDate = (): string => {
   const year = now.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
   
   return `${day}/${month}/${year}`;
+};
+
+// ฟังก์ชันใหม่สำหรับการตรวจสอบและแปลงวันที่อย่างละเอียด
+export const normalizeDate = (dateInput: string): string => {
+  if (!dateInput) return '';
+  
+  console.log('Normalizing date input:', dateInput);
+  
+  // ถ้าเป็นรูปแบบ DD/MM/YYYY
+  if (dateInput.includes('/')) {
+    const parts = dateInput.split('/');
+    if (parts.length === 3) {
+      let day = parseInt(parts[0]);
+      let month = parseInt(parts[1]);
+      let year = parseInt(parts[2]);
+      
+      // แปลง พ.ศ. เป็น ค.ศ. ถ้าปีมากกว่า 2500
+      if (year > 2500) {
+        year = year - 543;
+      }
+      
+      const normalizedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      console.log('Normalized date result:', normalizedDate);
+      return normalizedDate;
+    }
+  }
+  
+  return dateInput;
 };

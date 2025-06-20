@@ -11,7 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { User, Gift, Tag, ShoppingBag, Star, Phone, Calendar, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { convertThaiDateToISO, formatDateToThai, convertDisplayDateToISO } from '@/utils/dateUtils';
+import { convertThaiDateToISO, formatDateToThai, convertDisplayDateToISO, normalizeDate } from '@/utils/dateUtils';
 
 interface CustomerProfile {
   id: string;
@@ -188,25 +188,69 @@ const CustomerMobileApp = () => {
 
     setIsLoading(true);
     try {
-      // แปลงวันที่ให้เป็นรูปแบบที่ถูกต้อง
-      const convertedBirthDate = convertDisplayDateToISO(loginForm.birth_date);
+      // แปลงวันที่ให้เป็นรูปแบบที่ถูกต้อง - ใช้ฟังก์ชันใหม่
+      const convertedBirthDate = normalizeDate(loginForm.birth_date);
       
-      console.log('Login attempt:', {
-        phone: loginForm.phone,
-        originalDate: loginForm.birth_date,
-        convertedDate: convertedBirthDate
-      });
+      console.log('=== LOGIN DEBUG INFO ===');
+      console.log('Phone:', loginForm.phone);
+      console.log('Original birth date:', loginForm.birth_date);
+      console.log('Converted birth date:', convertedBirthDate);
+      
+      // ลองค้นหาด้วยรูปแบบต่างๆ
+      const searchQueries = [
+        convertedBirthDate,
+        convertDisplayDateToISO(loginForm.birth_date),
+        convertThaiDateToISO(loginForm.birth_date)
+      ];
+      
+      console.log('Search queries:', searchQueries);
+      
+      let profileData = null;
+      let profileError = null;
+      
+      // ลองค้นหาด้วยรูปแบบวันที่ต่างๆ
+      for (const dateQuery of searchQueries) {
+        console.log('Trying date format:', dateQuery);
+        
+        const { data, error } = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .eq('phone', loginForm.phone)
+          .eq('birth_date', dateQuery);
+        
+        console.log('Query result:', { data, error });
+        
+        if (data && data.length > 0) {
+          profileData = data[0];
+          break;
+        }
+      }
 
-      // ดึงข้อมูลโปรไฟล์ลูกค้าจากเบอร์โทรและวันเกิด
-      const { data: profileData, error: profileError } = await supabase
-        .from('customer_profiles')
-        .select('*')
-        .eq('phone', loginForm.phone)
-        .eq('birth_date', convertedBirthDate)
-        .single();
+      // หากยังไม่เจอ ลองค้นหาเฉพาะเบอร์โทรเพื่อดูข้อมูลที่มี
+      if (!profileData) {
+        console.log('No match found, checking all profiles with this phone...');
+        const { data: allProfiles } = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .eq('phone', loginForm.phone);
+        
+        console.log('All profiles with phone:', allProfiles);
+        
+        if (allProfiles && allProfiles.length > 0) {
+          console.log('Found profiles but birth_date mismatch:');
+          allProfiles.forEach((profile, index) => {
+            console.log(`Profile ${index + 1}:`, {
+              id: profile.id,
+              name: profile.full_name,
+              phone: profile.phone,
+              birth_date: profile.birth_date,
+              birth_date_formatted: formatDateToThai(profile.birth_date)
+            });
+          });
+        }
+      }
 
-      if (profileError || !profileData) {
-        console.error('Login error:', profileError);
+      if (!profileData) {
         toast({ 
           title: 'ข้อผิดพลาด', 
           description: 'ไม่พบข้อมูลผู้ใช้ หรือข้อมูลไม่ถูกต้อง กรุณาตรวจสอบเบอร์โทรและวันเกิด', 
@@ -215,6 +259,7 @@ const CustomerMobileApp = () => {
         return;
       }
 
+      console.log('Login successful with profile:', profileData);
       setCurrentUser(profileData);
       setIsLoggedIn(true);
       toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.full_name}` });
