@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { User, Gift, Tag, ShoppingBag, Star, Phone, Calendar, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -46,11 +47,10 @@ interface Coupon {
 const CustomerMobileApp = () => {
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ phone: '', otp: '' });
   const [registerForm, setRegisterForm] = useState({ 
     full_name: '', 
     phone: '', 
-    password: '', 
     birth_date: '', 
     gender: '' 
   });
@@ -58,6 +58,8 @@ const CustomerMobileApp = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const getTierDisplayName = (tier: string): string => {
@@ -131,74 +133,89 @@ const CustomerMobileApp = () => {
     setCoupons(formattedCoupons);
   };
 
+  const sendOTP = async () => {
+    if (!loginForm.phone) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทร', variant: 'destructive' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: loginForm.phone,
+        options: {
+          channel: 'sms',
+        }
+      });
+
+      if (error) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถส่ง OTP ได้', variant: 'destructive' });
+        return;
+      }
+
+      setOtpSent(true);
+      toast({ title: 'สำเร็จ', description: 'ส่ง OTP ไปที่เบอร์โทรของคุณแล้ว' });
+    } catch (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการส่ง OTP', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRegister = async () => {
-    if (!registerForm.full_name || !registerForm.phone || !registerForm.password) {
+    if (!registerForm.full_name || !registerForm.phone) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
       return;
     }
 
     try {
-      // สร้างบัญชีผู้ใช้ใน auth.users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${registerForm.phone}@customer.app`,
-        password: registerForm.password,
-        options: {
-          data: {
-            phone: registerForm.phone,
-            full_name: registerForm.full_name
-          }
-        }
-      });
+      // For demo purposes, we'll create a mock user registration
+      // In a real app, you'd integrate with your authentication system
+      const mockUserId = crypto.randomUUID();
+      
+      const { error: profileError } = await supabase
+        .from('customer_profiles')
+        .insert({
+          id: mockUserId,
+          full_name: registerForm.full_name,
+          phone: registerForm.phone,
+          birth_date: registerForm.birth_date || null,
+          gender: registerForm.gender || null,
+          tier: 'bronze',
+          points: 0,
+          reward_points: 0,
+          total_spent: 0
+        });
 
-      if (authError) {
-        toast({ title: 'ข้อผิดพลาด', description: authError.message, variant: 'destructive' });
+      if (profileError) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโปรไฟล์ได้', variant: 'destructive' });
         return;
       }
 
-      if (authData.user) {
-        // สร้างโปรไฟล์ลูกค้า
-        const { error: profileError } = await supabase
-          .from('customer_profiles')
-          .insert({
-            user_id: authData.user.id,
-            full_name: registerForm.full_name,
-            phone: registerForm.phone,
-            birth_date: registerForm.birth_date || null,
-            gender: registerForm.gender || null,
-            tier: 'bronze',
-            points: 0,
-            reward_points: 0,
-            total_spent: 0
-          });
-
-        if (profileError) {
-          toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโปรไฟล์ได้', variant: 'destructive' });
-          return;
-        }
-
-        toast({ title: 'สำเร็จ', description: 'สมัครสมาชิกเรียบร้อยแล้ว' });
-        setIsRegistering(false);
-        setRegisterForm({ full_name: '', phone: '', password: '', birth_date: '', gender: '' });
-      }
+      toast({ title: 'สำเร็จ', description: 'สมัครสมาชิกเรียบร้อยแล้ว' });
+      setIsRegistering(false);
+      setRegisterForm({ full_name: '', phone: '', birth_date: '', gender: '' });
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการสมัครสมาชิก', variant: 'destructive' });
     }
   };
 
   const handleLogin = async () => {
-    if (!loginForm.phone || !loginForm.password) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทรและรหัสผ่าน', variant: 'destructive' });
+    if (!loginForm.phone || !loginForm.otp) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทรและ OTP', variant: 'destructive' });
       return;
     }
 
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${loginForm.phone}@customer.app`,
-        password: loginForm.password,
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: loginForm.phone,
+        token: loginForm.otp,
+        type: 'sms'
       });
 
       if (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง', variant: 'destructive' });
+        toast({ title: 'ข้อผิดพลาด', description: 'OTP ไม่ถูกต้อง', variant: 'destructive' });
         return;
       }
 
@@ -207,7 +224,7 @@ const CustomerMobileApp = () => {
         const { data: profileData, error: profileError } = await supabase
           .from('customer_profiles')
           .select('*')
-          .eq('user_id', data.user.id)
+          .eq('phone', loginForm.phone)
           .single();
 
         if (profileError || !profileData) {
@@ -221,6 +238,8 @@ const CustomerMobileApp = () => {
       }
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -228,7 +247,8 @@ const CustomerMobileApp = () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
     setIsLoggedIn(false);
-    setLoginForm({ phone: '', password: '' });
+    setLoginForm({ phone: '', otp: '' });
+    setOtpSent(false);
     toast({ title: 'สำเร็จ', description: 'ออกจากระบบเรียบร้อยแล้ว' });
   };
 
@@ -328,12 +348,12 @@ const CustomerMobileApp = () => {
               {isRegistering ? (
                 <>
                   <div>
-                    <Label htmlFor="register-name">ชื่อ-นามสกุล</Label>
+                    <Label htmlFor="register-name">ชื่อ</Label>
                     <Input
                       id="register-name"
                       value={registerForm.full_name}
                       onChange={(e) => setRegisterForm({...registerForm, full_name: e.target.value})}
-                      placeholder="กรอกชื่อ-นามสกุล"
+                      placeholder="กรอกชื่อ"
                     />
                   </div>
                   <div>
@@ -343,16 +363,6 @@ const CustomerMobileApp = () => {
                       value={registerForm.phone}
                       onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
                       placeholder="กรอกเบอร์โทร"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="register-password">รหัสผ่าน</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      value={registerForm.password}
-                      onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
-                      placeholder="กรอกรหัสผ่าน"
                     />
                   </div>
                   <div>
@@ -392,24 +402,65 @@ const CustomerMobileApp = () => {
                 <>
                   <div>
                     <Label htmlFor="login-phone">เบอร์โทร</Label>
-                    <Input
-                      id="login-phone"
-                      value={loginForm.phone}
-                      onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                      placeholder="กรอกเบอร์โทร"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="login-phone"
+                        value={loginForm.phone}
+                        onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                        placeholder="กรอกเบอร์โทร"
+                        disabled={otpSent}
+                      />
+                      {!otpSent && (
+                        <Button 
+                          onClick={sendOTP} 
+                          disabled={isLoading || !loginForm.phone}
+                          className="whitespace-nowrap"
+                        >
+                          ส่ง OTP
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="login-password">รหัสผ่าน</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                      placeholder="กรอกรหัสผ่าน"
-                    />
-                  </div>
-                  <Button onClick={handleLogin} className="w-full">
+                  
+                  {otpSent && (
+                    <div>
+                      <Label htmlFor="login-otp">กรอก OTP</Label>
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={loginForm.otp}
+                          onChange={(value) => setLoginForm({...loginForm, otp: value})}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                      <div className="text-center mt-2">
+                        <Button 
+                          variant="link" 
+                          onClick={() => {
+                            setOtpSent(false);
+                            setLoginForm({...loginForm, otp: ''});
+                          }}
+                          className="text-sm"
+                        >
+                          ยังไม่ได้รับ OTP? ส่งใหม่
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button 
+                    onClick={handleLogin} 
+                    className="w-full"
+                    disabled={!otpSent || !loginForm.otp || isLoading}
+                  >
                     เข้าสู่ระบบ
                   </Button>
                   <Button 
@@ -501,7 +552,7 @@ const CustomerMobileApp = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>ชื่อ-นามสกุล</Label>
+                  <Label>ชื่อ</Label>
                   <Input
                     value={currentUser?.full_name || ''}
                     onChange={(e) => setCurrentUser(prev => prev ? {...prev, full_name: e.target.value} : null)}
