@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,7 +65,7 @@ const OnlineSystem = () => {
               <TabsTrigger value="overview" className="text-xs">ภาพรวม</TabsTrigger>
               <TabsTrigger value="qr-code" className="text-xs">QR Code</TabsTrigger>
               <TabsTrigger value="website" className="text-xs">เว็บไซต์</TabsTrigger>
-              <TabsTrigger value="mobile" className="text-xs">แอป</TabsTrigger>
+              <TabsTrigger value="mobile" className="text-xs">แอปมือถือ</TabsTrigger>
               <TabsTrigger value="customers" className="text-xs">ลูกค้า</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs">ตั้งค่า</TabsTrigger>
             </TabsList>
