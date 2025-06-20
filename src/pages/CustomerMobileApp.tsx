@@ -46,7 +46,7 @@ interface Coupon {
 const CustomerMobileApp = () => {
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginForm, setLoginForm] = useState({ phone: '', otp: '' });
+  const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
   const [registerForm, setRegisterForm] = useState({ 
     full_name: '', 
     phone: '', 
@@ -57,9 +57,7 @@ const CustomerMobileApp = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mockOtp, setMockOtp] = useState(''); // เก็บ OTP จำลอง
   const { toast } = useToast();
 
   const getTierDisplayName = (tier: string): string => {
@@ -133,51 +131,32 @@ const CustomerMobileApp = () => {
     setCoupons(formattedCoupons);
   };
 
-  const sendOTP = async () => {
-    if (!loginForm.phone) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทร', variant: 'destructive' });
+  const handleRegister = async () => {
+    if (!registerForm.full_name || !registerForm.phone || !registerForm.birth_date) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อ, เบอร์โทร, วันเกิด)', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
     try {
-      // สร้าง OTP จำลอง 6 หลัก
-      const simulatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-      setMockOtp(simulatedOTP);
-      setOtpSent(true);
-      
-      // แสดง OTP ให้ผู้ใช้เห็น (สำหรับการทดสอบ)
-      toast({ 
-        title: 'ส่ง OTP สำเร็จ', 
-        description: `รหัส OTP ของคุณคือ: ${simulatedOTP}`, 
-        duration: 10000 
-      });
-      
-      console.log('Simulated OTP:', simulatedOTP);
-    } catch (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการส่ง OTP', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่
+      const { data: existingCustomer } = await supabase
+        .from('customer_profiles')
+        .select('id')
+        .eq('phone', registerForm.phone)
+        .single();
 
-  const handleRegister = async () => {
-    if (!registerForm.full_name || !registerForm.phone) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
-      return;
-    }
+      if (existingCustomer) {
+        toast({ title: 'ข้อผิดพลาด', description: 'เบอร์โทรนี้ได้ลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ', variant: 'destructive' });
+        return;
+      }
 
-    try {
-      // สร้าง ID จำลองสำหรับผู้ใช้ใหม่
-      const mockUserId = crypto.randomUUID();
-      
       const { error: profileError } = await supabase
         .from('customer_profiles')
         .insert({
-          id: mockUserId,
           full_name: registerForm.full_name,
           phone: registerForm.phone,
-          birth_date: registerForm.birth_date || null,
+          birth_date: registerForm.birth_date,
           gender: registerForm.gender || null,
           tier: 'bronze',
           points: 0,
@@ -190,43 +169,44 @@ const CustomerMobileApp = () => {
         return;
       }
 
-      toast({ title: 'สำเร็จ', description: 'สมัครสมาชิกเรียบร้อยแล้ว' });
+      toast({ title: 'สำเร็จ', description: 'สมัครสมาชิกเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ' });
       setIsRegistering(false);
       setRegisterForm({ full_name: '', phone: '', birth_date: '', gender: '' });
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการสมัครสมาชิก', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async () => {
-    if (!loginForm.phone || !loginForm.otp) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทรและ OTP', variant: 'destructive' });
-      return;
-    }
-
-    // ตรวจสอบ OTP จำลอง
-    if (loginForm.otp !== mockOtp) {
-      toast({ title: 'ข้อผิดพลาด', description: 'OTP ไม่ถูกต้อง', variant: 'destructive' });
+    if (!loginForm.phone || !loginForm.birth_date) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกเบอร์โทรและวันเดือนปีเกิด', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
     try {
-      // ดึงข้อมูลโปรไฟล์ลูกค้าจากเบอร์โทร
+      // ดึงข้อมูลโปรไฟล์ลูกค้าจากเบอร์โทรและวันเกิด
       const { data: profileData, error: profileError } = await supabase
         .from('customer_profiles')
         .select('*')
         .eq('phone', loginForm.phone)
+        .eq('birth_date', loginForm.birth_date)
         .single();
 
       if (profileError || !profileData) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลผู้ใช้ กรุณาสมัครสมาชิกก่อน', variant: 'destructive' });
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: 'ไม่พบข้อมูลผู้ใช้ หรือข้อมูลไม่ถูกต้อง กรุณาตรวจสอบเบอร์โทรและวันเกิด', 
+          variant: 'destructive' 
+        });
         return;
       }
 
       setCurrentUser(profileData);
       setIsLoggedIn(true);
-      toast({ title: 'สำเร็จ', description: 'เข้าสู่ระบบเรียบร้อยแล้ว' });
+      toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.full_name}` });
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', variant: 'destructive' });
     } finally {
@@ -237,9 +217,7 @@ const CustomerMobileApp = () => {
   const handleLogout = async () => {
     setCurrentUser(null);
     setIsLoggedIn(false);
-    setLoginForm({ phone: '', otp: '' });
-    setOtpSent(false);
-    setMockOtp('');
+    setLoginForm({ phone: '', birth_date: '' });
     toast({ title: 'สำเร็จ', description: 'ออกจากระบบเรียบร้อยแล้ว' });
   };
 
@@ -339,7 +317,7 @@ const CustomerMobileApp = () => {
               {isRegistering ? (
                 <>
                   <div>
-                    <Label htmlFor="register-name">ชื่อ</Label>
+                    <Label htmlFor="register-name">ชื่อ *</Label>
                     <Input
                       id="register-name"
                       value={registerForm.full_name}
@@ -348,7 +326,7 @@ const CustomerMobileApp = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="register-phone">เบอร์โทร</Label>
+                    <Label htmlFor="register-phone">เบอร์โทร *</Label>
                     <Input
                       id="register-phone"
                       value={registerForm.phone}
@@ -357,7 +335,7 @@ const CustomerMobileApp = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="register-birth">วันเดือนปีเกิด</Label>
+                    <Label htmlFor="register-birth">วันเดือนปีเกิด *</Label>
                     <Input
                       id="register-birth"
                       type="date"
@@ -378,13 +356,14 @@ const CustomerMobileApp = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleRegister} className="w-full">
-                    สมัครสมาชิก
+                  <Button onClick={handleRegister} className="w-full" disabled={isLoading}>
+                    {isLoading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => setIsRegistering(false)} 
                     className="w-full"
+                    disabled={isLoading}
                   >
                     มีบัญชีแล้ว? เข้าสู่ระบบ
                   </Button>
@@ -393,72 +372,36 @@ const CustomerMobileApp = () => {
                 <>
                   <div>
                     <Label htmlFor="login-phone">เบอร์โทร</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="login-phone"
-                        value={loginForm.phone}
-                        onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                        placeholder="กรอกเบอร์โทร"
-                        disabled={otpSent}
-                      />
-                      {!otpSent && (
-                        <Button 
-                          onClick={sendOTP} 
-                          disabled={isLoading || !loginForm.phone}
-                          className="whitespace-nowrap"
-                        >
-                          ส่ง OTP
-                        </Button>
-                      )}
-                    </div>
+                    <Input
+                      id="login-phone"
+                      value={loginForm.phone}
+                      onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
+                      placeholder="กรอกเบอร์โทร"
+                    />
                   </div>
                   
-                  {otpSent && (
-                    <div>
-                      <Label htmlFor="login-otp">กรอก OTP</Label>
-                      <div className="flex justify-center">
-                        <InputOTP
-                          maxLength={6}
-                          value={loginForm.otp}
-                          onChange={(value) => setLoginForm({...loginForm, otp: value})}
-                        >
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </div>
-                      <div className="text-center mt-2">
-                        <Button 
-                          variant="link" 
-                          onClick={() => {
-                            setOtpSent(false);
-                            setLoginForm({...loginForm, otp: ''});
-                            setMockOtp('');
-                          }}
-                          className="text-sm"
-                        >
-                          ยังไม่ได้รับ OTP? ส่งใหม่
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <div>
+                    <Label htmlFor="login-birth">วันเดือนปีเกิด</Label>
+                    <Input
+                      id="login-birth"
+                      type="date"
+                      value={loginForm.birth_date}
+                      onChange={(e) => setLoginForm({...loginForm, birth_date: e.target.value})}
+                    />
+                  </div>
                   
                   <Button 
                     onClick={handleLogin} 
                     className="w-full"
-                    disabled={!otpSent || !loginForm.otp || isLoading}
+                    disabled={!loginForm.phone || !loginForm.birth_date || isLoading}
                   >
-                    เข้าสู่ระบบ
+                    {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => setIsRegistering(true)} 
                     className="w-full"
+                    disabled={isLoading}
                   >
                     ยังไม่มีบัญชี? สมัครสมาชิก
                   </Button>
@@ -466,6 +409,10 @@ const CustomerMobileApp = () => {
               )}
             </CardContent>
           </Card>
+
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>เข้าสู่ระบบด้วยเบอร์โทรและวันเดือนปีเกิดที่ลงทะเบียนไว้</p>
+          </div>
         </div>
       </div>
     );
