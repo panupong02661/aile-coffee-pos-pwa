@@ -9,7 +9,7 @@ interface CustomerProfile {
   full_name: string;
   phone: string;
   birth_date?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'other' | null;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   points: number;
   total_spent: number;
@@ -84,7 +84,20 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      setProfile(data);
+      if (data) {
+        const profileData: CustomerProfile = {
+          id: data.id,
+          user_id: data.user_id,
+          full_name: data.full_name,
+          phone: data.phone,
+          birth_date: data.birth_date,
+          gender: data.gender as 'male' | 'female' | 'other' | null,
+          tier: data.tier as 'bronze' | 'silver' | 'gold' | 'platinum',
+          points: data.points,
+          total_spent: data.total_spent,
+        };
+        setProfile(profileData);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
     }

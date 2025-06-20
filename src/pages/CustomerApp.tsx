@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ interface CustomerProfile {
   full_name: string;
   phone: string;
   birth_date?: string;
-  gender?: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'other' | null;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   points: number;
   total_spent: number;
@@ -113,7 +112,18 @@ const CustomerApp = () => {
       }
 
       if (data) {
-        setProfile(data);
+        const profileData: CustomerProfile = {
+          id: data.id,
+          user_id: data.user_id,
+          full_name: data.full_name,
+          phone: data.phone,
+          birth_date: data.birth_date,
+          gender: data.gender as 'male' | 'female' | 'other' | null,
+          tier: data.tier as 'bronze' | 'silver' | 'gold' | 'platinum',
+          points: data.points,
+          total_spent: data.total_spent,
+        };
+        setProfile(profileData);
         setFullName(data.full_name);
         setPhone(data.phone);
         setBirthDate(data.birth_date || '');
@@ -148,7 +158,19 @@ const CustomerApp = () => {
         .gte('end_date', new Date().toISOString());
 
       if (error) throw error;
-      setCoupons(data || []);
+      
+      const couponsData: Coupon[] = (data || []).map(coupon => ({
+        id: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+        description: coupon.description,
+        discount_type: coupon.discount_type as 'percent' | 'amount',
+        discount_value: coupon.discount_value,
+        min_purchase: coupon.min_purchase,
+        end_date: coupon.end_date,
+      }));
+      
+      setCoupons(couponsData);
     } catch (error: any) {
       console.error('Error loading coupons:', error);
     }
