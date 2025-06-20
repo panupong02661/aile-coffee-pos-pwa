@@ -121,3 +121,32 @@ export const normalizeDate = (dateInput: string): string => {
   
   return dateInput;
 };
+
+// ฟังก์ชันใหม่สำหรับแปลงวันที่ให้ตรงกับฐานข้อมูล
+export const parseThaiDateInput = (input: string): string => {
+  if (!input) return '';
+  
+  console.log('Parsing Thai date input:', input);
+  
+  // ถ้าเป็นรูปแบบ DD/MM/YYYY (ไทย)
+  if (input.includes('/')) {
+    const parts = input.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      let year = parseInt(parts[2]);
+      
+      // ตรวจสอบว่าเป็น พ.ศ. หรือไม่
+      if (year > 2500) {
+        year = year - 543; // แปลงเป็น ค.ศ.
+      }
+      
+      // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+      const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      console.log('Parsed result:', isoDate);
+      return isoDate;
+    }
+  }
+  
+  return input;
+};
