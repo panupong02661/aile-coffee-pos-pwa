@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +59,7 @@ const CustomerMobileApp = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mockOtp, setMockOtp] = useState(''); // เก็บ OTP จำลอง
   const { toast } = useToast();
 
   const getTierDisplayName = (tier: string): string => {
@@ -141,20 +141,19 @@ const CustomerMobileApp = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: loginForm.phone,
-        options: {
-          channel: 'sms',
-        }
-      });
-
-      if (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถส่ง OTP ได้', variant: 'destructive' });
-        return;
-      }
-
+      // สร้าง OTP จำลอง 6 หลัก
+      const simulatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+      setMockOtp(simulatedOTP);
       setOtpSent(true);
-      toast({ title: 'สำเร็จ', description: 'ส่ง OTP ไปที่เบอร์โทรของคุณแล้ว' });
+      
+      // แสดง OTP ให้ผู้ใช้เห็น (สำหรับการทดสอบ)
+      toast({ 
+        title: 'ส่ง OTP สำเร็จ', 
+        description: `รหัส OTP ของคุณคือ: ${simulatedOTP}`, 
+        duration: 10000 
+      });
+      
+      console.log('Simulated OTP:', simulatedOTP);
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการส่ง OTP', variant: 'destructive' });
     } finally {
@@ -169,8 +168,7 @@ const CustomerMobileApp = () => {
     }
 
     try {
-      // For demo purposes, we'll create a mock user registration
-      // In a real app, you'd integrate with your authentication system
+      // สร้าง ID จำลองสำหรับผู้ใช้ใหม่
       const mockUserId = crypto.randomUUID();
       
       const { error: profileError } = await supabase
@@ -206,36 +204,29 @@ const CustomerMobileApp = () => {
       return;
     }
 
+    // ตรวจสอบ OTP จำลอง
+    if (loginForm.otp !== mockOtp) {
+      toast({ title: 'ข้อผิดพลาด', description: 'OTP ไม่ถูกต้อง', variant: 'destructive' });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: loginForm.phone,
-        token: loginForm.otp,
-        type: 'sms'
-      });
+      // ดึงข้อมูลโปรไฟล์ลูกค้าจากเบอร์โทร
+      const { data: profileData, error: profileError } = await supabase
+        .from('customer_profiles')
+        .select('*')
+        .eq('phone', loginForm.phone)
+        .single();
 
-      if (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'OTP ไม่ถูกต้อง', variant: 'destructive' });
+      if (profileError || !profileData) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลผู้ใช้ กรุณาสมัครสมาชิกก่อน', variant: 'destructive' });
         return;
       }
 
-      if (data.user) {
-        // ดึงข้อมูลโปรไฟล์ลูกค้า
-        const { data: profileData, error: profileError } = await supabase
-          .from('customer_profiles')
-          .select('*')
-          .eq('phone', loginForm.phone)
-          .single();
-
-        if (profileError || !profileData) {
-          toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลผู้ใช้', variant: 'destructive' });
-          return;
-        }
-
-        setCurrentUser(profileData);
-        setIsLoggedIn(true);
-        toast({ title: 'สำเร็จ', description: 'เข้าสู่ระบบเรียบร้อยแล้ว' });
-      }
+      setCurrentUser(profileData);
+      setIsLoggedIn(true);
+      toast({ title: 'สำเร็จ', description: 'เข้าสู่ระบบเรียบร้อยแล้ว' });
     } catch (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', variant: 'destructive' });
     } finally {
@@ -244,11 +235,11 @@ const CustomerMobileApp = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     setCurrentUser(null);
     setIsLoggedIn(false);
     setLoginForm({ phone: '', otp: '' });
     setOtpSent(false);
+    setMockOtp('');
     toast({ title: 'สำเร็จ', description: 'ออกจากระบบเรียบร้อยแล้ว' });
   };
 
@@ -447,6 +438,7 @@ const CustomerMobileApp = () => {
                           onClick={() => {
                             setOtpSent(false);
                             setLoginForm({...loginForm, otp: ''});
+                            setMockOtp('');
                           }}
                           className="text-sm"
                         >
