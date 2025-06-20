@@ -11,6 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { User, Gift, Tag, ShoppingBag, Star, Phone, Calendar, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { convertThaiDateToISO, formatDateForDisplay, convertDisplayDateToISO } from '@/utils/dateUtils';
 
 interface CustomerProfile {
   id: string;
@@ -187,15 +188,25 @@ const CustomerMobileApp = () => {
 
     setIsLoading(true);
     try {
+      // แปลงวันที่ให้เป็นรูปแบบที่ถูกต้อง
+      const convertedBirthDate = convertDisplayDateToISO(loginForm.birth_date);
+      
+      console.log('Login attempt:', {
+        phone: loginForm.phone,
+        originalDate: loginForm.birth_date,
+        convertedDate: convertedBirthDate
+      });
+
       // ดึงข้อมูลโปรไฟล์ลูกค้าจากเบอร์โทรและวันเกิด
       const { data: profileData, error: profileError } = await supabase
         .from('customer_profiles')
         .select('*')
         .eq('phone', loginForm.phone)
-        .eq('birth_date', loginForm.birth_date)
+        .eq('birth_date', convertedBirthDate)
         .single();
 
       if (profileError || !profileData) {
+        console.error('Login error:', profileError);
         toast({ 
           title: 'ข้อผิดพลาด', 
           description: 'ไม่พบข้อมูลผู้ใช้ หรือข้อมูลไม่ถูกต้อง กรุณาตรวจสอบเบอร์โทรและวันเกิด', 
@@ -208,6 +219,7 @@ const CustomerMobileApp = () => {
       setIsLoggedIn(true);
       toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.full_name}` });
     } catch (error) {
+      console.error('Login error:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', variant: 'destructive' });
     } finally {
       setIsLoading(false);
@@ -384,10 +396,13 @@ const CustomerMobileApp = () => {
                     <Label htmlFor="login-birth">วันเดือนปีเกิด</Label>
                     <Input
                       id="login-birth"
-                      type="date"
                       value={loginForm.birth_date}
                       onChange={(e) => setLoginForm({...loginForm, birth_date: e.target.value})}
+                      placeholder="วว/ดด/ปปปป (เช่น 22/10/2535)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)
+                    </p>
                   </div>
                   
                   <Button 
@@ -412,6 +427,7 @@ const CustomerMobileApp = () => {
 
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>เข้าสู่ระบบด้วยเบอร์โทรและวันเดือนปีเกิดที่ลงทะเบียนไว้</p>
+            <p className="text-xs mt-1">รองรับปี พ.ศ. และ ค.ศ.</p>
           </div>
         </div>
       </div>
