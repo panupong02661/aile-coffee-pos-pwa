@@ -6,6 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  parseThaiDateInput, 
+  formatDateToThai,
+  isValidThaiDateFormat,
+  cleanPhoneNumber 
+} from '@/utils/dateUtils';
 
 interface Member {
   id: string;
@@ -27,7 +33,7 @@ const MemberEditForm = ({ member, onSuccess }: MemberEditFormProps) => {
   const [formData, setFormData] = useState({
     name: member.name,
     phone: member.phone,
-    birth_date: member.birth_date || '',
+    birth_date: member.birth_date ? formatDateToThai(member.birth_date) : '',
     gender: member.gender || '',
     tier: member.tier,
     points: member.points,
@@ -38,12 +44,36 @@ const MemberEditForm = ({ member, onSuccess }: MemberEditFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ตรวจสอบรูปแบบวันที่
+    if (formData.birth_date && !isValidThaiDateFormat(formData.birth_date)) {
+      toast({ 
+        title: 'รูปแบบวันที่ไม่ถูกต้อง', 
+        description: 'กรุณากรอกวันที่ในรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const cleanedPhone = cleanPhoneNumber(formData.phone);
+      const convertedBirthDate = formData.birth_date ? parseThaiDateInput(formData.birth_date) : null;
+
+      console.log('Member edit - converted birth date:', convertedBirthDate);
+
       const { error } = await supabase
         .from('members')
-        .update(formData)
+        .update({
+          name: formData.name,
+          phone: cleanedPhone,
+          birth_date: convertedBirthDate,
+          gender: formData.gender || null,
+          tier: formData.tier,
+          points: formData.points,
+          total_spent: formData.total_spent,
+        })
         .eq('id', member.id);
 
       if (error) {
@@ -90,13 +120,16 @@ const MemberEditForm = ({ member, onSuccess }: MemberEditFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="edit-birth-date">วันเดือนปีเกิด</Label>
+        <Label htmlFor="edit-birth-date">วันเดือนปีเกิด (รูปแบบไทย พ.ศ.)</Label>
         <Input
           id="edit-birth-date"
-          type="date"
           value={formData.birth_date}
           onChange={(e) => handleInputChange('birth_date', e.target.value)}
+          placeholder="22/10/2535"
         />
+        <p className="text-xs text-gray-500">
+          กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
+        </p>
       </div>
 
       <div className="space-y-2">

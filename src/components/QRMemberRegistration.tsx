@@ -8,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, CheckCircle } from 'lucide-react';
+import { 
+  parseThaiDateInput, 
+  formatDateToThai,
+  isValidThaiDateFormat,
+  cleanPhoneNumber 
+} from '@/utils/dateUtils';
 
 const QRMemberRegistration = () => {
   const [formData, setFormData] = useState({
@@ -54,29 +60,82 @@ const QRMemberRegistration = () => {
       return;
     }
 
+    // ตรวจสอบรูปแบบวันที่
+    if (!isValidThaiDateFormat(formData.birth_date)) {
+      toast({ 
+        title: 'รูปแบบวันที่ไม่ถูกต้อง', 
+        description: 'กรุณากรอกวันที่ในรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      console.log('=== QR REGISTRATION DEBUG ===');
+      console.log('Form data:', formData);
+
+      const cleanedPhone = cleanPhoneNumber(formData.phone);
+      const convertedBirthDate = parseThaiDateInput(formData.birth_date);
+      
+      console.log('Cleaned phone:', cleanedPhone);
+      console.log('Converted birth date:', convertedBirthDate);
+
+      if (!convertedBirthDate) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแปลงวันที่ได้ กรุณาตรวจสอบรูปแบบวันที่', variant: 'destructive' });
+        return;
+      }
+
+      // ลองเพิ่มในตาราง members ก่อน (เนื่องจากไม่มี RLS)
+      const { data: memberResult, error: memberError } = await supabase
         .from('members')
         .insert([{
           name: formData.name.trim(),
-          phone: formData.phone.trim(),
-          birth_date: formData.birth_date,
+          phone: cleanedPhone,
+          birth_date: convertedBirthDate,
           gender: formData.gender,
           tier: 'silver',
           points: 0,
           total_spent: 0,
           join_date: new Date().toISOString(),
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) {
-        if (error.code === '23505') {
+      if (memberError) {
+        console.error('Member creation error:', memberError);
+        if (memberError.code === '23505') {
           toast({ title: 'ข้อผิดพลาด', description: 'หมายเลขโทรศัพท์นี้มีอยู่แล้วในระบบ', variant: 'destructive' });
         } else {
           toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสมัครสมาชิกได้', variant: 'destructive' });
         }
         return;
+      }
+
+      console.log('Member created successfully:', memberResult);
+
+      // ลองสร้าง customer_profiles ด้วย (แต่ไม่ใส่ user_id)
+      try {
+        const { error: profileError } = await supabase
+          .from('customer_profiles')
+          .insert([{
+            full_name: formData.name.trim(),
+            phone: cleanedPhone,
+            birth_date: convertedBirthDate,
+            gender: formData.gender,
+            tier: 'bronze',
+            points: 0,
+            reward_points: 0,
+            total_spent: 0
+          }]);
+
+        if (profileError) {
+          console.log('Customer profile creation failed (expected):', profileError);
+          // ไม่แสดง error เพราะอาจเป็นเรื่องของ RLS
+        }
+      } catch (profileErr) {
+        console.log('Customer profile creation error (expected):', profileErr);
       }
 
       setSuccess(true);
@@ -89,8 +148,9 @@ const QRMemberRegistration = () => {
         birth_date: '',
         gender: '',
       });
-    } catch (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดที่ไม่คาดคิด', variant: 'destructive' });
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast({ title: 'ข้อผิดพลาด', description: `เกิดข้อผิดพลาดในการสมัครสมาชิก: ${error.message}`, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -128,7 +188,9 @@ const QRMemberRegistration = () => {
           <UserPlus className="w-6 h-6" />
           สมัครสมาชิก
         </CardTitle>
-        <CardDescription>กรอกข้อมูลเพื่อเป็นสมาชิกและรับสิทธิประโยชน์</CardDescription>
+        <CardDescription>
+          สมัครเป็นสมาชิก {shopName} และรับสิทธิประโยชน์
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -155,14 +217,17 @@ const QRMemberRegistration = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="birth_date">วันเกิด *</Label>
+            <Label htmlFor="birth_date">วันเดือนปีเกิด * (รูปแบบไทย พ.ศ.)</Label>
             <Input
               id="birth_date"
-              type="date"
               value={formData.birth_date}
               onChange={(e) => handleInputChange('birth_date', e.target.value)}
+              placeholder="22/10/2535"
               required
             />
+            <p className="text-xs text-gray-500">
+              กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
+            </p>
           </div>
 
           <div className="space-y-2">

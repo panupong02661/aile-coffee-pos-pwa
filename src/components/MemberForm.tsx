@@ -8,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
+import { 
+  parseThaiDateInput, 
+  formatDateToThai,
+  isValidThaiDateFormat,
+  cleanPhoneNumber 
+} from '@/utils/dateUtils';
 
 interface MemberFormData {
   name: string;
@@ -34,13 +40,35 @@ const MemberForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ตรวจสอบรูปแบบวันที่ก่อนส่งข้อมูล
+    if (formData.birth_date && !isValidThaiDateFormat(formData.birth_date)) {
+      toast({ 
+        title: 'รูปแบบวันที่ไม่ถูกต้อง', 
+        description: 'กรุณากรอกวันที่ในรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535)', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const cleanedPhone = cleanPhoneNumber(formData.phone);
+      const convertedBirthDate = formData.birth_date ? parseThaiDateInput(formData.birth_date) : null;
+
+      console.log('Member form - converted birth date:', convertedBirthDate);
+
       const { error } = await supabase
         .from('members')
         .insert([{
-          ...formData,
+          name: formData.name,
+          phone: cleanedPhone,
+          birth_date: convertedBirthDate,
+          gender: formData.gender || null,
+          tier: formData.tier,
+          points: formData.points,
+          total_spent: formData.total_spent,
           join_date: new Date().toISOString(),
         }]);
 
@@ -113,14 +141,17 @@ const MemberForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="birth_date">วันเดือนปีเกิด *</Label>
+            <Label htmlFor="birth_date">วันเดือนปีเกิด * (รูปแบบไทย พ.ศ.)</Label>
             <Input
               id="birth_date"
-              type="date"
               value={formData.birth_date}
               onChange={(e) => handleInputChange('birth_date', e.target.value)}
+              placeholder="22/10/2535"
               required
             />
+            <p className="text-xs text-gray-500">
+              กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
+            </p>
           </div>
 
           <div className="space-y-2">
