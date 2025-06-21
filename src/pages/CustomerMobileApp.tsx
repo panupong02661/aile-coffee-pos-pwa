@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -125,7 +126,14 @@ const CustomerMobileApp = () => {
       inputDate.replace(/\//g, '-') === storedDate.replace(/\//g, '-'),
       
       // เปรียบเทียบแค่ตัวเลข
-      inputDate.replace(/[^0-9]/g, '') === storedDate.replace(/[^0-9]/g, '')
+      inputDate.replace(/[^0-9]/g, '') === storedDate.replace(/[^0-9]/g, ''),
+
+      // เปรียบเทียบแบบ exact match ของ parsed dates
+      inputISODate && storedDate && inputISODate === storedDate,
+      
+      // เปรียบเทียบแบบ loose ขึ้น - ถ้าทั้งสองอันแปลงเป็น Date object แล้วเหมือนกัน
+      inputISODate && storedDate && 
+      new Date(inputISODate).getTime() === new Date(storedDate).getTime()
     ];
     
     const isMatch = matches.some(match => match);
@@ -406,7 +414,7 @@ const CustomerMobileApp = () => {
                 const migrationResult = await supabase
                   .from('customer_profiles')
                   .insert({
-                    full_name: member.name,
+                    full_name: member.name, // members ใช้ 'name', customer_profiles ใช้ 'full_name'
                     phone: member.phone,
                     birth_date: member.birth_date,
                     gender: member.gender,
@@ -456,8 +464,10 @@ const CustomerMobileApp = () => {
         console.log('Date comparison details:');
         allProfiles.forEach((profile, index) => {
           const profileBirthDate = profile.birth_date;
+          // Handle both 'full_name' and 'name' properties properly
+          const profileName = 'full_name' in profile ? profile.full_name : 'name' in profile ? profile.name : 'Unknown';
           console.log(`Profile ${index + 1}:`);
-          console.log(`- Name: ${profile.full_name || profile.name}`);
+          console.log(`- Name: ${profileName}`);
           console.log(`- Phone: ${profile.phone}`);
           console.log(`- Stored birth_date: "${profileBirthDate}"`);
           console.log(`- Input birth_date: "${loginForm.birth_date}"`);
