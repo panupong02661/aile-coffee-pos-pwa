@@ -593,7 +593,7 @@ const CustomerMobileApp = () => {
                   <div className="relative">
                     <Avatar className="w-20 h-20 border-4 border-white/20 shadow-lg">
                       <AvatarFallback className="bg-white/90 text-orange-800 text-2xl font-bold">
-                        {(currentUser?.name || currentUser?.full_name)?.charAt(0) || 'U'}
+                        {currentUser?.name?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -top-2 -right-2 bg-yellow-400 text-orange-800 rounded-full p-1">
@@ -601,7 +601,7 @@ const CustomerMobileApp = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-1">{currentUser?.name || currentUser?.full_name}</h2>
+                    <h2 className="text-2xl font-bold mb-1">{currentUser?.name}</h2>
                     <p className="text-lg opacity-90 font-medium">{getTierDisplayName(currentUser?.tier || 'silver')}</p>
                     <p className="text-sm opacity-75">สมาชิกตั้งแต่ {new Date().getFullYear()}</p>
                   </div>
