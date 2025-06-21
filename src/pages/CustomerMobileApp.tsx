@@ -1,15 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { User, Gift, Tag, ShoppingBag, Star, Phone, Calendar, UserCheck } from 'lucide-react';
+import { Gift, Tag, ShoppingBag, Phone, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -22,6 +17,13 @@ import {
   generateDateSearchVariants,
   generatePhoneVariants
 } from '@/utils/dateUtils';
+import MemberCard from '@/components/customer/MemberCard';
+import LoginForm from '@/components/customer/LoginForm';
+import NavigationGrid from '@/components/customer/NavigationGrid';
+import ProfileSection from '@/components/customer/ProfileSection';
+import RewardsSection from '@/components/customer/RewardsSection';
+import CouponsSection from '@/components/customer/CouponsSection';
+import ShopSection from '@/components/customer/ShopSection';
 
 interface CustomerProfile {
   id: string;
@@ -68,6 +70,7 @@ const CustomerMobileApp = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
   const { toast } = useToast();
 
   const getTierDisplayName = (tier: string): string => {
@@ -90,7 +93,6 @@ const CustomerMobileApp = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับเปรียบเทียบวันที่แบบละเอียด
   const compareDates = (inputDate: string, storedDate: string): boolean => {
     if (!inputDate || !storedDate) return false;
     
@@ -98,39 +100,23 @@ const CustomerMobileApp = () => {
     console.log('Input date:', inputDate);
     console.log('Stored date:', storedDate);
     
-    // แปลง input เป็น ISO format
     const inputISODate = parseThaiDateInput(inputDate);
     console.log('Input converted to ISO:', inputISODate);
     
-    // สร้าง variants ของวันที่ทั้งสองแบบ
     const inputVariants = generateDateSearchVariants(inputDate);
     const storedVariants = generateDateSearchVariants(storedDate);
     
     console.log('Input variants:', inputVariants);
     console.log('Stored variants:', storedVariants);
     
-    // ตรวจสอบการตรงกันแบบต่างๆ
     const matches = [
-      // ตรงกันโดยตรง
       inputDate === storedDate,
       inputISODate === storedDate,
-      
-      // ตรงกันผ่าน variants
       inputVariants.some(iv => storedVariants.some(sv => iv === sv)),
-      
-      // เปรียบเทียบแบบ Date object
       inputISODate && new Date(inputISODate).toISOString().split('T')[0] === new Date(storedDate).toISOString().split('T')[0],
-      
-      // เปรียบเทียบแบบ string ธรรมดา
       inputDate.replace(/\//g, '-') === storedDate.replace(/\//g, '-'),
-      
-      // เปรียบเทียบแค่ตัวเลข
       inputDate.replace(/[^0-9]/g, '') === storedDate.replace(/[^0-9]/g, ''),
-
-      // เปรียบเทียบแบบ exact match ของ parsed dates
       inputISODate && storedDate && inputISODate === storedDate,
-      
-      // เปรียบเทียบแบบ loose ขึ้น - ถ้าทั้งสองอันแปลงเป็น Date object แล้วเหมือนกัน
       inputISODate && storedDate && 
       new Date(inputISODate).getTime() === new Date(storedDate).getTime()
     ];
@@ -158,8 +144,6 @@ const CustomerMobileApp = () => {
 
   const fetchCoupons = async () => {
     if (!currentUser) return;
-    
-    // เนื่องจากเราใช้ members table หลัก ตอนนี้ข้ามการโหลด coupons ไปก่อน
     setCoupons([]);
   };
 
@@ -169,7 +153,6 @@ const CustomerMobileApp = () => {
       return;
     }
 
-    // ตรวจสอบรูปแบบวันที่ก่อน
     if (!isValidThaiDateFormat(registerForm.birth_date)) {
       toast({ 
         title: 'รูปแบบวันที่ไม่ถูกต้อง', 
@@ -184,11 +167,9 @@ const CustomerMobileApp = () => {
       console.log('=== REGISTER DEBUG INFO ===');
       console.log('Original form data:', registerForm);
       
-      // ทำความสะอาดเบอร์โทรศัพท์
       const cleanedPhone = cleanPhoneNumber(registerForm.phone);
       console.log('Cleaned phone:', cleanedPhone);
       
-      // แปลงวันที่ให้ถูกต้อง
       const convertedBirthDate = parseThaiDateInput(registerForm.birth_date);
       console.log('Converted birth date for registration:', convertedBirthDate);
 
@@ -197,12 +178,10 @@ const CustomerMobileApp = () => {
         return;
       }
 
-      // สร้าง variants สำหรับการตรวจสอบ
       const phoneVariants = generatePhoneVariants(registerForm.phone);
       
       console.log('Phone variants for checking:', phoneVariants);
 
-      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่ใน members
       let existingMember = false;
 
       for (const phoneVariant of phoneVariants) {
@@ -231,7 +210,6 @@ const CustomerMobileApp = () => {
         gender: registerForm.gender || null
       });
 
-      // สร้างสมาชิกใหม่ใน members table
       const { error: memberError } = await supabase
         .from('members')
         .insert({
@@ -271,7 +249,6 @@ const CustomerMobileApp = () => {
       return;
     }
 
-    // ตรวจสอบรูปแบบวันที่ก่อน
     if (!isValidThaiDateFormat(loginForm.birth_date)) {
       toast({ 
         title: 'รูปแบบวันที่ไม่ถูกต้อง', 
@@ -286,7 +263,6 @@ const CustomerMobileApp = () => {
       console.log('=== LOGIN DEBUG INFO ===');
       console.log('Login form data:', loginForm);
       
-      // สร้าง variants สำหรับการค้นหา
       const phoneVariants = generatePhoneVariants(loginForm.phone);
       
       console.log('Phone variants for search:', phoneVariants);
@@ -294,7 +270,6 @@ const CustomerMobileApp = () => {
       
       let profileData = null;
 
-      // ค้นหาจาก members table
       console.log('=== SEARCHING IN MEMBERS ===');
       
       for (const phoneVariant of phoneVariants) {
@@ -333,7 +308,6 @@ const CustomerMobileApp = () => {
       if (!profileData) {
         console.log('=== LOGIN FAILED - DEBUG INFO ===');
         
-        // Debug: ดูข้อมูลทั้งหมดของเบอร์นี้
         const debugMembers = await supabase
           .from('members')
           .select('*')
@@ -341,7 +315,6 @@ const CustomerMobileApp = () => {
         
         console.log('All members with similar phone:', debugMembers.data);
         
-        // ตรวจสอบความตรงกันของวันที่อย่างละเอียด
         const allProfiles = debugMembers.data || [];
         console.log('Date comparison details:');
         allProfiles.forEach((profile, index) => {
@@ -423,7 +396,6 @@ const CustomerMobileApp = () => {
       return;
     }
 
-    // ข้ามการแลกของรางวัลไปก่อน เนื่องจากยังไม่มีตารางที่เชื่อมโยง
     toast({ title: 'ฟีเจอร์ยังไม่พร้อม', description: 'ระบบแลกของรางวัลยังอยู่ระหว่างการพัฒนา' });
   };
 
@@ -439,128 +411,17 @@ const CustomerMobileApp = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">แอปสั่งอาหาร</h1>
-            <p className="text-gray-600">ยินดีต้อนรับสู่แอปสั่งอาหารออนไลน์</p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">
-                {isRegistering ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isRegistering ? (
-                <>
-                  <div>
-                    <Label htmlFor="register-name">ชื่อ *</Label>
-                    <Input
-                      id="register-name"
-                      value={registerForm.name}
-                      onChange={(e) => setRegisterForm({...registerForm, name: e.target.value})}
-                      placeholder="กรอกชื่อ-นามสกุล"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="register-phone">เบอร์โทร *</Label>
-                    <Input
-                      id="register-phone"
-                      value={registerForm.phone}
-                      onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
-                      placeholder="08xxxxxxxx"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="register-birth">วันเดือนปีเกิด * (รูปแบบไทย พ.ศ.)</Label>
-                    <Input
-                      id="register-birth"
-                      value={registerForm.birth_date}
-                      onChange={(e) => setRegisterForm({...registerForm, birth_date: e.target.value})}
-                      placeholder="22/10/2535"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="register-gender">เพศ</Label>
-                    <Select value={registerForm.gender} onValueChange={(value) => setRegisterForm({...registerForm, gender: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเพศ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">ชาย</SelectItem>
-                        <SelectItem value="female">หญิง</SelectItem>
-                        <SelectItem value="other">อื่นๆ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleRegister} className="w-full" disabled={isLoading}>
-                    {isLoading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsRegistering(false)} 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    มีบัญชีแล้ว? เข้าสู่ระบบ
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <Label htmlFor="login-phone">เบอร์โทร</Label>
-                    <Input
-                      id="login-phone"
-                      value={loginForm.phone}
-                      onChange={(e) => setLoginForm({...loginForm, phone: e.target.value})}
-                      placeholder="08xxxxxxxx"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="login-birth">วันเดือนปีเกิด (รูปแบบไทย พ.ศ.)</Label>
-                    <Input
-                      id="login-birth"
-                      value={loginForm.birth_date}
-                      onChange={(e) => setLoginForm({...loginForm, birth_date: e.target.value})}
-                      placeholder="22/10/2535"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      กรอกรูปแบบ วว/ดด/ปปปป (เช่น 22/10/2535) รูปแบบไทย พ.ศ.
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleLogin} 
-                    className="w-full"
-                    disabled={!loginForm.phone || !loginForm.birth_date || isLoading}
-                  >
-                    {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsRegistering(true)} 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    ยังไม่มีบัญชี? สมัครสมาชิก
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>เข้าสู่ระบบด้วยเบอร์โทรและวันเดือนปีเกิด</p>
-            <p className="text-xs mt-1">รูปแบบไทย พ.ศ. เช่น 22/10/2535</p>
-          </div>
-        </div>
-      </div>
+      <LoginForm
+        isRegistering={isRegistering}
+        setIsRegistering={setIsRegistering}
+        loginForm={loginForm}
+        setLoginForm={setLoginForm}
+        registerForm={registerForm}
+        setRegisterForm={setRegisterForm}
+        isLoading={isLoading}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
     );
   }
 
@@ -577,206 +438,38 @@ const CustomerMobileApp = () => {
       </div>
 
       {/* Member Card */}
+      <MemberCard currentUser={currentUser} />
+
+      {/* Navigation Grid */}
+      <NavigationGrid activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Content Sections */}
       <div className="p-4">
-        <Card className={`${getTierColor(currentUser?.tier || 'silver')} text-white`}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <Avatar className="w-16 h-16 border-2 border-white">
-                <AvatarFallback className="bg-white text-gray-800 text-lg font-bold">
-                  {currentUser?.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">{currentUser?.name}</h2>
-                <p className="text-sm opacity-90">{getTierDisplayName(currentUser?.tier || 'silver')}</p>
-                <div className="flex space-x-4 mt-2">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{currentUser?.points || 0}</p>
-                    <p className="text-xs opacity-75">แต้มสะสม</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold">฿{currentUser?.total_spent || 0}</p>
-                    <p className="text-xs opacity-75">ยอดใช้จ่าย</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {activeTab === 'profile' && (
+          <ProfileSection
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            onUpdateProfile={handleUpdateProfile}
+          />
+        )}
 
-      {/* Main Navigation */}
-      <div className="p-4">
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="profile">โปรไฟล์</TabsTrigger>
-            <TabsTrigger value="rewards">Rewards</TabsTrigger>
-            <TabsTrigger value="coupons">Coupons</TabsTrigger>
-            <TabsTrigger value="shop">Shop</TabsTrigger>
-          </TabsList>
+        {activeTab === 'rewards' && (
+          <RewardsSection
+            rewards={rewards}
+            currentUser={currentUser}
+            onRedeemReward={redeemReward}
+          />
+        )}
 
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  ข้อมูลส่วนตัว
-                </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => editMode ? handleUpdateProfile() : setEditMode(true)}
-                >
-                  {editMode ? 'บันทึก' : 'แก้ไข'}
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>ชื่อ</Label>
-                  <Input
-                    value={currentUser?.name || ''}
-                    onChange={(e) => setCurrentUser(prev => prev ? {...prev, name: e.target.value} : null)}
-                    disabled={!editMode}
-                  />
-                </div>
-                <div>
-                  <Label>เบอร์โทร</Label>
-                  <Input
-                    value={currentUser?.phone || ''}
-                    onChange={(e) => setCurrentUser(prev => prev ? {...prev, phone: e.target.value} : null)}
-                    disabled={!editMode}
-                  />
-                </div>
-                <div>
-                  <Label>วันเดือนปีเกิด</Label>
-                  {editMode ? (
-                    <Input
-                      value={currentUser?.birth_date ? formatDateForDisplay(currentUser.birth_date) : ''}
-                      onChange={(e) => {
-                        const convertedDate = parseThaiDateInput(e.target.value);
-                        setCurrentUser(prev => prev ? {...prev, birth_date: convertedDate} : null);
-                      }}
-                      placeholder="22/10/2535"
-                    />
-                  ) : (
-                    <Input
-                      value={currentUser?.birth_date ? formatDateToThai(currentUser.birth_date) : ''}
-                      disabled={true}
-                    />
-                  )}
-                </div>
-                <div>
-                  <Label>เพศ</Label>
-                  <Select 
-                    value={currentUser?.gender || ''} 
-                    onValueChange={(value) => setCurrentUser(prev => prev ? {...prev, gender: value} : null)}
-                    disabled={!editMode}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกเพศ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">ชาย</SelectItem>
-                      <SelectItem value="female">หญิง</SelectItem>
-                      <SelectItem value="other">อื่นๆ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+        {activeTab === 'coupons' && (
+          <CouponsSection coupons={coupons} />
+        )}
 
-          {/* Rewards Tab */}
-          <TabsContent value="rewards" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  ของรางวัล
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {rewards.map((reward) => (
-                    <div key={reward.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <Gift className="w-6 h-6 text-gray-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{reward.name}</h4>
-                          <p className="text-sm text-gray-600">{reward.description}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            <span className="text-sm">{reward.points_required} แต้ม</span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm"
-                        onClick={() => redeemReward(reward.id, reward.points_required)}
-                        disabled={(currentUser?.points || 0) < reward.points_required}
-                      >
-                        แลก
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Coupons Tab */}
-          <TabsContent value="coupons" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="w-5 h-5" />
-                  คูปองของฉัน
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-gray-600 py-8">ยังไม่มีคูปอง</div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Shop Tab */}
-          <TabsContent value="shop" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5" />
-                  สั่งสินค้าในร้าน
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <ShoppingBag className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">ระบบสั่งอาหารออนไลน์</h3>
-                  <p className="text-gray-600 mb-4">
-                    สั่งอาหารจากเมนูของร้านและชำระเงินออนไลน์
-                  </p>
-                  <Button>เริ่มสั่งอาหาร</Button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <div className="text-center p-4 border rounded-lg">
-                    <Phone className="w-8 h-8 mx-auto text-blue-500 mb-2" />
-                    <h4 className="font-medium">สั่งผ่านแอป</h4>
-                    <p className="text-sm text-gray-600">สะดวก รวดเร็ว</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <UserCheck className="w-8 h-8 mx-auto text-green-500 mb-2" />
-                    <h4 className="font-medium">รับที่ร้าน</h4>
-                    <p className="text-sm text-gray-600">Pick up พร้อมรับ</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {activeTab === 'shop' && (
+          <ShopSection />
+        )}
       </div>
     </div>
   );
