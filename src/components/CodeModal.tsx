@@ -27,18 +27,20 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
-      // Check if code exists and is valid
-      const { data: gift, error } = await supabase
+      // Check if code exists and is valid - simplified query without complex type inference
+      const { data, error } = await supabase
         .from('customer_gifts')
         .select('*')
         .eq('gift_code', code.toUpperCase())
-        .eq('is_used', true) // Code should be used (activated) but not applied to order yet
-        .maybeSingle();
+        .eq('is_used', true)
+        .limit(1);
 
       if (error) {
         toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการตรวจสอบโค้ด', variant: 'destructive' });
         return;
       }
+
+      const gift = data && data.length > 0 ? data[0] : null;
 
       if (!gift) {
         toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้หรือโค้ดไม่ถูกต้อง', variant: 'destructive' });
