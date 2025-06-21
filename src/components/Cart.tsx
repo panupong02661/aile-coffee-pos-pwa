@@ -9,6 +9,7 @@ import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -51,6 +52,7 @@ const Cart = ({
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
+  const { toast } = useToast();
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
   

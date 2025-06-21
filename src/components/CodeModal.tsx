@@ -54,10 +54,10 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       // Apply the code
       onApplyCode(gift);
       
-      // Mark as applied (you might want to add an 'applied_to_order' field)
+      // Mark as applied by updating used_at timestamp
       await supabase
         .from('customer_gifts')
-        .update({ applied_at: new Date().toISOString() })
+        .update({ used_at: new Date().toISOString() })
         .eq('id', gift.id);
 
       setCode('');

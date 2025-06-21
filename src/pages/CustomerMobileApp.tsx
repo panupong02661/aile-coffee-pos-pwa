@@ -64,6 +64,7 @@ interface CustomerGift {
   expires_at?: string;
   is_used: boolean;
   used_at?: string;
+  gift_code?: string;
   message?: string;
   created_at: string;
 }
