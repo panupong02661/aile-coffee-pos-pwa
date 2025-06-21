@@ -27,10 +27,21 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
-      // Check if code exists and is valid - using any type to avoid type inference issues
+      // Check if code exists and is valid
       const { data, error }: { data: any[] | null; error: any } = await supabase
         .from('customer_gifts')
-        .select('*')
+        .select(`
+          *,
+          menu_items (
+            id,
+            name,
+            price,
+            description,
+            image_url,
+            category_id,
+            is_available
+          )
+        `)
         .eq('gift_code', code.toUpperCase())
         .eq('is_used', false);
 
@@ -53,7 +64,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // Apply the code
+      // Apply the code based on gift type
       onApplyCode(gift);
       
       // Mark as used
@@ -69,9 +80,18 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         console.error('Update error:', updateError);
       }
 
+      let successMessage = '';
+      if (gift.gift_type === 'menu_item') {
+        successMessage = `เพิ่มเมนู ${gift.gift_name} ลงในตะกร้าแล้ว`;
+      } else if (gift.gift_type === 'promotion') {
+        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
+      } else {
+        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว`;
+      }
+
       toast({ 
         title: 'สำเร็จ', 
-        description: `ใช้โค้ด ${gift.gift_name} แล้ว`
+        description: successMessage
       });
 
       setCode('');

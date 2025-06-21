@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -49,6 +48,7 @@ const POS = () => {
   const {
     cartItems,
     addToCart,
+    addFreeItemToCart,
     updateQuantity,
     removeFromCart,
     updateDiscount,
@@ -199,6 +199,35 @@ const POS = () => {
     setAvailableAddons([]);
   };
 
+  const handleCodeApply = async (giftData: any) => {
+    if (giftData.gift_type === 'menu_item') {
+      // Try to find the menu item by gift_id (assuming it references menu_items.id)
+      const menuItem = convertedMenuItems.find(item => item.id === giftData.gift_id);
+      
+      if (menuItem) {
+        // Add the menu item as a free item with full discount
+        addFreeItemToCart(menuItem, giftData.gift_name);
+      } else {
+        // Create a placeholder menu item if not found
+        const placeholderItem = {
+          id: giftData.gift_id || `gift_${Date.now()}`,
+          name: giftData.gift_name,
+          price: giftData.gift_value || 0,
+          category_id: '',
+          image: '',
+          is_available: true,
+          description: giftData.gift_description || '',
+          calculated_cost: 0
+        };
+        addFreeItemToCart(placeholderItem, giftData.gift_name);
+      }
+    } else if (giftData.gift_type === 'promotion') {
+      // Apply promotion discount to bill
+      setBillDiscount(giftData.gift_value);
+      setBillDiscountType('amount');
+    }
+  };
+
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (loading) {
@@ -283,6 +312,7 @@ const POS = () => {
                     onUpdateBillDiscountType={setBillDiscountType}
                     onRestoreCart={restoreCart}
                     selectedMember={selectedMember}
+                    onCodeApply={handleCodeApply}
                   />
                 </div>
               </div>
@@ -325,6 +355,7 @@ const POS = () => {
           onUpdateBillDiscountType={setBillDiscountType}
           onRestoreCart={restoreCart}
           selectedMember={selectedMember}
+          onCodeApply={handleCodeApply}
         />
       )}
 

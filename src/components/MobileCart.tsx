@@ -30,6 +30,7 @@ interface MobileCartProps {
   onUpdateBillDiscount: (discount: number) => void;
   onUpdateBillDiscountType: (type: 'percent' | 'amount') => void;
   onRestoreCart: (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
+  onCodeApply?: (giftData: any) => void;
   selectedMember?: {
     id: string;
     phone: string;
@@ -54,6 +55,7 @@ const MobileCart = ({
   onUpdateBillDiscount,
   onUpdateBillDiscountType,
   onRestoreCart,
+  onCodeApply,
   selectedMember
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -345,13 +347,8 @@ const MobileCart = ({
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
         onApplyCode={(giftData) => {
-          // Handle applying the code
-          if (giftData.gift_type === 'menu_item') {
-            toast({ title: 'สำเร็จ', description: `เพิ่ม ${giftData.gift_name} แล้ว` });
-          } else if (giftData.gift_type === 'promotion') {
-            onUpdateBillDiscount(giftData.gift_value);
-            onUpdateBillDiscountType('amount');
-            toast({ title: 'สำเร็จ', description: `ใช้โปรโมชั่น ${giftData.gift_name} แล้ว` });
+          if (onCodeApply) {
+            onCodeApply(giftData);
           }
         }}
       />

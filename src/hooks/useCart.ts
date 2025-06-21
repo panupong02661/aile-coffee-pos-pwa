@@ -24,6 +24,23 @@ export const useCart = () => {
     setCartItems(prev => [...prev, newItem]);
   };
 
+  const addFreeItemToCart = (menuItem: MenuItem, giftName: string) => {
+    const newItem: CartItem = {
+      id: `${menuItem.id}_${Date.now()}_${Math.random()}_free`,
+      menu_item: {
+        ...menuItem,
+        name: `${menuItem.name} (${giftName})`
+      },
+      quantity: 1,
+      selected_addons: [],
+      item_discount: menuItem.price,
+      item_discount_type: 'amount',
+      total_price: 0
+    };
+
+    setCartItems(prev => [...prev, newItem]);
+  };
+
   const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
@@ -96,6 +113,7 @@ export const useCart = () => {
   return {
     cartItems,
     addToCart,
+    addFreeItemToCart,
     updateQuantity,
     removeFromCart,
     updateDiscount,
