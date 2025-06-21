@@ -308,6 +308,65 @@ export type Database = {
           },
         ]
       }
+      customer_gifts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          gift_description: string | null
+          gift_id: string
+          gift_name: string
+          gift_type: string
+          gift_value: number | null
+          id: string
+          is_used: boolean
+          message: string | null
+          sent_by: string | null
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at?: string | null
+          gift_description?: string | null
+          gift_id: string
+          gift_name: string
+          gift_type: string
+          gift_value?: number | null
+          id?: string
+          is_used?: boolean
+          message?: string | null
+          sent_by?: string | null
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string | null
+          gift_description?: string | null
+          gift_id?: string
+          gift_name?: string
+          gift_type?: string
+          gift_value?: number | null
+          id?: string
+          is_used?: boolean
+          message?: string | null
+          sent_by?: string | null
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_gifts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_mobile_sessions: {
         Row: {
           created_at: string | null
@@ -551,6 +610,51 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "customer_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_usage_history: {
+        Row: {
+          customer_gift_id: string
+          customer_id: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          used_amount: number | null
+          used_at: string
+        }
+        Insert: {
+          customer_gift_id: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          used_amount?: number | null
+          used_at?: string
+        }
+        Update: {
+          customer_gift_id?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          used_amount?: number | null
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_usage_history_customer_gift_id_fkey"
+            columns: ["customer_gift_id"]
+            isOneToOne: false
+            referencedRelation: "customer_gifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_usage_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]

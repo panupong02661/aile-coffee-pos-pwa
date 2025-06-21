@@ -20,7 +20,9 @@ import {
   Star,
   Plus,
   Trash2,
-  Edit
+  Edit,
+  Calendar,
+  ShoppingBag
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -52,17 +54,29 @@ interface Promotion {
   is_active: boolean;
 }
 
+interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  is_available: boolean;
+}
+
 const CustomerAppManagement = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('send-gifts');
   const [selectedReward, setSelectedReward] = useState('');
   const [selectedPromotion, setSelectedPromotion] = useState('');
+  const [selectedMenuItem, setSelectedMenuItem] = useState('');
   const [giftMessage, setGiftMessage] = useState('');
+  const [expirationDate, setExpirationDate] = useState('');
+  const [giftType, setGiftType] = useState<'reward' | 'promotion' | 'menu_item'>('reward');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -71,6 +85,7 @@ const CustomerAppManagement = () => {
     loadCustomers();
     loadRewards();
     loadPromotions();
+    loadMenuItems();
   }, []);
 
   const loadCustomers = async () => {
@@ -112,13 +127,26 @@ const CustomerAppManagement = () => {
       return;
     }
     
-    // Map the data to match our interface
     const mappedPromotions: Promotion[] = (data || []).map(promo => ({
       ...promo,
       discount_type: promo.type === 'percentage' ? 'percentage' : 'amount'
     }));
     
     setPromotions(mappedPromotions);
+  };
+
+  const loadMenuItems = async () => {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('id, name, description, price, is_available')
+      .eq('is_available', true)
+      .order('name');
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลเมนูได้', variant: 'destructive' });
+      return;
+    }
+    setMenuItems(data || []);
   };
 
   const getTierIcon = (tier: string) => {
@@ -162,22 +190,76 @@ const CustomerAppManagement = () => {
     }
   };
 
+  const getCurrentGiftData = () => {
+    if (giftType === 'reward' && selectedReward) {
+      const reward = rewards.find(r => r.id === selectedReward);
+      return reward ? {
+        id: reward.id,
+        name: reward.name,
+        description: reward.description,
+        value: reward.points_required
+      } : null;
+    } else if (giftType === 'promotion' && selectedPromotion) {
+      const promotion = promotions.find(p => p.id === selectedPromotion);
+      return promotion ? {
+        id: promotion.id,
+        name: promotion.name,
+        description: promotion.description,
+        value: promotion.discount_value
+      } : null;
+    } else if (giftType === 'menu_item' && selectedMenuItem) {
+      const menuItem = menuItems.find(m => m.id === selectedMenuItem);
+      return menuItem ? {
+        id: menuItem.id,
+        name: menuItem.name,
+        description: menuItem.description,
+        value: menuItem.price
+      } : null;
+    }
+    return null;
+  };
+
   const handleSendGift = async () => {
     if (selectedCustomers.length === 0) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกลูกค้าที่ต้องการส่งของขวัญ', variant: 'destructive' });
       return;
     }
 
-    if (!selectedReward && !selectedPromotion) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกของขวัญหรือโปรโมชั่น', variant: 'destructive' });
+    const giftData = getCurrentGiftData();
+    if (!giftData) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกของขวัญที่ต้องการส่ง', variant: 'destructive' });
+      return;
+    }
+
+    if (expirationDate && new Date(expirationDate) <= new Date()) {
+      toast({ title: 'ข้อผิดพลาด', description: 'วันหมดอายุต้องเป็นวันในอนาคต', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
     try {
-      // จำลองการส่งของขวัญ (ในระบบจริงจะต้องมีตารางสำหรับเก็บข้อมูลการส่งของขวัญ)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      const giftsToInsert = selectedCustomers.map(customerId => ({
+        customer_id: customerId,
+        gift_type: giftType,
+        gift_id: giftData.id,
+        gift_name: giftData.name,
+        gift_description: giftData.description || '',
+        gift_value: giftData.value,
+        expires_at: expirationDate ? new Date(expirationDate).toISOString() : null,
+        message: giftMessage || null,
+        sent_by: 'admin'
+      }));
+
+      const { error } = await supabase
+        .from('customer_gifts')
+        .insert(giftsToInsert);
+
+      if (error) {
+        console.error('Error sending gifts:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการส่งของขวัญ', variant: 'destructive' });
+        return;
+      }
+
       toast({ 
         title: 'สำเร็จ', 
         description: `ส่งของขวัญให้ลูกค้า ${selectedCustomers.length} คนเรียบร้อยแล้ว` 
@@ -187,10 +269,14 @@ const CustomerAppManagement = () => {
       setSelectedCustomers([]);
       setSelectedReward('');
       setSelectedPromotion('');
+      setSelectedMenuItem('');
       setGiftMessage('');
+      setExpirationDate('');
+      setGiftType('reward');
       
-    } catch (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการส่งของขวัญ', variant: 'destructive' });
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      toast({ title: 'ข้อผิดพลาด', description: `เกิดข้อผิดพลาดในการส่งของขวัญ: ${error.message}`, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -298,41 +384,111 @@ const CustomerAppManagement = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Rewards Section */}
+                {/* Gift Type Selection */}
                 <div>
-                  <Label>ของรางวัล</Label>
-                  <Select value={selectedReward} onValueChange={setSelectedReward}>
+                  <Label>ประเภทของขวัญ</Label>
+                  <Select value={giftType} onValueChange={(value: 'reward' | 'promotion' | 'menu_item') => {
+                    setGiftType(value);
+                    setSelectedReward('');
+                    setSelectedPromotion('');
+                    setSelectedMenuItem('');
+                  }}>
                     <SelectTrigger>
-                      <SelectValue placeholder="เลือกของรางวัล" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {rewards.map((reward) => (
-                        <SelectItem key={reward.id} value={reward.id}>
-                          {reward.name} ({reward.points_required} แต้ม)
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="reward">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-4 h-4" />
+                          ของรางวัล
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="promotion">
+                        <div className="flex items-center gap-2">
+                          <Tag className="w-4 h-4" />
+                          โปรโมชั่น
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="menu_item">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4" />
+                          เมนูอาหาร
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
+                {/* Gift Selection based on type */}
+                {giftType === 'reward' && (
+                  <div>
+                    <Label>ของรางวัล</Label>
+                    <Select value={selectedReward} onValueChange={setSelectedReward}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกของรางวัล" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rewards.map((reward) => (
+                          <SelectItem key={reward.id} value={reward.id}>
+                            {reward.name} ({reward.points_required} แต้ม)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {giftType === 'promotion' && (
+                  <div>
+                    <Label>โปรโมชั่น</Label>
+                    <Select value={selectedPromotion} onValueChange={setSelectedPromotion}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกโปรโมชั่น" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {promotions.map((promotion) => (
+                          <SelectItem key={promotion.id} value={promotion.id}>
+                            {promotion.name} ({promotion.discount_value}
+                            {promotion.discount_type === 'percentage' ? '%' : '฿'})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {giftType === 'menu_item' && (
+                  <div>
+                    <Label>เมนูอาหาร</Label>
+                    <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกเมนูอาหาร" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {menuItems.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} ({item.price}฿)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <Separator />
 
-                {/* Promotions Section */}
+                {/* Expiration Date */}
                 <div>
-                  <Label>โปรโมชั่น</Label>
-                  <Select value={selectedPromotion} onValueChange={setSelectedPromotion}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกโปรโมชั่น" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {promotions.map((promotion) => (
-                        <SelectItem key={promotion.id} value={promotion.id}>
-                          {promotion.name} ({promotion.discount_value}
-                          {promotion.discount_type === 'percentage' ? '%' : '฿'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    วันหมดอายุ (ไม่บังคับ)
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={expirationDate}
+                    onChange={(e) => setExpirationDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
                 </div>
 
                 <Separator />
@@ -351,7 +507,7 @@ const CustomerAppManagement = () => {
                 {/* Send Button */}
                 <Button 
                   onClick={handleSendGift}
-                  disabled={isLoading || selectedCustomers.length === 0 || (!selectedReward && !selectedPromotion)}
+                  disabled={isLoading || selectedCustomers.length === 0 || !getCurrentGiftData()}
                   className="w-full"
                 >
                   <Send className="w-4 h-4 mr-2" />
@@ -359,13 +515,14 @@ const CustomerAppManagement = () => {
                 </Button>
 
                 {/* Summary */}
-                {selectedCustomers.length > 0 && (
+                {selectedCustomers.length > 0 && getCurrentGiftData() && (
                   <div className="bg-blue-50 p-3 rounded-lg text-sm">
                     <div className="font-medium text-blue-800">สรุป:</div>
                     <div className="text-blue-700">
-                      • ลูกค้าที่เลือก: {selectedCustomers.length} คน
-                      {selectedReward && <div>• ของรางวัล: {rewards.find(r => r.id === selectedReward)?.name}</div>}
-                      {selectedPromotion && <div>• โปรโมชั่น: {promotions.find(p => p.id === selectedPromotion)?.name}</div>}
+                      • ลูกค้าที่เลือก: {selectedCustomers.length} คน<br/>
+                      • ประเภท: {giftType === 'reward' ? 'ของรางวัล' : giftType === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'}<br/>
+                      • ชื่อ: {getCurrentGiftData()?.name}<br/>
+                      {expirationDate && <span>• หมดอายุ: {new Date(expirationDate).toLocaleDateString('th-TH')}</span>}
                     </div>
                   </div>
                 )}
