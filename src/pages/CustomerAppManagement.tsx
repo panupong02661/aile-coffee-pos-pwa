@@ -47,7 +47,8 @@ interface Promotion {
   name: string;
   description?: string;
   discount_value: number;
-  discount_type: string;
+  discount_type?: string;
+  type: string;
   is_active: boolean;
 }
 
@@ -102,7 +103,7 @@ const CustomerAppManagement = () => {
   const loadPromotions = async () => {
     const { data, error } = await supabase
       .from('promotions')
-      .select('*')
+      .select('id, name, description, discount_value, type, is_active')
       .eq('is_active', true)
       .order('name');
     
@@ -110,7 +111,14 @@ const CustomerAppManagement = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลโปรโมชั่นได้', variant: 'destructive' });
       return;
     }
-    setPromotions(data || []);
+    
+    // Map the data to match our interface
+    const mappedPromotions: Promotion[] = (data || []).map(promo => ({
+      ...promo,
+      discount_type: promo.type === 'percentage' ? 'percentage' : 'amount'
+    }));
+    
+    setPromotions(mappedPromotions);
   };
 
   const getTierIcon = (tier: string) => {

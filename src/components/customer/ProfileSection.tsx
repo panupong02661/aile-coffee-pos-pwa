@@ -54,7 +54,11 @@ const ProfileSection = ({
           <Label>ชื่อ</Label>
           <Input
             value={currentUser?.name || ''}
-            onChange={(e) => setCurrentUser(prev => prev ? {...prev, name: e.target.value} : null)}
+            onChange={(e) => {
+              if (currentUser) {
+                setCurrentUser({...currentUser, name: e.target.value});
+              }
+            }}
             disabled={!editMode}
           />
         </div>
@@ -62,7 +66,11 @@ const ProfileSection = ({
           <Label>เบอร์โทร</Label>
           <Input
             value={currentUser?.phone || ''}
-            onChange={(e) => setCurrentUser(prev => prev ? {...prev, phone: e.target.value} : null)}
+            onChange={(e) => {
+              if (currentUser) {
+                setCurrentUser({...currentUser, phone: e.target.value});
+              }
+            }}
             disabled={!editMode}
           />
         </div>
@@ -72,8 +80,10 @@ const ProfileSection = ({
             <Input
               value={currentUser?.birth_date ? formatDateForDisplay(currentUser.birth_date) : ''}
               onChange={(e) => {
-                const convertedDate = parseThaiDateInput(e.target.value);
-                setCurrentUser(prev => prev ? {...prev, birth_date: convertedDate} : null);
+                if (currentUser) {
+                  const convertedDate = parseThaiDateInput(e.target.value);
+                  setCurrentUser({...currentUser, birth_date: convertedDate});
+                }
               }}
               placeholder="22/10/2535"
             />
@@ -88,7 +98,11 @@ const ProfileSection = ({
           <Label>เพศ</Label>
           <Select 
             value={currentUser?.gender || ''} 
-            onValueChange={(value) => setCurrentUser(prev => prev ? {...prev, gender: value} : null)}
+            onValueChange={(value) => {
+              if (currentUser) {
+                setCurrentUser({...currentUser, gender: value});
+              }
+            }}
             disabled={!editMode}
           >
             <SelectTrigger>
