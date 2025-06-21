@@ -565,50 +565,110 @@ const CustomerMobileApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b p-4">
+      <div className="bg-white shadow-lg border-b p-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">แอปสั่งอาหาร</h1>
+          <h1 className="text-xl font-bold text-orange-800">แอปสั่งอาหาร</h1>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             ออกจากระบบ
           </Button>
         </div>
       </div>
 
-      {/* Member Card */}
-      <div className="p-4">
-        <Card className={`${getTierColor(currentUser?.tier || 'silver')} text-white`}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <Avatar className="w-16 h-16 border-2 border-white">
-                <AvatarFallback className="bg-white text-gray-800 text-lg font-bold">
-                  {currentUser?.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">{currentUser?.name}</h2>
-                <p className="text-sm opacity-90">{getTierDisplayName(currentUser?.tier || 'silver')}</p>
-                <div className="flex space-x-4 mt-2">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{currentUser?.points || 0}</p>
-                    <p className="text-xs opacity-75">แต้มสะสม</p>
+      {/* Premium Member Card */}
+      <div className="p-6">
+        <div className="relative">
+          {/* Card Shadow */}
+          <div className="absolute inset-0 bg-black/10 rounded-2xl transform translate-y-2 translate-x-2"></div>
+          
+          {/* Main Card */}
+          <Card className={`relative ${getTierColor(currentUser?.tier || 'silver')} text-white border-0 shadow-2xl rounded-2xl overflow-hidden`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+            
+            <CardContent className="p-8 relative z-10">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <Avatar className="w-20 h-20 border-4 border-white/20 shadow-lg">
+                      <AvatarFallback className="bg-white/90 text-orange-800 text-2xl font-bold">
+                        {(currentUser?.name || currentUser?.full_name)?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-orange-800 rounded-full p-1">
+                      <Star className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold">฿{currentUser?.total_spent || 0}</p>
-                    <p className="text-xs opacity-75">ยอดใช้จ่าย</p>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-1">{currentUser?.name || currentUser?.full_name}</h2>
+                    <p className="text-lg opacity-90 font-medium">{getTierDisplayName(currentUser?.tier || 'silver')}</p>
+                    <p className="text-sm opacity-75">สมาชิกตั้งแต่ {new Date().getFullYear()}</p>
                   </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  <p className="text-3xl font-bold mb-1">{currentUser?.points || 0}</p>
+                  <p className="text-sm opacity-75">แต้มสะสม</p>
+                </div>
+                <div className="text-center bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                  <p className="text-2xl font-bold mb-1">฿{(currentUser?.total_spent || 0).toLocaleString()}</p>
+                  <p className="text-sm opacity-75">ยอดใช้จ่าย</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Main Navigation */}
-      <div className="p-4">
+      <div className="p-6 pt-0">
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+            <CardContent className="p-6 text-center">
+              <div className="bg-white/20 rounded-full p-4 inline-block mb-3">
+                <User className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg">Member</h3>
+              <p className="text-sm opacity-80">จัดการโปรไฟล์</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+            <CardContent className="p-6 text-center">
+              <div className="bg-white/20 rounded-full p-4 inline-block mb-3">
+                <Gift className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg">Rewards</h3>
+              <p className="text-sm opacity-80">แลกของรางวัล</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+            <CardContent className="p-6 text-center">
+              <div className="bg-white/20 rounded-full p-4 inline-block mb-3">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg">Menu</h3>
+              <p className="text-sm opacity-80">สั่งอาหาร</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+            <CardContent className="p-6 text-center">
+              <div className="bg-white/20 rounded-full p-4 inline-block mb-3">
+                <Tag className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-lg">Promotion</h3>
+              <p className="text-sm opacity-80">โปรโมชั่น</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="hidden">
             <TabsTrigger value="profile">โปรไฟล์</TabsTrigger>
             <TabsTrigger value="rewards">Rewards</TabsTrigger>
             <TabsTrigger value="coupons">Coupons</TabsTrigger>
