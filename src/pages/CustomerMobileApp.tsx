@@ -241,7 +241,7 @@ const CustomerMobileApp = () => {
         duration: 10000
       });
 
-      // Refresh gifts
+      // Refresh gifts to show the updated state with code
       fetchCustomerGifts();
     } catch (error) {
       console.error('Error using gift:', error);
@@ -610,17 +610,38 @@ const CustomerMobileApp = () => {
                                 </div>
                               )}
                               {gift.is_used && gift.gift_code && (
-                                <div className="text-xs text-green-600 mt-1 font-mono bg-green-50 p-1 rounded">
-                                  โค้ด: {gift.gift_code} (ใช้แล้ว)
+                                <div className="text-xs text-green-600 mt-1">
+                                  <div className="bg-green-50 p-2 rounded border border-green-200">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-mono font-bold text-green-700">
+                                        โค้ด: {gift.gift_code}
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="ml-2 h-6 text-xs border-green-300 text-green-700 hover:bg-green-100"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(gift.gift_code || '');
+                                          toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
+                                        }}
+                                      >
+                                        <Copy className="w-3 h-3 mr-1" />
+                                        คัดลอก
+                                      </Button>
+                                    </div>
+                                    <div className="text-xs text-green-600 mt-1">
+                                      ใช้แล้วเมื่อ: {new Date(gift.used_at || '').toLocaleDateString('th-TH')}
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>
                           </div>
                           <Button 
                             size="sm"
-                            className={gift.is_used ? "bg-gray-400" : "bg-purple-600 hover:bg-purple-700"}
+                            className={gift.is_used ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700"}
                             onClick={() => handleUseGift(gift)}
-                            disabled={gift.is_used || (gift.expires_at && new Date(gift.expires_at) < new Date())}
+                            disabled={!gift.is_used && (gift.expires_at && new Date(gift.expires_at) < new Date())}
                           >
                             {gift.is_used ? 'ใช้แล้ว' : 'ใช้'}
                           </Button>
