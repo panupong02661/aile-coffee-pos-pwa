@@ -27,25 +27,25 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
-      // Check if code exists and is valid - simplified query without complex type inference
-      const { data, error } = await supabase
+      // Check if code exists and is valid - using any type to avoid type inference issues
+      const { data, error }: { data: any[] | null; error: any } = await supabase
         .from('customer_gifts')
         .select('*')
         .eq('gift_code', code.toUpperCase())
-        .eq('is_used', true)
-        .limit(1);
+        .eq('is_used', false);
 
       if (error) {
+        console.error('Supabase error:', error);
         toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการตรวจสอบโค้ด', variant: 'destructive' });
         return;
       }
 
-      const gift = data && data.length > 0 ? data[0] : null;
-
-      if (!gift) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้หรือโค้ดไม่ถูกต้อง', variant: 'destructive' });
+      if (!data || data.length === 0) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้หรือโค้ดถูกใช้แล้ว', variant: 'destructive' });
         return;
       }
+
+      const gift = data[0];
 
       // Check if code is expired
       if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
@@ -56,11 +56,23 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       // Apply the code
       onApplyCode(gift);
       
-      // Mark as applied by updating used_at timestamp
-      await supabase
+      // Mark as used
+      const { error: updateError } = await supabase
         .from('customer_gifts')
-        .update({ used_at: new Date().toISOString() })
+        .update({ 
+          is_used: true,
+          used_at: new Date().toISOString() 
+        })
         .eq('id', gift.id);
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+      }
+
+      toast({ 
+        title: 'สำเร็จ', 
+        description: `ใช้โค้ด ${gift.gift_name} แล้ว`
+      });
 
       setCode('');
       onClose();

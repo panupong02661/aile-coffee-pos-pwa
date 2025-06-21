@@ -313,6 +313,7 @@ export type Database = {
           created_at: string
           customer_id: string
           expires_at: string | null
+          gift_code: string | null
           gift_description: string | null
           gift_id: string
           gift_name: string
@@ -329,6 +330,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           expires_at?: string | null
+          gift_code?: string | null
           gift_description?: string | null
           gift_id: string
           gift_name: string
@@ -345,6 +347,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           expires_at?: string | null
+          gift_code?: string | null
           gift_description?: string | null
           gift_id?: string
           gift_name?: string
