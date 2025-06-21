@@ -55,6 +55,19 @@ interface Coupon {
   end_date: string;
 }
 
+interface CustomerGift {
+  id: string;
+  gift_type: string;
+  gift_name: string;
+  gift_description?: string;
+  gift_value: number;
+  expires_at?: string;
+  is_used: boolean;
+  used_at?: string;
+  message?: string;
+  created_at: string;
+}
+
 const CustomerMobileApp = () => {
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -68,6 +81,7 @@ const CustomerMobileApp = () => {
   const [editMode, setEditMode] = useState(false);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [customerGifts, setCustomerGifts] = useState<CustomerGift[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
@@ -145,6 +159,24 @@ const CustomerMobileApp = () => {
   const fetchCoupons = async () => {
     if (!currentUser) return;
     setCoupons([]);
+  };
+
+  const fetchCustomerGifts = async () => {
+    if (!currentUser) return;
+    
+    const { data, error } = await supabase
+      .from('customer_gifts')
+      .select('*')
+      .eq('customer_id', currentUser.id)
+      .eq('is_used', false)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching customer gifts:', error);
+      return;
+    }
+    
+    setCustomerGifts(data || []);
   };
 
   const handleRegister = async () => {
@@ -406,6 +438,7 @@ const CustomerMobileApp = () => {
   useEffect(() => {
     if (currentUser) {
       fetchCoupons();
+      fetchCustomerGifts();
     }
   }, [currentUser]);
 
@@ -456,11 +489,78 @@ const CustomerMobileApp = () => {
         )}
 
         {activeTab === 'rewards' && (
-          <RewardsSection
-            rewards={rewards}
-            currentUser={currentUser}
-            onRedeemReward={redeemReward}
-          />
+          <>
+            <RewardsSection
+              rewards={rewards}
+              currentUser={currentUser}
+              onRedeemReward={redeemReward}
+            />
+            
+            {/* Customer Gifts Section */}
+            {customerGifts.length > 0 && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    ของขวัญที่ได้รับ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4">
+                    {customerGifts.map((gift) => (
+                      <div key={gift.id} className="p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-purple-200 rounded-lg flex items-center justify-center">
+                              {gift.gift_type === 'reward' && <Gift className="w-6 h-6 text-purple-600" />}
+                              {gift.gift_type === 'promotion' && <Tag className="w-6 h-6 text-purple-600" />}
+                              {gift.gift_type === 'menu_item' && <ShoppingBag className="w-6 h-6 text-purple-600" />}
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-purple-800">{gift.gift_name}</h4>
+                              {gift.gift_description && (
+                                <p className="text-sm text-purple-600">{gift.gift_description}</p>
+                              )}
+                              <div className="text-xs text-purple-500 mt-1">
+                                ประเภท: {gift.gift_type === 'reward' ? 'ของรางวัล' : gift.gift_type === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'}
+                                {gift.gift_value > 0 && (
+                                  <span className="ml-2">
+                                    มูลค่า: {gift.gift_type === 'reward' ? `${gift.gift_value} แต้ม` : `${gift.gift_value}฿`}
+                                  </span>
+                                )}
+                              </div>
+                              {gift.expires_at && (
+                                <div className="text-xs text-red-500 mt-1">
+                                  หมดอายุ: {new Date(gift.expires_at).toLocaleDateString('th-TH')}
+                                </div>
+                              )}
+                              {gift.message && (
+                                <div className="text-xs text-gray-600 mt-1 italic">
+                                  "{gift.message}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm"
+                            className="bg-purple-600 hover:bg-purple-700"
+                            onClick={() => {
+                              toast({ 
+                                title: 'ฟีเจอร์ยังไม่พร้อม', 
+                                description: 'การใช้ของขวัญยังอยู่ระหว่างการพัฒนา' 
+                              });
+                            }}
+                          >
+                            ใช้
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
         {activeTab === 'coupons' && (
