@@ -4,9 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Globe, Smartphone, QrCode, Users, Settings, BarChart3 } from 'lucide-react';
+import { Globe, Smartphone, QrCode, Users, Settings, BarChart3, UserCog } from 'lucide-react';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import OnlineSystemHeader from '@/components/OnlineSystemHeader';
+import { Link } from 'react-router-dom';
 
 const OnlineSystem = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +18,7 @@ const OnlineSystem = () => {
     { id: 'qr-code', label: 'QR Code', icon: QrCode },
     { id: 'website', label: 'เว็บไซต์', icon: Globe },
     { id: 'mobile', label: 'แอปมือถือสำหรับลูกค้า', icon: Smartphone },
+    { id: 'customer-management', label: 'แอปมือถือจัดการลูกค้า', icon: UserCog },
     { id: 'customers', label: 'ลูกค้าออนไลน์', icon: Users },
     { id: 'settings', label: 'ตั้งค่า', icon: Settings },
   ];
@@ -47,9 +49,19 @@ const OnlineSystem = () => {
                       key={item.id}
                       variant="ghost"
                       className="w-full justify-start h-10 text-left"
+                      asChild={item.id === 'customer-management'}
                     >
-                      <Icon className="w-4 h-4 mr-3" />
-                      {item.label}
+                      {item.id === 'customer-management' ? (
+                        <Link to="/customer-app-management">
+                          <Icon className="w-4 h-4 mr-3" />
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <>
+                          <Icon className="w-4 h-4 mr-3" />
+                          {item.label}
+                        </>
+                      )}
                     </Button>
                   );
                 })}
@@ -61,11 +73,12 @@ const OnlineSystem = () => {
         {/* เนื้อหาหลัก */}
         <div className="flex-1">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="overview" className="text-xs">ภาพรวม</TabsTrigger>
               <TabsTrigger value="qr-code" className="text-xs">QR Code</TabsTrigger>
               <TabsTrigger value="website" className="text-xs">เว็บไซต์</TabsTrigger>
-              <TabsTrigger value="mobile" className="text-xs">แอปมือถือสำหรับลูกค้า</TabsTrigger>
+              <TabsTrigger value="mobile" className="text-xs">แอปลูกค้า</TabsTrigger>
+              <TabsTrigger value="customer-management" className="text-xs">จัดการลูกค้า</TabsTrigger>
               <TabsTrigger value="customers" className="text-xs">ลูกค้า</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs">ตั้งค่า</TabsTrigger>
             </TabsList>
@@ -309,6 +322,95 @@ const OnlineSystem = () => {
                       <div className="p-4 border rounded-lg text-center">
                         <div className="text-2xl font-bold text-purple-600">฿8,450</div>
                         <div className="text-sm text-muted-foreground">ยอดขายจากแอป</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="customer-management" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCog className="w-5 h-5" />
+                    แอปมือถือสำหรับจัดการลูกค้า
+                  </CardTitle>
+                  <CardDescription>
+                    ระบบจัดการลูกค้าและส่งของขวัญผ่านแอปมือถือ
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* คำอธิบายฟีเจอร์ */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">จัดการลูกค้า</h4>
+                            <p className="text-sm text-muted-foreground">เลือกลูกค้าและจัดกลุ่ม</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • เลือกลูกค้าหลายคนพร้อมกัน<br/>
+                          • กรองตามระดับสมาชิก<br/>
+                          • ค้นหาด้วยชื่อและเบอร์โทร
+                        </div>
+                      </div>
+
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Globe className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">ส่งของขวัญ</h4>
+                            <p className="text-sm text-muted-foreground">ส่งรางวัลและโปรโมชั่น</p>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          • เลือกของรางวัลจากระบบ<br/>
+                          • ส่งโปรโมชั่นพิเศษ<br/>
+                          • เพิ่มข้อความแนบได้
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ปุ่มเข้าสู่ระบบ */}
+                    <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                      <div className="text-center">
+                        <UserCog className="w-16 h-16 mx-auto text-blue-500 mb-4" />
+                        <h3 className="text-lg font-medium mb-2">เข้าสู่ระบบจัดการลูกค้า</h3>
+                        <p className="text-muted-foreground mb-4">
+                          จัดการและส่งของขวัญให้ลูกค้าผ่านระบบออนไลน์
+                        </p>
+                        <Button 
+                          asChild
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                        >
+                          <Link to="/customer-app-management">
+                            เปิดระบบจัดการลูกค้า
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* สถิติการใช้งาน */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-blue-600">156</div>
+                        <div className="text-sm text-muted-foreground">ลูกค้าทั้งหมด</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">23</div>
+                        <div className="text-sm text-muted-foreground">ของขวัญที่ส่งแล้ว</div>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">8</div>
+                        <div className="text-sm text-muted-foreground">โปรโมชั่นที่ส่งแล้ว</div>
                       </div>
                     </div>
                   </div>
