@@ -90,6 +90,51 @@ const CustomerMobileApp = () => {
     }
   };
 
+  // ฟังก์ชันสำหรับเปรียบเทียบวันที่แบบละเอียด
+  const compareDates = (inputDate: string, storedDate: string): boolean => {
+    if (!inputDate || !storedDate) return false;
+    
+    console.log('=== DATE COMPARISON DEBUG ===');
+    console.log('Input date:', inputDate);
+    console.log('Stored date:', storedDate);
+    
+    // แปลง input เป็น ISO format
+    const inputISODate = parseThaiDateInput(inputDate);
+    console.log('Input converted to ISO:', inputISODate);
+    
+    // สร้าง variants ของวันที่ทั้งสองแบบ
+    const inputVariants = generateDateSearchVariants(inputDate);
+    const storedVariants = generateDateSearchVariants(storedDate);
+    
+    console.log('Input variants:', inputVariants);
+    console.log('Stored variants:', storedVariants);
+    
+    // ตรวจสอบการตรงกันแบบต่างๆ
+    const matches = [
+      // ตรงกันโดยตรง
+      inputDate === storedDate,
+      inputISODate === storedDate,
+      
+      // ตรงกันผ่าน variants
+      inputVariants.some(iv => storedVariants.some(sv => iv === sv)),
+      
+      // เปรียบเทียบแบบ Date object
+      inputISODate && new Date(inputISODate).toISOString().split('T')[0] === new Date(storedDate).toISOString().split('T')[0],
+      
+      // เปรียบเทียบแบบ string ธรรมดา
+      inputDate.replace(/\//g, '-') === storedDate.replace(/\//g, '-'),
+      
+      // เปรียบเทียบแค่ตัวเลข
+      inputDate.replace(/[^0-9]/g, '') === storedDate.replace(/[^0-9]/g, '')
+    ];
+    
+    const isMatch = matches.some(match => match);
+    console.log('Match results:', matches);
+    console.log('Final match result:', isMatch);
+    
+    return isMatch;
+  };
+
   const fetchRewards = async () => {
     const { data, error } = await supabase
       .from('rewards')
@@ -177,10 +222,8 @@ const CustomerMobileApp = () => {
 
       // สร้าง variants สำหรับการตรวจสอบ
       const phoneVariants = generatePhoneVariants(registerForm.phone);
-      const dateVariants = generateDateSearchVariants(registerForm.birth_date);
       
       console.log('Phone variants for checking:', phoneVariants);
-      console.log('Date variants for checking:', dateVariants);
 
       // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่ทั้งใน customer_profiles และ members
       let existingProfile = false;
@@ -223,34 +266,33 @@ const CustomerMobileApp = () => {
         return;
       }
 
-      console.log('Creating new profile with data:', {
-        full_name: registerForm.full_name.trim(),
+      console.log('Creating new member with data:', {
+        name: registerForm.full_name.trim(),
         phone: cleanedPhone,
         birth_date: convertedBirthDate,
         gender: registerForm.gender || null
       });
 
-      // สร้างโปรไฟล์ใหม่
-      const { error: profileError } = await supabase
-        .from('customer_profiles')
+      // สร้างสมาชิกใหม่ใน members table
+      const { error: memberError } = await supabase
+        .from('members')
         .insert({
-          full_name: registerForm.full_name.trim(),
+          name: registerForm.full_name.trim(),
           phone: cleanedPhone,
           birth_date: convertedBirthDate,
           gender: registerForm.gender || null,
-          tier: 'bronze',
+          tier: 'silver',
           points: 0,
-          reward_points: 0,
           total_spent: 0
         });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        toast({ 
-          title: 'ข้อผิดพลาด', 
-          description: `ไม่สามารถสร้างโปรไฟล์ได้: ${profileError.message}`, 
-          variant: 'destructive' 
-        });
+      if (memberError) {
+        console.error('Member creation error:', memberError);
+        if (memberError.code === '23505') {
+          toast({ title: 'ข้อผิดพลาด', description: 'หมายเลขโทรศัพท์นี้มีอยู่แล้วในระบบ', variant: 'destructive' });
+        } else {
+          toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโปรไฟล์ได้', variant: 'destructive' });
+        }
         return;
       }
 
@@ -288,140 +330,43 @@ const CustomerMobileApp = () => {
       
       // สร้าง variants สำหรับการค้นหา
       const phoneVariants = generatePhoneVariants(loginForm.phone);
-      const dateVariants = generateDateSearchVariants(loginForm.birth_date);
       
       console.log('Phone variants for search:', phoneVariants);
-      console.log('Date variants for search:', dateVariants);
+      console.log('Input birth date:', loginForm.birth_date);
       
       let profileData = null;
       let foundInTable = null;
 
-      // ค้นหาจาก customer_profiles ก่อน - ใช้วิธีการค้นหาแบบ comprehensive
+      // ค้นหาจาก customer_profiles ก่อน
       console.log('=== SEARCHING IN CUSTOMER_PROFILES ===');
       
-      // ค้นหาแบบ OR condition ทั้งหมดในครั้งเดียว
-      let searchConditions = [];
       for (const phoneVariant of phoneVariants) {
-        for (const dateVariant of dateVariants) {
-          searchConditions.push(`(phone.eq.${phoneVariant},birth_date.eq.${dateVariant})`);
-        }
-      }
-      
-      // ลองค้นหาใน customer_profiles ทีละ variant แต่ละคู่
-      for (const phoneVariant of phoneVariants) {
-        console.log(`Trying phone variant: ${phoneVariant}`);
+        console.log(`Searching for phone: ${phoneVariant}`);
         
-        // ค้นหาแบบ LIKE และ exact match
-        const phoneSearches = [
-          supabase.from('customer_profiles').select('*').eq('phone', phoneVariant),
-          supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant}%`),
-          supabase.from('customer_profiles').select('*').like('phone', `${phoneVariant}%`),
-          supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant}`)
-        ];
+        const { data: customerResults, error } = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .eq('phone', phoneVariant);
         
-        for (const phoneSearch of phoneSearches) {
-          const { data: phoneResults } = await phoneSearch;
-          
-          if (phoneResults && phoneResults.length > 0) {
-            console.log(`Found ${phoneResults.length} profiles with phone ${phoneVariant}:`, phoneResults);
-            
-            // ตรวจสอบวันที่ของแต่ละ profile
-            for (const profile of phoneResults) {
-              console.log(`Checking profile ${profile.id} with birth_date: ${profile.birth_date}`);
-              
-              // สร้าง date variants จากวันที่ที่เก็บในฐานข้อมูล
-              const storedDateVariants = generateDateSearchVariants(profile.birth_date);
-              console.log(`Stored date variants for ${profile.birth_date}:`, storedDateVariants);
-              
-              // ตรวจสอบว่า date variants ของ input ตรงกับ stored date variants หรือไม่
-              const dateMatch = dateVariants.some(inputVariant => 
-                storedDateVariants.some(storedVariant => 
-                  inputVariant === storedVariant ||
-                  inputVariant === profile.birth_date ||
-                  storedVariant === loginForm.birth_date
-                )
-              );
-              
-              if (dateMatch) {
-                console.log('*** DATE MATCH FOUND ***', profile);
-                profileData = profile;
-                foundInTable = 'customer_profiles';
-                break;
-              }
-            }
-            
-            if (profileData) break;
-          }
+        if (error) {
+          console.error('Error searching customer_profiles:', error);
+          continue;
         }
         
-        if (profileData) break;
-      }
-
-      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members แบบเดียวกัน
-      if (!profileData) {
-        console.log('=== SEARCHING IN MEMBERS ===');
-        
-        for (const phoneVariant of phoneVariants) {
-          console.log(`Trying phone variant in members: ${phoneVariant}`);
+        if (customerResults && customerResults.length > 0) {
+          console.log(`Found ${customerResults.length} customer profiles with phone ${phoneVariant}:`, customerResults);
           
-          const phoneSearches = [
-            supabase.from('members').select('*').eq('phone', phoneVariant),
-            supabase.from('members').select('*').like('phone', `%${phoneVariant}%`),
-            supabase.from('members').select('*').like('phone', `${phoneVariant}%`),
-            supabase.from('members').select('*').like('phone', `%${phoneVariant}`)
-          ];
-          
-          for (const phoneSearch of phoneSearches) {
-            const { data: phoneResults } = await phoneSearch;
+          // ตรวจสอบวันที่ของแต่ละ profile
+          for (const profile of customerResults) {
+            console.log(`Checking profile ${profile.id}:`);
+            console.log(`- Stored birth_date: "${profile.birth_date}"`);
+            console.log(`- Input birth_date: "${loginForm.birth_date}"`);
             
-            if (phoneResults && phoneResults.length > 0) {
-              console.log(`Found ${phoneResults.length} members with phone ${phoneVariant}:`, phoneResults);
-              
-              for (const member of phoneResults) {
-                console.log(`Checking member ${member.id} with birth_date: ${member.birth_date}`);
-                
-                const storedDateVariants = generateDateSearchVariants(member.birth_date);
-                console.log(`Member stored date variants for ${member.birth_date}:`, storedDateVariants);
-                
-                const dateMatch = dateVariants.some(inputVariant => 
-                  storedDateVariants.some(storedVariant => 
-                    inputVariant === storedVariant ||
-                    inputVariant === member.birth_date ||
-                    storedVariant === loginForm.birth_date
-                  )
-                );
-                
-                if (dateMatch) {
-                  console.log('*** MEMBER DATE MATCH FOUND - MIGRATING ***', member);
-                  
-                  // Migrate ข้อมูลจาก members ไป customer_profiles
-                  const migrationResult = await supabase
-                    .from('customer_profiles')
-                    .insert({
-                      full_name: member.name,
-                      phone: member.phone,
-                      birth_date: member.birth_date,
-                      gender: member.gender,
-                      tier: member.tier || 'bronze',
-                      points: member.points || 0,
-                      reward_points: 0,
-                      total_spent: member.total_spent || 0
-                    })
-                    .select()
-                    .single();
-
-                  if (migrationResult.error) {
-                    console.error('Migration error:', migrationResult.error);
-                  } else {
-                    console.log('Migration successful:', migrationResult.data);
-                    profileData = migrationResult.data;
-                    foundInTable = 'members_migrated';
-                    break;
-                  }
-                }
-              }
-              
-              if (profileData) break;
+            if (compareDates(loginForm.birth_date, profile.birth_date)) {
+              console.log('*** CUSTOMER PROFILE DATE MATCH FOUND ***', profile);
+              profileData = profile;
+              foundInTable = 'customer_profiles';
+              break;
             }
           }
           
@@ -429,62 +374,105 @@ const CustomerMobileApp = () => {
         }
       }
 
+      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members
       if (!profileData) {
-        console.log('=== NOT FOUND - COMPREHENSIVE DEBUGGING ===');
+        console.log('=== SEARCHING IN MEMBERS ===');
+        
+        for (const phoneVariant of phoneVariants) {
+          console.log(`Searching for phone in members: ${phoneVariant}`);
+          
+          const { data: memberResults, error } = await supabase
+            .from('members')
+            .select('*')
+            .eq('phone', phoneVariant);
+          
+          if (error) {
+            console.error('Error searching members:', error);
+            continue;
+          }
+          
+          if (memberResults && memberResults.length > 0) {
+            console.log(`Found ${memberResults.length} members with phone ${phoneVariant}:`, memberResults);
+            
+            for (const member of memberResults) {
+              console.log(`Checking member ${member.id}:`);
+              console.log(`- Stored birth_date: "${member.birth_date}"`);
+              console.log(`- Input birth_date: "${loginForm.birth_date}"`);
+              
+              if (compareDates(loginForm.birth_date, member.birth_date)) {
+                console.log('*** MEMBER DATE MATCH FOUND - MIGRATING ***', member);
+                
+                // Migrate ข้อมูลจาก members ไป customer_profiles
+                const migrationResult = await supabase
+                  .from('customer_profiles')
+                  .insert({
+                    full_name: member.name,
+                    phone: member.phone,
+                    birth_date: member.birth_date,
+                    gender: member.gender,
+                    tier: member.tier || 'bronze',
+                    points: member.points || 0,
+                    reward_points: 0,
+                    total_spent: member.total_spent || 0
+                  })
+                  .select()
+                  .single();
+
+                if (migrationResult.error) {
+                  console.error('Migration error:', migrationResult.error);
+                } else {
+                  console.log('Migration successful:', migrationResult.data);
+                  profileData = migrationResult.data;
+                  foundInTable = 'members_migrated';
+                  break;
+                }
+              }
+            }
+            
+            if (profileData) break;
+          }
+        }
+      }
+
+      if (!profileData) {
+        console.log('=== LOGIN FAILED - DEBUG INFO ===');
         
         // Debug: ดูข้อมูลทั้งหมดของเบอร์นี้
-        const debugPromises = phoneVariants.map(async (phoneVariant) => {
-          const [customerResult, memberResult] = await Promise.all([
-            supabase.from('customer_profiles').select('*').like('phone', `%${phoneVariant.slice(-8)}%`),
-            supabase.from('members').select('*').like('phone', `%${phoneVariant.slice(-8)}%`)
-          ]);
+        const debugCustomers = await supabase
+          .from('customer_profiles')
+          .select('*')
+          .like('phone', `%${loginForm.phone.slice(-8)}%`);
           
-          return {
-            phone: phoneVariant,
-            customers: customerResult.data,
-            members: memberResult.data
-          };
+        const debugMembers = await supabase
+          .from('members')
+          .select('*')
+          .like('phone', `%${loginForm.phone.slice(-8)}%`);
+        
+        console.log('All customer profiles with similar phone:', debugCustomers.data);
+        console.log('All members with similar phone:', debugMembers.data);
+        
+        // ตรวจสอบความตรงกันของวันที่อย่างละเอียด
+        const allProfiles = [...(debugCustomers.data || []), ...(debugMembers.data || [])];
+        console.log('Date comparison details:');
+        allProfiles.forEach((profile, index) => {
+          const profileBirthDate = profile.birth_date;
+          console.log(`Profile ${index + 1}:`);
+          console.log(`- Name: ${profile.full_name || profile.name}`);
+          console.log(`- Phone: ${profile.phone}`);
+          console.log(`- Stored birth_date: "${profileBirthDate}"`);
+          console.log(`- Input birth_date: "${loginForm.birth_date}"`);
+          console.log(`- Date comparison result: ${compareDates(loginForm.birth_date, profileBirthDate)}`);
         });
         
-        const debugResults = await Promise.all(debugPromises);
-        console.log('All data for phone variants:', debugResults);
-        
-        // ตรวจสอบว่ามีข้อมูลหรือไม่
-        const hasAnyData = debugResults.some(result => 
-          (result.customers && result.customers.length > 0) || 
-          (result.members && result.members.length > 0)
-        );
+        const hasAnyData = allProfiles.length > 0;
         
         if (hasAnyData) {
-          console.log('*** FOUND DATA BUT MISMATCH ***');
-          debugResults.forEach((result, index) => {
-            if (result.customers && result.customers.length > 0) {
-              console.log(`Customer profiles for ${result.phone}:`, result.customers.map(c => ({
-                name: c.full_name,
-                phone: c.phone,
-                birth_date: c.birth_date,
-                birth_date_thai: formatDateToThai(c.birth_date),
-                date_variants: generateDateSearchVariants(c.birth_date)
-              })));
-            }
-            if (result.members && result.members.length > 0) {
-              console.log(`Members for ${result.phone}:`, result.members.map(m => ({
-                name: m.name,
-                phone: m.phone,
-                birth_date: m.birth_date,
-                birth_date_thai: formatDateToThai(m.birth_date),
-                date_variants: generateDateSearchVariants(m.birth_date)
-              })));
-            }
-          });
-          
           toast({ 
             title: 'ข้อมูลไม่ตรงกัน', 
             description: 'พบเบอร์โทรในระบบแต่วันเกิดไม่ตรงกัน กรุณาตรวจสอบวันเกิดอีกครั้ง', 
             variant: 'destructive' 
           });
         } else {
-          console.log('*** NO DATA FOUND FOR ANY PHONE VARIANT ***');
           toast({ 
             title: 'ไม่พบข้อมูลผู้ใช้', 
             description: 'ไม่พบเบอร์โทรนี้ในระบบ กรุณาสมัครสมาชิกก่อน', 
