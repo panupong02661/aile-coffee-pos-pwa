@@ -25,13 +25,12 @@ import {
 
 interface CustomerProfile {
   id: string;
-  full_name: string;
+  name: string;
   phone: string;
   birth_date?: string;
   gender?: string;
   tier: string;
   points: number;
-  reward_points: number;
   total_spent: number;
 }
 
@@ -59,7 +58,7 @@ const CustomerMobileApp = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
   const [registerForm, setRegisterForm] = useState({ 
-    full_name: '', 
+    name: '', 
     phone: '', 
     birth_date: '', 
     gender: '' 
@@ -77,7 +76,7 @@ const CustomerMobileApp = () => {
       case 'silver': return 'สมาชิกเงิน';
       case 'gold': return 'สมาชิกทอง';
       case 'platinum': return 'สมาชิกแพลทินัม';
-      default: return 'สมาชิกทองแดง';
+      default: return 'สมาชิกเงิน';
     }
   };
 
@@ -87,7 +86,7 @@ const CustomerMobileApp = () => {
       case 'silver': return 'bg-gradient-to-r from-gray-400 to-gray-600';
       case 'gold': return 'bg-gradient-to-r from-yellow-400 to-yellow-600';
       case 'platinum': return 'bg-gradient-to-r from-purple-400 to-purple-600';
-      default: return 'bg-gradient-to-r from-orange-400 to-orange-600';
+      default: return 'bg-gradient-to-r from-gray-400 to-gray-600';
     }
   };
 
@@ -160,42 +159,12 @@ const CustomerMobileApp = () => {
   const fetchCoupons = async () => {
     if (!currentUser) return;
     
-    const { data, error } = await supabase
-      .from('customer_coupons')
-      .select(`
-        *,
-        coupons (
-          id,
-          name,
-          code,
-          discount_value,
-          discount_type,
-          end_date
-        )
-      `)
-      .eq('customer_id', currentUser.id)
-      .eq('is_used', false);
-    
-    if (error) {
-      console.error('Error fetching coupons:', error);
-      return;
-    }
-    
-    const formattedCoupons = (data || []).map(item => ({
-      id: item.id,
-      name: item.coupons?.name || '',
-      code: item.coupons?.code || '',
-      discount_value: item.coupons?.discount_value || 0,
-      discount_type: item.coupons?.discount_type || 'amount',
-      is_used: item.is_used,
-      end_date: item.coupons?.end_date || ''
-    }));
-    
-    setCoupons(formattedCoupons);
+    // เนื่องจากเราใช้ members table หลัก ตอนนี้ข้ามการโหลด coupons ไปก่อน
+    setCoupons([]);
   };
 
   const handleRegister = async () => {
-    if (!registerForm.full_name || !registerForm.phone || !registerForm.birth_date) {
+    if (!registerForm.name || !registerForm.phone || !registerForm.birth_date) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อ, เบอร์โทร, วันเกิด)', variant: 'destructive' });
       return;
     }
@@ -233,49 +202,30 @@ const CustomerMobileApp = () => {
       
       console.log('Phone variants for checking:', phoneVariants);
 
-      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่ทั้งใน customer_profiles และ members
-      let existingProfile = false;
+      // ตรวจสอบว่าเบอร์โทรนี้มีอยู่แล้วหรือไม่ใน members
       let existingMember = false;
 
-      // ตรวจสอบใน customer_profiles
       for (const phoneVariant of phoneVariants) {
-        const { data: customerData } = await supabase
-          .from('customer_profiles')
+        const { data: memberData } = await supabase
+          .from('members')
           .select('id, phone, birth_date')
           .eq('phone', phoneVariant)
           .maybeSingle();
 
-        if (customerData) {
-          console.log('Found existing customer profile:', customerData);
-          existingProfile = true;
+        if (memberData) {
+          console.log('Found existing member:', memberData);
+          existingMember = true;
           break;
         }
       }
 
-      // ตรวจสอบใน members
-      if (!existingProfile) {
-        for (const phoneVariant of phoneVariants) {
-          const { data: memberData } = await supabase
-            .from('members')
-            .select('id, phone, birth_date')
-            .eq('phone', phoneVariant)
-            .maybeSingle();
-
-          if (memberData) {
-            console.log('Found existing member:', memberData);
-            existingMember = true;
-            break;
-          }
-        }
-      }
-
-      if (existingProfile || existingMember) {
+      if (existingMember) {
         toast({ title: 'ข้อผิดพลาด', description: 'เบอร์โทรนี้ได้ลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ', variant: 'destructive' });
         return;
       }
 
       console.log('Creating new member with data:', {
-        name: registerForm.full_name.trim(),
+        name: registerForm.name.trim(),
         phone: cleanedPhone,
         birth_date: convertedBirthDate,
         gender: registerForm.gender || null
@@ -285,7 +235,7 @@ const CustomerMobileApp = () => {
       const { error: memberError } = await supabase
         .from('members')
         .insert({
-          name: registerForm.full_name.trim(),
+          name: registerForm.name.trim(),
           phone: cleanedPhone,
           birth_date: convertedBirthDate,
           gender: registerForm.gender || null,
@@ -306,7 +256,7 @@ const CustomerMobileApp = () => {
 
       toast({ title: 'สำเร็จ', description: 'สมัครสมาชิกเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ' });
       setIsRegistering(false);
-      setRegisterForm({ full_name: '', phone: '', birth_date: '', gender: '' });
+      setRegisterForm({ name: '', phone: '', birth_date: '', gender: '' });
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({ title: 'ข้อผิดพลาด', description: `เกิดข้อผิดพลาดในการสมัครสมาชิก: ${error.message}`, variant: 'destructive' });
@@ -343,37 +293,35 @@ const CustomerMobileApp = () => {
       console.log('Input birth date:', loginForm.birth_date);
       
       let profileData = null;
-      let foundInTable = null;
 
-      // ค้นหาจาก customer_profiles ก่อน
-      console.log('=== SEARCHING IN CUSTOMER_PROFILES ===');
+      // ค้นหาจาก members table
+      console.log('=== SEARCHING IN MEMBERS ===');
       
       for (const phoneVariant of phoneVariants) {
-        console.log(`Searching for phone: ${phoneVariant}`);
+        console.log(`Searching for phone in members: ${phoneVariant}`);
         
-        const { data: customerResults, error } = await supabase
-          .from('customer_profiles')
+        const { data: memberResults, error } = await supabase
+          .from('members')
           .select('*')
           .eq('phone', phoneVariant);
         
         if (error) {
-          console.error('Error searching customer_profiles:', error);
+          console.error('Error searching members:', error);
           continue;
         }
         
-        if (customerResults && customerResults.length > 0) {
-          console.log(`Found ${customerResults.length} customer profiles with phone ${phoneVariant}:`, customerResults);
+        if (memberResults && memberResults.length > 0) {
+          console.log(`Found ${memberResults.length} members with phone ${phoneVariant}:`, memberResults);
           
-          // ตรวจสอบวันที่ของแต่ละ profile
-          for (const profile of customerResults) {
-            console.log(`Checking profile ${profile.id}:`);
-            console.log(`- Stored birth_date: "${profile.birth_date}"`);
+          for (const member of memberResults) {
+            console.log(`Checking member ${member.id}:`);
+            console.log(`- Name: ${member.name}`);
+            console.log(`- Stored birth_date: "${member.birth_date}"`);
             console.log(`- Input birth_date: "${loginForm.birth_date}"`);
             
-            if (compareDates(loginForm.birth_date, profile.birth_date)) {
-              console.log('*** CUSTOMER PROFILE DATE MATCH FOUND ***', profile);
-              profileData = profile;
-              foundInTable = 'customer_profiles';
+            if (compareDates(loginForm.birth_date, member.birth_date)) {
+              console.log('*** MEMBER DATE MATCH FOUND ***', member);
+              profileData = member;
               break;
             }
           }
@@ -382,92 +330,24 @@ const CustomerMobileApp = () => {
         }
       }
 
-      // ถ้าไม่เจอใน customer_profiles ให้ค้นหาใน members
-      if (!profileData) {
-        console.log('=== SEARCHING IN MEMBERS ===');
-        
-        for (const phoneVariant of phoneVariants) {
-          console.log(`Searching for phone in members: ${phoneVariant}`);
-          
-          const { data: memberResults, error } = await supabase
-            .from('members')
-            .select('*')
-            .eq('phone', phoneVariant);
-          
-          if (error) {
-            console.error('Error searching members:', error);
-            continue;
-          }
-          
-          if (memberResults && memberResults.length > 0) {
-            console.log(`Found ${memberResults.length} members with phone ${phoneVariant}:`, memberResults);
-            
-            for (const member of memberResults) {
-              console.log(`Checking member ${member.id}:`);
-              console.log(`- Stored birth_date: "${member.birth_date}"`);
-              console.log(`- Input birth_date: "${loginForm.birth_date}"`);
-              
-              if (compareDates(loginForm.birth_date, member.birth_date)) {
-                console.log('*** MEMBER DATE MATCH FOUND - MIGRATING ***', member);
-                
-                // Migrate ข้อมูลจาก members ไป customer_profiles
-                const migrationResult = await supabase
-                  .from('customer_profiles')
-                  .insert({
-                    full_name: member.name, // members ใช้ 'name', customer_profiles ใช้ 'full_name'
-                    phone: member.phone,
-                    birth_date: member.birth_date,
-                    gender: member.gender,
-                    tier: member.tier || 'bronze',
-                    points: member.points || 0,
-                    reward_points: 0,
-                    total_spent: member.total_spent || 0
-                  })
-                  .select()
-                  .single();
-
-                if (migrationResult.error) {
-                  console.error('Migration error:', migrationResult.error);
-                } else {
-                  console.log('Migration successful:', migrationResult.data);
-                  profileData = migrationResult.data;
-                  foundInTable = 'members_migrated';
-                  break;
-                }
-              }
-            }
-            
-            if (profileData) break;
-          }
-        }
-      }
-
       if (!profileData) {
         console.log('=== LOGIN FAILED - DEBUG INFO ===');
         
         // Debug: ดูข้อมูลทั้งหมดของเบอร์นี้
-        const debugCustomers = await supabase
-          .from('customer_profiles')
-          .select('*')
-          .like('phone', `%${loginForm.phone.slice(-8)}%`);
-          
         const debugMembers = await supabase
           .from('members')
           .select('*')
           .like('phone', `%${loginForm.phone.slice(-8)}%`);
         
-        console.log('All customer profiles with similar phone:', debugCustomers.data);
         console.log('All members with similar phone:', debugMembers.data);
         
         // ตรวจสอบความตรงกันของวันที่อย่างละเอียด
-        const allProfiles = [...(debugCustomers.data || []), ...(debugMembers.data || [])];
+        const allProfiles = debugMembers.data || [];
         console.log('Date comparison details:');
         allProfiles.forEach((profile, index) => {
           const profileBirthDate = profile.birth_date;
-          // Handle both 'full_name' and 'name' properties properly
-          const profileName = 'full_name' in profile ? profile.full_name : 'name' in profile ? profile.name : 'Unknown';
           console.log(`Profile ${index + 1}:`);
-          console.log(`- Name: ${profileName}`);
+          console.log(`- Name: ${profile.name}`);
           console.log(`- Phone: ${profile.phone}`);
           console.log(`- Stored birth_date: "${profileBirthDate}"`);
           console.log(`- Input birth_date: "${loginForm.birth_date}"`);
@@ -492,13 +372,13 @@ const CustomerMobileApp = () => {
         return;
       }
 
-      console.log(`*** LOGIN SUCCESSFUL *** Found in: ${foundInTable}`);
+      console.log('*** LOGIN SUCCESSFUL ***');
       console.log('Profile data:', profileData);
       
       setCurrentUser(profileData);
       setIsLoggedIn(true);
       setLoginForm({ phone: '', birth_date: '' });
-      toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.full_name}` });
+      toast({ title: 'สำเร็จ', description: `ยินดีต้อนรับ ${profileData.name}` });
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -519,9 +399,9 @@ const CustomerMobileApp = () => {
     if (!currentUser) return;
 
     const { error } = await supabase
-      .from('customer_profiles')
+      .from('members')
       .update({
-        full_name: currentUser.full_name,
+        name: currentUser.name,
         phone: currentUser.phone,
         birth_date: currentUser.birth_date,
         gender: currentUser.gender
@@ -538,48 +418,13 @@ const CustomerMobileApp = () => {
   };
 
   const redeemReward = async (rewardId: string, pointsRequired: number) => {
-    if (!currentUser || currentUser.reward_points < pointsRequired) {
+    if (!currentUser || currentUser.points < pointsRequired) {
       toast({ title: 'ข้อผิดพลาด', description: 'แต้มไม่เพียงพอ', variant: 'destructive' });
       return;
     }
 
-    try {
-      // บันทึกการแลกของรางวัล
-      const { error: rewardError } = await supabase
-        .from('customer_rewards')
-        .insert({
-          customer_id: currentUser.id,
-          reward_id: rewardId,
-          is_used: false
-        });
-
-      if (rewardError) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแลกของรางวัลได้', variant: 'destructive' });
-        return;
-      }
-
-      // หักแต้ม
-      const { error: updateError } = await supabase
-        .from('customer_profiles')
-        .update({
-          reward_points: currentUser.reward_points - pointsRequired
-        })
-        .eq('id', currentUser.id);
-
-      if (updateError) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถหักแต้มได้', variant: 'destructive' });
-        return;
-      }
-
-      setCurrentUser({
-        ...currentUser,
-        reward_points: currentUser.reward_points - pointsRequired
-      });
-
-      toast({ title: 'สำเร็จ', description: 'แลกของรางวัลเรียบร้อยแล้ว' });
-    } catch (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการแลกของรางวัล', variant: 'destructive' });
-    }
+    // ข้ามการแลกของรางวัลไปก่อน เนื่องจากยังไม่มีตารางที่เชื่อมโยง
+    toast({ title: 'ฟีเจอร์ยังไม่พร้อม', description: 'ระบบแลกของรางวัลยังอยู่ระหว่างการพัฒนา' });
   };
 
   useEffect(() => {
@@ -614,8 +459,8 @@ const CustomerMobileApp = () => {
                     <Label htmlFor="register-name">ชื่อ *</Label>
                     <Input
                       id="register-name"
-                      value={registerForm.full_name}
-                      onChange={(e) => setRegisterForm({...registerForm, full_name: e.target.value})}
+                      value={registerForm.name}
+                      onChange={(e) => setRegisterForm({...registerForm, name: e.target.value})}
                       placeholder="กรอกชื่อ-นามสกุล"
                     />
                   </div>
@@ -733,22 +578,18 @@ const CustomerMobileApp = () => {
 
       {/* Member Card */}
       <div className="p-4">
-        <Card className={`${getTierColor(currentUser?.tier || 'bronze')} text-white`}>
+        <Card className={`${getTierColor(currentUser?.tier || 'silver')} text-white`}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <Avatar className="w-16 h-16 border-2 border-white">
                 <AvatarFallback className="bg-white text-gray-800 text-lg font-bold">
-                  {currentUser?.full_name?.charAt(0) || 'U'}
+                  {currentUser?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-bold">{currentUser?.full_name}</h2>
-                <p className="text-sm opacity-90">{getTierDisplayName(currentUser?.tier || 'bronze')}</p>
+                <h2 className="text-xl font-bold">{currentUser?.name}</h2>
+                <p className="text-sm opacity-90">{getTierDisplayName(currentUser?.tier || 'silver')}</p>
                 <div className="flex space-x-4 mt-2">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{currentUser?.reward_points || 0}</p>
-                    <p className="text-xs opacity-75">แต้มรางวัล</p>
-                  </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold">{currentUser?.points || 0}</p>
                     <p className="text-xs opacity-75">แต้มสะสม</p>
@@ -794,8 +635,8 @@ const CustomerMobileApp = () => {
                 <div>
                   <Label>ชื่อ</Label>
                   <Input
-                    value={currentUser?.full_name || ''}
-                    onChange={(e) => setCurrentUser(prev => prev ? {...prev, full_name: e.target.value} : null)}
+                    value={currentUser?.name || ''}
+                    onChange={(e) => setCurrentUser(prev => prev ? {...prev, name: e.target.value} : null)}
                     disabled={!editMode}
                   />
                 </div>
@@ -875,7 +716,7 @@ const CustomerMobileApp = () => {
                       <Button 
                         size="sm"
                         onClick={() => redeemReward(reward.id, reward.points_required)}
-                        disabled={(currentUser?.reward_points || 0) < reward.points_required}
+                        disabled={(currentUser?.points || 0) < reward.points_required}
                       >
                         แลก
                       </Button>
@@ -896,29 +737,7 @@ const CustomerMobileApp = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4">
-                  {coupons.length === 0 ? (
-                    <p className="text-center text-gray-600 py-8">ยังไม่มีคูปอง</p>
-                  ) : (
-                    coupons.map((coupon) => (
-                      <div key={coupon.id} className="p-4 border rounded-lg bg-gradient-to-r from-red-50 to-pink-50">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{coupon.name}</h4>
-                            <p className="text-sm text-gray-600">รหัส: {coupon.code}</p>
-                            <p className="text-lg font-bold text-red-600">
-                              ลด {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `฿${coupon.discount_value}`}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              หมดอายุ: {new Date(coupon.end_date).toLocaleDateString('th-TH')}
-                            </p>
-                          </div>
-                          <Badge variant="secondary">พร้อมใช้</Badge>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <div className="text-center text-gray-600 py-8">ยังไม่มีคูปอง</div>
               </CardContent>
             </Card>
           </TabsContent>
