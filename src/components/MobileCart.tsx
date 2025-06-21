@@ -1,14 +1,14 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, X } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, X, QrCode } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
+import CodeModal from './CodeModal';
 import {
   Drawer,
   DrawerContent,
@@ -59,6 +59,7 @@ const MobileCart = ({
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
@@ -165,22 +166,21 @@ const MobileCart = ({
 
                 <div className="space-y-2 mt-4">
                   <Button 
-                    className="w-full bg-coffee-600 hover:bg-coffee-700 h-12"
+                    className="w-full bg-coffee-600 hover:bg-coffee-700 h-10"
                     onClick={() => setIsPaymentModalOpen(true)}
                     disabled={total <= 0}
                   >
                     ชำระเงิน
                   </Button>
                   
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <Button 
                       variant="outline" 
                       onClick={() => setIsDiscountModalOpen(true)}
                       className="border-orange-300 text-orange-700 hover:bg-orange-50 h-10"
                       size="sm"
                     >
-                      <Percent className="w-4 h-4 mr-1" />
-                      ส่วนลด
+                      <Percent className="w-4 h-4" />
                     </Button>
                     
                     <Button 
@@ -189,8 +189,16 @@ const MobileCart = ({
                       className="border-blue-300 text-blue-700 hover:bg-blue-50 h-10"
                       size="sm"
                     >
-                      <Clock className="w-4 h-4 mr-1" />
-                      พักบิล
+                      <Clock className="w-4 h-4" />
+                    </Button>
+
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsCodeModalOpen(true)}
+                      className="border-green-300 text-green-700 hover:bg-green-50 h-10"
+                      size="sm"
+                    >
+                      <QrCode className="w-4 h-4" />
                     </Button>
 
                     <Button 
@@ -330,6 +338,21 @@ const MobileCart = ({
           itemName={selectedItemForDiscount.menu_item.name}
         />
       )}
+
+      <CodeModal
+        isOpen={isCodeModalOpen}
+        onClose={() => setIsCodeModalOpen(false)}
+        onApplyCode={(giftData) => {
+          // Handle applying the code
+          if (giftData.gift_type === 'menu_item') {
+            toast({ title: 'สำเร็จ', description: `เพิ่ม ${giftData.gift_name} แล้ว` });
+          } else if (giftData.gift_type === 'promotion') {
+            onUpdateBillDiscount(giftData.gift_value);
+            onUpdateBillDiscountType('amount');
+            toast({ title: 'สำเร็จ', description: `ใช้โปรโมชั่น ${giftData.gift_name} แล้ว` });
+          }
+        }}
+      />
     </>
   );
 };

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gift, Tag, ShoppingBag, Phone, UserCheck } from 'lucide-react';
+import { Gift, Tag, ShoppingBag, Phone, UserCheck, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -177,6 +177,75 @@ const CustomerMobileApp = () => {
     }
     
     setCustomerGifts(data || []);
+  };
+
+  const generateUniqueCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleUseGift = async (gift: CustomerGift) => {
+    if (gift.is_used) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ของขวัญนี้ถูกใช้ไปแล้ว', variant: 'destructive' });
+      return;
+    }
+
+    if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ของขวัญนี้หมดอายุแล้ว', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      let uniqueCode = '';
+      let isUnique = false;
+      
+      // Generate unique code
+      while (!isUnique) {
+        uniqueCode = generateUniqueCode();
+        const { data: existingGift } = await supabase
+          .from('customer_gifts')
+          .select('id')
+          .eq('gift_code', uniqueCode)
+          .maybeSingle();
+        
+        if (!existingGift) {
+          isUnique = true;
+        }
+      }
+
+      // Update gift with code and mark as used
+      const { error } = await supabase
+        .from('customer_gifts')
+        .update({
+          gift_code: uniqueCode,
+          is_used: true,
+          used_at: new Date().toISOString()
+        })
+        .eq('id', gift.id);
+
+      if (error) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถใช้ของขวัญได้', variant: 'destructive' });
+        return;
+      }
+
+      // Show code to user
+      navigator.clipboard.writeText(uniqueCode);
+      toast({ 
+        title: 'สำเร็จ!', 
+        description: `โค้ดของคุณ: ${uniqueCode} (คัดลอกแล้ว)`,
+        duration: 10000
+      });
+
+      // Refresh gifts
+      fetchCustomerGifts();
+    } catch (error) {
+      console.error('Error using gift:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการใช้ของขวัญ', variant: 'destructive' });
+    }
   };
 
   const handleRegister = async () => {
@@ -539,19 +608,20 @@ const CustomerMobileApp = () => {
                                   "{gift.message}"
                                 </div>
                               )}
+                              {gift.is_used && gift.gift_code && (
+                                <div className="text-xs text-green-600 mt-1 font-mono bg-green-50 p-1 rounded">
+                                  โค้ด: {gift.gift_code} (ใช้แล้ว)
+                                </div>
+                              )}
                             </div>
                           </div>
                           <Button 
                             size="sm"
-                            className="bg-purple-600 hover:bg-purple-700"
-                            onClick={() => {
-                              toast({ 
-                                title: 'ฟีเจอร์ยังไม่พร้อม', 
-                                description: 'การใช้ของขวัญยังอยู่ระหว่างการพัฒนา' 
-                              });
-                            }}
+                            className={gift.is_used ? "bg-gray-400" : "bg-purple-600 hover:bg-purple-700"}
+                            onClick={() => handleUseGift(gift)}
+                            disabled={gift.is_used || (gift.expires_at && new Date(gift.expires_at) < new Date())}
                           >
-                            ใช้
+                            {gift.is_used ? 'ใช้แล้ว' : 'ใช้'}
                           </Button>
                         </div>
                       </div>
