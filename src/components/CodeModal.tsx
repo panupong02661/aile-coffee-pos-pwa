@@ -63,7 +63,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       }
 
       // If it's a menu item gift, fetch the menu item details separately
-      let giftWithMenuItem = { ...gift };
+      let giftWithMenuItem: any = { ...gift };
       if (gift.gift_type === 'menu_item' && gift.gift_id) {
         const { data: menuItemData, error: menuError } = await supabase
           .from('menu_items')
