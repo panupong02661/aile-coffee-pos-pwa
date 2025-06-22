@@ -32,7 +32,18 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       // Check if code exists and is valid
       const { data, error } = await supabase
         .from('customer_gifts')
-        .select('*')
+        .select(`
+          *,
+          menu_items (
+            id,
+            name,
+            price,
+            description,
+            image_url,
+            category_id,
+            is_available
+          )
+        `)
         .eq('gift_code', code.toUpperCase())
         .eq('is_used', false);
 
@@ -62,24 +73,8 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // If it's a menu item gift, fetch the menu item details separately
-      let giftWithMenuItem: any = { ...gift };
-      if (gift.gift_type === 'menu_item' && gift.gift_id) {
-        const { data: menuItemData, error: menuError } = await supabase
-          .from('menu_items')
-          .select('*')
-          .eq('id', gift.gift_id)
-          .single();
-
-        if (menuError) {
-          console.error('Menu item fetch error:', menuError);
-        } else if (menuItemData) {
-          giftWithMenuItem.menu_item = menuItemData;
-        }
-      }
-
       // Apply the code based on gift type
-      onApplyCode(giftWithMenuItem);
+      onApplyCode(gift);
       
       // Mark as used
       const { error: updateError } = await supabase
