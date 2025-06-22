@@ -316,7 +316,6 @@ const MobileCart = ({
         billDiscount={billDiscount}
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
-        appliedGiftCode={appliedGiftCode}
       />
 
       <DiscountModal

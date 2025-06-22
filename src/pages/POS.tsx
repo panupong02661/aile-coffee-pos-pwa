@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Member {
   id: string;
