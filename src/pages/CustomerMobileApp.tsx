@@ -26,19 +26,76 @@ const CustomerMobileApp = () => {
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Mock customer ID - in real app this would come from authentication
-  const customerId = 'mock-customer-id';
+  // For demo purposes, we'll create a test customer ID if none exists
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchGifts();
+    initializeCustomer();
   }, []);
 
-  const fetchGifts = async () => {
+  const initializeCustomer = async () => {
+    try {
+      // First, try to find an existing member to use as demo customer
+      const { data: members, error } = await supabase
+        .from('members')
+        .select('id')
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching members:', error);
+        setLoading(false);
+        return;
+      }
+
+      let demoCustomerId: string;
+
+      if (members && members.length > 0) {
+        demoCustomerId = members[0].id;
+      } else {
+        // Create a demo member if none exists
+        const { data: newMember, error: createError } = await supabase
+          .from('members')
+          .insert({
+            name: 'ลูกค้าทดสอบ',
+            phone: '0800000000',
+            email: 'demo@test.com'
+          })
+          .select()
+          .single();
+
+        if (createError || !newMember) {
+          console.error('Error creating demo member:', createError);
+          toast({
+            title: 'ข้อผิดพลาด',
+            description: 'ไม่สามารถสร้างลูกค้าทดสอบได้',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        demoCustomerId = newMember.id;
+      }
+
+      setCustomerId(demoCustomerId);
+      await fetchGifts(demoCustomerId);
+    } catch (error) {
+      console.error('Error initializing customer:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'เกิดข้อผิดพลาดในการเริ่มต้นระบบ',
+        variant: 'destructive'
+      });
+      setLoading(false);
+    }
+  };
+
+  const fetchGifts = async (customerIdToUse: string) => {
     try {
       const { data, error } = await supabase
         .from('customer_gifts')
         .select('*')
-        .eq('customer_id', customerId)
+        .eq('customer_id', customerIdToUse)
         .eq('is_used', false) // Only show unused gifts
         .order('created_at', { ascending: false });
 
@@ -50,6 +107,7 @@ const CustomerMobileApp = () => {
           variant: 'destructive'
         });
       } else {
+        console.log('Fetched gifts:', data);
         setGifts(data || []);
       }
     } catch (error) {
@@ -182,11 +240,18 @@ const CustomerMobileApp = () => {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {gifts.length === 0 ? (
+        {!customerId ? (
+          <div className="text-center py-12">
+            <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg font-medium">ไม่สามารถโหลดข้อมูลลูกค้าได้</p>
+            <p className="text-gray-400 text-sm mt-2">กรุณาลองใหม่อีกครั้ง</p>
+          </div>
+        ) : gifts.length === 0 ? (
           <div className="text-center py-12">
             <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg font-medium">ยังไม่มีของขวัญ</p>
             <p className="text-gray-400 text-sm mt-2">ของขวัญจะปรากฏที่นี่เมื่อคุณได้รับ</p>
+            <p className="text-gray-400 text-xs mt-1">ลูกค้า ID: {customerId}</p>
           </div>
         ) : (
           gifts.map((gift) => (
@@ -240,7 +305,7 @@ const CustomerMobileApp = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-gray-500">
-                        ใช้งั่วงนิ: {new Date(gift.used_at).toLocaleString('th-TH')}
+                        ใช้เมื่อ: {new Date(gift.used_at).toLocaleString('th-TH')}
                       </p>
                     </div>
                   </div>
