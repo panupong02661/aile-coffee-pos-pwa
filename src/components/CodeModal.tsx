@@ -56,7 +56,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
     try {
       console.log('Checking code:', code.toUpperCase());
       
-      // Check if code exists and is valid
+      // Check if code exists and is valid (but don't mark as used yet)
       const { data, error } = await supabase
         .from('customer_gifts')
         .select(`
@@ -100,22 +100,8 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // Apply the code based on gift type
+      // Apply the code but don't mark as used yet - this will be done when payment is completed
       onApplyCode(gift);
-      
-      // Mark as used
-      const { error: updateError } = await supabase
-        .from('customer_gifts')
-        .update({ 
-          is_used: true,
-          used_at: new Date().toISOString() 
-        })
-        .eq('id', gift.id);
-
-      if (updateError) {
-        console.error('Update error:', updateError);
-        // Still show success but log the error
-      }
 
       let successMessage = '';
       if (gift.gift_type === 'menu_item') {

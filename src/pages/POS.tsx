@@ -44,6 +44,7 @@ const POS = () => {
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
 
   const {
     cartItems,
@@ -200,6 +201,9 @@ const POS = () => {
   };
 
   const handleCodeApply = async (giftData: any) => {
+    // Store the gift code data but don't mark as used yet
+    setAppliedGiftCode(giftData);
+    
     if (giftData.gift_type === 'menu_item') {
       // Try to find the menu item by gift_id (assuming it references menu_items.id)
       const menuItem = convertedMenuItems.find(item => item.id === giftData.gift_id);
@@ -225,6 +229,30 @@ const POS = () => {
       // Apply promotion discount to bill
       setBillDiscount(giftData.gift_value);
       setBillDiscountType('amount');
+    }
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+    setAppliedGiftCode(null); // Clear applied gift code when cart is cleared
+  };
+
+  const handlePaymentComplete = async () => {
+    // Mark gift code as used when payment is completed
+    if (appliedGiftCode) {
+      try {
+        await supabase
+          .from('customer_gifts')
+          .update({ 
+            is_used: true,
+            used_at: new Date().toISOString() 
+          })
+          .eq('id', appliedGiftCode.id);
+        
+        setAppliedGiftCode(null);
+      } catch (error) {
+        console.error('Error marking gift code as used:', error);
+      }
     }
   };
 
@@ -305,7 +333,7 @@ const POS = () => {
                     onUpdateQuantity={updateQuantity}
                     onRemoveItem={removeFromCart}
                     onUpdateDiscount={updateDiscount}
-                    onClearCart={clearCart}
+                    onClearCart={handleClearCart}
                     billDiscount={billDiscount}
                     billDiscountType={billDiscountType}
                     onUpdateBillDiscount={setBillDiscount}
@@ -313,6 +341,8 @@ const POS = () => {
                     onRestoreCart={restoreCart}
                     selectedMember={selectedMember}
                     onCodeApply={handleCodeApply}
+                    appliedGiftCode={appliedGiftCode}
+                    onPaymentComplete={handlePaymentComplete}
                   />
                 </div>
               </div>
@@ -348,7 +378,7 @@ const POS = () => {
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeFromCart}
           onUpdateDiscount={updateDiscount}
-          onClearCart={clearCart}
+          onClearCart={handleClearCart}
           billDiscount={billDiscount}
           billDiscountType={billDiscountType}
           onUpdateBillDiscount={setBillDiscount}
@@ -356,6 +386,8 @@ const POS = () => {
           onRestoreCart={restoreCart}
           selectedMember={selectedMember}
           onCodeApply={handleCodeApply}
+          appliedGiftCode={appliedGiftCode}
+          onPaymentComplete={handlePaymentComplete}
         />
       )}
 

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +31,8 @@ interface MobileCartProps {
   onUpdateBillDiscountType: (type: 'percent' | 'amount') => void;
   onRestoreCart: (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
   onCodeApply?: (giftData: any) => void;
+  appliedGiftCode?: any;
+  onPaymentComplete?: () => void;
   selectedMember?: {
     id: string;
     phone: string;
@@ -57,6 +58,8 @@ const MobileCart = ({
   onUpdateBillDiscountType,
   onRestoreCart,
   onCodeApply,
+  appliedGiftCode,
+  onPaymentComplete,
   selectedMember
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -83,6 +86,12 @@ const MobileCart = ({
 
   const handlePayment = (paymentMethod: PaymentMethod, cashReceived?: number) => {
     console.log('Payment processed:', { paymentMethod, total, cashReceived });
+    
+    // Mark gift code as used when payment is completed
+    if (onPaymentComplete) {
+      onPaymentComplete();
+    }
+    
     onClearCart();
     setIsPaymentModalOpen(false);
     onUpdateBillDiscount(0);
@@ -307,6 +316,7 @@ const MobileCart = ({
         billDiscount={billDiscount}
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
+        appliedGiftCode={appliedGiftCode}
       />
 
       <DiscountModal
