@@ -54,10 +54,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
-      console.log('Checking code:', code.toUpperCase());
+      const upperCode = code.toUpperCase().trim();
+      console.log('Checking code:', upperCode);
       
-      // Check if code exists and is valid (but don't mark as used yet)
-      const { data, error } = await supabase
+      // First, check if the code exists at all
+      const { data: allCodes, error: checkError } = await supabase
         .from('customer_gifts')
         .select(`
           *,
@@ -71,28 +72,35 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
             is_available
           )
         `)
-        .eq('gift_code', code.toUpperCase())
-        .eq('is_used', false);
+        .eq('gift_code', upperCode);
 
-      console.log('Supabase response:', { data, error });
+      console.log('All codes with this code:', allCodes);
 
-      if (error) {
-        console.error('Supabase error:', error);
+      if (checkError) {
+        console.error('Database error:', checkError);
         toast({ 
           title: 'ข้อผิดพลาด', 
-          description: `เกิดข้อผิดพลาด: ${error.message}`, 
+          description: `เกิดข้อผิดพลาดในการตรวจสอบ: ${checkError.message}`, 
           variant: 'destructive' 
         });
         return;
       }
 
-      if (!data || data.length === 0) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้หรือโค้ดถูกใช้แล้ว', variant: 'destructive' });
+      if (!allCodes || allCodes.length === 0) {
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้ในระบบ', variant: 'destructive' });
         return;
       }
 
-      const gift = data[0] as CustomerGiftWithMenuItem;
-      console.log('Found gift:', gift);
+      // Check if any of the codes are available (not used)
+      const availableGift = allCodes.find(gift => !gift.is_used);
+      
+      if (!availableGift) {
+        toast({ title: 'ข้อผิดพลาด', description: 'โค้ดนี้ถูกใช้งานแล้ว', variant: 'destructive' });
+        return;
+      }
+
+      const gift = availableGift as CustomerGiftWithMenuItem;
+      console.log('Found available gift:', gift);
 
       // Check if code is expired
       if (gift.expires_at && new Date(gift.expires_at) < new Date()) {

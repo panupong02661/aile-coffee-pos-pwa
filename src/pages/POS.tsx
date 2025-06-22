@@ -7,6 +7,7 @@ import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
 import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
+import DebugCodeChecker from '@/components/DebugCodeChecker';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -46,6 +47,7 @@ const POS = () => {
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const {
     cartItems,
@@ -202,6 +204,8 @@ const POS = () => {
   };
 
   const handleCodeApply = async (giftData: any) => {
+    console.log('Applying gift code:', giftData);
+    
     // Store the gift code data but don't mark as used yet
     setAppliedGiftCode(giftData);
     
@@ -242,13 +246,21 @@ const POS = () => {
     // Mark gift code as used when payment is completed
     if (appliedGiftCode) {
       try {
-        await supabase
+        console.log('Marking gift code as used:', appliedGiftCode.id);
+        
+        const { error } = await supabase
           .from('customer_gifts')
           .update({ 
             is_used: true,
             used_at: new Date().toISOString() 
           })
           .eq('id', appliedGiftCode.id);
+        
+        if (error) {
+          console.error('Error marking gift code as used:', error);
+        } else {
+          console.log('Gift code marked as used successfully');
+        }
         
         setAppliedGiftCode(null);
       } catch (error) {
@@ -293,6 +305,16 @@ const POS = () => {
             setItemSize={setItemSize}
             page="pos"
           />
+          
+          {/* Debug toggle button */}
+          <Button
+            onClick={() => setShowDebug(!showDebug)}
+            size="sm"
+            variant="outline"
+            className="mt-2"
+          >
+            {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
+          </Button>
         </div>
         
         {/* Content Area */}
@@ -413,6 +435,9 @@ const POS = () => {
           onAddToCart={handleAddToCartWithAddons}
         />
       )}
+
+      {/* Debug Code Checker */}
+      {showDebug && <DebugCodeChecker />}
     </div>
   );
 };
