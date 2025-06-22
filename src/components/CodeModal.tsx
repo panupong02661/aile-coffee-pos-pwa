@@ -14,6 +14,33 @@ interface CodeModalProps {
   onApplyCode: (giftData: any) => void;
 }
 
+interface CustomerGiftWithMenuItem {
+  id: string;
+  customer_id: string;
+  gift_type: string;
+  gift_id: string;
+  gift_name: string;
+  gift_description?: string;
+  gift_value: number;
+  expires_at?: string;
+  is_used: boolean;
+  used_at?: string;
+  gift_code?: string;
+  message?: string;
+  created_at: string;
+  updated_at: string;
+  sent_by?: string;
+  menu_items?: {
+    id: string;
+    name: string;
+    price: number;
+    description?: string;
+    image_url?: string;
+    category_id?: string;
+    is_available: boolean;
+  };
+}
+
 const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +91,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      const gift = data[0];
+      const gift = data[0] as CustomerGiftWithMenuItem;
       console.log('Found gift:', gift);
 
       // Check if code is expired
@@ -92,7 +119,8 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
       let successMessage = '';
       if (gift.gift_type === 'menu_item') {
-        successMessage = `เพิ่มเมนู ${gift.gift_name} ลงในตะกร้าแล้ว`;
+        const menuItemName = gift.menu_items?.name || gift.gift_name;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว`;
       } else if (gift.gift_type === 'promotion') {
         successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
       } else {

@@ -368,6 +368,13 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_gifts_menu_item"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_mobile_sessions: {
