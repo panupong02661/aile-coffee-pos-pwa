@@ -32,18 +32,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       // Check if code exists and is valid
       const { data, error } = await supabase
         .from('customer_gifts')
-        .select(`
-          *,
-          menu_items (
-            id,
-            name,
-            price,
-            description,
-            image_url,
-            category_id,
-            is_available
-          )
-        `)
+        .select('*')
         .eq('gift_code', code.toUpperCase())
         .eq('is_used', false);
 
@@ -71,6 +60,21 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
         toast({ title: 'ข้อผิดพลาด', description: 'โค้ดนี้หมดอายุแล้ว', variant: 'destructive' });
         return;
+      }
+
+      // If it's a menu item gift, fetch the menu item details separately
+      if (gift.gift_type === 'menu_item' && gift.gift_id) {
+        const { data: menuItemData, error: menuError } = await supabase
+          .from('menu_items')
+          .select('*')
+          .eq('id', gift.gift_id)
+          .single();
+
+        if (menuError) {
+          console.error('Menu item fetch error:', menuError);
+        } else if (menuItemData) {
+          gift.menu_items = menuItemData;
+        }
       }
 
       // Apply the code based on gift type
