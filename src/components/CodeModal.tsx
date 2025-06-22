@@ -63,6 +63,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       }
 
       // If it's a menu item gift, fetch the menu item details separately
+      let giftWithMenuItem = { ...gift };
       if (gift.gift_type === 'menu_item' && gift.gift_id) {
         const { data: menuItemData, error: menuError } = await supabase
           .from('menu_items')
@@ -73,12 +74,12 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         if (menuError) {
           console.error('Menu item fetch error:', menuError);
         } else if (menuItemData) {
-          gift.menu_items = menuItemData;
+          giftWithMenuItem.menu_item = menuItemData;
         }
       }
 
       // Apply the code based on gift type
-      onApplyCode(gift);
+      onApplyCode(giftWithMenuItem);
       
       // Mark as used
       const { error: updateError } = await supabase
