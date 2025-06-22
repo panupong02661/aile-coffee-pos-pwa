@@ -246,26 +246,29 @@ const POS = () => {
     // Mark gift code as used when payment is completed
     if (appliedGiftCode) {
       try {
-        console.log('Marking gift code as used:', appliedGiftCode.id);
+        console.log('🔄 กำลังอัพเดทสถานะโค้ดเป็น "ใช้แล้ว":', appliedGiftCode.id);
         
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('customer_gifts')
           .update({ 
             is_used: true,
             used_at: new Date().toISOString() 
           })
-          .eq('id', appliedGiftCode.id);
+          .eq('id', appliedGiftCode.id)
+          .select();
         
         if (error) {
-          console.error('Error marking gift code as used:', error);
+          console.error('❌ ข้อผิดพลาดในการอัพเดทสถานะโค้ด:', error);
         } else {
-          console.log('Gift code marked as used successfully');
+          console.log('✅ อัพเดทสถานะโค้ดสำเร็จ:', data);
         }
         
         setAppliedGiftCode(null);
       } catch (error) {
-        console.error('Error marking gift code as used:', error);
+        console.error('❌ ข้อผิดพลาดที่ไม่คาดคิดในการอัพเดทโค้ด:', error);
       }
+    } else {
+      console.log('ℹ️ ไม่มีโค้ดที่ต้องอัพเดท');
     }
   };
 

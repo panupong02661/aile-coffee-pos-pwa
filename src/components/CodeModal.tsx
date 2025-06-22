@@ -55,10 +55,10 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
     setIsLoading(true);
     try {
       const upperCode = code.toUpperCase().trim();
-      console.log('Checking code:', upperCode);
+      console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      // First, check if the code exists at all
-      const { data: allCodes, error: checkError } = await supabase
+      // ค้นหาโค้ดในฐานข้อมูล
+      const { data: gifts, error: queryError } = await supabase
         .from('customer_gifts')
         .select(`
           *,
@@ -72,49 +72,72 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
             is_available
           )
         `)
-        .eq('gift_code', upperCode);
+        .eq('gift_code', upperCode)
+        .order('created_at', { ascending: false });
 
-      console.log('All codes with this code:', allCodes);
+      console.log('ผลการค้นหาโค้ด:', { gifts, error: queryError });
 
-      if (checkError) {
-        console.error('Database error:', checkError);
+      if (queryError) {
+        console.error('ข้อผิดพลาดในการค้นหา:', queryError);
         toast({ 
           title: 'ข้อผิดพลาด', 
-          description: `เกิดข้อผิดพลาดในการตรวจสอบ: ${checkError.message}`, 
+          description: `เกิดข้อผิดพลาดในการตรวจสอบ: ${queryError.message}`, 
           variant: 'destructive' 
         });
         return;
       }
 
-      if (!allCodes || allCodes.length === 0) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบโค้ดนี้ในระบบ', variant: 'destructive' });
+      if (!gifts || gifts.length === 0) {
+        console.log('ไม่พบโค้ดในระบบ');
+        toast({ 
+          title: 'ไม่พบโค้ด', 
+          description: 'ไม่พบโค้ดนี้ในระบบ กรุณาตรวจสอบอีกครั้ง', 
+          variant: 'destructive' 
+        });
         return;
       }
 
-      // Check if any of the codes are available (not used)
-      const availableGift = allCodes.find(gift => !gift.is_used);
+      // ค้นหาโค้ดที่ยังไม่ได้ใช้งาน
+      const availableGift = gifts.find(gift => !gift.is_used);
       
       if (!availableGift) {
-        toast({ title: 'ข้อผิดพลาด', description: 'โค้ดนี้ถูกใช้งานแล้ว', variant: 'destructive' });
+        console.log('โค้ดทั้งหมดถูกใช้งานแล้ว:', gifts.map(g => ({ id: g.id, is_used: g.is_used, used_at: g.used_at })));
+        toast({ 
+          title: 'โค้ดไม่สามารถใช้ได้', 
+          description: 'โค้ดนี้ถูกใช้งานแล้ว', 
+          variant: 'destructive' 
+        });
         return;
       }
 
       const gift = availableGift as CustomerGiftWithMenuItem;
-      console.log('Found available gift:', gift);
+      console.log('พบโค้ดที่สามารถใช้ได้:', { id: gift.id, is_used: gift.is_used, expires_at: gift.expires_at });
 
-      // Check if code is expired
-      if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
-        toast({ title: 'ข้อผิดพลาด', description: 'โค้ดนี้หมดอายุแล้ว', variant: 'destructive' });
-        return;
+      // ตรวจสอบวันหมดอายุ
+      if (gift.expires_at) {
+        const expiryDate = new Date(gift.expires_at);
+        const currentDate = new Date();
+        
+        if (expiryDate < currentDate) {
+          console.log('โค้ดหมดอายุแล้ว:', { expires_at: gift.expires_at, current: currentDate.toISOString() });
+          toast({ 
+            title: 'โค้ดหมดอายุ', 
+            description: 'โค้ดนี้หมดอายุแล้ว', 
+            variant: 'destructive' 
+          });
+          return;
+        }
       }
 
-      // Apply the code but don't mark as used yet - this will be done when payment is completed
+      // นำโค้ดไปใช้งาน (ยังไม่ mark เป็น used)
+      console.log('นำโค้ดไปใช้งาน:', gift);
       onApplyCode(gift);
 
+      // แสดงข้อความสำเร็จ
       let successMessage = '';
       if (gift.gift_type === 'menu_item') {
         const menuItemName = gift.menu_items?.name || gift.gift_name;
-        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว`;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)`;
       } else if (gift.gift_type === 'promotion') {
         successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
       } else {
@@ -122,14 +145,14 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       }
 
       toast({ 
-        title: 'สำเร็จ', 
+        title: 'ใช้โค้ดสำเร็จ', 
         description: successMessage
       });
 
       setCode('');
       onClose();
     } catch (error) {
-      console.error('Error applying code:', error);
+      console.error('ข้อผิดพลาดที่ไม่คาดคิด:', error);
       toast({ 
         title: 'ข้อผิดพลาด', 
         description: `เกิดข้อผิดพลาดในการใช้โค้ด: ${error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'}`, 
