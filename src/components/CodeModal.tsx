@@ -27,8 +27,10 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
+      console.log('Checking code:', code.toUpperCase());
+      
       // Check if code exists and is valid
-      const { data, error }: { data: any[] | null; error: any } = await supabase
+      const { data, error } = await supabase
         .from('customer_gifts')
         .select(`
           *,
@@ -45,9 +47,15 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         .eq('gift_code', code.toUpperCase())
         .eq('is_used', false);
 
+      console.log('Supabase response:', { data, error });
+
       if (error) {
         console.error('Supabase error:', error);
-        toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการตรวจสอบโค้ด', variant: 'destructive' });
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: `เกิดข้อผิดพลาด: ${error.message}`, 
+          variant: 'destructive' 
+        });
         return;
       }
 
@@ -57,6 +65,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       }
 
       const gift = data[0];
+      console.log('Found gift:', gift);
 
       // Check if code is expired
       if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
@@ -78,6 +87,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
       if (updateError) {
         console.error('Update error:', updateError);
+        // Still show success but log the error
       }
 
       let successMessage = '';
@@ -98,7 +108,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       onClose();
     } catch (error) {
       console.error('Error applying code:', error);
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการใช้โค้ด', variant: 'destructive' });
+      toast({ 
+        title: 'ข้อผิดพลาด', 
+        description: `เกิดข้อผิดพลาดในการใช้โค้ด: ${error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'}`, 
+        variant: 'destructive' 
+      });
     } finally {
       setIsLoading(false);
     }
