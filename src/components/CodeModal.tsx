@@ -97,14 +97,14 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // ค้นหาโค้ดที่ยังไม่ได้ใช้งาน
+      // แก้ไขเงื่อนไข: ใช้โค้ดได้หลายครั้งจนกว่าจะ is_used = true (ซึ่งจะเปลี่ยนเมื่อกดชำระเงิน)
       const availableGift = gifts.find(gift => !gift.is_used);
       
       if (!availableGift) {
-        console.log('โค้ดทั้งหมดถูกใช้งานแล้ว:', gifts.map(g => ({ id: g.id, is_used: g.is_used, used_at: g.used_at })));
+        console.log('โค้ดทั้งหมดถูกใช้งานและชำระเงินแล้ว:', gifts.map(g => ({ id: g.id, is_used: g.is_used, used_at: g.used_at })));
         toast({ 
           title: 'โค้ดไม่สามารถใช้ได้', 
-          description: 'โค้ดนี้ถูกใช้งานแล้ว', 
+          description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว', 
           variant: 'destructive' 
         });
         return;
@@ -129,7 +129,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // นำโค้ดไปใช้งาน (ยังไม่ mark เป็น used)
+      // นำโค้ดไปใช้งาน (ยังไม่ mark เป็น used - จะ mark เมื่อชำระเงินเท่านั้น)
       console.log('นำโค้ดไปใช้งาน:', gift);
       onApplyCode(gift);
 
@@ -146,7 +146,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
       toast({ 
         title: 'ใช้โค้ดสำเร็จ', 
-        description: successMessage
+        description: `${successMessage} - โค้ดจะถูกใช้งานเมื่อชำระเงิน`
       });
 
       setCode('');
@@ -189,6 +189,10 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
               maxLength={6}
               className="font-mono text-center text-lg"
             />
+          </div>
+          
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+            <p><strong>หมายเหตุ:</strong> โค้ดสามารถใช้ได้หลายครั้งจนกว่าจะชำระเงิน เมื่อชำระเงินแล้วโค้ดจึงจะถูกใช้งานจริง</p>
           </div>
           
           <div className="flex gap-2">

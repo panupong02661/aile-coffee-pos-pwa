@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PromotionFormProps {
   isOpen: boolean;
@@ -32,8 +33,10 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     is_active: true,
   });
   const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
+  const [selectedFreeMenuItems, setSelectedFreeMenuItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isMenuPopoverOpen, setIsMenuPopoverOpen] = useState(false);
+  const [isFreeMenuPopoverOpen, setIsFreeMenuPopoverOpen] = useState(false);
   const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const { toast } = useToast();
@@ -87,7 +90,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         is_active: editPromotion.is_active ?? true,
       });
       
-      // Load selected menu items
       if (editPromotion.promotion_menu_items) {
         const menuItemIds = editPromotion.promotion_menu_items.map((item: any) => item.menu_items.id);
         setSelectedMenuItems(menuItemIds);
@@ -105,11 +107,20 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         is_active: true,
       });
       setSelectedMenuItems([]);
+      setSelectedFreeMenuItems([]);
     }
   }, [editPromotion]);
 
   const handleMenuItemToggle = (menuItemId: string) => {
     setSelectedMenuItems(prev => 
+      prev.includes(menuItemId)
+        ? prev.filter(id => id !== menuItemId)
+        : [...prev, menuItemId]
+    );
+  };
+
+  const handleFreeMenuItemToggle = (menuItemId: string) => {
+    setSelectedFreeMenuItems(prev => 
       prev.includes(menuItemId)
         ? prev.filter(id => id !== menuItemId)
         : [...prev, menuItemId]
@@ -128,7 +139,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     const categoryMenuItems = menuItems.filter(item => item.categories?.id === categoryId);
     const categoryItemIds = categoryMenuItems.map(item => item.id);
     
-    // Add all items from this category to selected items
     setSelectedMenuItems(prev => {
       const newItems = categoryItemIds.filter(id => !prev.includes(id));
       return [...prev, ...newItems];
@@ -168,7 +178,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         if (error) throw error;
         promotionId = editPromotion.id;
         
-        // Delete existing menu item associations
         await supabase
           .from('promotion_menu_items')
           .delete()
@@ -187,7 +196,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         toast({ title: 'สำเร็จ', description: 'เพิ่มโปรโมชั่นสำเร็จ' });
       }
 
-      // Insert new menu item associations
       if (selectedMenuItems.length > 0) {
         const menuItemAssociations = selectedMenuItems.map(menuItemId => ({
           promotion_id: promotionId,
@@ -334,18 +342,20 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                   <PopoverContent className="w-60">
                     <div className="space-y-2">
                       <div className="font-medium">เลือกหมวดหมู่</div>
-                      <div className="space-y-2">
-                        {categories.map((category) => (
-                          <Button
-                            key={category.id}
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => handleCategorySelect(category.id)}
-                          >
-                            {category.name}
-                          </Button>
-                        ))}
-                      </div>
+                      <ScrollArea className="h-40">
+                        <div className="space-y-2">
+                          {categories.map((category) => (
+                            <Button
+                              key={category.id}
+                              variant="ghost"
+                              className="w-full justify-start"
+                              onClick={() => handleCategorySelect(category.id)}
+                            >
+                              {category.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </ScrollArea>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -355,7 +365,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                       เลือกเมนู
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 max-h-60 overflow-y-auto">
+                  <PopoverContent className="w-80">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">เลือกเมนู</span>
@@ -363,25 +373,27 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                           ยกเลิกทั้งหมด
                         </Button>
                       </div>
-                      <div className="space-y-2">
-                        {filteredMenuItems.map((item) => (
-                          <div key={item.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={item.id}
-                              checked={selectedMenuItems.includes(item.id)}
-                              onCheckedChange={() => handleMenuItemToggle(item.id)}
-                            />
-                            <Label htmlFor={item.id} className="text-sm cursor-pointer">
-                              {item.name}
-                              {item.categories && (
-                                <span className="text-xs text-gray-500 ml-2">
-                                  ({item.categories.name})
-                                </span>
-                              )}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
+                      <ScrollArea className="h-60">
+                        <div className="space-y-2">
+                          {filteredMenuItems.map((item) => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={item.id}
+                                checked={selectedMenuItems.includes(item.id)}
+                                onCheckedChange={() => handleMenuItemToggle(item.id)}
+                              />
+                              <Label htmlFor={item.id} className="text-sm cursor-pointer">
+                                {item.name}
+                                {item.categories && (
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({item.categories.name})
+                                  </span>
+                                )}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -407,6 +419,69 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
               </div>
             </div>
           </div>
+
+          {/* เพิ่มส่วนเลือกของแถมสำหรับ buy_get และ free_item */}
+          {(formData.type === 'buy_get' || formData.type === 'free_item') && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Label>เมนูของแถม</Label>
+                <div className="space-x-2">
+                  <Popover open={isFreeMenuPopoverOpen} onOpenChange={setIsFreeMenuPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">
+                        เลือกของแถม
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-2">
+                        <div className="font-medium">เลือกเมนูของแถม</div>
+                        <ScrollArea className="h-60">
+                          <div className="space-y-2">
+                            {menuItems.map((item) => (
+                              <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`free-${item.id}`}
+                                  checked={selectedFreeMenuItems.includes(item.id)}
+                                  onCheckedChange={() => handleFreeMenuItemToggle(item.id)}
+                                />
+                                <Label htmlFor={`free-${item.id}`} className="text-sm cursor-pointer">
+                                  {item.name}
+                                  {item.categories && (
+                                    <span className="text-xs text-gray-500 ml-2">
+                                      ({item.categories.name})
+                                    </span>
+                                  )}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              <div className="border border-coffee-200 rounded-lg p-4 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2">
+                  {menuItems.filter(item => selectedFreeMenuItems.includes(item.id)).map((item) => (
+                    <div key={item.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`selected-free-${item.id}`}
+                        checked={true}
+                        onCheckedChange={() => handleFreeMenuItemToggle(item.id)}
+                      />
+                      <Label htmlFor={`selected-free-${item.id}`} className="text-sm cursor-pointer">
+                        {item.name}
+                      </Label>
+                    </div>
+                  ))}
+                  {selectedFreeMenuItems.length === 0 && (
+                    <p className="text-sm text-gray-500 col-span-2">ยังไม่ได้เลือกของแถม</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center space-x-2">
             <Switch
