@@ -15,6 +15,8 @@ interface PrinterConfigForm {
   printer_model: string;
   connection_type: string;
   usb_path: string;
+  ip_address: string;
+  port: string;
   paper_width: string;
   print_speed: string;
   auto_cut: boolean;
@@ -29,8 +31,10 @@ const PrinterConfiguration = () => {
     defaultValues: {
       printer_name: 'เครื่องพิมพ์หลัก',
       printer_model: 'STAR TSP-143III',
-      connection_type: 'USB',
+      connection_type: 'Ethernet',
       usb_path: '/dev/usb/lp0',
+      ip_address: '192.168.1.132',
+      port: '9100',
       paper_width: '58',
       print_speed: 'ปกติ',
       auto_cut: true,
@@ -106,12 +110,14 @@ const PrinterConfiguration = () => {
 
           <div>
             <Label htmlFor="printer_model">รุ่นเครื่องพิมพ์</Label>
-            <Select onValueChange={(value) => setValue('printer_model', value)}>
+            <Select onValueChange={(value) => setValue('printer_model', value)} defaultValue="STAR TSP-143III">
               <SelectTrigger>
                 <SelectValue placeholder="เลือกรุ่นเครื่องพิมพ์" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="STAR TSP100III">STAR TSP100III</SelectItem>
                 <SelectItem value="STAR TSP-143III">STAR TSP-143III</SelectItem>
+                <SelectItem value="TSP143IIIU GY">TSP143IIIU GY</SelectItem>
                 <SelectItem value="EPSON TM-T20III">EPSON TM-T20III</SelectItem>
                 <SelectItem value="CITIZEN CT-S310II">CITIZEN CT-S310II</SelectItem>
                 <SelectItem value="BIXOLON SRP-350plusIII">BIXOLON SRP-350plusIII</SelectItem>
@@ -129,7 +135,7 @@ const PrinterConfiguration = () => {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="connection_type">ประเภทการเชื่อมต่อ</Label>
-            <Select onValueChange={(value) => setValue('connection_type', value)}>
+            <Select onValueChange={(value) => setValue('connection_type', value)} defaultValue="Ethernet">
               <SelectTrigger>
                 <SelectValue placeholder="เลือกประเภทการเชื่อมต่อ" />
               </SelectTrigger>
@@ -152,6 +158,27 @@ const PrinterConfiguration = () => {
               />
             </div>
           )}
+
+          {(connectionType === 'Ethernet' || connectionType === 'WiFi') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="ip_address">IP Address</Label>
+                <Input
+                  id="ip_address"
+                  {...register('ip_address')}
+                  placeholder="192.168.1.132"
+                />
+              </div>
+              <div>
+                <Label htmlFor="port">Port</Label>
+                <Input
+                  id="port"
+                  {...register('port')}
+                  placeholder="9100"
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -164,7 +191,7 @@ const PrinterConfiguration = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="paper_width">ความกว้างกระดาษ (มม.)</Label>
-              <Select onValueChange={(value) => setValue('paper_width', value)}>
+              <Select onValueChange={(value) => setValue('paper_width', value)} defaultValue="58">
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกความกว้างกระดาษ" />
                 </SelectTrigger>
@@ -178,7 +205,7 @@ const PrinterConfiguration = () => {
 
             <div>
               <Label htmlFor="print_speed">ความเร็วการพิมพ์</Label>
-              <Select onValueChange={(value) => setValue('print_speed', value)}>
+              <Select onValueChange={(value) => setValue('print_speed', value)} defaultValue="ปกติ">
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกความเร็วการพิมพ์" />
                 </SelectTrigger>
