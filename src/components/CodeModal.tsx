@@ -57,7 +57,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const upperCode = code.toUpperCase().trim();
       console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      // ค้นหาโค้ดในฐานข้อมูล
+      // ค้นหาโค้ดในฐานข้อมูล โดยไม่เช็ค is_used เพราะอนุญาตให้ใช้ซ้ำได้จนกว่าจะชำระเงิน
       const { data: gifts, error: queryError } = await supabase
         .from('customer_gifts')
         .select(`
@@ -97,23 +97,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // แก้ไขเงื่อนไข: ใช้โค้ดได้หลายครั้งจนกว่าจะ is_used = true (ซึ่งจะเปลี่ยนเมื่อกดชำระเงิน)
-      const availableGift = gifts.find(gift => !gift.is_used);
-      
-      if (!availableGift) {
-        console.log('โค้ดทั้งหมดถูกใช้งานและชำระเงินแล้ว:', gifts.map(g => ({ id: g.id, is_used: g.is_used, used_at: g.used_at })));
-        toast({ 
-          title: 'โค้ดไม่สามารถใช้ได้', 
-          description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว', 
-          variant: 'destructive' 
-        });
-        return;
-      }
+      // ใช้โค้ดตัวแรกที่พบ (ไม่เช็ค is_used แล้ว เพราะให้ใช้ได้จนกว่าจะชำระเงิน)
+      const gift = gifts[0] as CustomerGiftWithMenuItem;
+      console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, expires_at: gift.expires_at });
 
-      const gift = availableGift as CustomerGiftWithMenuItem;
-      console.log('พบโค้ดที่สามารถใช้ได้:', { id: gift.id, is_used: gift.is_used, expires_at: gift.expires_at });
-
-      // ตรวจสอบวันหมดอายุ
+      // ตรวจสอบวันหมดอายุเท่านั้น
       if (gift.expires_at) {
         const expiryDate = new Date(gift.expires_at);
         const currentDate = new Date();
@@ -129,24 +117,32 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // นำโค้ดไปใช้งาน (ยังไม่ mark เป็น used - จะ mark เมื่อชำระเงินเท่านั้น)
+      // นำโค้ดไปใช้งาน (ไม่ mark เป็น used ที่นี่ - จะ mark เมื่อชำระเงินเท่านั้น)
       console.log('นำโค้ดไปใช้งาน:', gift);
       onApplyCode(gift);
 
       // แสดงข้อความสำเร็จ
       let successMessage = '';
+      let statusMessage = '';
+      
+      if (gift.is_used) {
+        statusMessage = ' (โค้ดนี้เคยถูกใช้งานแล้ว แต่สามารถเติมซ้ำได้)';
+      } else {
+        statusMessage = ' (โค้ดใหม่)';
+      }
+
       if (gift.gift_type === 'menu_item') {
         const menuItemName = gift.menu_items?.name || gift.gift_name;
-        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)`;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)${statusMessage}`;
       } else if (gift.gift_type === 'promotion') {
-        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
+        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)${statusMessage}`;
       } else {
-        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว`;
+        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว${statusMessage}`;
       }
 
       toast({ 
         title: 'ใช้โค้ดสำเร็จ', 
-        description: `${successMessage} - โค้ดจะถูกใช้งานเมื่อชำระเงิน`
+        description: successMessage
       });
 
       setCode('');
@@ -192,7 +188,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           </div>
           
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-            <p><strong>หมายเหตุ:</strong> โค้ดสามารถใช้ได้หลายครั้งจนกว่าจะชำระเงิน เมื่อชำระเงินแล้วโค้ดจึงจะถูกใช้งานจริง</p>
+            <p><strong>หมายเหตุ:</strong> โค้ดสามารถเติมใช้ได้หลายครั้งจนกว่าจะชำระเงิน เมื่อชำระเงินแล้วโค้ดจึงจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
           
           <div className="flex gap-2">
