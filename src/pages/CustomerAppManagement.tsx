@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -238,16 +237,40 @@ const CustomerAppManagement = () => {
 
     setIsLoading(true);
     try {
-      const giftsToInsert = selectedCustomers.map(customerId => ({
-        customer_id: customerId,
-        gift_type: giftType,
-        gift_id: giftData.id,
-        gift_name: giftData.name,
-        gift_description: giftData.description || '',
-        gift_value: giftData.value,
-        expires_at: expirationDate ? new Date(expirationDate).toISOString() : null,
-        message: giftMessage || null,
-        sent_by: 'admin'
+      // Generate unique codes for each gift
+      const giftsToInsert = await Promise.all(selectedCustomers.map(async (customerId) => {
+        let giftCode = '';
+        let isUnique = false;
+        
+        // Generate unique 6-character code
+        while (!isUnique) {
+          giftCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          
+          // Check if code already exists
+          const { data: existingGift } = await supabase
+            .from('customer_gifts')
+            .select('id')
+            .eq('gift_code', giftCode)
+            .single();
+            
+          if (!existingGift) {
+            isUnique = true;
+          }
+        }
+
+        return {
+          customer_id: customerId,
+          gift_type: giftType,
+          gift_id: giftData.id,
+          gift_name: giftData.name,
+          gift_description: giftData.description || '',
+          gift_value: giftData.value,
+          expires_at: expirationDate ? new Date(expirationDate).toISOString() : null,
+          message: giftMessage || null,
+          sent_by: 'admin',
+          gift_code: giftCode,
+          is_used: false
+        };
       }));
 
       const { error } = await supabase
@@ -262,7 +285,7 @@ const CustomerAppManagement = () => {
 
       toast({ 
         title: 'สำเร็จ', 
-        description: `ส่งของขวัญให้ลูกค้า ${selectedCustomers.length} คนเรียบร้อยแล้ว` 
+        description: `ส่งของขวัญให้ลูกค้า ${selectedCustomers.length} คนเรียบร้อยแล้ว พร้อมโค้ดใช้งาน` 
       });
       
       // Reset form

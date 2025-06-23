@@ -158,7 +158,7 @@ const Cart = ({
               <Button 
                 className="w-full bg-coffee-600 hover:bg-coffee-700 h-8"
                 onClick={() => setIsPaymentModalOpen(true)}
-                disabled={total <= 0}
+                disabled={cartItems.length === 0}
                 size="sm"
               >
                 ชำระ
