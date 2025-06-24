@@ -57,7 +57,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const upperCode = code.toUpperCase().trim();
       console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      // ค้นหาโค้ดในฐานข้อมูล โดยไม่เช็ค is_used เพราะอนุญาตให้ใช้ซ้ำได้จนกว่าจะชำระเงิน
+      // ค้นหาโค้ดในฐานข้อมูล
       const { data: gifts, error: queryError } = await supabase
         .from('customer_gifts')
         .select(`
@@ -97,11 +97,22 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // ใช้โค้ดตัวแรกที่พบ (ไม่เช็ค is_used แล้ว เพราะให้ใช้ได้จนกว่าจะชำระเงิน)
+      // ใช้โค้ดตัวแรกที่พบ
       const gift = gifts[0] as CustomerGiftWithMenuItem;
-      console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, expires_at: gift.expires_at });
+      console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, used_at: gift.used_at, expires_at: gift.expires_at });
 
-      // ตรวจสอบวันหมดอายุเท่านั้น
+      // ตรวจสอบว่าโค้ดถูกใช้งานแล้วหรือไม่ (ต้องมี used_at ด้วย)
+      if (gift.is_used && gift.used_at) {
+        console.log('โค้ดถูกใช้งานแล้ว:', { is_used: gift.is_used, used_at: gift.used_at });
+        toast({ 
+          title: 'โค้ดถูกใช้แล้ว', 
+          description: 'โค้ดนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      // ตรวจสอบวันหมดอายุ
       if (gift.expires_at) {
         const expiryDate = new Date(gift.expires_at);
         const currentDate = new Date();
@@ -117,7 +128,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // นำโค้ดไปใช้งาน (ไม่ mark เป็น used ที่นี่ - จะ mark เมื่อชำระเงินเท่านั้น)
+      // นำโค้ดไปใช้งาน
       console.log('นำโค้ดไปใช้งาน:', gift);
       onApplyCode(gift);
 
@@ -125,9 +136,9 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       let successMessage = '';
       let statusMessage = '';
       
-      if (gift.is_used) {
-        statusMessage = ' (โค้ดนี้เคยถูกใช้งานแล้ว แต่สามารถเติมซ้ำได้)';
-      } else {
+      if (gift.is_used && !gift.used_at) {
+        statusMessage = ' (โค้ดนี้เคยถูกใช้งานแล้ว แต่ยังไม่ได้ชำระเงิน สามารถใช้ได้)';
+      } else if (!gift.is_used) {
         statusMessage = ' (โค้ดใหม่)';
       }
 

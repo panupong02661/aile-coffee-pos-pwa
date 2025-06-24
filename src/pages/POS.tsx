@@ -53,6 +53,7 @@ const POS = () => {
     cartItems,
     addToCart,
     addFreeItemToCart,
+    applyPromotionDiscount,
     updateQuantity,
     removeFromCart,
     updateDiscount,
@@ -232,8 +233,7 @@ const POS = () => {
       }
     } else if (giftData.gift_type === 'promotion') {
       // Apply promotion discount to bill
-      setBillDiscount(giftData.gift_value);
-      setBillDiscountType('amount');
+      applyPromotionDiscount(giftData.gift_value);
     }
   };
 

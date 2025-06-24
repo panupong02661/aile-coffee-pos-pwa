@@ -41,6 +41,11 @@ export const useCart = () => {
     setCartItems(prev => [...prev, newItem]);
   };
 
+  const applyPromotionDiscount = (discountValue: number) => {
+    setBillDiscount(discountValue);
+    setBillDiscountType('amount');
+  };
+
   const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
@@ -114,6 +119,7 @@ export const useCart = () => {
     cartItems,
     addToCart,
     addFreeItemToCart,
+    applyPromotionDiscount,
     updateQuantity,
     removeFromCart,
     updateDiscount,
