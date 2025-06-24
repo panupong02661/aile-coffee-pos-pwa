@@ -101,7 +101,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const gift = gifts[0] as CustomerGiftWithMenuItem;
       console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, used_at: gift.used_at, expires_at: gift.expires_at });
 
-      // ตรวจสอบว่าโค้ดถูกใช้งานจริงแล้วหรือไม่ (ต้องมี used_at ด้วย - คือชำระเงินแล้ว)
+      // ตรวจสอบว่าโค้ดถูกใช้งานและชำระเงินแล้วหรือไม่ (ตรวจสอบเฉพาะ used_at)
       if (gift.used_at) {
         console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', { is_used: gift.is_used, used_at: gift.used_at });
         toast({ 
@@ -128,7 +128,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // นำโค้ดไปใช้งาน
+      // นำโค้ดไปใช้งาน โดยไม่อัปเดตสถานะในฐานข้อมูลตอนนี้
       console.log('นำโค้ดไปใช้งาน:', gift);
       onApplyCode(gift);
 
@@ -137,7 +137,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       let statusMessage = '';
       
       if (gift.is_used && !gift.used_at) {
-        statusMessage = ' (โค้ดนี้เคยถูกใช้งานแล้ว แต่ยังไม่ได้ชำระเงิน สามารถใช้ได้)';
+        statusMessage = ' (โค้ดนี้เคยถูกเพิ่มในตะกร้าแล้ว แต่ยังไม่ได้ชำระเงิน)';
       } else if (!gift.is_used) {
         statusMessage = ' (โค้ดใหม่)';
       }

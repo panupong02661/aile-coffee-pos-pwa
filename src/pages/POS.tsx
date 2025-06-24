@@ -207,7 +207,7 @@ const POS = () => {
   const handleCodeApply = async (giftData: any) => {
     console.log('Applying gift code:', giftData);
     
-    // Store the gift code data but don't mark as used yet
+    // เก็บข้อมูลโค้ดไว้ แต่ไม่อัปเดตสถานะในฐานข้อมูลตอนนี้
     setAppliedGiftCode(giftData);
     
     if (giftData.gift_type === 'menu_item') {
@@ -243,7 +243,7 @@ const POS = () => {
   };
 
   const handlePaymentComplete = async () => {
-    // Mark gift code as used when payment is completed
+    // อัปเดตสถานะโค้ดเป็น "ใช้แล้ว" เมื่อชำระเงินสำเร็จแล้วเท่านั้น
     if (appliedGiftCode) {
       try {
         console.log('🔄 กำลังอัพเดทสถานะโค้ดเป็น "ใช้แล้ว":', appliedGiftCode.id);
