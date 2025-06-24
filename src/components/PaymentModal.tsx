@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -385,13 +386,19 @@ const PaymentModal = ({
         return;
       }
 
-      // Allow payment even if total is 0, as long as there are items in cart
-      // This handles cases where discounts or gift codes reduce total to 0
+      if (total <= 0) {
+        toast({
+          title: "ยอดเงินไม่ถูกต้อง",
+          description: "ยอดเงินต้องมากกว่า 0",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Validate payment method specific requirements
       if (paymentMethod === 'cash') {
         const receivedAmount = parseFloat(cashReceived || '0');
-        if (total > 0 && (isNaN(receivedAmount) || receivedAmount < total)) {
+        if (isNaN(receivedAmount) || receivedAmount < total) {
           toast({
             title: "จำนวนเงินไม่เพียงพอ",
             description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,

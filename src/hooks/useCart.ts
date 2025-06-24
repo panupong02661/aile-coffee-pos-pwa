@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CartItem, MenuItem, Addon } from '@/types';
 
@@ -38,17 +39,6 @@ export const useCart = () => {
     };
 
     setCartItems(prev => [...prev, newItem]);
-  };
-
-  const addPromotionDiscount = (promotionName: string, discountValue: number, discountType: 'percent' | 'amount' = 'amount') => {
-    console.log('💰 เพิ่มส่วนลดโปรโมชั่น:', {
-      name: promotionName,
-      value: discountValue,
-      type: discountType
-    });
-    
-    setBillDiscount(discountValue);
-    setBillDiscountType(discountType);
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -124,7 +114,6 @@ export const useCart = () => {
     cartItems,
     addToCart,
     addFreeItemToCart,
-    addPromotionDiscount,
     updateQuantity,
     removeFromCart,
     updateDiscount,

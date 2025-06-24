@@ -1,11 +1,10 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { QrCode, Gift, Tag, ShoppingBag, Percent } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,222 +14,195 @@ interface CodeModalProps {
   onApplyCode: (giftData: any) => void;
 }
 
+interface CustomerGiftWithMenuItem {
+  id: string;
+  customer_id: string;
+  gift_type: string;
+  gift_id: string;
+  gift_name: string;
+  gift_description?: string;
+  gift_value: number;
+  expires_at?: string;
+  is_used: boolean;
+  used_at?: string;
+  gift_code?: string;
+  message?: string;
+  created_at: string;
+  updated_at: string;
+  sent_by?: string;
+  menu_items?: {
+    id: string;
+    name: string;
+    price: number;
+    description?: string;
+    image_url?: string;
+    category_id?: string;
+    is_available: boolean;
+  };
+}
+
 const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleApply = async () => {
+  const handleApplyCode = async () => {
     if (!code.trim()) {
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "กรุณากรอกโค้ดของขวัญ",
-        variant: "destructive"
-      });
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกโค้ด', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('🔍 กำลังตรวจสอบโค้ด:', code.toUpperCase());
-
-      const { data: gift, error } = await supabase
-        .from('customer_gifts')
-        .select('*')
-        .eq('gift_code', code.toUpperCase())
-        .single();
-
-      if (error || !gift) {
-        console.error('❌ ไม่พบโค้ด:', error);
-        toast({
-          title: "ไม่พบโค้ด",
-          description: "ไม่พบโค้ดของขวัญนี้ในระบบ",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('📦 ข้อมูลโค้ด:', gift);
-
-      // ตรวจสอบวันหมดอายุ
-      if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
-        console.warn('⏰ โค้ดหมดอายุ:', gift.expires_at);
-        toast({
-          title: "โค้ดหมดอายุ",
-          description: "โค้ดของขวัญนี้หมดอายุแล้ว",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // ตรวจสอบสถานะการใช้งาน - ใช้เฉพาะ is_used และ used_at ที่บันทึกจริงในฐานข้อมูล
-      // เมื่อมีการ apply โค้ดก่อนชำระเงิน จะไม่ถือว่าใช้งานจริงจนกว่าจะชำระเงินเสร็จ
-      const isActuallyUsed = gift.is_used === true && gift.used_at !== null;
+      const upperCode = code.toUpperCase().trim();
+      console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      if (isActuallyUsed) {
-        console.warn('🚫 โค้ดถูกใช้แล้ว:', {
-          is_used: gift.is_used,
-          used_at: gift.used_at
-        });
-        toast({
-          title: "โค้ดถูกใช้แล้ว",
-          description: "โค้ดของขวัญนี้ถูกใช้งานแล้ว",
-          variant: "destructive"
+      // ค้นหาโค้ดในฐานข้อมูล โดยไม่เช็ค is_used เพราะอนุญาตให้ใช้ซ้ำได้จนกว่าจะชำระเงิน
+      const { data: gifts, error: queryError } = await supabase
+        .from('customer_gifts')
+        .select(`
+          *,
+          menu_items (
+            id,
+            name,
+            price,
+            description,
+            image_url,
+            category_id,
+            is_available
+          )
+        `)
+        .eq('gift_code', upperCode)
+        .order('created_at', { ascending: false });
+
+      console.log('ผลการค้นหาโค้ด:', { gifts, error: queryError });
+
+      if (queryError) {
+        console.error('ข้อผิดพลาดในการค้นหา:', queryError);
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: `เกิดข้อผิดพลาดในการตรวจสอบ: ${queryError.message}`, 
+          variant: 'destructive' 
         });
         return;
       }
 
-      console.log('✅ โค้ดพร้อมใช้งาน');
+      if (!gifts || gifts.length === 0) {
+        console.log('ไม่พบโค้ดในระบบ');
+        toast({ 
+          title: 'ไม่พบโค้ด', 
+          description: 'ไม่พบโค้ดนี้ในระบบ กรุณาตรวจสอบอีกครั้ง', 
+          variant: 'destructive' 
+        });
+        return;
+      }
 
-      // จัดการประเภทของขวัญต่างๆ
-      if (gift.gift_type === 'promotion') {
-        console.log('📊 ประมวลผลโปรโมชั่นส่วนลด:', gift.gift_value);
-        
-        const giftData = {
-          id: gift.id,
-          type: 'promotion',
-          name: gift.gift_name,
-          description: gift.gift_description,
-          discount_value: Number(gift.gift_value) || 0,
-          discount_type: 'amount', // ใช้ส่วนลดแบบจำนวนเงิน
-          code: gift.gift_code,
-          customer_gift_id: gift.id
-        };
+      // ใช้โค้ดตัวแรกที่พบ (ไม่เช็ค is_used แล้ว เพราะให้ใช้ได้จนกว่าจะชำระเงิน)
+      const gift = gifts[0] as CustomerGiftWithMenuItem;
+      console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, expires_at: gift.expires_at });
 
-        console.log('🎁 ข้อมูลโปรโมชั่นที่จะส่ง:', giftData);
-        onApplyCode(giftData);
+      // ตรวจสอบวันหมดอายุเท่านั้น
+      if (gift.expires_at) {
+        const expiryDate = new Date(gift.expires_at);
+        const currentDate = new Date();
         
-      } else if (gift.gift_type === 'menu_item') {
-        console.log('🍽️ ประมวลผลเมนูฟรี');
-        
-        // ดึงข้อมูลเมนูจากฐานข้อมูล
-        const { data: menuItem, error: menuError } = await supabase
-          .from('menu_items')
-          .select('*')
-          .eq('id', gift.gift_id)
-          .single();
-
-        if (menuError || !menuItem) {
-          console.error('❌ ไม่พบข้อมูลเมนู:', menuError);
-          toast({
-            title: "ข้อผิดพลาด",
-            description: "ไม่พบข้อมูลเมนูที่เกี่ยวข้อง",
-            variant: "destructive"
+        if (expiryDate < currentDate) {
+          console.log('โค้ดหมดอายุแล้ว:', { expires_at: gift.expires_at, current: currentDate.toISOString() });
+          toast({ 
+            title: 'โค้ดหมดอายุ', 
+            description: 'โค้ดนี้หมดอายุแล้ว', 
+            variant: 'destructive' 
           });
           return;
         }
-
-        const giftData = {
-          id: gift.id,
-          type: 'menu_item',
-          name: gift.gift_name,
-          description: gift.gift_description,
-          menu_item: menuItem,
-          code: gift.gift_code,
-          customer_gift_id: gift.id
-        };
-
-        console.log('🎁 ข้อมูลเมนูฟรีที่จะส่ง:', giftData);
-        onApplyCode(giftData);
-        
-      } else {
-        console.log('🎯 ประมวลผลของขวัญประเภทอื่น');
-        
-        const giftData = {
-          id: gift.id,
-          type: gift.gift_type,
-          name: gift.gift_name,
-          description: gift.gift_description,
-          value: Number(gift.gift_value) || 0,
-          code: gift.gift_code,
-          customer_gift_id: gift.id
-        };
-
-        console.log('🎁 ข้อมูลของขวัญที่จะส่ง:', giftData);
-        onApplyCode(giftData);
       }
 
-      toast({
-        title: "ใช้โค้ดสำเร็จ",
-        description: `ใช้โค้ด ${gift.gift_name} แล้ว`,
+      // นำโค้ดไปใช้งาน (ไม่ mark เป็น used ที่นี่ - จะ mark เมื่อชำระเงินเท่านั้น)
+      console.log('นำโค้ดไปใช้งาน:', gift);
+      onApplyCode(gift);
+
+      // แสดงข้อความสำเร็จ
+      let successMessage = '';
+      let statusMessage = '';
+      
+      if (gift.is_used) {
+        statusMessage = ' (โค้ดนี้เคยถูกใช้งานแล้ว แต่สามารถเติมซ้ำได้)';
+      } else {
+        statusMessage = ' (โค้ดใหม่)';
+      }
+
+      if (gift.gift_type === 'menu_item') {
+        const menuItemName = gift.menu_items?.name || gift.gift_name;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)${statusMessage}`;
+      } else if (gift.gift_type === 'promotion') {
+        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)${statusMessage}`;
+      } else {
+        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว${statusMessage}`;
+      }
+
+      toast({ 
+        title: 'ใช้โค้ดสำเร็จ', 
+        description: successMessage
       });
 
       setCode('');
       onClose();
-
-    } catch (error: any) {
-      console.error('❌ เกิดข้อผิดพลาดในการใช้โค้ด:', error);
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "เกิดข้อผิดพลาดในการใช้โค้ด",
-        variant: "destructive"
+    } catch (error) {
+      console.error('ข้อผิดพลาดที่ไม่คาดคิด:', error);
+      toast({ 
+        title: 'ข้อผิดพลาด', 
+        description: `เกิดข้อผิดพลาดในการใช้โค้ด: ${error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ'}`, 
+        variant: 'destructive' 
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getGiftTypeIcon = (type: string) => {
-    switch (type) {
-      case 'reward': return <Gift className="w-4 h-4" />;
-      case 'promotion': return <Percent className="w-4 h-4" />;
-      case 'menu_item': return <ShoppingBag className="w-4 h-4" />;
-      default: return <Tag className="w-4 h-4" />;
-    }
-  };
-
-  const getGiftTypeBadge = (type: string) => {
-    switch (type) {
-      case 'reward': return <Badge className="bg-purple-100 text-purple-800">ของรางวัล</Badge>;
-      case 'promotion': return <Badge className="bg-orange-100 text-orange-800">โปรโมชั่น</Badge>;
-      case 'menu_item': return <Badge className="bg-green-100 text-green-800">เมนูอาหาร</Badge>;
-      default: return <Badge className="bg-gray-100 text-gray-800">อื่นๆ</Badge>;
-    }
+  const handleClose = () => {
+    setCode('');
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <QrCode className="w-5 h-5" />
-            ใช้โค้ดของขวัญ
+            ใส่โค้ดโปรโมชั่น
           </DialogTitle>
         </DialogHeader>
-
+        
         <div className="space-y-4">
           <div>
-            <Label htmlFor="gift-code">โค้ดของขวัญ</Label>
+            <Label htmlFor="code">โค้ด 6 หลัก</Label>
             <Input
-              id="gift-code"
+              id="code"
+              placeholder="กรอกโค้ด เช่น ABC123"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="กรอกโค้ดของขวัญ"
-              className="text-center font-mono text-lg"
               maxLength={6}
+              className="font-mono text-center text-lg"
             />
           </div>
-
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="text-sm text-blue-700">
-              <div className="font-medium mb-1">วิธีใช้โค้ดของขวัญ:</div>
-              <ul className="space-y-1 text-xs">
-                <li>• โค้ดของรางวัล: ได้รับของรางวัลตามที่กำหนด</li>
-                <li>• โค้ดโปรโมชั่น: ได้รับส่วนลดตามจำนวนที่กำหนด</li>
-                <li>• โค้ดเมนูอาหาร: ได้รับเมนูฟรีตามที่กำหนด</li>
-                <li>• โค้ดจะถูกใช้งานเมื่อชำระเงินเรียบร้อยแล้ว</li>
-              </ul>
-            </div>
+          
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+            <p><strong>หมายเหตุ:</strong> โค้ดสามารถเติมใช้ได้หลายครั้งจนกว่าจะชำระเงิน เมื่อชำระเงินแล้วโค้ดจึงจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
-
+          
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              className="flex-1"
+            >
               ยกเลิก
             </Button>
-            <Button 
-              onClick={handleApply} 
+            <Button
+              onClick={handleApplyCode}
               disabled={isLoading || !code.trim()}
-              className="flex-1"
+              className="flex-1 bg-green-600 hover:bg-green-700"
             >
               {isLoading ? 'กำลังตรวจสอบ...' : 'ใช้โค้ด'}
             </Button>

@@ -204,36 +204,36 @@ const POS = () => {
   };
 
   const handleCodeApply = async (giftData: any) => {
-    console.log('🎁 ประมวลผลของขวัญ:', giftData);
+    console.log('Applying gift code:', giftData);
     
     // Store the gift code data but don't mark as used yet
     setAppliedGiftCode(giftData);
     
-    if (giftData.type === 'menu_item') {
-      console.log('🍽️ เพิ่มเมนูฟรี:', giftData.menu_item);
+    if (giftData.gift_type === 'menu_item') {
+      // Try to find the menu item by gift_id (assuming it references menu_items.id)
+      const menuItem = convertedMenuItems.find(item => item.id === giftData.gift_id);
       
-      if (giftData.menu_item) {
-        addFreeItemToCart(giftData.menu_item, giftData.name);
+      if (menuItem) {
+        // Add the menu item as a free item with full discount
+        addFreeItemToCart(menuItem, giftData.gift_name);
       } else {
-        // สร้าง placeholder menu item หากไม่พบ
+        // Create a placeholder menu item if not found
         const placeholderItem = {
           id: giftData.gift_id || `gift_${Date.now()}`,
-          name: giftData.name,
-          price: giftData.value || 0,
+          name: giftData.gift_name,
+          price: giftData.gift_value || 0,
           category_id: '',
           image: '',
           is_available: true,
-          description: giftData.description || '',
+          description: giftData.gift_description || '',
           calculated_cost: 0
         };
-        addFreeItemToCart(placeholderItem, giftData.name);
+        addFreeItemToCart(placeholderItem, giftData.gift_name);
       }
-    } else if (giftData.type === 'promotion') {
-      console.log('📊 ใช้ส่วนลดโปรโมชั่น:', giftData.discount_value, 'บาท');
-      
-      // ใช้ส่วนลดท้ายบิล
-      setBillDiscount(Number(giftData.discount_value) || 0);
-      setBillDiscountType(giftData.discount_type || 'amount');
+    } else if (giftData.gift_type === 'promotion') {
+      // Apply promotion discount to bill
+      setBillDiscount(giftData.gift_value);
+      setBillDiscountType('amount');
     }
   };
 
