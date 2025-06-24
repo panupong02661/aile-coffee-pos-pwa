@@ -41,6 +41,12 @@ export const useCart = () => {
   };
 
   const addPromotionDiscount = (promotionName: string, discountValue: number, discountType: 'percent' | 'amount' = 'amount') => {
+    console.log('💰 เพิ่มส่วนลดโปรโมชั่น:', {
+      name: promotionName,
+      value: discountValue,
+      type: discountType
+    });
+    
     setBillDiscount(discountValue);
     setBillDiscountType(discountType);
   };

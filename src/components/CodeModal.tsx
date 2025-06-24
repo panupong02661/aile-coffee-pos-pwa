@@ -32,6 +32,8 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
     setIsLoading(true);
     try {
+      console.log('🔍 กำลังตรวจสอบโค้ด:', code.toUpperCase());
+
       const { data: gift, error } = await supabase
         .from('customer_gifts')
         .select('*')
@@ -39,6 +41,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         .single();
 
       if (error || !gift) {
+        console.error('❌ ไม่พบโค้ด:', error);
         toast({
           title: "ไม่พบโค้ด",
           description: "ไม่พบโค้ดของขวัญนี้ในระบบ",
@@ -47,8 +50,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // Check if gift has expired
+      console.log('📦 ข้อมูลโค้ด:', gift);
+
+      // ตรวจสอบวันหมดอายุ
       if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
+        console.warn('⏰ โค้ดหมดอายุ:', gift.expires_at);
         toast({
           title: "โค้ดหมดอายุ",
           description: "โค้ดของขวัญนี้หมดอายุแล้ว",
@@ -57,9 +63,15 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // Only check if gift is used AND has been marked as used in database
-      // This allows multiple applications before final payment
-      if (gift.is_used && gift.used_at) {
+      // ตรวจสอบสถานะการใช้งาน - ใช้เฉพาะ is_used และ used_at ที่บันทึกจริงในฐานข้อมูล
+      // เมื่อมีการ apply โค้ดก่อนชำระเงิน จะไม่ถือว่าใช้งานจริงจนกว่าจะชำระเงินเสร็จ
+      const isActuallyUsed = gift.is_used === true && gift.used_at !== null;
+      
+      if (isActuallyUsed) {
+        console.warn('🚫 โค้ดถูกใช้แล้ว:', {
+          is_used: gift.is_used,
+          used_at: gift.used_at
+        });
         toast({
           title: "โค้ดถูกใช้แล้ว",
           description: "โค้ดของขวัญนี้ถูกใช้งานแล้ว",
@@ -68,23 +80,30 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // Handle different gift types
+      console.log('✅ โค้ดพร้อมใช้งาน');
+
+      // จัดการประเภทของขวัญต่างๆ
       if (gift.gift_type === 'promotion') {
-        // For promotions, apply as discount
+        console.log('📊 ประมวลผลโปรโมชั่นส่วนลด:', gift.gift_value);
+        
         const giftData = {
           id: gift.id,
           type: 'promotion',
           name: gift.gift_name,
           description: gift.gift_description,
-          discount_value: gift.gift_value,
-          discount_type: 'amount', // Can be 'percent' or 'amount' based on promotion
+          discount_value: Number(gift.gift_value) || 0,
+          discount_type: 'amount', // ใช้ส่วนลดแบบจำนวนเงิน
           code: gift.gift_code,
           customer_gift_id: gift.id
         };
 
+        console.log('🎁 ข้อมูลโปรโมชั่นที่จะส่ง:', giftData);
         onApplyCode(giftData);
+        
       } else if (gift.gift_type === 'menu_item') {
-        // For menu items, need to fetch the actual menu item
+        console.log('🍽️ ประมวลผลเมนูฟรี');
+        
+        // ดึงข้อมูลเมนูจากฐานข้อมูล
         const { data: menuItem, error: menuError } = await supabase
           .from('menu_items')
           .select('*')
@@ -92,6 +111,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           .single();
 
         if (menuError || !menuItem) {
+          console.error('❌ ไม่พบข้อมูลเมนู:', menuError);
           toast({
             title: "ข้อผิดพลาด",
             description: "ไม่พบข้อมูลเมนูที่เกี่ยวข้อง",
@@ -110,19 +130,23 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           customer_gift_id: gift.id
         };
 
+        console.log('🎁 ข้อมูลเมนูฟรีที่จะส่ง:', giftData);
         onApplyCode(giftData);
+        
       } else {
-        // For rewards and other types
+        console.log('🎯 ประมวลผลของขวัญประเภทอื่น');
+        
         const giftData = {
           id: gift.id,
           type: gift.gift_type,
           name: gift.gift_name,
           description: gift.gift_description,
-          value: gift.gift_value,
+          value: Number(gift.gift_value) || 0,
           code: gift.gift_code,
           customer_gift_id: gift.id
         };
 
+        console.log('🎁 ข้อมูลของขวัญที่จะส่ง:', giftData);
         onApplyCode(giftData);
       }
 
@@ -135,7 +159,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       onClose();
 
     } catch (error: any) {
-      console.error('Error applying gift code:', error);
+      console.error('❌ เกิดข้อผิดพลาดในการใช้โค้ด:', error);
       toast({
         title: "ข้อผิดพลาด",
         description: "เกิดข้อผิดพลาดในการใช้โค้ด",
