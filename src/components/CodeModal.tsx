@@ -99,11 +99,17 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
       // ใช้โค้ดตัวแรกที่พบ
       const gift = gifts[0] as CustomerGiftWithMenuItem;
-      console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, used_at: gift.used_at, expires_at: gift.expires_at });
+      console.log('พบโค้ด:', { 
+        id: gift.id, 
+        gift_code: gift.gift_code, 
+        is_used: gift.is_used, 
+        used_at: gift.used_at, 
+        expires_at: gift.expires_at 
+      });
 
-      // ตรวจสอบว่าโค้ดถูกใช้งานและชำระเงินแล้วหรือไม่ (ตรวจสอบเฉพาะ used_at)
+      // เงื่อนไขง่าย ๆ: ถ้ามี used_at แสดงว่าชำระเงินแล้ว ห้ามใช้
       if (gift.used_at) {
-        console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', { is_used: gift.is_used, used_at: gift.used_at });
+        console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', gift.used_at);
         toast({ 
           title: 'โค้ดถูกใช้แล้ว', 
           description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว ไม่สามารถใช้ซ้ำได้', 
@@ -128,27 +134,20 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // นำโค้ดไปใช้งาน โดยไม่อัปเดตสถานะในฐานข้อมูลตอนนี้
-      console.log('นำโค้ดไปใช้งาน:', gift);
+      // โค้ดใช้งานได้ - นำไปใช้งาน
+      console.log('โค้ดพร้อมใช้งาน:', gift);
       onApplyCode(gift);
 
       // แสดงข้อความสำเร็จ
       let successMessage = '';
-      let statusMessage = '';
       
-      if (gift.is_used && !gift.used_at) {
-        statusMessage = ' (โค้ดนี้เคยถูกเพิ่มในตะกร้าแล้ว แต่ยังไม่ได้ชำระเงิน)';
-      } else if (!gift.is_used) {
-        statusMessage = ' (โค้ดใหม่)';
-      }
-
       if (gift.gift_type === 'menu_item') {
         const menuItemName = gift.menu_items?.name || gift.gift_name;
-        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)${statusMessage}`;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)`;
       } else if (gift.gift_type === 'promotion') {
-        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)${statusMessage}`;
+        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
       } else {
-        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว${statusMessage}`;
+        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว`;
       }
 
       toast({ 
@@ -199,7 +198,9 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           </div>
           
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-            <p><strong>หมายเหตุ:</strong> โค้ดสามารถเติมใช้ได้หลายครั้งจนกว่าจะชำระเงิน เมื่อชำระเงินแล้วโค้ดจึงจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
+            <p><strong>เงื่อนไขการใช้งานโค้ด:</strong></p>
+            <p>• โค้ดสามารถใช้ได้หลายครั้งก่อนชำระเงิน</p>
+            <p>• เมื่อชำระเงินแล้ว โค้ดจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
           
           <div className="flex gap-2">
