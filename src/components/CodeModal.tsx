@@ -101,12 +101,12 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const gift = gifts[0] as CustomerGiftWithMenuItem;
       console.log('พบโค้ด:', { id: gift.id, gift_code: gift.gift_code, is_used: gift.is_used, used_at: gift.used_at, expires_at: gift.expires_at });
 
-      // ตรวจสอบว่าโค้ดถูกใช้งานแล้วหรือไม่ (ต้องมี used_at ด้วย)
-      if (gift.is_used && gift.used_at) {
-        console.log('โค้ดถูกใช้งานแล้ว:', { is_used: gift.is_used, used_at: gift.used_at });
+      // ตรวจสอบว่าโค้ดถูกใช้งานจริงแล้วหรือไม่ (ต้องมี used_at ด้วย - คือชำระเงินแล้ว)
+      if (gift.used_at) {
+        console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', { is_used: gift.is_used, used_at: gift.used_at });
         toast({ 
           title: 'โค้ดถูกใช้แล้ว', 
-          description: 'โค้ดนี้ถูกใช้งานแล้ว ไม่สามารถใช้ซ้ำได้', 
+          description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว ไม่สามารถใช้ซ้ำได้', 
           variant: 'destructive' 
         });
         return;
