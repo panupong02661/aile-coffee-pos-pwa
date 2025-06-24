@@ -375,7 +375,7 @@ const PaymentModal = ({
     console.log(`[PaymentModal] Starting payment process with method: ${paymentMethod}`);
 
     try {
-      // Validate input - เพิ่มการตรวจสอบยอดเงิน
+      // Validate input - ตรวจสอบว่ามีสินค้าในตะกร้า
       if (!cartItems || cartItems.length === 0) {
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
@@ -385,14 +385,7 @@ const PaymentModal = ({
         return;
       }
 
-      if (total <= 0) {
-        toast({
-          title: "ยอดเงินไม่ถูกต้อง",
-          description: "ยอดเงินต้องมากกว่า 0 บาท",
-          variant: "destructive"
-        });
-        return;
-      }
+      // ลบการตรวจสอบยอดเงินต้องมากกว่า 0 เพราะอนุญาตให้ชำระ 0 บาทได้
 
       // Validate payment method specific requirements
       if (paymentMethod === 'cash') {
@@ -689,7 +682,7 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons - Compact */}
+          {/* Action Buttons - แก้ไขเงื่อนไข */}
           <div className="flex gap-2">
             <Button 
               variant="outline" 
@@ -703,7 +696,7 @@ const PaymentModal = ({
             <Button 
               onClick={handlePayment}
               className="flex-1 h-9 bg-green-600 hover:bg-green-700"
-              disabled={isProcessing || cartItems.length === 0 || total <= 0}
+              disabled={isProcessing || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
             </Button>
