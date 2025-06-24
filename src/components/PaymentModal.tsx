@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -376,7 +375,7 @@ const PaymentModal = ({
     console.log(`[PaymentModal] Starting payment process with method: ${paymentMethod}`);
 
     try {
-      // Validate input
+      // Validate input - เพิ่มการตรวจสอบยอดเงิน
       if (!cartItems || cartItems.length === 0) {
         toast({
           title: "ไม่มีสินค้าในตะกร้า",
@@ -389,7 +388,7 @@ const PaymentModal = ({
       if (total <= 0) {
         toast({
           title: "ยอดเงินไม่ถูกต้อง",
-          description: "ยอดเงินต้องมากกว่า 0",
+          description: "ยอดเงินต้องมากกว่า 0 บาท",
           variant: "destructive"
         });
         return;
@@ -704,7 +703,7 @@ const PaymentModal = ({
             <Button 
               onClick={handlePayment}
               className="flex-1 h-9 bg-green-600 hover:bg-green-700"
-              disabled={isProcessing}
+              disabled={isProcessing || cartItems.length === 0 || total <= 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
             </Button>
