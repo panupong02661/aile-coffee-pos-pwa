@@ -189,18 +189,17 @@ const CustomerMobileApp = () => {
   };
 
   const handleUseGift = async (gift: CustomerGift) => {
-    if (gift.is_used) {
-      // If already used, just copy the code again
-      if (gift.gift_code) {
-        navigator.clipboard.writeText(gift.gift_code);
-        toast({ 
-          title: 'คัดลอกแล้ว', 
-          description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` 
-        });
-      }
+    // ถ้ามีโค้ดแล้ว ให้คัดลอกโค้ดเดิม
+    if (gift.gift_code) {
+      navigator.clipboard.writeText(gift.gift_code);
+      toast({ 
+        title: 'คัดลอกแล้ว', 
+        description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` 
+      });
       return;
     }
 
+    // ตรวจสอบว่าหมดอายุหรือไม่
     if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
       toast({ title: 'ข้อผิดพลาด', description: 'ของขวัญนี้หมดอายุแล้ว', variant: 'destructive' });
       return;
@@ -210,7 +209,7 @@ const CustomerMobileApp = () => {
       let uniqueCode = '';
       let isUnique = false;
       
-      // Generate unique code
+      // สร้างโค้ดที่ไม่ซ้ำ
       while (!isUnique) {
         uniqueCode = generateUniqueCode();
         const { data: existingGift } = await supabase
@@ -224,22 +223,20 @@ const CustomerMobileApp = () => {
         }
       }
 
-      // Update gift with code and mark as used
+      // อัปเดตเฉพาะ gift_code เท่านั้น ไม่อัปเดต is_used หรือ used_at
       const { error } = await supabase
         .from('customer_gifts')
         .update({
-          gift_code: uniqueCode,
-          is_used: true,
-          used_at: new Date().toISOString()
+          gift_code: uniqueCode
         })
         .eq('id', gift.id);
 
       if (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถใช้ของขวัญได้', variant: 'destructive' });
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโค้ดได้', variant: 'destructive' });
         return;
       }
 
-      // Show code to user
+      // แสดงโค้ดให้ผู้ใช้
       navigator.clipboard.writeText(uniqueCode);
       toast({ 
         title: 'สำเร็จ!', 
@@ -247,11 +244,11 @@ const CustomerMobileApp = () => {
         duration: 10000
       });
 
-      // Refresh gifts to show the updated state with code
+      // รีเฟรชข้อมูลของขวัญเพื่อแสดงโค้ดที่สร้างขึ้น
       fetchCustomerGifts();
     } catch (error) {
-      console.error('Error using gift:', error);
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการใช้ของขวัญ', variant: 'destructive' });
+      console.error('Error generating gift code:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการสร้างโค้ด', variant: 'destructive' });
     }
   };
 
@@ -615,17 +612,17 @@ const CustomerMobileApp = () => {
                                   "{gift.message}"
                                 </div>
                               )}
-                              {gift.is_used && gift.gift_code && (
-                                <div className="text-xs text-green-600 mt-2">
-                                  <div className="bg-green-100 p-3 rounded-lg border border-green-300">
+                              {gift.gift_code && (
+                                <div className={`text-xs mt-2 ${gift.is_used ? 'text-green-600' : 'text-purple-600'}`}>
+                                  <div className={`p-3 rounded-lg border ${gift.is_used ? 'bg-green-100 border-green-300' : 'bg-purple-100 border-purple-300'}`}>
                                     <div className="flex items-center justify-between">
-                                      <span className="font-mono font-bold text-green-800 text-lg">
+                                      <span className={`font-mono font-bold text-lg ${gift.is_used ? 'text-green-800' : 'text-purple-800'}`}>
                                         โค้ด: {gift.gift_code}
                                       </span>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="ml-2 h-8 text-xs border-green-400 text-green-700 hover:bg-green-200"
+                                        className={`ml-2 h-8 text-xs ${gift.is_used ? 'border-green-400 text-green-700 hover:bg-green-200' : 'border-purple-400 text-purple-700 hover:bg-purple-200'}`}
                                         onClick={() => {
                                           navigator.clipboard.writeText(gift.gift_code || '');
                                           toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
@@ -635,9 +632,16 @@ const CustomerMobileApp = () => {
                                         คัดลอก
                                       </Button>
                                     </div>
-                                    <div className="text-xs text-green-700 mt-2">
-                                      ใช้แล้วเมื่อ: {new Date(gift.used_at || '').toLocaleDateString('th-TH')}
-                                    </div>
+                                    {gift.used_at && (
+                                      <div className="text-xs text-green-700 mt-2">
+                                        ใช้แล้วเมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}
+                                      </div>
+                                    )}
+                                    {!gift.used_at && (
+                                      <div className="text-xs text-purple-700 mt-2">
+                                        สถานะ: พร้อมใช้งาน (ยังไม่ได้ชำระเงิน)
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -645,11 +649,11 @@ const CustomerMobileApp = () => {
                           </div>
                           <Button 
                             size="sm"
-                            className={gift.is_used ? "bg-green-600 hover:bg-green-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white"}
+                            className={gift.gift_code ? (gift.is_used ? "bg-green-600 hover:bg-green-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white") : "bg-orange-600 hover:bg-orange-700 text-white"}
                             onClick={() => handleUseGift(gift)}
-                            disabled={!gift.is_used && (gift.expires_at && new Date(gift.expires_at) < new Date())}
+                            disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
                           >
-                            {gift.is_used ? 'คัดลอกโค้ด' : 'ใช้'}
+                            {gift.gift_code ? 'คัดลอกโค้ด' : 'ดูโค้ด'}
                           </Button>
                         </div>
                       </div>
