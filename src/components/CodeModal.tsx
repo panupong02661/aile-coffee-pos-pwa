@@ -102,12 +102,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       console.log('พบโค้ด:', { 
         id: gift.id, 
         gift_code: gift.gift_code, 
-        is_used: gift.is_used, 
         used_at: gift.used_at, 
         expires_at: gift.expires_at 
       });
 
-      // เงื่อนไขง่าย ๆ: ถ้ามี used_at แสดงว่าชำระเงินแล้ว ห้ามใช้
+      // เงื่อนไขเดียว: ถ้ามี used_at แสดงว่าชำระเงินแล้ว ห้ามใช้
       if (gift.used_at) {
         console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', gift.used_at);
         toast({ 
