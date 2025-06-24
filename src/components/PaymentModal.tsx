@@ -696,7 +696,7 @@ const PaymentModal = ({
             <Button 
               onClick={handlePayment}
               className="flex-1 h-9 bg-green-600 hover:bg-green-700"
-              disabled={isProcessing || cartItems.length === 0}
+              disabled={isProcessing || !cartItems || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
             </Button>
