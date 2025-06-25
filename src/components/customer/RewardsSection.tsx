@@ -51,7 +51,7 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {rewards.map((reward) => {
             const isVoucherItem = isVoucher(reward.name);
             const voucherValue = isVoucherItem ? getVoucherValue(reward.name) : '';
@@ -59,78 +59,79 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
             
             return (
               <div key={reward.id} className="relative">
-                <Card className={`h-full transition-all duration-200 ${canRedeem ? 'border-green-300 shadow-md' : 'border-gray-200'}`}>
-                  <CardContent className="p-3">
-                    {/* Reward Image/Icon Section */}
-                    <div className="mb-3">
+                <Card className="h-full border border-gray-200 shadow-sm">
+                  <CardContent className="p-2">
+                    {/* REDEEM Badge */}
+                    {canRedeem && (
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          REDEEM
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* HOT DEAL Badge for certain items */}
+                    {reward.points_required <= 30 && (
+                      <div className="absolute -top-2 -left-2 z-10">
+                        <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          HOT DEAL
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reward Image/Content */}
+                    <div className="mb-2">
                       {isVoucherItem ? (
                         // Voucher Design
-                        <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-lg p-4 text-white text-center relative overflow-hidden">
-                          {/* Decorative circles */}
-                          <div className="absolute -top-2 -left-2 w-4 h-4 bg-white rounded-full opacity-20"></div>
-                          <div className="absolute -top-2 -right-2 w-4 h-4 bg-white rounded-full opacity-20"></div>
-                          <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-white rounded-full opacity-20"></div>
-                          <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white rounded-full opacity-20"></div>
+                        <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-3 text-center relative">
+                          <div className="text-xs text-gray-600 mb-1">CASH VOUCHER</div>
+                          <div className="text-2xl font-bold text-gray-800 mb-1">{voucherValue}</div>
+                          <div className="text-xs text-gray-600 mb-2">THB</div>
+                          <div className="text-xs text-gray-500">ONE HUNDRED BAHT</div>
                           
-                          <Ticket className="w-6 h-6 mx-auto mb-1" />
-                          <div className="text-xs font-medium mb-1">คูปองส่วนลด</div>
-                          <div className="text-lg font-bold">{voucherValue}฿</div>
-                          
-                          {/* Dashed border effect */}
-                          <div className="absolute top-1/2 left-0 w-full h-0.5 border-t-2 border-dashed border-white opacity-30 transform -translate-y-1/2"></div>
+                          {/* Coupon design elements */}
+                          <div className="absolute top-1/2 -left-1 w-2 h-2 bg-gray-100 rounded-full transform -translate-y-1/2"></div>
+                          <div className="absolute top-1/2 -right-1 w-2 h-2 bg-gray-100 rounded-full transform -translate-y-1/2"></div>
                         </div>
                       ) : (
                         // Menu Item Design
-                        <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-center h-24">
+                        <div className="relative">
                           {reward.image_url ? (
                             <img 
                               src={reward.image_url} 
                               alt={reward.name}
-                              className="w-full h-full object-cover rounded"
+                              className="w-full h-20 object-cover rounded-lg"
                             />
                           ) : (
-                            <div className="text-center">
-                              <Gift className="w-8 h-8 text-gray-500 mx-auto mb-1" />
-                              <div className="text-xs text-gray-600">เมนูฟรี</div>
+                            <div className="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Gift className="w-8 h-8 text-gray-400" />
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Reward Info */}
-                    <div className="text-center mb-3">
-                      <h4 className="font-medium text-sm text-gray-800 mb-1 line-clamp-2">
+                    {/* Reward Name */}
+                    <div className="text-center mb-2">
+                      <h4 className="text-xs font-medium text-gray-800 line-clamp-2">
                         {reward.name}
                       </h4>
                       {reward.description && (
-                        <p className="text-xs text-gray-600 line-clamp-1">
+                        <p className="text-xs text-gray-500 line-clamp-1 mt-1">
                           {reward.description}
                         </p>
                       )}
                     </div>
 
-                    {/* Points Required */}
-                    <div className="flex items-center justify-center gap-1 mb-3">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-bold text-orange-600">
-                        {reward.points_required}
-                      </span>
+                    {/* Points Required - Only show for non-voucher items or at bottom */}
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 bg-yellow-100 rounded-full px-2 py-1">
+                        <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                        <span className="text-xs font-bold text-green-600">
+                          {reward.points_required} POINTS
+                        </span>
+                      </div>
                     </div>
-
-                    {/* Redeem Button */}
-                    <Button
-                      size="sm"
-                      className={`w-full text-xs font-medium ${
-                        canRedeem 
-                          ? 'bg-green-600 hover:bg-green-700 text-white' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                      onClick={() => canRedeem && onRedeemReward(reward.id, reward.points_required)}
-                      disabled={!canRedeem}
-                    >
-                      {canRedeem ? 'แลกรางวัล' : 'แต้มไม่พอ'}
-                    </Button>
                   </CardContent>
                 </Card>
               </div>
