@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Gift } from 'lucide-react';
 
 interface CustomerProfile {
@@ -51,7 +52,7 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rewards.map((reward) => {
             const isVoucherItem = isVoucher(reward.name);
             const voucherValue = isVoucherItem ? getVoucherValue(reward.name) : '';
@@ -59,39 +60,35 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
             
             return (
               <div key={reward.id} className="relative">
-                <Card className="h-full border border-gray-200 shadow-sm overflow-hidden">
+                <Card className="h-full overflow-hidden shadow-md">
                   <CardContent className="p-0">
-                    {/* REDEEM Badge */}
-                    {canRedeem && (
-                      <div className="absolute top-1 right-1 z-10">
-                        <div className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md">
+                    {/* Top section with image/voucher and badges */}
+                    <div className="relative h-40 bg-gray-50">
+                      {/* REDEEM Badge */}
+                      {canRedeem && (
+                        <Badge className="absolute top-2 right-2 z-10 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-2 py-1">
                           REDEEM
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* HOT DEAL Badge */}
-                    {reward.points_required <= 30 && (
-                      <div className="absolute top-1 left-1 z-10">
-                        <div className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md">
+                        </Badge>
+                      )}
+                      
+                      {/* HOT DEAL Badge */}
+                      {reward.points_required <= 30 && (
+                        <Badge className="absolute top-2 left-2 z-10 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-2 py-1">
                           HOT DEAL
-                        </div>
-                      </div>
-                    )}
+                        </Badge>
+                      )}
 
-                    {/* Top section with image or voucher design */}
-                    <div className="h-20 bg-white relative">
+                      {/* Content */}
                       {isVoucherItem ? (
-                        // Voucher Design - White background with voucher styling
-                        <div className="h-full bg-white border border-gray-200 flex flex-col items-center justify-center relative">
-                          <div className="text-[8px] text-gray-600 font-medium mb-0.5">CASH VOUCHER</div>
-                          <div className="text-lg font-bold text-gray-800 mb-0.5">{voucherValue}</div>
-                          <div className="text-[8px] text-gray-600 font-medium">THB</div>
-                          <div className="text-[6px] text-gray-500 mt-0.5">ONE HUNDRED BAHT</div>
-                          
-                          {/* Coupon text at bottom right */}
-                          <div className="absolute bottom-1 right-1 text-[6px] text-gray-400 transform -rotate-90 origin-bottom-right">
-                            COUPON
+                        // Voucher Design
+                        <div className="h-full bg-white border-2 border-dashed border-gray-300 flex flex-col items-center justify-center p-4">
+                          <div className="text-xs text-gray-600 font-medium mb-1">CASH VOUCHER</div>
+                          <div className="text-2xl font-bold text-gray-800 mb-1">{voucherValue}</div>
+                          <div className="text-xs text-gray-600 font-medium mb-2">THB</div>
+                          <div className="text-[10px] text-gray-500">
+                            {voucherValue === '100' ? 'ONE HUNDRED BAHT' : 
+                             voucherValue === '200' ? 'TWO HUNDRED BAHT' : 
+                             `${voucherValue} BAHT`}
                           </div>
                         </div>
                       ) : (
@@ -105,28 +102,30 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                             />
                           ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                              <Gift className="w-6 h-6 text-gray-400" />
+                              <Gift className="w-8 h-8 text-gray-400" />
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Dotted divider line */}
-                    <div className="border-b border-dashed border-gray-300 mx-2"></div>
-
                     {/* Bottom section with details */}
-                    <div className="p-2">
+                    <div className="p-3">
                       {/* Reward Name */}
-                      <h4 className="text-[10px] font-medium text-gray-800 mb-1 line-clamp-2 leading-tight">
+                      <h4 className="text-sm font-medium text-gray-800 mb-2 line-clamp-2 leading-tight min-h-[2.5rem]">
                         {reward.name}
                       </h4>
 
+                      {/* Dotted line separator */}
+                      <div className="border-b border-dashed border-gray-300 mb-3"></div>
+
                       {/* Points Required */}
-                      <div className="flex items-center justify-center mb-2">
-                        <div className="flex items-center gap-1 bg-gray-100 rounded-full px-2 py-0.5">
-                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-                          <span className="text-[9px] font-bold text-green-600">
+                      <div className="flex items-center justify-center mb-3">
+                        <div className="flex items-center gap-2 bg-gray-50 rounded-full px-3 py-1">
+                          <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">●</span>
+                          </div>
+                          <span className="text-sm font-bold text-green-600">
                             {reward.points_required} POINTS
                           </span>
                         </div>
@@ -135,14 +134,14 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                       {/* Redeem Button */}
                       <Button
                         onClick={() => onRedeemReward(reward.id, reward.points_required)}
-                        className={`w-full h-6 text-[9px] font-medium ${
+                        className={`w-full h-8 text-sm font-medium ${
                           canRedeem 
-                            ? 'bg-green-500 hover:bg-green-600 text-white' 
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
                         }`}
                         disabled={!canRedeem}
                       >
-                        {canRedeem ? 'แลกรางวัล' : `ต้องการ ${reward.points_required} แต้ม`}
+                        {canRedeem ? 'คัดลอกโค้ด' : `ต้องการ ${reward.points_required} แต้ม`}
                       </Button>
                     </div>
                   </CardContent>
