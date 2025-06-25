@@ -604,7 +604,7 @@ const CustomerMobileApp = () => {
               onRedeemReward={redeemReward}
             />
             
-            {/* Customer Gifts Section */}
+            {/* Customer Gifts Section - Updated Design */}
             {customerGifts.length > 0 && (
               <Card className="mt-4">
                 <CardHeader>
@@ -613,87 +613,85 @@ const CustomerMobileApp = () => {
                     ของขวัญที่ได้รับ
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4">
-                    {customerGifts.map((gift) => (
-                      <div key={gift.id} className={`p-4 border rounded-lg ${gift.used_at ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-r from-purple-50 to-pink-50'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${gift.used_at ? 'bg-green-200' : 'bg-purple-200'}`}>
-                              {gift.gift_type === 'reward' && <Gift className={`w-6 h-6 ${gift.used_at ? 'text-green-600' : 'text-purple-600'}`} />}
-                              {gift.gift_type === 'promotion' && <Tag className={`w-6 h-6 ${gift.used_at ? 'text-green-600' : 'text-purple-600'}`} />}
-                              {gift.gift_type === 'menu_item' && <ShoppingBag className={`w-6 h-6 ${gift.used_at ? 'text-green-600' : 'text-purple-600'}`} />}
-                            </div>
-                            <div>
-                              <h4 className={`font-medium ${gift.used_at ? 'text-green-800' : 'text-purple-800'}`}>{gift.gift_name}</h4>
-                              {gift.gift_description && (
-                                <p className={`text-sm ${gift.used_at ? 'text-green-600' : 'text-purple-600'}`}>{gift.gift_description}</p>
-                              )}
-                              <div className={`text-xs mt-1 ${gift.used_at ? 'text-green-500' : 'text-purple-500'}`}>
-                                ประเภท: {gift.gift_type === 'reward' ? 'ของรางวัล' : gift.gift_type === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'}
-                                {gift.gift_value > 0 && (
-                                  <span className="ml-2">
-                                    มูลค่า: {gift.gift_type === 'reward' ? `${gift.gift_value} แต้ม` : `${gift.gift_value}฿`}
-                                  </span>
-                                )}
-                              </div>
-                              {gift.expires_at && (
-                                <div className="text-xs text-red-500 mt-1">
-                                  หมดอายุ: {new Date(gift.expires_at).toLocaleDateString('th-TH')}
-                                </div>
-                              )}
-                              {gift.message && (
-                                <div className="text-xs text-gray-600 mt-1 italic">
-                                  "{gift.message}"
-                                </div>
-                              )}
-                              {gift.gift_code && (
-                                <div className={`text-xs mt-2 ${gift.used_at ? 'text-green-600' : 'text-purple-600'}`}>
-                                  <div className={`p-3 rounded-lg border ${gift.used_at ? 'bg-green-100 border-green-300' : 'bg-purple-100 border-purple-300'}`}>
-                                    <div className="flex items-center justify-between">
-                                      <span className={`font-mono font-bold text-lg ${gift.used_at ? 'text-green-800' : 'text-purple-800'}`}>
-                                        โค้ด: {gift.gift_code}
-                                      </span>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className={`ml-2 h-8 text-xs ${gift.used_at ? 'border-green-400 text-green-700 hover:bg-green-200' : 'border-purple-400 text-purple-700 hover:bg-purple-200'}`}
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(gift.gift_code || '');
-                                          toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
-                                        }}
-                                      >
-                                        <Copy className="w-3 h-3 mr-1" />
-                                        คัดลอก
-                                      </Button>
-                                    </div>
-                                    {gift.used_at && (
-                                      <div className="text-xs text-green-700 mt-2">
-                                        ใช้แล้วเมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}
-                                      </div>
-                                    )}
-                                    {!gift.used_at && (
-                                      <div className="text-xs text-purple-700 mt-2">
-                                        สถานะ: พร้อมใช้งาน (ยังไม่ได้ชำระเงิน)
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                <CardContent className="space-y-4">
+                  {customerGifts.map((gift) => (
+                    <div key={gift.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                      {/* Gift Title and Details */}
+                      <div className="mb-3">
+                        <h3 className="text-lg font-semibold text-purple-600 mb-1">
+                          {gift.gift_name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          ประเภท: {gift.gift_type === 'reward' ? 'เมนูอาหาร' : gift.gift_type === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'} 
+                          {gift.gift_value > 0 && (
+                            <span className="ml-2">
+                              มูลค่า: {gift.gift_value}฿
+                            </span>
+                          )}
+                        </p>
+                        {gift.expires_at && (
+                          <p className="text-xs text-red-500">
+                            หมดอายุ: {new Date(gift.expires_at).toLocaleDateString('th-TH')}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Gift Code Section */}
+                      <div className="bg-purple-100 rounded-lg p-4 mb-3">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-purple-200 rounded-lg flex items-center justify-center">
+                            <Gift className="w-6 h-6 text-purple-600" />
                           </div>
-                          <Button 
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">โค้ด:</p>
+                            <p className="text-xl font-bold text-purple-800">
+                              {gift.gift_code || 'กำลังสร้างโค้ด...'}
+                            </p>
+                          </div>
+                          <Button
                             size="sm"
-                            className={gift.gift_code ? (gift.used_at ? "bg-green-600 hover:bg-green-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white") : "bg-orange-600 hover:bg-orange-700 text-white"}
-                            onClick={() => handleUseGift(gift)}
-                            disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
+                            variant="outline"
+                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                            onClick={() => {
+                              if (gift.gift_code) {
+                                navigator.clipboard.writeText(gift.gift_code);
+                                toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
+                              }
+                            }}
+                            disabled={!gift.gift_code}
                           >
-                            {gift.gift_code ? 'คัดลอกโค้ด' : 'ดูโค้ด'}
+                            <Copy className="w-4 h-4 mr-1" />
+                            คัดลอก
                           </Button>
                         </div>
+                        <p className="text-xs text-purple-600">
+                          สถานะ: {gift.used_at ? 'ใช้แล้ว' : 'พร้อมใช้งาน (ยังไม่ได้ชำระเงิน)'}
+                        </p>
+                        {gift.used_at && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ใช้แล้วเมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Action Button */}
+                      <Button 
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => handleUseGift(gift)}
+                        disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
+                      >
+                        {gift.gift_code ? 'คัดลอกโค้ด' : 'ดูโค้ด'}
+                      </Button>
+
+                      {gift.message && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 italic">
+                            "{gift.message}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
