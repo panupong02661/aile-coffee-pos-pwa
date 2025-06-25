@@ -88,6 +88,30 @@ const CustomerMobileApp = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const { toast } = useToast();
 
+  // Check for saved login on component mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('customerLoginData');
+    const loginExpiry = localStorage.getItem('customerLoginExpiry');
+    
+    if (savedUser && loginExpiry) {
+      const expiryTime = new Date(loginExpiry);
+      const now = new Date();
+      
+      // Check if login is still valid (within 24 hours)
+      if (now < expiryTime) {
+        const userData = JSON.parse(savedUser);
+        setCurrentUser(userData);
+        setIsLoggedIn(true);
+        console.log('Restored login session for user:', userData.name);
+      } else {
+        // Login expired, clear stored data
+        localStorage.removeItem('customerLoginData');
+        localStorage.removeItem('customerLoginExpiry');
+        console.log('Login session expired, cleared stored data');
+      }
+    }
+  }, []);
+
   const getTierDisplayName = (tier: string): string => {
     switch (tier) {
       case 'bronze': return 'สมาชิกทองแดง';
@@ -453,6 +477,13 @@ const CustomerMobileApp = () => {
       console.log('*** LOGIN SUCCESSFUL ***');
       console.log('Profile data:', profileData);
       
+      // Save login data to localStorage with 24-hour expiry
+      const expiryTime = new Date();
+      expiryTime.setHours(expiryTime.getHours() + 24); // 24 hours from now
+      
+      localStorage.setItem('customerLoginData', JSON.stringify(profileData));
+      localStorage.setItem('customerLoginExpiry', expiryTime.toISOString());
+      
       setCurrentUser(profileData);
       setIsLoggedIn(true);
       setLoginForm({ phone: '', birth_date: '' });
@@ -467,6 +498,10 @@ const CustomerMobileApp = () => {
   };
 
   const handleLogout = async () => {
+    // Clear stored login data
+    localStorage.removeItem('customerLoginData');
+    localStorage.removeItem('customerLoginExpiry');
+    
     setCurrentUser(null);
     setIsLoggedIn(false);
     setLoginForm({ phone: '', birth_date: '' });
