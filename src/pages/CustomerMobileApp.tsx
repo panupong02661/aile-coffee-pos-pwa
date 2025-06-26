@@ -605,13 +605,13 @@ const CustomerMobileApp = () => {
               onRedeemReward={redeemReward}
             />
             
-            {/* Customer Gifts Section - New Design to match images */}
+            {/* Customer Gifts Section - Updated for mobile 1 column layout */}
             {customerGifts.length > 0 && (
               <Card className="mt-4">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Gift className="w-5 h-5" />
-                    ของขวัญที่ได้รับ
+                    ของรางวัล
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -623,12 +623,12 @@ const CustomerMobileApp = () => {
                     
                     return (
                       <div key={gift.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                        {/* Gift Card Design */}
+                        {/* Gift Card Design - Single Column Layout */}
                         <div className="relative">
                           {/* Content Section */}
                           <div className="p-0">
                             {isVoucher ? (
-                              // Voucher Design (Image 3)
+                              // Voucher Design
                               <div className="bg-white p-4 relative">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex-1">
@@ -652,7 +652,7 @@ const CustomerMobileApp = () => {
                                 </div>
                               </div>
                             ) : (
-                              // Menu Item Design (Image 2)
+                              // Menu Item Design with Image
                               <div className="relative">
                                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
                                   {gift.image_url ? (
@@ -672,7 +672,7 @@ const CustomerMobileApp = () => {
                                   </div>
                                 </div>
                                 <div className="p-4">
-                                  <h3 className="text-base font-medium text-gray-800 mb-1">
+                                  <h3 className="text-lg font-medium text-gray-800 mb-1">
                                     {gift.gift_name}
                                   </h3>
                                   <p className="text-sm text-gray-600">
