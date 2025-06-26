@@ -604,7 +604,7 @@ const CustomerMobileApp = () => {
               onRedeemReward={redeemReward}
             />
             
-            {/* Customer Gifts Section - Updated Design */}
+            {/* Customer Gifts Section - New Design to match images */}
             {customerGifts.length > 0 && (
               <Card className="mt-4">
                 <CardHeader>
@@ -614,84 +614,137 @@ const CustomerMobileApp = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {customerGifts.map((gift) => (
-                    <div key={gift.id} className="bg-white rounded-lg border border-gray-200 p-4">
-                      {/* Gift Title and Details */}
-                      <div className="mb-3">
-                        <h3 className="text-lg font-semibold text-purple-600 mb-1">
-                          {gift.gift_name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          ประเภท: {gift.gift_type === 'reward' ? 'เมนูอาหาร' : gift.gift_type === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'} 
-                          {gift.gift_value > 0 && (
-                            <span className="ml-2">
-                              มูลค่า: {gift.gift_value}฿
-                            </span>
-                          )}
-                        </p>
-                        {gift.expires_at && (
-                          <p className="text-xs text-red-500">
-                            หมดอายุ: {new Date(gift.expires_at).toLocaleDateString('th-TH')}
-                          </p>
-                        )}
-                      </div>
+                  {customerGifts.map((gift) => {
+                    const isVoucher = gift.gift_type === 'voucher' || 
+                                    gift.gift_name.toLowerCase().includes('voucher') || 
+                                    gift.gift_name.toLowerCase().includes('คูปอง') || 
+                                    gift.gift_name.toLowerCase().includes('บาท');
+                    
+                    return (
+                      <div key={gift.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        {/* Gift Card Design */}
+                        <div className="relative">
+                          {/* Content Section */}
+                          <div className="p-0">
+                            {isVoucher ? (
+                              // Voucher Design (Image 3)
+                              <div className="bg-white p-4 relative">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex-1">
+                                    <div className="text-xs text-gray-600 font-medium mb-1">CASH VOUCHER</div>
+                                    <div className="text-3xl font-bold text-gray-800 mb-1">
+                                      {gift.gift_value}
+                                      <span className="text-lg font-medium">THB</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {gift.gift_value === 100 ? 'ONE HUNDRED BAHT' : 
+                                       gift.gift_value === 200 ? 'TWO HUNDRED BAHT' : 
+                                       `${gift.gift_value} BAHT`}
+                                    </div>
+                                  </div>
+                                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <div className="text-xs text-gray-500 transform rotate-90">COUPON</div>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-700 mb-2">
+                                  {gift.gift_name}
+                                </div>
+                              </div>
+                            ) : (
+                              // Menu Item Design (Image 2)
+                              <div className="relative">
+                                <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                                  {gift.image_url ? (
+                                    <img 
+                                      src={gift.image_url} 
+                                      alt={gift.gift_name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
+                                      <Gift className="w-12 h-12 text-orange-400" />
+                                    </div>
+                                  )}
+                                  {/* REDEEM Badge */}
+                                  <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    REDEEM
+                                  </div>
+                                </div>
+                                <div className="p-4">
+                                  <h3 className="text-base font-medium text-gray-800 mb-1">
+                                    {gift.gift_name}
+                                  </h3>
+                                  <p className="text-sm text-gray-600">
+                                    ประเภท: เมนูอาหาร มูลค่า: {gift.gift_value}฿
+                                  </p>
+                                </div>
+                              </div>
+                            )}
 
-                      {/* Gift Code Section */}
-                      <div className="bg-purple-100 rounded-lg p-4 mb-3">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-12 h-12 bg-purple-200 rounded-lg flex items-center justify-center">
-                            <Gift className="w-6 h-6 text-purple-600" />
+                            {/* Dotted line separator */}
+                            <div className="border-t-2 border-dashed border-gray-300 mx-4"></div>
+
+                            {/* Code Section */}
+                            <div className="bg-purple-50 p-4">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 bg-purple-200 rounded-lg flex items-center justify-center">
+                                  <Gift className="w-5 h-5 text-purple-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-700 mb-1">โค้ด:</p>
+                                  <p className="text-lg font-bold text-purple-800">
+                                    {gift.gift_code || 'กำลังสร้างโค้ด...'}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                                  onClick={() => {
+                                    if (gift.gift_code) {
+                                      navigator.clipboard.writeText(gift.gift_code);
+                                      toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
+                                    }
+                                  }}
+                                  disabled={!gift.gift_code}
+                                >
+                                  <Copy className="w-4 h-4 mr-1" />
+                                  คัดลอก
+                                </Button>
+                              </div>
+                              
+                              <p className="text-xs text-purple-600 mb-3">
+                                สถานะ: {gift.used_at ? 'ใช้แล้ว' : 'พร้อมใช้งาน (ยังไม่ได้ชำระเงิน)'}
+                              </p>
+
+                              {gift.expires_at && (
+                                <p className="text-xs text-red-500 mb-3">
+                                  หมดอายุ: {new Date(gift.expires_at).toLocaleDateString('th-TH')}
+                                </p>
+                              )}
+
+                              {/* Action Button */}
+                              <Button 
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                                onClick={() => handleUseGift(gift)}
+                                disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
+                              >
+                                คัดลอกโค้ด
+                              </Button>
+
+                              {gift.message && (
+                                <div className="mt-3 p-3 bg-white rounded-lg">
+                                  <p className="text-xs text-gray-600 italic">
+                                    "{gift.message}"
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-700">โค้ด:</p>
-                            <p className="text-xl font-bold text-purple-800">
-                              {gift.gift_code || 'กำลังสร้างโค้ด...'}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                            onClick={() => {
-                              if (gift.gift_code) {
-                                navigator.clipboard.writeText(gift.gift_code);
-                                toast({ title: 'คัดลอกแล้ว', description: `โค้ด ${gift.gift_code} ถูกคัดลอกแล้ว` });
-                              }
-                            }}
-                            disabled={!gift.gift_code}
-                          >
-                            <Copy className="w-4 h-4 mr-1" />
-                            คัดลอก
-                          </Button>
                         </div>
-                        <p className="text-xs text-purple-600">
-                          สถานะ: {gift.used_at ? 'ใช้แล้ว' : 'พร้อมใช้งาน (ยังไม่ได้ชำระเงิน)'}
-                        </p>
-                        {gift.used_at && (
-                          <p className="text-xs text-green-600 mt-1">
-                            ใช้แล้วเมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}
-                          </p>
-                        )}
                       </div>
-
-                      {/* Action Button */}
-                      <Button 
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                        onClick={() => handleUseGift(gift)}
-                        disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
-                      >
-                        {gift.gift_code ? 'คัดลอกโค้ด' : 'ดูโค้ด'}
-                      </Button>
-
-                      {gift.message && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-xs text-gray-600 italic">
-                            "{gift.message}"
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}
