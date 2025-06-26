@@ -32,6 +32,8 @@ interface RewardsSectionProps {
 }
 
 const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSectionProps) => {
+  const [redeemedRewards, setRedeemedRewards] = React.useState<{[key: string]: string}>({});
+
   const isVoucher = (rewardName: string) => {
     return rewardName.toLowerCase().includes('voucher') || 
            rewardName.toLowerCase().includes('คูปอง') || 
@@ -40,7 +42,31 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
 
   const getVoucherValue = (rewardName: string) => {
     const match = rewardName.match(/(\d+)\s*บาท/);
-    return match ? match[1] : '100';
+    return match ? match[1] : '200';
+  };
+
+  const generateRewardCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleRedeemClick = (rewardId: string, pointsRequired: number) => {
+    const canRedeem = (currentUser?.points || 0) >= pointsRequired;
+    if (!canRedeem) return;
+
+    // Generate a unique code for this reward
+    const code = generateRewardCode();
+    setRedeemedRewards(prev => ({
+      ...prev,
+      [rewardId]: code
+    }));
+
+    // Call the original redeem function
+    onRedeemReward(rewardId, pointsRequired);
   };
 
   return (
@@ -57,6 +83,7 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
             const isVoucherItem = isVoucher(reward.name);
             const voucherValue = isVoucherItem ? getVoucherValue(reward.name) : '';
             const canRedeem = (currentUser?.points || 0) >= reward.points_required;
+            const rewardCode = redeemedRewards[reward.id];
             
             return (
               <div key={reward.id} className="relative">
@@ -115,9 +142,6 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                       )}
                     </div>
 
-                    {/* Dotted line separator */}
-                    <div className="border-t-2 border-dashed border-gray-300"></div>
-
                     {/* Text Content */}
                     <div className="p-3">
                       <h4 className="text-sm font-medium text-gray-800 text-center line-clamp-2 leading-tight min-h-[2.5rem]">
@@ -125,16 +149,48 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                       </h4>
                     </div>
 
-                    {/* Bottom section with points */}
+                    {/* Dotted line separator */}
+                    <div className="border-t-2 border-dashed border-gray-300 mx-3"></div>
+
+                    {/* Bottom section with points/code */}
                     <div className="bg-gray-50 p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">●</span>
+                      {rewardCode ? (
+                        // Show code after redemption
+                        <div className="text-center">
+                          <div className="text-xs text-gray-600 mb-1">โค้ดของคุณ</div>
+                          <div className="text-lg font-bold text-green-600 mb-2">{rewardCode}</div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-3 py-1"
+                            onClick={() => {
+                              navigator.clipboard.writeText(rewardCode);
+                            }}
+                          >
+                            คัดลอกโค้ด
+                          </Button>
                         </div>
-                        <span className="text-lg font-bold text-green-600">
-                          {reward.points_required} POINTS
-                        </span>
-                      </div>
+                      ) : (
+                        // Show points and redeem button
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">●</span>
+                            </div>
+                            <span className="text-lg font-bold text-green-600">
+                              {reward.points_required} POINTS
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-1"
+                            onClick={() => handleRedeemClick(reward.id, reward.points_required)}
+                            disabled={!canRedeem}
+                          >
+                            ใช้โค้ด
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
