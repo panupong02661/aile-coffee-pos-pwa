@@ -67,6 +67,7 @@ interface CustomerGift {
   gift_code?: string;
   message?: string;
   created_at: string;
+  image_url?: string;
 }
 
 const CustomerMobileApp = () => {
