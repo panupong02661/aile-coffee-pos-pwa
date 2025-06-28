@@ -28,7 +28,8 @@ import {
   Store,
   Building,
   MessageCircle,
-  Printer
+  Printer,
+  QrCode
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -46,6 +47,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
+    { id: 'qr-promptpay', label: 'QR Code PromptPay', icon: QrCode, path: '/qr-promptpay' },
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
     { id: 'customer-mobile-app', label: 'แอปมือถือสำหรับลูกค้า', icon: Smartphone, path: '/customer-mobile-app' },
     { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
