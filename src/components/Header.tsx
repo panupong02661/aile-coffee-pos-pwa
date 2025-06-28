@@ -11,27 +11,27 @@ interface HeaderProps {
   onSettingsClick?: () => void;
   onMemberClick?: () => void;
   onToggleSidebar?: () => void;
-  categories: Category[];
-  selectedCategory: string;
-  onCategorySelect: (categoryId: string) => void;
-  gridColumns: number;
-  setGridColumns: (columns: number) => void;
-  itemSize: 'small' | 'medium' | 'large';
-  setItemSize: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'dashboard' | 'pos' | 'other';
+  categories?: Category[];
+  selectedCategory?: string;
+  onCategorySelect?: (categoryId: string) => void;
+  gridColumns?: number;
+  setGridColumns?: (columns: number) => void;
+  itemSize?: 'small' | 'medium' | 'large';
+  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'dashboard' | 'pos' | 'qr-promptpay' | 'other';
 }
 
 const Header = ({ 
   onSettingsClick, 
   onMemberClick, 
   onToggleSidebar,
-  categories,
-  selectedCategory,
-  onCategorySelect,
-  gridColumns,
-  setGridColumns,
-  itemSize,
-  setItemSize,
+  categories = [],
+  selectedCategory = '',
+  onCategorySelect = () => {},
+  gridColumns = 4,
+  setGridColumns = () => {},
+  itemSize = 'medium',
+  setItemSize = () => {},
   page = 'other'
 }: HeaderProps) => {
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
