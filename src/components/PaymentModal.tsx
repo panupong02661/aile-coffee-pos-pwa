@@ -5,13 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode } from 'lucide-react';
+import { CreditCard, DollarSign, Gift, ArrowLeft } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
-import QRCodePromptPay from './QRCodePromptPay';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -48,7 +47,6 @@ const PaymentModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
-  const [showPromptPayQR, setShowPromptPayQR] = useState(false);
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -431,9 +429,6 @@ const PaymentModal = ({
           });
           return;
         }
-      } else if (paymentMethod === 'promptpay') {
-        // No specific validation needed for PromptPay
-        // The QR code will be displayed for the user to scan
       }
 
       // ทำ payment ทันทีก่อน - ไม่รอการบันทึกฐานข้อมูล
@@ -479,11 +474,6 @@ const PaymentModal = ({
     }
     if (value !== 'points') {
       setPointsToUse('');
-    }
-    if (value === 'promptpay') {
-      setShowPromptPayQR(true);
-    } else {
-      setShowPromptPayQR(false);
     }
   };
 
@@ -542,7 +532,7 @@ const PaymentModal = ({
               onValueChange={handleMethodChange}
               className="mt-1"
             >
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
                   <RadioGroupItem value="cash" id="cash" className="w-3 h-3" />
                   <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
@@ -556,14 +546,6 @@ const PaymentModal = ({
                   <Label htmlFor="qr" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
                     <CreditCard className="w-3 h-3" />
                     QR Code
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="promptpay" id="promptpay" className="w-3 h-3" />
-                  <Label htmlFor="promptpay" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
-                    <QrCode className="w-3 h-3" />
-                    PromptPay
                   </Label>
                 </div>
 
@@ -698,19 +680,9 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* PromptPay QR Code */}
-          {paymentMethod === 'promptpay' && showPromptPayQR && (
-            <div className="space-y-1">
-              <QRCodePromptPay 
-                initialAmount={total}
-                onClose={() => setShowPromptPayQR(false)}
-              />
-            </div>
-          )}
-
           <Separator />
 
-          {/* Action Buttons */}
+          {/* Action Buttons - แก้ไขเงื่อนไข */}
           <div className="flex gap-2">
             <Button 
               variant="outline" 
