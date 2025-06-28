@@ -432,14 +432,8 @@ const PaymentModal = ({
           return;
         }
       } else if (paymentMethod === 'promptpay') {
-        if (!selectedMember) {
-          toast({
-            title: "กรุณาเลือกสมาชิก",
-            description: "การชำระด้วย PromptPayต้องเป็นสมาชิกเท่านั้น",
-            variant: "destructive"
-          });
-          return;
-        }
+        // No specific validation needed for PromptPay
+        // The QR code will be displayed for the user to scan
       }
 
       // ทำ payment ทันทีก่อน - ไม่รอการบันทึกฐานข้อมูล

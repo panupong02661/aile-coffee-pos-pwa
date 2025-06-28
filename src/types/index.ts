@@ -1,3 +1,4 @@
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -56,7 +57,7 @@ export interface Member {
   join_date: string;
 }
 
-export type PaymentMethod = 'cash' | 'qr' | 'points';
+export type PaymentMethod = 'cash' | 'qr' | 'points' | 'promptpay';
 
 export interface Order {
   id: string;
