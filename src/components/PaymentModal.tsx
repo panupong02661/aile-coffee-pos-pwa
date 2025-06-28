@@ -726,25 +726,20 @@ const PaymentModal = ({
               
               {promptPayPhone.trim() && (
                 <div className="text-center">
-                  <div className="bg-white p-4 rounded-lg border inline-block">
-                    {/* Show only QR Code without extra details */}
-                    <QRCodePromptPay 
-                      amount={total}
-                      defaultPhoneNumber={promptPayPhone}
-                      onQRGenerated={(qrData) => {
-                        // Save phone number to localStorage
-                        const saved = localStorage.getItem('promptpay-phone-numbers');
-                        const phones = saved ? JSON.parse(saved) : [];
-                        if (!phones.includes(promptPayPhone.trim())) {
-                          phones.unshift(promptPayPhone.trim());
-                          localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs text-gray-600">
-                    เบอร์: {promptPayPhone} | จำนวน: ฿{total.toLocaleString()}
-                  </div>
+                  <QRCodePromptPay 
+                    amount={total}
+                    defaultPhoneNumber={promptPayPhone}
+                    compact={true}
+                    onQRGenerated={(qrData) => {
+                      // Save phone number to localStorage
+                      const saved = localStorage.getItem('promptpay-phone-numbers');
+                      const phones = saved ? JSON.parse(saved) : [];
+                      if (!phones.includes(promptPayPhone.trim())) {
+                        phones.unshift(promptPayPhone.trim());
+                        localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
+                      }
+                    }}
+                  />
                 </div>
               )}
             </div>
