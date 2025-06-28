@@ -706,37 +706,22 @@ const PaymentModal = ({
 
           {/* PromptPay QR Code - Show only QR Code */}
           {paymentMethod === 'promptpay' && (
-            <div className="space-y-2">
-              <div>
-                <Label htmlFor="promptpay-phone" className="text-sm">หมายเลขโทรศัพท์ PromptPay</Label>
-                <Input
-                  id="promptpay-phone"
-                  type="tel"
-                  value={promptPayPhone}
-                  onChange={(e) => setPromptPayPhone(e.target.value)}
-                  placeholder="081-234-5678"
-                  className="h-8 mt-1"
-                />
-              </div>
-              
-              {promptPayPhone.trim() && (
-                <div className="text-center">
-                  <QRCodePromptPay 
-                    amount={total}
-                    defaultPhoneNumber={promptPayPhone}
-                    compact={true}
-                    onQRGenerated={(qrData) => {
-                      // Save phone number to localStorage
-                      const saved = localStorage.getItem('promptpay-phone-numbers');
-                      const phones = saved ? JSON.parse(saved) : [];
-                      if (!phones.includes(promptPayPhone.trim())) {
-                        phones.unshift(promptPayPhone.trim());
-                        localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
-                      }
-                    }}
-                  />
-                </div>
-              )}
+            <div className="text-center">
+              <QRCodePromptPay 
+                amount={total}
+                defaultPhoneNumber={promptPayPhone || '0969365265'}
+                compact={true}
+                onQRGenerated={(qrData) => {
+                  // Save phone number to localStorage
+                  const saved = localStorage.getItem('promptpay-phone-numbers');
+                  const phones = saved ? JSON.parse(saved) : [];
+                  const phoneToSave = promptPayPhone || '0969365265';
+                  if (!phones.includes(phoneToSave.trim())) {
+                    phones.unshift(phoneToSave.trim());
+                    localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
+                  }
+                }}
+              />
             </div>
           )}
 
