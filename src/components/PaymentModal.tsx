@@ -707,21 +707,16 @@ const PaymentModal = ({
           {/* PromptPay QR Code - Show only QR Code */}
           {paymentMethod === 'promptpay' && (
             <div className="space-y-2">
-              <div className="p-2 bg-green-50 rounded border">
-                <div className="space-y-2">
-                  <Label htmlFor="promptpay-phone" className="text-sm">หมายเลขโทรศัพท์ PromptPay</Label>
-                  <Input
-                    id="promptpay-phone"
-                    type="tel"
-                    value={promptPayPhone}
-                    onChange={(e) => setPromptPayPhone(e.target.value)}
-                    placeholder="081-234-5678"
-                    className="h-8"
-                  />
-                  <div className="text-xs text-green-700">
-                    จำนวนเงิน: ฿{total.toLocaleString()}
-                  </div>
-                </div>
+              <div>
+                <Label htmlFor="promptpay-phone" className="text-sm">หมายเลขโทรศัพท์ PromptPay</Label>
+                <Input
+                  id="promptpay-phone"
+                  type="tel"
+                  value={promptPayPhone}
+                  onChange={(e) => setPromptPayPhone(e.target.value)}
+                  placeholder="081-234-5678"
+                  className="h-8 mt-1"
+                />
               </div>
               
               {promptPayPhone.trim() && (
