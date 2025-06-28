@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -21,6 +20,7 @@ import OnlineSystem from "./pages/OnlineSystem";
 import Reports from "./pages/Reports";
 import CustomerMobileApp from "./pages/CustomerMobileApp";
 import CustomerAppManagement from "./pages/CustomerAppManagement";
+import QRCodePromptPayPage from "./pages/QRCodePromptPayPage";
 
 // Create QueryClient instance inside the component to avoid SSR issues
 const App = () => {
@@ -95,6 +95,11 @@ const App = () => {
               <Route path="/reports" element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              } />
+              <Route path="/qr-promptpay" element={
+                <ProtectedRoute>
+                  <QRCodePromptPayPage />
                 </ProtectedRoute>
               } />
               <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />

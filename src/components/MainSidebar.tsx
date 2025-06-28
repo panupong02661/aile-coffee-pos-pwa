@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +27,8 @@ import {
   Store,
   Building,
   MessageCircle,
-  Printer
+  Printer,
+  QrCode
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -52,6 +52,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: FileText, path: '/advanced-reports' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
+    { id: 'qr-promptpay', label: 'QR Code PromptPay', icon: QrCode, path: '/qr-promptpay' },
     { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
     { id: 'staff', label: 'จัดการพนักงาน', icon: UserCheck, path: '/staff' },
     { id: 'notifications', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notifications' },

@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Gift, ArrowLeft } from 'lucide-react';
+import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
+import QRCodePromptPay from './QRCodePromptPay';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -47,6 +48,12 @@ const PaymentModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
+  const [promptPayPhone, setPromptPayPhone] = useState<string>(() => {
+    // Load saved phone numbers
+    const saved = localStorage.getItem('promptpay-phone-numbers');
+    const phones = saved ? JSON.parse(saved) : [];
+    return phones.length > 0 ? phones[0] : '';
+  });
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -429,6 +436,15 @@ const PaymentModal = ({
           });
           return;
         }
+      } else if (paymentMethod === 'promptpay') {
+        if (!promptPayPhone.trim()) {
+          toast({
+            title: "กรุณาระบุหมายเลขโทรศัพท์",
+            description: "การชำระด้วย PromptPay ต้องระบุหมายเลขโทรศัพท์",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       // ทำ payment ทันทีก่อน - ไม่รอการบันทึกฐานข้อมูล
@@ -532,7 +548,7 @@ const PaymentModal = ({
               onValueChange={handleMethodChange}
               className="mt-1"
             >
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-2 gap-1">
                 <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
                   <RadioGroupItem value="cash" id="cash" className="w-3 h-3" />
                   <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
@@ -554,6 +570,14 @@ const PaymentModal = ({
                   <Label htmlFor="points" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
                     <Gift className="w-3 h-3" />
                     แต้มสะสม
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="promptpay" id="promptpay" className="w-3 h-3" />
+                  <Label htmlFor="promptpay" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
+                    <QrCode className="w-3 h-3" />
+                    PromptPay
                   </Label>
                 </div>
               </div>
@@ -677,6 +701,37 @@ const PaymentModal = ({
                   ฿{total.toLocaleString()}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* PromptPay QR Code - New */}
+          {paymentMethod === 'promptpay' && (
+            <div className="space-y-2">
+              <div className="p-2 bg-green-50 rounded border">
+                <div className="space-y-2">
+                  <Label htmlFor="promptpay-phone" className="text-sm">หมายเลขโทรศัพท์ PromptPay</Label>
+                  <Input
+                    id="promptpay-phone"
+                    type="tel"
+                    value={promptPayPhone}
+                    onChange={(e) => setPromptPayPhone(e.target.value)}
+                    placeholder="081-234-5678"
+                    className="h-8"
+                  />
+                  <div className="text-xs text-green-700">
+                    จำนวนเงิน: ฿{total.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              
+              {promptPayPhone.trim() && (
+                <div className="max-w-[200px] mx-auto">
+                  <QRCodePromptPay 
+                    amount={total}
+                    defaultPhoneNumber={promptPayPhone}
+                  />
+                </div>
+              )}
             </div>
           )}
 
