@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +10,8 @@ import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
 import { useToast } from '@/hooks/use-toast';
+import { usePromotions } from '@/hooks/usePromotions';
+import { calculatePromotionDiscount } from '@/utils/promotionUtils';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -59,6 +61,25 @@ const Cart = ({
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
   const { toast } = useToast();
+
+  // เพิ่ม usePromotions hook
+  const { data: promotions = [] } = usePromotions();
+
+  // ใช้ useEffect เพื่อใช้โปรโมชั่นอัตโนมัติเมื่อมีการเปลี่ยนแปลงตะกร้า
+  useEffect(() => {
+    if (promotions.length > 0 && cartItems.length > 0) {
+      cartItems.forEach(item => {
+        const promotion = calculatePromotionDiscount(item, promotions);
+        if (promotion.discount > 0 && promotion.discount !== item.item_discount) {
+          onUpdateDiscount(item.id, promotion.discount, promotion.discountType);
+          toast({
+            title: 'ใช้โปรโมชั่น',
+            description: `ใช้โปรโมชั่น "${promotion.promotionName}" กับ ${item.menu_item.name}`,
+          });
+        }
+      });
+    }
+  }, [cartItems, promotions, onUpdateDiscount, toast]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
   
@@ -222,6 +243,11 @@ const Cart = ({
                         {item.selected_addons.length > 0 && (
                           <div className="text-xs text-coffee-600 mt-1">
                             {item.selected_addons.map(addon => addon.name).join(', ')}
+                          </div>
+                        )}
+                        {item.item_discount > 0 && (
+                          <div className="text-xs text-orange-600 mt-1">
+                            ส่วนลด: {item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
                           </div>
                         )}
                       </div>

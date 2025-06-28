@@ -1142,6 +1142,42 @@ export type Database = {
           },
         ]
       }
+      promotion_categories: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          id: string
+          promotion_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          promotion_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          promotion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_categories_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotion_menu_items: {
         Row: {
           created_at: string
@@ -1426,6 +1462,19 @@ export type Database = {
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_active_promotions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          description: string
+          discount_type: string
+          discount_value: number
+          apply_to: string
+          menu_item_ids: string[]
+          category_ids: string[]
+        }[]
       }
       get_low_stock_ingredients: {
         Args: Record<PropertyKey, never>
