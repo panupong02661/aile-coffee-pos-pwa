@@ -12,9 +12,15 @@ interface QRCodePromptPayProps {
   amount?: number;
   defaultPhoneNumber?: string;
   onQRGenerated?: (qrData: string) => void;
+  compact?: boolean; // New prop to control display mode
 }
 
-const QRCodePromptPay = ({ amount, defaultPhoneNumber = '', onQRGenerated }: QRCodePromptPayProps) => {
+const QRCodePromptPay = ({ 
+  amount, 
+  defaultPhoneNumber = '', 
+  onQRGenerated,
+  compact = false 
+}: QRCodePromptPayProps) => {
   const [phoneNumber, setPhoneNumber] = useState(defaultPhoneNumber);
   const [qrAmount, setQrAmount] = useState(amount || 0);
   const [qrCode, setQrCode] = useState<string>('');
@@ -25,12 +31,12 @@ const QRCodePromptPay = ({ amount, defaultPhoneNumber = '', onQRGenerated }: QRC
     setError('');
     
     if (!phoneNumber.trim()) {
-      setError('กรุณาระบุหมายเลขโทรศัพท์');
+      if (!compact) setError('กรุณาระบุหมายเลขโทรศัพท์');
       return;
     }
     
     if (!validateThaiPhoneNumber(phoneNumber)) {
-      setError('หมายเลขโทรศัพท์ไม่ถูกต้อง (ตัวอย่าง: 081-234-5678)');
+      if (!compact) setError('หมายเลขโทรศัพท์ไม่ถูกต้อง (ตัวอย่าง: 081-234-5678)');
       return;
     }
     
@@ -44,7 +50,7 @@ const QRCodePromptPay = ({ amount, defaultPhoneNumber = '', onQRGenerated }: QRC
       setQrData(qrString);
       
       const qrCodeDataURL = await QRCode.toDataURL(qrString, {
-        width: 256,
+        width: compact ? 200 : 256,
         margin: 2,
         color: {
           dark: '#000000',
@@ -58,7 +64,7 @@ const QRCodePromptPay = ({ amount, defaultPhoneNumber = '', onQRGenerated }: QRC
         onQRGenerated(qrString);
       }
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการสร้าง QR Code');
+      if (!compact) setError('เกิดข้อผิดพลาดในการสร้าง QR Code');
       console.error('QR Code generation error:', err);
     }
   };
@@ -82,6 +88,22 @@ const QRCodePromptPay = ({ amount, defaultPhoneNumber = '', onQRGenerated }: QRC
     }
   }, [phoneNumber, qrAmount]);
 
+  // Compact mode - show only QR code
+  if (compact) {
+    return (
+      <div className="text-center">
+        {qrCode ? (
+          <img src={qrCode} alt="PromptPay QR Code" className="mx-auto" />
+        ) : (
+          <div className="w-[200px] h-[200px] bg-gray-100 rounded flex items-center justify-center mx-auto">
+            <QrCode className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Full mode - show complete card interface
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>

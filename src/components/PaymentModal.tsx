@@ -704,7 +704,7 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* PromptPay QR Code - New */}
+          {/* PromptPay QR Code - Show only QR Code */}
           {paymentMethod === 'promptpay' && (
             <div className="space-y-2">
               <div className="p-2 bg-green-50 rounded border">
@@ -725,11 +725,26 @@ const PaymentModal = ({
               </div>
               
               {promptPayPhone.trim() && (
-                <div className="max-w-[200px] mx-auto">
-                  <QRCodePromptPay 
-                    amount={total}
-                    defaultPhoneNumber={promptPayPhone}
-                  />
+                <div className="text-center">
+                  <div className="bg-white p-4 rounded-lg border inline-block">
+                    {/* Show only QR Code without extra details */}
+                    <QRCodePromptPay 
+                      amount={total}
+                      defaultPhoneNumber={promptPayPhone}
+                      onQRGenerated={(qrData) => {
+                        // Save phone number to localStorage
+                        const saved = localStorage.getItem('promptpay-phone-numbers');
+                        const phones = saved ? JSON.parse(saved) : [];
+                        if (!phones.includes(promptPayPhone.trim())) {
+                          phones.unshift(promptPayPhone.trim());
+                          localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    เบอร์: {promptPayPhone} | จำนวน: ฿{total.toLocaleString()}
+                  </div>
                 </div>
               )}
             </div>
@@ -737,7 +752,7 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons - แก้ไขเงื่อนไข */}
+          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button 
               variant="outline" 
