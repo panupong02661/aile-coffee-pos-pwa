@@ -27,42 +27,11 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     start_date: '',
     end_date: '',
     is_active: true,
-    target_group: 'all',
-    apply_to: 'all' as 'all' | 'menu_item' | 'category'
+    target_group: 'all'
   });
   
-  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-
-  // Fetch menu items
-  const { data: menuItems = [] } = useQuery({
-    queryKey: ['menu-items'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('id, name, category_id')
-        .eq('is_available', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
 
   useEffect(() => {
     if (editPromotion) {
@@ -74,17 +43,8 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         start_date: editPromotion.start_date ? new Date(editPromotion.start_date).toISOString().slice(0, 16) : '',
         end_date: editPromotion.end_date ? new Date(editPromotion.end_date).toISOString().slice(0, 16) : '',
         is_active: editPromotion.is_active ?? true,
-        target_group: editPromotion.target_group || 'all',
-        apply_to: editPromotion.apply_to || 'all'
+        target_group: editPromotion.target_group || 'all'
       });
-
-      // Load selected menu items and categories
-      if (editPromotion.promotion_menu_items) {
-        setSelectedMenuItems(editPromotion.promotion_menu_items.map((item: any) => item.menu_items.id));
-      }
-      if (editPromotion.promotion_categories) {
-        setSelectedCategories(editPromotion.promotion_categories.map((cat: any) => cat.categories.id));
-      }
     } else {
       // Reset form for new promotion
       setFormData({
@@ -95,11 +55,8 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         start_date: '',
         end_date: '',
         is_active: true,
-        target_group: 'all',
-        apply_to: 'all'
+        target_group: 'all'
       });
-      setSelectedMenuItems([]);
-      setSelectedCategories([]);
     }
   }, [editPromotion, isOpen]);
 
@@ -129,30 +86,16 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
         return;
       }
 
-      // Check if specific items/categories are selected when needed
-      if (formData.apply_to === 'menu_item' && selectedMenuItems.length === 0) {
-        toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกรายการเมนู', variant: 'destructive' });
-        return;
-      }
-
-      if (formData.apply_to === 'category' && selectedCategories.length === 0) {
-        toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกหมวดหมู่', variant: 'destructive' });
-        return;
-      }
-
       const promotionData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        discount_type: formData.type,
+        type: formData.type,
         discount_value: formData.discount_value,
         start_date: formData.start_date,
         end_date: formData.end_date,
         is_active: formData.is_active,
-        target_group: formData.target_group,
-        apply_to: formData.apply_to
+        target_group: formData.target_group
       };
-
-      let promotionId: string;
 
       if (editPromotion) {
         // Update existing promotion
@@ -162,47 +105,11 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
           .eq('id', editPromotion.id);
 
         if (error) throw error;
-        promotionId = editPromotion.id;
-
-        // Clear existing relationships
-        await supabase.from('promotion_menu_items').delete().eq('promotion_id', promotionId);
-        await supabase.from('promotion_categories').delete().eq('promotion_id', promotionId);
       } else {
         // Create new promotion
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('promotions')
-          .insert(promotionData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        promotionId = data.id;
-      }
-
-      // Insert menu item relationships
-      if (formData.apply_to === 'menu_item' && selectedMenuItems.length > 0) {
-        const menuItemRelations = selectedMenuItems.map(menuItemId => ({
-          promotion_id: promotionId,
-          menu_item_id: menuItemId
-        }));
-
-        const { error } = await supabase
-          .from('promotion_menu_items')
-          .insert(menuItemRelations);
-
-        if (error) throw error;
-      }
-
-      // Insert category relationships
-      if (formData.apply_to === 'category' && selectedCategories.length > 0) {
-        const categoryRelations = selectedCategories.map(categoryId => ({
-          promotion_id: promotionId,
-          category_id: categoryId
-        }));
-
-        const { error } = await supabase
-          .from('promotion_categories')
-          .insert(categoryRelations);
+          .insert(promotionData);
 
         if (error) throw error;
       }
@@ -224,22 +131,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleMenuItemToggle = (menuItemId: string) => {
-    setSelectedMenuItems(prev =>
-      prev.includes(menuItemId)
-        ? prev.filter(id => id !== menuItemId)
-        : [...prev, menuItemId]
-    );
-  };
-
-  const handleCategoryToggle = (categoryId: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
   };
 
   return (
@@ -277,7 +168,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
                   <SelectItem value="all">ทุกคน</SelectItem>
                   <SelectItem value="silver">สมาชิกเงิน</SelectItem>
                   <SelectItem value="gold">สมาชิกทอง</SelectItem>
-                  <SelectItem value="platinum">สมาชิกแพลตตินั่ม</SelectItem>
+                  <SelectItem value="platinum">สมาชิกแพลตินั่ม</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -351,69 +242,6 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label>ใช้กับ</Label>
-            <Select
-              value={formData.apply_to}
-              onValueChange={(value: 'all' | 'menu_item' | 'category') => {
-                setFormData(prev => ({ ...prev, apply_to: value }));
-                setSelectedMenuItems([]);
-                setSelectedCategories([]);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกเมนู</SelectItem>
-                <SelectItem value="menu_item">เมนูที่เลือก</SelectItem>
-                <SelectItem value="category">หมวดหมู่ที่เลือก</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.apply_to === 'menu_item' && (
-            <div className="space-y-2">
-              <Label>เลือกเมนู</Label>
-              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
-                {menuItems.map((item) => (
-                  <div key={item.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`menu-${item.id}`}
-                      checked={selectedMenuItems.includes(item.id)}
-                      onCheckedChange={() => handleMenuItemToggle(item.id)}
-                    />
-                    <Label htmlFor={`menu-${item.id}`} className="text-sm">
-                      {item.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-600">เลือก {selectedMenuItems.length} รายการ</p>
-            </div>
-          )}
-
-          {formData.apply_to === 'category' && (
-            <div className="space-y-2">
-              <Label>เลือกหมวดหมู่</Label>
-              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`cat-${category.id}`}
-                      checked={selectedCategories.includes(category.id)}
-                      onCheckedChange={() => handleCategoryToggle(category.id)}
-                    />
-                    <Label htmlFor={`cat-${category.id}`} className="text-sm">
-                      {category.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-600">เลือก {selectedCategories.length} หมวดหมู่</p>
-            </div>
-          )}
 
           <div className="flex items-center space-x-2">
             <Checkbox

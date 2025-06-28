@@ -10,34 +10,23 @@ export const calculatePromotionDiscount = (
   let bestDiscountType: 'percent' | 'amount' = 'amount';
   let bestPromotionName = '';
 
+  // For now, apply promotions to all items since we don't have specific menu/category targeting
+  // This is a basic implementation that applies all active promotions
   for (const promotion of promotions) {
-    let applicable = false;
+    const basePrice = cartItem.menu_item.price + cartItem.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+    let discountAmount = 0;
 
-    // ตรวจสอบว่าโปรโมชั่นใช้ได้กับเมนูนี้หรือไม่
-    if (promotion.apply_to === 'all') {
-      applicable = true;
-    } else if (promotion.apply_to === 'menu_item' && promotion.menu_item_ids.includes(cartItem.menu_item.id)) {
-      applicable = true;
-    } else if (promotion.apply_to === 'category' && cartItem.menu_item.category_id && promotion.category_ids.includes(cartItem.menu_item.category_id)) {
-      applicable = true;
+    if (promotion.type === 'percentage') {
+      discountAmount = (basePrice * promotion.discount_value) / 100;
+    } else {
+      discountAmount = promotion.discount_value;
     }
 
-    if (applicable) {
-      const basePrice = cartItem.menu_item.price + cartItem.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
-      let discountAmount = 0;
-
-      if (promotion.discount_type === 'percent') {
-        discountAmount = (basePrice * promotion.discount_value) / 100;
-      } else {
-        discountAmount = promotion.discount_value;
-      }
-
-      // เลือกโปรโมชั่นที่คุ้มที่สุด
-      if (discountAmount > bestDiscount) {
-        bestDiscount = discountAmount;
-        bestDiscountType = promotion.discount_type;
-        bestPromotionName = promotion.name;
-      }
+    // เลือกโปรโมชั่นที่คุ้มที่สุด
+    if (discountAmount > bestDiscount) {
+      bestDiscount = discountAmount;
+      bestDiscountType = promotion.type === 'percentage' ? 'percent' : 'amount';
+      bestPromotionName = promotion.name;
     }
   }
 

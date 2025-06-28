@@ -6,18 +6,25 @@ export interface Promotion {
   id: string;
   name: string;
   description: string;
-  discount_type: 'percent' | 'amount';
+  type: 'percentage' | 'amount';
   discount_value: number;
-  apply_to: 'menu_item' | 'category' | 'all';
-  menu_item_ids: string[];
-  category_ids: string[];
+  target_group: 'all' | 'silver' | 'gold' | 'platinum';
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
 }
 
 export const usePromotions = () => {
   return useQuery({
     queryKey: ['active-promotions'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_active_promotions');
+      const { data, error } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('is_active', true)
+        .lte('start_date', new Date().toISOString())
+        .gte('end_date', new Date().toISOString());
+      
       if (error) throw error;
       return data as Promotion[];
     },
