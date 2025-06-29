@@ -78,7 +78,8 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
+        {/* Updated grid: 2 columns on mobile, 4-5 columns on tablet+ */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
           {rewards.map((reward) => {
             const isVoucherItem = isVoucher(reward.name);
             const voucherValue = isVoucherItem ? getVoucherValue(reward.name) : '';
@@ -87,39 +88,39 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
             
             return (
               <div key={reward.id} className="relative">
-                <Card className="h-full overflow-hidden border border-gray-200 rounded-xl shadow-sm">
+                <Card className="h-full overflow-hidden border border-gray-200 rounded-lg shadow-sm">
                   <CardContent className="p-0 relative">
-                    {/* Image/Content Section */}
+                    {/* Image/Content Section - Made smaller */}
                     <div className="relative aspect-square">
-                      {/* REDEEM Badge */}
+                      {/* REDEEM Badge - Smaller */}
                       {canRedeem && (
-                        <div className="absolute top-2 right-2 z-10 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        <div className="absolute top-1 right-1 z-10 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           REDEEM
                         </div>
                       )}
                       
-                      {/* HOT DEAL Badge */}
+                      {/* HOT DEAL Badge - Smaller */}
                       {reward.points_required <= 30 && (
-                        <div className="absolute top-2 left-2 z-10 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        <div className="absolute top-1 left-1 z-10 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           HOT DEAL
                         </div>
                       )}
 
                       {/* Content */}
                       {isVoucherItem ? (
-                        // Voucher Design
-                        <div className="h-full bg-white flex flex-col items-center justify-center p-4 relative">
-                          <div className="text-xs text-gray-600 font-medium mb-1">CASH VOUCHER</div>
-                          <div className="text-4xl font-bold text-gray-800 mb-1">{voucherValue}</div>
-                          <div className="text-sm text-gray-600 font-medium mb-2">THB</div>
-                          <div className="text-[8px] text-gray-500 text-center">
+                        // Voucher Design - Smaller
+                        <div className="h-full bg-white flex flex-col items-center justify-center p-2 relative">
+                          <div className="text-[8px] text-gray-600 font-medium mb-0.5">CASH VOUCHER</div>
+                          <div className="text-2xl md:text-3xl font-bold text-gray-800 mb-0.5">{voucherValue}</div>
+                          <div className="text-xs text-gray-600 font-medium mb-1">THB</div>
+                          <div className="text-[6px] md:text-[8px] text-gray-500 text-center">
                             {voucherValue === '100' ? 'ONE HUNDRED BAHT' : 
                              voucherValue === '200' ? 'TWO HUNDRED BAHT' : 
                              `${voucherValue} BAHT`}
                           </div>
-                          {/* Voucher side design */}
-                          <div className="absolute right-0 top-0 h-full w-6 bg-gray-100 flex flex-col items-center justify-center">
-                            <div className="text-[8px] text-gray-500 transform rotate-90 whitespace-nowrap">
+                          {/* Voucher side design - Smaller */}
+                          <div className="absolute right-0 top-0 h-full w-4 bg-gray-100 flex flex-col items-center justify-center">
+                            <div className="text-[6px] md:text-[8px] text-gray-500 transform rotate-90 whitespace-nowrap">
                               COUPON
                             </div>
                           </div>
@@ -135,34 +136,34 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                             />
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                              <Gift className="w-12 h-12 text-gray-400" />
+                              <Gift className="w-8 h-8 md:w-12 md:h-12 text-gray-400" />
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Text Content */}
-                    <div className="p-3">
-                      <h4 className="text-sm font-medium text-gray-800 text-center line-clamp-2 leading-tight min-h-[2.5rem]">
+                    {/* Text Content - Smaller */}
+                    <div className="p-2">
+                      <h4 className="text-xs md:text-sm font-medium text-gray-800 text-center line-clamp-2 leading-tight min-h-[2rem] md:min-h-[2.5rem]">
                         {reward.name}
                       </h4>
                     </div>
 
                     {/* Dotted line separator */}
-                    <div className="border-t-2 border-dashed border-gray-300 mx-3"></div>
+                    <div className="border-t-2 border-dashed border-gray-300 mx-2"></div>
 
-                    {/* Bottom section with points/code */}
-                    <div className="bg-gray-50 p-3">
+                    {/* Bottom section with points/code - Smaller */}
+                    <div className="bg-gray-50 p-2">
                       {rewardCode ? (
                         // Show code after redemption
                         <div className="text-center">
-                          <div className="text-xs text-gray-600 mb-1">โค้ดของคุณ</div>
-                          <div className="text-lg font-bold text-green-600 mb-2">{rewardCode}</div>
+                          <div className="text-[10px] text-gray-600 mb-1">โค้ดของคุณ</div>
+                          <div className="text-sm md:text-lg font-bold text-green-600 mb-1">{rewardCode}</div>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs px-3 py-1"
+                            className="text-[10px] md:text-xs px-2 py-0.5 h-6"
                             onClick={() => {
                               navigator.clipboard.writeText(rewardCode);
                             }}
@@ -173,17 +174,18 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                       ) : (
                         // Show points and redeem button
                         <div className="text-center">
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">●</span>
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                              <span className="text-white text-[8px] font-bold">●</span>
                             </div>
-                            <span className="text-lg font-bold text-green-600">
-                              {reward.points_required} POINTS
+                            <span className="text-sm md:text-lg font-bold text-green-600">
+                              {reward.points_required}
                             </span>
                           </div>
+                          <div className="text-[10px] md:text-xs text-gray-600 mb-1">POINTS</div>
                           <Button
                             size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-1"
+                            className="bg-green-500 hover:bg-green-600 text-white text-[10px] md:text-xs px-2 py-0.5 h-6"
                             onClick={() => handleRedeemClick(reward.id, reward.points_required)}
                             disabled={!canRedeem}
                           >
