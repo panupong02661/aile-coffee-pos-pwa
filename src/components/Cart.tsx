@@ -67,15 +67,26 @@ const Cart = ({
 
   // ใช้ useEffect เพื่อใช้โปรโมชั่นอัตโนมัติเมื่อมีการเปลี่ยนแปลงตะกร้า
   useEffect(() => {
+    console.log('Cart items changed, checking promotions...', { cartItems: cartItems.length, promotions: promotions.length });
+    
     if (promotions.length > 0 && cartItems.length > 0) {
       cartItems.forEach(item => {
+        console.log(`Checking promotions for item: ${item.menu_item.name}`);
         const promotion = calculatePromotionDiscount(item, promotions);
+        console.log(`Promotion result:`, promotion);
+        
+        // ใช้โปรโมชั่นเฉพาะเมื่อมีส่วนลดและยังไม่ได้ใช้หรือส่วนลดเปลี่ยนแปลง
         if (promotion.discount > 0 && promotion.discount !== item.item_discount) {
+          console.log(`Applying promotion "${promotion.promotionName}" to ${item.menu_item.name}: ${promotion.discount}`);
           onUpdateDiscount(item.id, promotion.discount, promotion.discountType);
           toast({
             title: 'ใช้โปรโมชั่น',
             description: `ใช้โปรโมชั่น "${promotion.promotionName}" กับ ${item.menu_item.name}`,
           });
+        } else if (promotion.discount === 0 && item.item_discount > 0) {
+          // ลบส่วนลดถ้าไม่มีสิทธิ์แล้ว
+          console.log(`Removing promotion from ${item.menu_item.name}`);
+          onUpdateDiscount(item.id, 0, 'amount');
         }
       });
     }
