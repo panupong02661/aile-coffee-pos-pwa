@@ -10,23 +10,41 @@ export const calculatePromotionDiscount = (
   let bestDiscountType: 'percent' | 'amount' = 'amount';
   let bestPromotionName = '';
 
-  // For now, apply promotions to all items since we don't have specific menu/category targeting
-  // This is a basic implementation that applies all active promotions
   for (const promotion of promotions) {
-    const basePrice = cartItem.menu_item.price + cartItem.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
-    let discountAmount = 0;
+    let isEligible = false;
 
-    if (promotion.type === 'percentage') {
-      discountAmount = (basePrice * promotion.discount_value) / 100;
+    // ตรวจสอบว่าเมนูนี้มีสิทธิ์ได้รับโปรโมชั่นหรือไม่
+    const hasSpecificMenuItems = promotion.menu_item_ids && promotion.menu_item_ids.length > 0;
+    const hasSpecificCategories = promotion.category_ids && promotion.category_ids.length > 0;
+
+    if (hasSpecificMenuItems || hasSpecificCategories) {
+      // มีการระบุเมนูหรือหมวดหมู่เฉพาะ
+      if (hasSpecificMenuItems && promotion.menu_item_ids!.includes(cartItem.menu_item.id)) {
+        isEligible = true;
+      } else if (hasSpecificCategories && cartItem.menu_item.category_id && promotion.category_ids!.includes(cartItem.menu_item.category_id)) {
+        isEligible = true;
+      }
     } else {
-      discountAmount = promotion.discount_value;
+      // ไม่มีการระบุเฉพาะ ใช้ได้กับทุกเมนู
+      isEligible = true;
     }
 
-    // เลือกโปรโมชั่นที่คุ้มที่สุด
-    if (discountAmount > bestDiscount) {
-      bestDiscount = discountAmount;
-      bestDiscountType = promotion.type === 'percentage' ? 'percent' : 'amount';
-      bestPromotionName = promotion.name;
+    if (isEligible) {
+      const basePrice = cartItem.menu_item.price + cartItem.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+      let discountAmount = 0;
+
+      if (promotion.type === 'percentage') {
+        discountAmount = (basePrice * promotion.discount_value) / 100;
+      } else {
+        discountAmount = promotion.discount_value;
+      }
+
+      // เลือกโปรโมชั่นที่คุ้มที่สุด
+      if (discountAmount > bestDiscount) {
+        bestDiscount = discountAmount;
+        bestDiscountType = promotion.type === 'percentage' ? 'percent' : 'amount';
+        bestPromotionName = promotion.name;
+      }
     }
   }
 

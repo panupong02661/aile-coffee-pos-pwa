@@ -714,6 +714,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lottery: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          selected_count: number
+          selected_numbers: number[]
+          session_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          selected_count?: number
+          selected_numbers?: number[]
+          session_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          selected_count?: number
+          selected_numbers?: number[]
+          session_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           birth_date: string | null
