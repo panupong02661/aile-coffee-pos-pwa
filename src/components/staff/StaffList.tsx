@@ -51,7 +51,14 @@ const StaffList = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStaff(data || []);
+      
+      // Type cast the data to ensure proper typing
+      const typedStaff = (data || []).map(item => ({
+        ...item,
+        status: item.status as 'active' | 'inactive'
+      }));
+      
+      setStaff(typedStaff);
     } catch (error) {
       console.error('Error fetching staff:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลพนักงานได้', variant: 'destructive' });
