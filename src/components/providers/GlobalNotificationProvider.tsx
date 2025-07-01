@@ -37,30 +37,61 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
-  // Track user interaction to enable autoplay
+  // Initialize Audio Context
   useEffect(() => {
-    const handleUserInteraction = () => {
-      console.log('🎯 User interaction detected, enabling sound autoplay');
-      setHasUserInteracted(true);
-      // Remove listeners after first interaction
-      document.removeEventListener('click', handleUserInteraction, { capture: true });
-      document.removeEventListener('keydown', handleUserInteraction, { capture: true });
-      document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
-      document.removeEventListener('touchend', handleUserInteraction, { capture: true });
+    const initAudioContext = () => {
+      if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx);
+        console.log('🎵 Audio Context initialized:', ctx.state);
+      }
+    };
+
+    initAudioContext();
+  }, []);
+
+  // Track user interaction more reliably
+  useEffect(() => {
+    const handleUserInteraction = async () => {
+      if (!hasUserInteracted) {
+        console.log('🎯 User interaction detected, enabling sound autoplay');
+        setHasUserInteracted(true);
+        
+        // Resume audio context if suspended
+        if (audioContext && audioContext.state === 'suspended') {
+          try {
+            await audioContext.resume();
+            console.log('🎵 Audio context resumed successfully');
+          } catch (error) {
+            console.error('❌ Failed to resume audio context:', error);
+          }
+        }
+        
+        // Remove all listeners after first interaction
+        document.removeEventListener('click', handleUserInteraction, { capture: true });
+        document.removeEventListener('keydown', handleUserInteraction, { capture: true });
+        document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
+        document.removeEventListener('touchend', handleUserInteraction, { capture: true });
+        document.removeEventListener('scroll', handleUserInteraction, { capture: true });
+        document.removeEventListener('mousemove', handleUserInteraction, { capture: true });
+      }
     };
 
     if (!hasUserInteracted) {
-      // Use capture phase to ensure we catch the interaction
+      // Add multiple event listeners to catch any user interaction
       document.addEventListener('click', handleUserInteraction, { capture: true });
       document.addEventListener('keydown', handleUserInteraction, { capture: true });
       document.addEventListener('touchstart', handleUserInteraction, { capture: true });
       document.addEventListener('touchend', handleUserInteraction, { capture: true });
+      document.addEventListener('scroll', handleUserInteraction, { capture: true });
+      document.addEventListener('mousemove', handleUserInteraction, { capture: true });
     }
 
     return () => {
@@ -68,16 +99,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       document.removeEventListener('keydown', handleUserInteraction, { capture: true });
       document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
       document.removeEventListener('touchend', handleUserInteraction, { capture: true });
+      document.removeEventListener('scroll', handleUserInteraction, { capture: true });
+      document.removeEventListener('mousemove', handleUserInteraction, { capture: true });
     };
-  }, [hasUserInteracted]);
+  }, [hasUserInteracted, audioContext]);
 
   useEffect(() => {
     // Don't show notifications on customer mobile app page
     if (isCustomerMobileApp) {
+      console.log('📱 Customer mobile app detected, notifications disabled');
       return;
     }
 
-    console.log('Setting up notification system...');
+    console.log('🔔 Setting up notification system...');
     
     // Load notification settings and sounds
     const initializeNotifications = async () => {
@@ -88,10 +122,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     initializeNotifications();
     
     // Setup realtime subscription for new online orders
-    console.log('Setting up realtime subscription...');
+    console.log('📡 Setting up realtime subscription...');
     
     const channel = supabase
-      .channel('global-online-orders-channel')
+      .channel('global-online-orders-channel-v2')
       .on(
         'postgres_changes',
         {
@@ -115,7 +149,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               .single();
 
             if (error) {
-              console.error('Error fetching order details:', error);
+              console.error('❌ Error fetching order details:', error);
               return;
             }
 
@@ -140,27 +174,34 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               });
 
               // Play notification sound
-              console.log('🔊 Playing notification sound...');
+              console.log('🔊 Attempting to play notification sound...');
               await playNotificationSound();
             }
           } catch (error) {
-            console.error('Error processing new order notification:', error);
+            console.error('❌ Error processing new order notification:', error);
           }
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('📡 Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to online orders channel');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel subscription error');
+        } else if (status === 'TIMED_OUT') {
+          console.warn('⏰ Channel subscription timed out');
+        }
       });
 
     return () => {
-      console.log('Cleaning up notification subscription...');
+      console.log('🧹 Cleaning up notification subscription...');
       supabase.removeChannel(channel);
     };
-  }, [navigate, isCustomerMobileApp, hasUserInteracted]);
+  }, [navigate, isCustomerMobileApp, hasUserInteracted, audioContext]);
 
   const fetchNotificationSettings = async () => {
     try {
-      console.log('Fetching notification settings...');
+      console.log('⚙️ Fetching notification settings...');
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
@@ -189,10 +230,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const fetchNotificationSounds = async () => {
     try {
-      console.log('Fetching notification sounds...');
+      console.log('🎵 Fetching notification sounds...');
       const { data, error } = await supabase
         .from('notification_sounds')
         .select('*')
+        .eq('is_active', true)
         .order('created_at');
 
       if (!error && data) {
@@ -207,15 +249,21 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const playNotificationSound = async () => {
-    console.log('🔊 Attempting to play notification sound...');
+    console.log('🔊 ==> Starting notification sound playback process...');
     
     if (!notificationSettings?.sound_enabled) {
       console.log('🔇 Notification sound disabled in settings');
       return;
     }
 
+    if (!hasUserInteracted) {
+      console.warn('⚠️ User has not interacted yet, cannot play sound');
+      return;
+    }
+
     try {
       let soundUrl = '';
+      let selectedSoundName = '';
       
       // Use selected sound or fallback to first available sound
       if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
@@ -224,135 +272,176 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         );
         if (selectedSound) {
           soundUrl = selectedSound.file_url;
-          console.log('🎵 Using selected sound:', selectedSound.name);
+          selectedSoundName = selectedSound.name;
+          console.log('🎵 Using selected sound:', selectedSoundName, soundUrl);
         }
       }
       
       // Fallback to first sound if no specific sound selected
       if (!soundUrl && notificationSounds.length > 0) {
         soundUrl = notificationSounds[0].file_url;
-        console.log('🎵 Using first available sound:', notificationSounds[0].name);
+        selectedSoundName = notificationSounds[0].name;
+        console.log('🎵 Using first available sound:', selectedSoundName, soundUrl);
       }
       
       if (soundUrl) {
-        console.log('🔊 Playing sound from URL:', soundUrl);
+        console.log('🔊 ==> Attempting to play sound from URL:', soundUrl);
         
-        // Force high volume for iPad compatibility
-        const volumeLevel = 1.0; // Always use maximum volume
-        console.log('🔊 Setting audio volume to:', volumeLevel);
-        
-        const audio = new Audio();
-        
-        // iPad/iOS specific settings
-        audio.crossOrigin = 'anonymous';
-        audio.preload = 'auto';
-        
-        // Create a promise to handle the audio loading and playing
-        const playAudio = () => {
-          return new Promise((resolve, reject) => {
-            audio.onloadstart = () => console.log('🔄 Audio loading started');
-            audio.oncanplay = () => {
-              console.log('✅ Audio can play');
-              // Set volume when audio is ready
-              audio.volume = volumeLevel;
-              console.log('🔊 Audio volume set to:', audio.volume);
-            };
-            audio.onplay = () => {
-              console.log('▶️ Audio started playing at volume:', audio.volume);
-              resolve(true);
-            };
-            audio.onended = () => console.log('⏹️ Audio finished playing');
-            audio.onerror = (error) => {
-              console.error('❌ Audio error:', error);
-              reject(error);
-            };
-            
-            // Set volume before setting source
-            audio.volume = volumeLevel;
-            audio.src = soundUrl;
-            
-            // For iPad/iOS, try to play immediately
-            const playPromise = audio.play();
-            if (playPromise) {
-              playPromise.catch(reject);
-            }
-          });
-        };
-        
-        try {
-          await playAudio();
-          console.log('✅ Notification sound played successfully');
-        } catch (playError) {
-          console.error('❌ Error playing audio:', playError);
-          // Fallback to system beep with high volume
-          await playSystemBeep(true);
+        const success = await playAudioFile(soundUrl);
+        if (!success) {
+          console.log('🔊 Audio file failed, falling back to system beep');
+          await playSystemBeep();
         }
       } else {
         console.log('🔊 No sound URL available, using system beep');
-        await playSystemBeep(true);
+        await playSystemBeep();
       }
       
     } catch (error) {
       console.error('❌ Error in playNotificationSound:', error);
-      // Fallback to system beep with high volume
-      await playSystemBeep(true);
+      // Fallback to system beep
+      await playSystemBeep();
     }
   };
 
-  const playSystemBeep = async (highVolume = false) => {
-    try {
-      console.log('🔊 Playing system beep fallback...');
+  const playAudioFile = async (soundUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      console.log('🎵 Creating new Audio element for:', soundUrl);
       
-      // Try to create Web Audio API beep for iPad compatibility
-      if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        
-        // Resume context if it's suspended (required for autoplay policy)
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
+      const audio = new Audio();
+      let hasResolved = false;
+      
+      // Set up event handlers
+      audio.onloadstart = () => console.log('🔄 Audio loading started');
+      audio.oncanplay = () => {
+        console.log('✅ Audio can play');
+        // Set volume when audio is ready
+        audio.volume = 1.0; // Force maximum volume
+        console.log('🔊 Audio volume set to:', audio.volume);
+      };
+      
+      audio.onplay = () => {
+        console.log('▶️ Audio started playing at volume:', audio.volume);
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(true);
         }
-        
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // Use very high frequency for iPad speakers
-        oscillator.frequency.value = 1800; // Higher frequency for better iPad speaker response
-        oscillator.type = 'square'; // Square wave is more noticeable
-        
-        // Use maximum volume for iPad
-        const beepVolume = 1.0; // Always maximum volume
-        gainNode.gain.value = beepVolume;
-        
-        console.log('🔊 System beep volume:', beepVolume);
-        console.log('🔊 System beep frequency:', oscillator.frequency.value);
-        
-        // Create a longer, more noticeable beep pattern
-        const currentTime = audioContext.currentTime;
-        
-        // First beep
-        oscillator.start(currentTime);
-        gainNode.gain.setValueAtTime(beepVolume, currentTime);
-        gainNode.gain.setValueAtTime(0, currentTime + 0.15);
-        
-        // Second beep after short pause
-        gainNode.gain.setValueAtTime(beepVolume, currentTime + 0.25);
-        gainNode.gain.setValueAtTime(0, currentTime + 0.4);
-        
-        // Third beep after short pause
-        gainNode.gain.setValueAtTime(beepVolume, currentTime + 0.5);
-        gainNode.gain.setValueAtTime(0, currentTime + 0.65);
-        
-        oscillator.stop(currentTime + 0.7);
-        
-        console.log('✅ System beep pattern played (3 beeps)');
-      } else {
-        console.log('⚠️ Web Audio API not available');
+      };
+      
+      audio.onended = () => {
+        console.log('⏹️ Audio finished playing');
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(true);
+        }
+      };
+      
+      audio.onerror = (error) => {
+        console.error('❌ Audio error:', error);
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(false);
+        }
+      };
+      
+      audio.onabort = () => {
+        console.warn('⚠️ Audio aborted');
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(false);
+        }
+      };
+      
+      // Set timeout to prevent hanging
+      setTimeout(() => {
+        if (!hasResolved) {
+          console.warn('⏰ Audio playback timeout');
+          hasResolved = true;
+          resolve(false);
+        }
+      }, 5000);
+      
+      // Configure audio
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      audio.volume = 1.0; // Set volume before setting source
+      
+      // Set source and attempt to play
+      audio.src = soundUrl;
+      
+      // Attempt to play
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.catch((playError) => {
+          console.error('❌ Play promise rejected:', playError);
+          if (!hasResolved) {
+            hasResolved = true;
+            resolve(false);
+          }
+        });
       }
+    });
+  };
+
+  const playSystemBeep = async () => {
+    try {
+      console.log('🔊 ==> Playing system beep fallback...');
+      
+      if (!audioContext) {
+        console.error('❌ No audio context available');
+        return;
+      }
+      
+      // Resume context if suspended
+      if (audioContext.state === 'suspended') {
+        console.log('🔊 Resuming suspended audio context...');
+        await audioContext.resume();
+      }
+      
+      if (audioContext.state !== 'running') {
+        console.error('❌ Audio context is not running:', audioContext.state);
+        return;
+      }
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // High frequency beep for iPad speakers
+      oscillator.frequency.value = 2000; // Even higher frequency
+      oscillator.type = 'square'; // Square wave is more noticeable
+      
+      // Maximum volume
+      const beepVolume = 0.8; // Slightly reduced to prevent distortion
+      gainNode.gain.value = beepVolume;
+      
+      console.log('🔊 System beep config - Volume:', beepVolume, 'Frequency:', oscillator.frequency.value);
+      
+      // Create a longer, more noticeable beep pattern (5 beeps)
+      const currentTime = audioContext.currentTime;
+      const beepDuration = 0.15;
+      const pauseDuration = 0.1;
+      
+      // Pattern: beep-pause-beep-pause-beep-pause-beep-pause-beep
+      for (let i = 0; i < 5; i++) {
+        const startTime = currentTime + (i * (beepDuration + pauseDuration));
+        const endTime = startTime + beepDuration;
+        
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.setValueAtTime(beepVolume, startTime + 0.01);
+        gainNode.gain.setValueAtTime(beepVolume, endTime - 0.01);
+        gainNode.gain.setValueAtTime(0, endTime);
+      }
+      
+      oscillator.start(currentTime);
+      oscillator.stop(currentTime + (5 * (beepDuration + pauseDuration)));
+      
+      console.log('✅ System beep pattern started (5 beeps)');
+      
     } catch (beepError) {
-      console.error('❌ System beep also failed:', beepError);
+      console.error('❌ System beep failed:', beepError);
     }
   };
 
