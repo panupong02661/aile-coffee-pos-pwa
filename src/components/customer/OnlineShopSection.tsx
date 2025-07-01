@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -319,14 +318,14 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Menu Items Grid - 3 items per row with smaller size */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Menu Items Grid - 5 items per row with smaller size */}
+      <div className="grid grid-cols-5 gap-1.5">
         {filteredMenuItems.map(item => (
           <Card key={item.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-2">
-              <div className="space-y-2">
+            <CardContent className="p-1.5">
+              <div className="space-y-1.5">
                 {item.image_url && (
-                  <div className="aspect-square w-full overflow-hidden rounded-lg">
+                  <div className="aspect-square w-full overflow-hidden rounded-md">
                     <img 
                       src={item.image_url} 
                       alt={item.name}
@@ -335,20 +334,20 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                   </div>
                 )}
                 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <h3 className="font-medium text-xs leading-tight line-clamp-2">{item.name}</h3>
                   {item.description && (
                     <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
                   )}
-                  <p className="text-sm font-bold text-green-600">฿{item.price}</p>
+                  <p className="text-xs font-bold text-green-600">฿{item.price}</p>
                 </div>
                 
                 <Button 
                   onClick={() => addToCart(item)}
-                  className="w-full text-xs py-1 h-8"
+                  className="w-full text-xs py-0.5 h-6"
                   size="sm"
                 >
-                  <Plus className="w-3 h-3 mr-1" />
+                  <Plus className="w-2.5 h-2.5 mr-0.5" />
                   เพิ่ม
                 </Button>
               </div>

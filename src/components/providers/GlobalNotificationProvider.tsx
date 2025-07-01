@@ -35,6 +35,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
+  const [audioInstance, setAudioInstance] = useState<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,9 +48,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // Load notification settings
-    fetchNotificationSettings();
-    fetchNotificationSounds();
+    // Load notification settings and sounds
+    const initializeNotifications = async () => {
+      await fetchNotificationSettings();
+      await fetchNotificationSounds();
+    };
+    
+    initializeNotifications();
     
     // Setup realtime subscription for new online orders
     const channel = supabase
@@ -93,7 +98,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             });
 
             // Play notification sound
-            playNotificationSound();
+            await playNotificationSound();
           }
         }
       )
@@ -101,59 +106,154 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return () => {
       supabase.removeChannel(channel);
+      // Clean up audio instance
+      if (audioInstance) {
+        audioInstance.pause();
+        audioInstance.src = '';
+      }
     };
-  }, [navigate, isCustomerMobileApp]);
+  }, [navigate, isCustomerMobileApp, notificationSettings, notificationSounds]);
 
   const fetchNotificationSettings = async () => {
-    const { data, error } = await supabase
-      .from('notification_settings')
-      .select('*')
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .single();
 
-    if (!error && data) {
-      setNotificationSettings(data);
+      if (!error && data) {
+        setNotificationSettings(data);
+        console.log('Notification settings loaded:', data);
+      } else if (error) {
+        console.log('No notification settings found, using defaults');
+        // Set default settings
+        setNotificationSettings({
+          sound_enabled: true,
+          volume: 0.8
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching notification settings:', error);
     }
   };
 
   const fetchNotificationSounds = async () => {
-    const { data, error } = await supabase
-      .from('notification_sounds')
-      .select('*')
-      .order('created_at');
+    try {
+      const { data, error } = await supabase
+        .from('notification_sounds')
+        .select('*')
+        .order('created_at');
 
-    if (!error) {
-      setNotificationSounds(data || []);
+      if (!error && data) {
+        setNotificationSounds(data);
+        console.log('Notification sounds loaded:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching notification sounds:', error);
     }
   };
 
   const playNotificationSound = async () => {
-    if (!notificationSettings?.sound_enabled) return;
+    if (!notificationSettings?.sound_enabled) {
+      console.log('Notification sound disabled');
+      return;
+    }
 
     try {
-      const selectedSound = notificationSounds.find(
-        sound => sound.id === notificationSettings.selected_sound_id
-      );
+      let soundUrl = '';
       
-      if (selectedSound) {
-        const audio = new Audio(selectedSound.file_url);
-        audio.volume = notificationSettings.volume;
-        
-        // Ensure audio can play
-        audio.load();
-        const playPromise = audio.play();
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('Notification sound played successfully');
-            })
-            .catch(error => {
-              console.error('Error playing notification sound:', error);
-            });
+      // Use selected sound or fallback to first available sound
+      if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
+        const selectedSound = notificationSounds.find(
+          sound => sound.id === notificationSettings.selected_sound_id
+        );
+        if (selectedSound) {
+          soundUrl = selectedSound.file_url;
         }
       }
+      
+      // Fallback to first sound if no specific sound selected
+      if (!soundUrl && notificationSounds.length > 0) {
+        soundUrl = notificationSounds[0].file_url;
+      }
+      
+      // Ultimate fallback - use a default system sound
+      if (!soundUrl) {
+        console.log('No notification sound available, using default');
+        // Try to play a simple beep sound
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = notificationSettings.volume || 0.8;
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+        return;
+      }
+
+      console.log('Playing notification sound:', soundUrl);
+      
+      // Clean up previous audio instance
+      if (audioInstance) {
+        audioInstance.pause();
+        audioInstance.src = '';
+      }
+      
+      const audio = new Audio(soundUrl);
+      audio.volume = notificationSettings.volume || 0.8;
+      setAudioInstance(audio);
+      
+      // Handle audio loading and playing
+      const playPromise = new Promise((resolve, reject) => {
+        audio.oncanplaythrough = () => {
+          audio.play()
+            .then(resolve)
+            .catch(reject);
+        };
+        
+        audio.onerror = (error) => {
+          console.error('Audio load error:', error);
+          reject(error);
+        };
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          reject(new Error('Audio load timeout'));
+        }, 5000);
+      });
+      
+      audio.load();
+      
+      await playPromise;
+      console.log('Notification sound played successfully');
+      
     } catch (error) {
-      console.error('Error playing global notification sound:', error);
+      console.error('Error playing notification sound:', error);
+      
+      // Fallback beep if audio fails
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.5;
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (fallbackError) {
+        console.error('Fallback beep also failed:', fallbackError);
+      }
     }
   };
 
