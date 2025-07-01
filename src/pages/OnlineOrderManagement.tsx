@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { 
   ShoppingBag, 
   Clock, 
@@ -18,10 +19,13 @@ import {
   Volume2, 
   Upload,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Play
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import Header from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
 
 interface OnlineOrder {
   id: string;
@@ -62,6 +66,7 @@ interface NotificationSound {
 }
 
 const OnlineOrderManagement = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [orders, setOrders] = useState<OnlineOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
@@ -69,7 +74,8 @@ const OnlineOrderManagement = () => {
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+  const { toast: hookToast } = useToast();
 
   useEffect(() => {
     fetchOnlineOrders();
@@ -91,7 +97,7 @@ const OnlineOrderManagement = () => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลออเดอร์ได้', variant: 'destructive' });
+      hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลออเดอร์ได้', variant: 'destructive' });
     } else {
       setOrders(data || []);
     }
@@ -151,12 +157,19 @@ const OnlineOrderManagement = () => {
         },
         (payload) => {
           console.log('New online order:', payload);
-          toast({
-            title: 'มีออเดอร์ออนไลน์ใหม่!',
+          
+          // Show popup notification
+          toast.success('มีออเดอร์ออนไลน์ใหม่!', {
             description: `ออเดอร์ #${payload.new?.order_number}`,
+            duration: 5000,
+            action: {
+              label: 'ดูออเดอร์',
+              onClick: () => fetchOnlineOrders()
+            }
           });
+          
           playNotificationSound();
-          fetchOnlineOrders(); // รีเฟรชรายการ
+          fetchOnlineOrders();
         }
       )
       .subscribe();
@@ -175,46 +188,53 @@ const OnlineOrderManagement = () => {
       .eq('id', notificationSettings.id);
 
     if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปเดตการตั้งค่าได้', variant: 'destructive' });
+      hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปเดตการตั้งค่าได้', variant: 'destructive' });
     } else {
       setNotificationSettings({ ...notificationSettings, ...updates });
-      toast({ title: 'สำเร็จ', description: 'อัปเดตการตั้งค่าแล้ว' });
+      hookToast({ title: 'สำเร็จ', description: 'อัปเดตการตั้งค่าแล้ว' });
     }
   };
 
   const uploadSoundFile = async () => {
     if (!audioFile) return;
 
+    setUploading(true);
     const fileName = `sound_${Date.now()}_${audioFile.name}`;
     
-    const { data, error } = await supabase.storage
-      .from('notification-sounds')
-      .upload(fileName, audioFile);
+    try {
+      const { data, error } = await supabase.storage
+        .from('notification-sounds')
+        .upload(fileName, audioFile);
 
-    if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปโหลดไฟล์เสียงได้', variant: 'destructive' });
-      return;
-    }
+      if (error) throw error;
 
-    const { data: urlData } = supabase.storage
-      .from('notification-sounds')
-      .getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage
+        .from('notification-sounds')
+        .getPublicUrl(fileName);
 
-    // บันทึกข้อมูลเสียงใหม่
-    const { error: insertError } = await supabase
-      .from('notification_sounds')
-      .insert({
-        name: audioFile.name.replace(/\.[^/.]+$/, ''),
-        file_url: urlData.publicUrl,
-        is_active: false
-      });
+      // Save sound file info to database
+      const { error: insertError } = await supabase
+        .from('notification_sounds')
+        .insert({
+          name: audioFile.name.replace(/\.[^/.]+$/, ''),
+          file_url: urlData.publicUrl,
+          is_active: false
+        });
 
-    if (insertError) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถบันทึกไฟล์เสียงได้', variant: 'destructive' });
-    } else {
-      toast({ title: 'สำเร็จ', description: 'อัปโหลดไฟล์เสียงแล้ว' });
+      if (insertError) throw insertError;
+
+      hookToast({ title: 'สำเร็จ', description: 'อัปโหลดไฟล์เสียงแล้ว' });
       setAudioFile(null);
       fetchNotificationSounds();
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      hookToast({ 
+        title: 'ข้อผิดพลาด', 
+        description: error.message || 'ไม่สามารถอัปโหลดไฟล์เสียงได้', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -225,8 +245,10 @@ const OnlineOrderManagement = () => {
         const audio = new Audio(sound.file_url);
         audio.volume = notificationSettings.volume;
         await audio.play();
+        hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
       } catch (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
+        console.error('Test sound error:', error);
+        hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
       }
     }
   };
@@ -242,271 +264,322 @@ const OnlineOrderManagement = () => {
     }
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coffee-600 mx-auto mb-4"></div>
-          <p>กำลังโหลด...</p>
+      <div className="h-screen bg-cream-50 flex">
+        <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+        <div className={`flex-1 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        }`}>
+          <div className="p-4">
+            <Header 
+              onToggleSidebar={handleToggleSidebar}
+              categories={[]}
+              selectedCategory=""
+              onCategorySelect={() => {}}
+              gridColumns={4}
+              setGridColumns={() => {}}
+              itemSize="medium"
+              setItemSize={() => {}}
+              page="online-orders"
+            />
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coffee-600 mx-auto mb-4"></div>
+                <p>กำลังโหลด...</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-coffee-800">จัดการออเดอร์ออนไลน์</h1>
-          <p className="text-coffee-600">ออเดอร์ทั้งหมด {orders.length} รายการ</p>
-        </div>
-        
-        <Button onClick={() => setShowSettings(true)} variant="outline">
-          <Volume2 className="w-4 h-4 mr-2" />
-          ตั้งค่าเสียง
-        </Button>
-      </div>
-
-      {/* Orders Grid */}
-      <div className="grid gap-4">
-        {orders.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <ShoppingBag className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">ยังไม่มีออเดอร์ออนไลน์</p>
-            </CardContent>
-          </Card>
-        ) : (
-          orders.map(order => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-bold text-lg">#{order.order_number}</h3>
-                      {getStatusBadge(order)}
-                    </div>
-                    
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <span>{order.members?.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{order.members?.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {order.pickup_time 
-                            ? `รับสินค้า: ${new Date(order.pickup_time).toLocaleString('th-TH')}`
-                            : 'ไม่ระบุเวลา'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-600">฿{order.total_amount}</p>
-                    <p className="text-sm text-gray-600">{order.items_count} รายการ</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedOrder(order)}>
-                        <FileText className="w-4 h-4 mr-1" />
-                        รายละเอียด
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>รายละเอียดออเดอร์ #{order.order_number}</DialogTitle>
-                      </DialogHeader>
-                      
-                      {selectedOrder && (
-                        <div className="space-y-4">
-                          {/* Customer Info */}
-                          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
-                            <div>
-                              <h4 className="font-medium mb-2">ข้อมูลลูกค้า</h4>
-                              <p>ชื่อ: {selectedOrder.members?.name}</p>
-                              <p>เบอร์: {selectedOrder.members?.phone}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium mb-2">เวลารับสินค้า</h4>
-                              <p>
-                                {selectedOrder.pickup_time 
-                                  ? new Date(selectedOrder.pickup_time).toLocaleString('th-TH')
-                                  : 'ไม่ระบุ'
-                                }
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Order Items */}
-                          <div>
-                            <h4 className="font-medium mb-3">รายการสินค้า</h4>
-                            <div className="space-y-2">
-                              {selectedOrder.order_items?.map((item, index) => (
-                                <div key={index} className="flex justify-between items-center p-2 border rounded">
-                                  <div>
-                                    <p className="font-medium">{item.menu_item_name}</p>
-                                    <p className="text-sm text-gray-600">฿{item.unit_price} x {item.quantity}</p>
-                                  </div>
-                                  <p className="font-bold">฿{item.total_price}</p>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="border-t pt-2 mt-2">
-                              <div className="flex justify-between items-center text-lg font-bold">
-                                <span>ยอดรวม</span>
-                                <span className="text-green-600">฿{selectedOrder.total_amount}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          {selectedOrder.customer_notes && (
-                            <div>
-                              <h4 className="font-medium mb-2">หมายเหตุ</h4>
-                              <p className="p-3 bg-yellow-50 rounded border">{selectedOrder.customer_notes}</p>
-                            </div>
-                          )}
-
-                          {/* Receipt */}
-                          {selectedOrder.receipt_image_url && (
-                            <div>
-                              <h4 className="font-medium mb-2">สลีปการชำระเงิน</h4>
-                              <img 
-                                src={selectedOrder.receipt_image_url} 
-                                alt="Receipt" 
-                                className="max-w-full h-auto border rounded"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-
-                  {order.receipt_image_url && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Image className="w-4 h-4 mr-1" />
-                          สลีป
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>สลีปการชำระเงิน</DialogTitle>
-                        </DialogHeader>
-                        <img 
-                          src={order.receipt_image_url} 
-                          alt="Receipt" 
-                          className="max-w-full h-auto"
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Notification Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ตั้งค่าเสียงแจ้งเตือน</DialogTitle>
-          </DialogHeader>
+    <div className="h-screen bg-cream-50 flex">
+      <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="online-orders"
+          />
           
-          {notificationSettings && (
-            <div className="space-y-6">
-              {/* Enable/Disable Sound */}
-              <div className="flex items-center justify-between">
-                <Label htmlFor="sound-enabled">เปิดเสียงแจ้งเตือน</Label>
-                <Switch
-                  id="sound-enabled"
-                  checked={notificationSettings.sound_enabled}
-                  onCheckedChange={(checked) => updateNotificationSettings({ sound_enabled: checked })}
-                />
-              </div>
-
-              {/* Volume Control */}
+          <div className="space-y-6 mt-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
               <div>
-                <Label htmlFor="volume">ระดับเสียง ({Math.round(notificationSettings.volume * 100)}%)</Label>
-                <Input
-                  id="volume"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={notificationSettings.volume}
-                  onChange={(e) => updateNotificationSettings({ volume: parseFloat(e.target.value) })}
-                  className="mt-2"
-                />
+                <h1 className="text-2xl font-bold text-coffee-800">จัดการออเดอร์ออนไลน์</h1>
+                <p className="text-coffee-600">ออเดอร์ทั้งหมด {orders.length} รายการ</p>
               </div>
+              
+              <Button onClick={() => setShowSettings(true)} variant="outline">
+                <Volume2 className="w-4 h-4 mr-2" />
+                ตั้งค่าเสียง
+              </Button>
+            </div>
 
-              {/* Sound Selection */}
-              <div>
-                <Label>เลือกเสียงแจ้งเตือน</Label>
-                <div className="space-y-2 mt-2">
-                  {notificationSounds.map(sound => (
-                    <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
-                      <span>{sound.name}</span>
+            {/* Orders Grid */}
+            <div className="grid gap-4">
+              {orders.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <ShoppingBag className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">ยังไม่มีออเดอร์ออนไลน์</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                orders.map(order => (
+                  <Card key={order.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-lg">#{order.order_number}</h3>
+                            {getStatusBadge(order)}
+                          </div>
+                          
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              <span>{order.members?.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4" />
+                              <span>{order.members?.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              <span>
+                                {order.pickup_time 
+                                  ? `รับสินค้า: ${new Date(order.pickup_time).toLocaleString('th-TH')}`
+                                  : 'ไม่ระบุเวลา'
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">฿{order.total_amount}</p>
+                          <p className="text-sm text-gray-600">{order.items_count} รายการ</p>
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={() => setSelectedOrder(order)}>
+                              <FileText className="w-4 h-4 mr-1" />
+                              รายละเอียด
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>รายละเอียดออเดอร์ #{order.order_number}</DialogTitle>
+                            </DialogHeader>
+                            
+                            {selectedOrder && (
+                              <div className="space-y-4">
+                                {/* Customer Info */}
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
+                                  <div>
+                                    <h4 className="font-medium mb-2">ข้อมูลลูกค้า</h4>
+                                    <p>ชื่อ: {selectedOrder.members?.name}</p>
+                                    <p>เบอร์: {selectedOrder.members?.phone}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium mb-2">เวลารับสินค้า</h4>
+                                    <p>
+                                      {selectedOrder.pickup_time 
+                                        ? new Date(selectedOrder.pickup_time).toLocaleString('th-TH')
+                                        : 'ไม่ระบุ'
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Order Items */}
+                                <div>
+                                  <h4 className="font-medium mb-3">รายการสินค้า</h4>
+                                  <div className="space-y-2">
+                                    {selectedOrder.order_items?.map((item, index) => (
+                                      <div key={index} className="flex justify-between items-center p-2 border rounded">
+                                        <div>
+                                          <p className="font-medium">{item.menu_item_name}</p>
+                                          <p className="text-sm text-gray-600">฿{item.unit_price} x {item.quantity}</p>
+                                        </div>
+                                        <p className="font-bold">฿{item.total_price}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="border-t pt-2 mt-2">
+                                    <div className="flex justify-between items-center text-lg font-bold">
+                                      <span>ยอดรวม</span>
+                                      <span className="text-green-600">฿{selectedOrder.total_amount}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Notes */}
+                                {selectedOrder.customer_notes && (
+                                  <div>
+                                    <h4 className="font-medium mb-2">หมายเหตุ</h4>
+                                    <p className="p-3 bg-yellow-50 rounded border">{selectedOrder.customer_notes}</p>
+                                  </div>
+                                )}
+
+                                {/* Receipt */}
+                                {selectedOrder.receipt_image_url && (
+                                  <div>
+                                    <h4 className="font-medium mb-2">สลีปการชำระเงิน</h4>
+                                    <img 
+                                      src={selectedOrder.receipt_image_url} 
+                                      alt="Receipt" 
+                                      className="max-w-full h-auto border rounded"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+
+                        {order.receipt_image_url && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Image className="w-4 h-4 mr-1" />
+                                สลีป
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>สลีปการชำระเงิน</DialogTitle>
+                              </DialogHeader>
+                              <img 
+                                src={order.receipt_image_url} 
+                                alt="Receipt" 
+                                className="max-w-full h-auto"
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Notification Settings Dialog */}
+            <Dialog open={showSettings} onOpenChange={setShowSettings}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>ตั้งค่าเสียงแจ้งเตือน</DialogTitle>
+                </DialogHeader>
+                
+                {notificationSettings && (
+                  <div className="space-y-6">
+                    {/* Enable/Disable Sound */}
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="sound-enabled">เปิดเสียงแจ้งเตือน</Label>
+                      <Switch
+                        id="sound-enabled"
+                        checked={notificationSettings.sound_enabled}
+                        onCheckedChange={(checked) => updateNotificationSettings({ sound_enabled: checked })}
+                      />
+                    </div>
+
+                    {/* Volume Control */}
+                    <div>
+                      <Label htmlFor="volume">ระดับเสียง ({Math.round(notificationSettings.volume * 100)}%)</Label>
+                      <Input
+                        id="volume"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={notificationSettings.volume}
+                        onChange={(e) => updateNotificationSettings({ volume: parseFloat(e.target.value) })}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    {/* Sound Selection */}
+                    <div>
+                      <Label>เลือกเสียงแจ้งเตือน</Label>
+                      <div className="space-y-2 mt-2">
+                        {notificationSounds.map(sound => (
+                          <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
+                            <span className="flex-1">{sound.name}</span>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testSound(sound.id)}
+                              >
+                                <Play className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant={notificationSettings.selected_sound_id === sound.id ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => updateNotificationSettings({ selected_sound_id: sound.id })}
+                              >
+                                {notificationSettings.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Upload New Sound */}
+                    <div>
+                      <Label htmlFor="audio-file">อัปโหลดเสียงใหม่</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          id="audio-file"
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                          disabled={uploading}
+                        />
+                        <Button 
+                          onClick={uploadSoundFile}
+                          disabled={!audioFile || uploading}
                           size="sm"
-                          onClick={() => testSound(sound.id)}
                         >
-                          เล่น
-                        </Button>
-                        <Button
-                          variant={notificationSettings.selected_sound_id === sound.id ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => updateNotificationSettings({ selected_sound_id: sound.id })}
-                        >
-                          {notificationSettings.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
+                          <Upload className="w-4 h-4 mr-1" />
+                          {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Upload New Sound */}
-              <div>
-                <Label htmlFor="audio-file">อัปโหลดเสียงใหม่</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    id="audio-file"
-                    type="file"
-                    accept="audio/*"
-                    onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  />
-                  <Button 
-                    onClick={uploadSoundFile}
-                    disabled={!audioFile}
-                    size="sm"
-                  >
-                    <Upload className="w-4 h-4 mr-1" />
-                    อัปโหลด
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

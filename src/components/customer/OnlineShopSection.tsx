@@ -319,35 +319,39 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Menu Items Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Menu Items Grid - 2 items per row */}
+      <div className="grid grid-cols-2 gap-3">
         {filteredMenuItems.map(item => (
-          <Card key={item.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="font-medium">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                  )}
-                  <p className="text-lg font-bold text-green-600 mt-2">฿{item.price}</p>
-                </div>
+          <Card key={item.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-3">
+              <div className="space-y-3">
                 {item.image_url && (
-                  <img 
-                    src={item.image_url} 
-                    alt={item.name}
-                    className="w-16 h-16 object-cover rounded ml-3"
-                  />
+                  <div className="aspect-square w-full overflow-hidden rounded-lg">
+                    <img 
+                      src={item.image_url} 
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 )}
+                
+                <div className="space-y-2">
+                  <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
+                  {item.description && (
+                    <p className="text-xs text-gray-600 line-clamp-2">{item.description}</p>
+                  )}
+                  <p className="text-lg font-bold text-green-600">฿{item.price}</p>
+                </div>
+                
+                <Button 
+                  onClick={() => addToCart(item)}
+                  className="w-full"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  เพิ่มลงตะกร้า
+                </Button>
               </div>
-              <Button 
-                onClick={() => addToCart(item)}
-                className="w-full"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                เพิ่มลงตะกร้า
-              </Button>
             </CardContent>
           </Card>
         ))}
