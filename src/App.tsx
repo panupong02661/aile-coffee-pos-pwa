@@ -27,6 +27,14 @@ const Inventory = lazy(() => import('./pages/Inventory'));
 const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
 const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
 
+// New 5 main system pages
+const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
+const StaffManagement = lazy(() => import('./pages/StaffManagement'));
+const FinancialSystem = lazy(() => import('./pages/FinancialSystem'));
+const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
+const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
+const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,6 +64,42 @@ function App() {
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/printer-settings" element={<PrinterSettings />} />
                   <Route path="/online-orders" element={<OnlineOrderManagement />} />
+                  
+                  {/* New 5 main system routes */}
+                  <Route path="/advanced-reports" element={<AdvancedReports />} />
+                  <Route path="/sales-reports" element={<AdvancedReports />} />
+                  <Route path="/product-reports" element={<AdvancedReports />} />
+                  <Route path="/customer-analytics" element={<AdvancedReports />} />
+                  <Route path="/staff" element={<StaffManagement />} />
+                  <Route path="/time-attendance" element={<StaffManagement />} />
+                  <Route path="/permissions" element={<StaffManagement />} />
+                  <Route path="/branch-management" element={<StaffManagement />} />
+                  <Route path="/accounting" element={<FinancialSystem />} />
+                  <Route path="/income-expense" element={<FinancialSystem />} />
+                  <Route path="/profit-loss" element={<FinancialSystem />} />
+                  <Route path="/tax-system" element={<FinancialSystem />} />
+                  <Route path="/vat-calculation" element={<FinancialSystem />} />
+                  <Route path="/tax-invoice" element={<FinancialSystem />} />
+                  <Route path="/credit-system" element={<FinancialSystem />} />
+                  <Route path="/crm" element={<CustomerSystem />} />
+                  <Route path="/customer-data" element={<CustomerSystem />} />
+                  <Route path="/purchase-history" element={<CustomerSystem />} />
+                  <Route path="/marketing" element={<CustomerSystem />} />
+                  <Route path="/sms-marketing" element={<CustomerSystem />} />
+                  <Route path="/email-marketing" element={<CustomerSystem />} />
+                  <Route path="/table-reservation" element={<CustomerSystem />} />
+                  <Route path="/digital-payment" element={<TechnologySystem />} />
+                  <Route path="/credit-card" element={<TechnologySystem />} />
+                  <Route path="/api-system" element={<TechnologySystem />} />
+                  <Route path="/external-integration" element={<TechnologySystem />} />
+                  <Route path="/staff-mobile-app" element={<TechnologySystem />} />
+                  <Route path="/customer-mobile-app" element={<TechnologySystem />} />
+                  <Route path="/data-backup" element={<SecuritySystem />} />
+                  <Route path="/auto-backup" element={<SecuritySystem />} />
+                  <Route path="/system-logs" element={<SecuritySystem />} />
+                  <Route path="/usage-logs" element={<SecuritySystem />} />
+                  <Route path="/role-access" element={<SecuritySystem />} />
+                  <Route path="/access-control" element={<SecuritySystem />} />
                 </Routes>
               </Suspense>
               <Toaster />
