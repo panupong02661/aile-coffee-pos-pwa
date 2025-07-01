@@ -319,12 +319,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Menu Items Grid - 2 items per row */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Menu Items Grid - 3 items per row with smaller size */}
+      <div className="grid grid-cols-3 gap-2">
         {filteredMenuItems.map(item => (
           <Card key={item.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-3">
-              <div className="space-y-3">
+            <CardContent className="p-2">
+              <div className="space-y-2">
                 {item.image_url && (
                   <div className="aspect-square w-full overflow-hidden rounded-lg">
                     <img 
@@ -335,21 +335,21 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
+                <div className="space-y-1">
+                  <h3 className="font-medium text-xs leading-tight line-clamp-2">{item.name}</h3>
                   {item.description && (
-                    <p className="text-xs text-gray-600 line-clamp-2">{item.description}</p>
+                    <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
                   )}
-                  <p className="text-lg font-bold text-green-600">฿{item.price}</p>
+                  <p className="text-sm font-bold text-green-600">฿{item.price}</p>
                 </div>
                 
                 <Button 
                   onClick={() => addToCart(item)}
-                  className="w-full"
+                  className="w-full text-xs py-1 h-8"
                   size="sm"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  เพิ่มลงตะกร้า
+                  <Plus className="w-3 h-3 mr-1" />
+                  เพิ่ม
                 </Button>
               </div>
             </CardContent>

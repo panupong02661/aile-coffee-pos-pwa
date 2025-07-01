@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Bell } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface OnlineOrder {
   id: string;
@@ -36,8 +36,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if current page is customer mobile app
+  const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
   useEffect(() => {
+    // Don't show notifications on customer mobile app page
+    if (isCustomerMobileApp) {
+      return;
+    }
+
     // Load notification settings
     fetchNotificationSettings();
     fetchNotificationSounds();
@@ -77,7 +86,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               action: {
                 label: 'ดูรายละเอียด',
                 onClick: () => {
-                  setShowOrderAlert(false);
+                  handleDismiss();
                   navigate('/online-orders');
                 }
               }
@@ -93,7 +102,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [navigate, isCustomerMobileApp]);
 
   const fetchNotificationSettings = async () => {
     const { data, error } = await supabase
@@ -128,7 +137,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (selectedSound) {
         const audio = new Audio(selectedSound.file_url);
         audio.volume = notificationSettings.volume;
-        await audio.play();
+        
+        // Ensure audio can play
+        audio.load();
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Notification sound played successfully');
+            })
+            .catch(error => {
+              console.error('Error playing notification sound:', error);
+            });
+        }
       }
     } catch (error) {
       console.error('Error playing global notification sound:', error);
@@ -136,21 +158,28 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleViewOrder = () => {
-    setShowOrderAlert(false);
+    handleDismiss();
     navigate('/online-orders');
   };
 
   const handleDismiss = () => {
     setShowOrderAlert(false);
     setNewOrder(null);
+    // Dismiss all toasts
+    toast.dismiss();
   };
+
+  // Don't render anything on customer mobile app page
+  if (isCustomerMobileApp) {
+    return <>{children}</>;
+  }
 
   return (
     <>
       {children}
       
       {/* Global Order Alert Dialog */}
-      <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
+      <Dialog open={showOrderAlert} onOpenChange={handleDismiss}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-green-600">
