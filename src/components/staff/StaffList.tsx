@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserPlus, Edit, Trash2, User, Clock } from 'lucide-react';
+import { UserPlus, Edit, Trash2, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,45 +54,7 @@ const StaffList = () => {
       setStaff(data || []);
     } catch (error) {
       console.error('Error fetching staff:', error);
-      // Mock data for demonstration
-      setStaff([
-        {
-          id: '1',
-          name: 'นางสาวสมใจ ใจดี',
-          position: 'พนักงานเสิร์ฟ',
-          role: 'staff',
-          phone: '081-234-5678',
-          email: 'somjai@example.com',
-          status: 'active',
-          hire_date: '2024-01-15',
-          salary: 15000,
-          created_at: '2024-01-15T00:00:00Z'
-        },
-        {
-          id: '2',
-          name: 'นายสมชาย รักงาน',
-          position: 'บาริสต้า',
-          role: 'staff',
-          phone: '082-345-6789',
-          email: 'somchai@example.com',
-          status: 'active',
-          hire_date: '2024-02-01',
-          salary: 18000,
-          created_at: '2024-02-01T00:00:00Z'
-        },
-        {
-          id: '3',
-          name: 'นางสาวมาลี ขยันทำ',
-          position: 'ผู้จัดการ',
-          role: 'manager',
-          phone: '083-456-7890',
-          email: 'malee@example.com',
-          status: 'active',
-          hire_date: '2023-06-15',
-          salary: 25000,
-          created_at: '2023-06-15T00:00:00Z'
-        }
-      ]);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลพนักงานได้', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -102,7 +64,7 @@ const StaffList = () => {
     try {
       const staffData = {
         ...newStaff,
-        status: 'active',
+        status: 'active' as const,
         hire_date: new Date().toISOString().split('T')[0]
       };
 
@@ -110,19 +72,9 @@ const StaffList = () => {
         .from('staff')
         .insert([staffData]);
 
-      if (error) {
-        // Mock success for demonstration
-        const mockStaff: Staff = {
-          id: Date.now().toString(),
-          ...staffData,
-          hire_date: staffData.hire_date,
-          created_at: new Date().toISOString()
-        };
-        setStaff(prev => [mockStaff, ...prev]);
-      } else {
-        await fetchStaff();
-      }
+      if (error) throw error;
 
+      await fetchStaff();
       setNewStaff({
         name: '',
         position: '',
@@ -136,6 +88,23 @@ const StaffList = () => {
     } catch (error) {
       console.error('Error adding staff:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเพิ่มพนักงานได้', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchStaff();
+      toast({ title: 'สำเร็จ', description: 'ลบพนักงานเรียบร้อยแล้ว' });
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบพนักงานได้', variant: 'destructive' });
     }
   };
 
@@ -290,7 +259,12 @@ const StaffList = () => {
                     <Button variant="outline" size="sm">
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="sm" className="text-red-600">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600"
+                      onClick={() => handleDeleteStaff(member.id)}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

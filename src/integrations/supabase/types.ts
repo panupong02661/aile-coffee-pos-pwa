@@ -1528,6 +1528,48 @@ export type Database = {
         }
         Relationships: []
       }
+      staff: {
+        Row: {
+          created_at: string
+          email: string | null
+          hire_date: string
+          id: string
+          name: string
+          phone: string
+          position: string
+          role: string
+          salary: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          hire_date?: string
+          id?: string
+          name: string
+          phone: string
+          position: string
+          role?: string
+          salary?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          hire_date?: string
+          id?: string
+          name?: string
+          phone?: string
+          position?: string
+          role?: string
+          salary?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           cost_per_unit: number | null

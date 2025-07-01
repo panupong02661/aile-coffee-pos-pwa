@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, ClockIn, ClockOut, Calendar, User } from 'lucide-react';
+import { Clock, LogIn, LogOut, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AttendanceRecord {
@@ -89,7 +89,7 @@ const TimeAttendance = () => {
     setAttendanceRecords(prev => 
       prev.map(record => 
         record.staff_id === staffId && record.date === selectedDate
-          ? { ...record, check_in: timeString, status: 'present' }
+          ? { ...record, check_in: timeString, status: 'present' as const }
           : record
       )
     );
@@ -123,7 +123,7 @@ const TimeAttendance = () => {
             ...record,
             check_out: timeString,
             total_hours: Math.round(totalHours * 100) / 100,
-            status: 'present'
+            status: 'present' as const
           };
         }
         return record;
@@ -218,7 +218,7 @@ const TimeAttendance = () => {
                           onClick={() => handleCheckIn(record.staff_id, record.staff_name)}
                           className="bg-green-600 hover:bg-green-700"
                         >
-                          <ClockIn className="w-4 h-4 mr-1" />
+                          <LogIn className="w-4 h-4 mr-1" />
                           เช็คอิน
                         </Button>
                       )}
@@ -228,7 +228,7 @@ const TimeAttendance = () => {
                           onClick={() => handleCheckOut(record.staff_id, record.staff_name)}
                           className="bg-red-600 hover:bg-red-700"
                         >
-                          <ClockOut className="w-4 h-4 mr-1" />
+                          <LogOut className="w-4 h-4 mr-1" />
                           เช็คเอาท์
                         </Button>
                       )}
@@ -284,7 +284,7 @@ const TimeAttendance = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ยังไม่เช็คเอาท์</CardTitle>
-            <ClockOut className="h-4 w-4 text-blue-600" />
+            <LogOut className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
