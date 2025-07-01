@@ -757,7 +757,7 @@ const CustomerMobileApp = () => {
         )}
 
         {activeTab === 'shop' && (
-          <ShopSection />
+          <ShopSection currentUser={currentUser} />
         )}
       </div>
     </div>

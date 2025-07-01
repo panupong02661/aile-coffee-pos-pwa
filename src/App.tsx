@@ -1,115 +1,66 @@
-import React from 'react';
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import POS from "./pages/POS";
-import Dashboard from "./pages/Dashboard";
-import MenuManagement from "./pages/MenuManagement";
-import ShopSettings from "./pages/ShopSettings";
-import MemberManagement from "./pages/MemberManagement";
-import MemberRegistration from "./pages/MemberRegistration";
-import Inventory from "./pages/Inventory";
-import PrinterSettings from "./pages/PrinterSettings";
-import NotFound from "./pages/NotFound";
-import Promotions from "./pages/Promotions";
-import OnlineSystem from "./pages/OnlineSystem";
-import Reports from "./pages/Reports";
-import CustomerMobileApp from "./pages/CustomerMobileApp";
-import CustomerAppManagement from "./pages/CustomerAppManagement";
-import QRCodePromptPayPage from "./pages/QRCodePromptPayPage";
 
-// Create QueryClient instance inside the component to avoid SSR issues
-const App = () => {
-  const [queryClient] = React.useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        retry: 1,
-      },
-    },
-  }));
+import { Suspense, lazy } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './hooks/useAuth';
 
+const queryClient = new QueryClient();
+
+// Lazy load components
+const Index = lazy(() => import('./pages/Index'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const MenuManagement = lazy(() => import('./pages/MenuManagement'));
+const MemberManagement = lazy(() => import('./pages/MemberManagement'));
+const MemberRegistration = lazy(() => import('./pages/MemberRegistration'));
+const POS = lazy(() => import('./pages/POS'));
+const Reports = lazy(() => import('./pages/Reports'));
+const ShopSettings = lazy(() => import('./pages/ShopSettings'));
+const Promotions = lazy(() => import('./pages/Promotions'));
+const OnlineSystem = lazy(() => import('./pages/OnlineSystem'));
+const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
+const CustomerAppManagement = lazy(() => import('./pages/CustomerAppManagement'));
+const QRCodePromptPayPage = lazy(() => import('./pages/QRCodePromptPayPage'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
+const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <POS />
-                </ProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/menu" element={
-                <ProtectedRoute>
-                  <MenuManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/members" element={
-                <ProtectedRoute>
-                  <MemberManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/member-registration" element={<MemberRegistration />} />
-              <Route path="/shop-settings" element={
-                <ProtectedRoute>
-                  <ShopSettings />
-                </ProtectedRoute>
-              } />
-              <Route path="/inventory" element={
-                <ProtectedRoute>
-                  <Inventory />
-                </ProtectedRoute>
-              } />
-              <Route path="/printer-settings" element={
-                <ProtectedRoute>
-                  <PrinterSettings />
-                </ProtectedRoute>
-              } />
-              <Route path="/promotions" element={
-                <ProtectedRoute>
-                  <Promotions />
-                </ProtectedRoute>
-              } />
-              <Route path="/online-system" element={
-                <ProtectedRoute>
-                  <OnlineSystem />
-                </ProtectedRoute>
-              } />
-              <Route path="/customer-app-management" element={
-                <ProtectedRoute>
-                  <CustomerAppManagement />
-                </ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              } />
-              <Route path="/qr-promptpay" element={
-                <ProtectedRoute>
-                  <QRCodePromptPayPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/menu" element={<MenuManagement />} />
+                <Route path="/members" element={<MemberManagement />} />
+                <Route path="/member-registration" element={<MemberRegistration />} />
+                <Route path="/pos" element={<POS />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/shop-settings" element={<ShopSettings />} />
+                <Route path="/promotions" element={<Promotions />} />
+                <Route path="/online-system" element={<OnlineSystem />} />
+                <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
+                <Route path="/customer-app-management" element={<CustomerAppManagement />} />
+                <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/printer-settings" element={<PrinterSettings />} />
+                <Route path="/online-orders" element={<OnlineOrderManagement />} />
+              </Routes>
+            </Suspense>
+            <Toaster />
+          </div>
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

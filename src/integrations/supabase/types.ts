@@ -968,6 +968,65 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          selected_sound_id: string | null
+          sound_enabled: boolean | null
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          selected_sound_id?: string | null
+          sound_enabled?: boolean | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          selected_sound_id?: string | null
+          sound_enabled?: boolean | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_selected_sound_id_fkey"
+            columns: ["selected_sound_id"]
+            isOneToOne: false
+            referencedRelation: "notification_sounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_sounds: {
+        Row: {
+          created_at: string | null
+          file_url: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_url: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       online_orders: {
         Row: {
           created_at: string | null
@@ -1092,11 +1151,15 @@ export type Database = {
           bill_discount: number | null
           bill_discount_type: string | null
           created_at: string
+          customer_notes: string | null
           id: string
           items_count: number
           member_id: string | null
           order_number: string
+          order_source: string | null
           payment_method: string
+          pickup_time: string | null
+          receipt_image_url: string | null
           total_amount: number
           updated_at: string
         }
@@ -1104,11 +1167,15 @@ export type Database = {
           bill_discount?: number | null
           bill_discount_type?: string | null
           created_at?: string
+          customer_notes?: string | null
           id?: string
           items_count?: number
           member_id?: string | null
           order_number: string
+          order_source?: string | null
           payment_method?: string
+          pickup_time?: string | null
+          receipt_image_url?: string | null
           total_amount?: number
           updated_at?: string
         }
@@ -1116,11 +1183,15 @@ export type Database = {
           bill_discount?: number | null
           bill_discount_type?: string | null
           created_at?: string
+          customer_notes?: string | null
           id?: string
           items_count?: number
           member_id?: string | null
           order_number?: string
+          order_source?: string | null
           payment_method?: string
+          pickup_time?: string | null
+          receipt_image_url?: string | null
           total_amount?: number
           updated_at?: string
         }

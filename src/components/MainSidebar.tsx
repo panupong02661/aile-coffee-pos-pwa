@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +29,8 @@ import {
   Building,
   MessageCircle,
   Printer,
-  QrCode
+  QrCode,
+  ShoppingCart
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -43,6 +45,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
+    { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
