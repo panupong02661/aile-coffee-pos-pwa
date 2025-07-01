@@ -24,6 +24,7 @@ import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
 import CouponsSection from '@/components/customer/CouponsSection';
 import ShopSection from '@/components/customer/ShopSection';
+import HistorySection from '@/components/customer/HistorySection';
 
 interface CustomerProfile {
   id: string;
@@ -754,6 +755,10 @@ const CustomerMobileApp = () => {
 
         {activeTab === 'coupons' && (
           <CouponsSection coupons={coupons} />
+        )}
+
+        {activeTab === 'history' && (
+          <HistorySection currentUser={currentUser} />
         )}
 
         {activeTab === 'shop' && (
