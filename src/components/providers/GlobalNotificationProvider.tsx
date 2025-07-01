@@ -44,24 +44,38 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
-  // Initialize Audio Context
+  // Initialize Audio Context with better error handling
   useEffect(() => {
-    const initAudioContext = () => {
-      if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(ctx);
-        console.log('🎵 Audio Context initialized:', ctx.state);
+    const initAudioContext = async () => {
+      try {
+        if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          
+          // Try to start the context immediately
+          if (ctx.state === 'suspended') {
+            try {
+              await ctx.resume();
+            } catch (error) {
+              console.log('🔊 Will resume audio context after user interaction');
+            }
+          }
+          
+          setAudioContext(ctx);
+          console.log('🎵 Audio Context initialized:', ctx.state);
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize audio context:', error);
       }
     };
 
     initAudioContext();
   }, []);
 
-  // Track user interaction more reliably
+  // Enhanced user interaction detection
   useEffect(() => {
     const handleUserInteraction = async () => {
       if (!hasUserInteracted) {
-        console.log('🎯 User interaction detected, enabling sound autoplay');
+        console.log('🎯 User interaction detected, enabling notifications');
         setHasUserInteracted(true);
         
         // Resume audio context if suspended
@@ -74,35 +88,27 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }
         
-        // Remove all listeners after first interaction
-        document.removeEventListener('click', handleUserInteraction, { capture: true });
-        document.removeEventListener('keydown', handleUserInteraction, { capture: true });
-        document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
-        document.removeEventListener('touchend', handleUserInteraction, { capture: true });
-        document.removeEventListener('scroll', handleUserInteraction, { capture: true });
-        document.removeEventListener('mousemove', handleUserInteraction, { capture: true });
+        // Test sound immediately after first interaction
+        if (notificationSettings?.sound_enabled && notificationSounds.length > 0) {
+          setTimeout(() => {
+            playNotificationSound();
+          }, 500);
+        }
       }
     };
 
-    if (!hasUserInteracted) {
-      // Add multiple event listeners to catch any user interaction
-      document.addEventListener('click', handleUserInteraction, { capture: true });
-      document.addEventListener('keydown', handleUserInteraction, { capture: true });
-      document.addEventListener('touchstart', handleUserInteraction, { capture: true });
-      document.addEventListener('touchend', handleUserInteraction, { capture: true });
-      document.addEventListener('scroll', handleUserInteraction, { capture: true });
-      document.addEventListener('mousemove', handleUserInteraction, { capture: true });
-    }
+    // Add event listeners for user interaction
+    const events = ['click', 'keydown', 'touchstart', 'touchend'];
+    events.forEach(event => {
+      document.addEventListener(event, handleUserInteraction, { once: true, capture: true });
+    });
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction, { capture: true });
-      document.removeEventListener('keydown', handleUserInteraction, { capture: true });
-      document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
-      document.removeEventListener('touchend', handleUserInteraction, { capture: true });
-      document.removeEventListener('scroll', handleUserInteraction, { capture: true });
-      document.removeEventListener('mousemove', handleUserInteraction, { capture: true });
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserInteraction, { capture: true });
+      });
     };
-  }, [hasUserInteracted, audioContext]);
+  }, [hasUserInteracted, audioContext, notificationSettings, notificationSounds]);
 
   useEffect(() => {
     // Don't show notifications on customer mobile app page
@@ -121,11 +127,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     initializeNotifications();
     
-    // Setup realtime subscription for new online orders
+    // Setup realtime subscription with better configuration
     console.log('📡 Setting up realtime subscription...');
     
     const channel = supabase
-      .channel('global-online-orders-channel-v2')
+      .channel('online-orders-notifications', {
+        config: {
+          broadcast: { self: false },
+          presence: { key: 'admin' }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -138,6 +149,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.log('🔔 New online order detected:', payload);
           
           try {
+            // Small delay to ensure data is committed
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             // Fetch complete order data with member info
             const { data: orderData, error } = await supabase
               .from('orders')
@@ -163,7 +177,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               console.log('🍞 Showing toast notification...');
               toast.success('มีออเดอร์ออนไลน์ใหม่!', {
                 description: `ออเดอร์ #${orderData.order_number} - ฿${orderData.total_amount}`,
-                duration: 10000,
+                duration: 15000,
                 action: {
                   label: 'ดูรายละเอียด',
                   onClick: () => {
@@ -173,9 +187,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
               });
 
-              // Play notification sound
-              console.log('🔊 Attempting to play notification sound...');
-              await playNotificationSound();
+              // Play notification sound with retry
+              console.log('🔊 Playing notification sound...');
+              let soundPlayed = false;
+              for (let i = 0; i < 3 && !soundPlayed; i++) {
+                soundPlayed = await playNotificationSound();
+                if (!soundPlayed) {
+                  console.log(`🔄 Sound attempt ${i + 1} failed, retrying...`);
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+              }
+              
+              if (!soundPlayed) {
+                console.warn('⚠️ All sound attempts failed');
+              }
             }
           } catch (error) {
             console.error('❌ Error processing new order notification:', error);
@@ -189,7 +214,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Channel subscription error');
         } else if (status === 'TIMED_OUT') {
-          console.warn('⏰ Channel subscription timed out');
+          console.warn('⏰ Channel subscription timed out - will retry');
         }
       });
 
@@ -212,7 +237,6 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('✅ Notification settings loaded:', data);
       } else {
         console.log('ℹ️ No notification settings found, using defaults');
-        // Set default settings
         setNotificationSettings({
           sound_enabled: true,
           volume: 1.0
@@ -220,7 +244,6 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     } catch (error) {
       console.error('❌ Error fetching notification settings:', error);
-      // Set default settings on error
       setNotificationSettings({
         sound_enabled: true,
         volume: 1.0
@@ -248,17 +271,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const playNotificationSound = async () => {
-    console.log('🔊 ==> Starting notification sound playback process...');
+  const playNotificationSound = async (): Promise<boolean> => {
+    console.log('🔊 ==> Starting notification sound playback...');
     
     if (!notificationSettings?.sound_enabled) {
       console.log('🔇 Notification sound disabled in settings');
-      return;
+      return false;
     }
 
     if (!hasUserInteracted) {
       console.warn('⚠️ User has not interacted yet, cannot play sound');
-      return;
+      return false;
     }
 
     try {
@@ -286,21 +309,22 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       if (soundUrl) {
         console.log('🔊 ==> Attempting to play sound from URL:', soundUrl);
-        
         const success = await playAudioFile(soundUrl);
-        if (!success) {
+        if (success) {
+          console.log('✅ Sound played successfully');
+          return true;
+        } else {
           console.log('🔊 Audio file failed, falling back to system beep');
-          await playSystemBeep();
+          return await playSystemBeep();
         }
       } else {
         console.log('🔊 No sound URL available, using system beep');
-        await playSystemBeep();
+        return await playSystemBeep();
       }
       
     } catch (error) {
       console.error('❌ Error in playNotificationSound:', error);
-      // Fallback to system beep
-      await playSystemBeep();
+      return await playSystemBeep();
     }
   };
 
@@ -311,85 +335,75 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const audio = new Audio();
       let hasResolved = false;
       
+      const resolveOnce = (success: boolean) => {
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(success);
+        }
+      };
+      
       // Set up event handlers
-      audio.onloadstart = () => console.log('🔄 Audio loading started');
-      audio.oncanplay = () => {
-        console.log('✅ Audio can play');
-        // Set volume when audio is ready
-        audio.volume = 1.0; // Force maximum volume
-        console.log('🔊 Audio volume set to:', audio.volume);
+      audio.oncanplaythrough = () => {
+        console.log('✅ Audio can play through');
       };
       
       audio.onplay = () => {
         console.log('▶️ Audio started playing at volume:', audio.volume);
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve(true);
-        }
+        resolveOnce(true);
       };
       
       audio.onended = () => {
         console.log('⏹️ Audio finished playing');
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve(true);
-        }
+        if (!hasResolved) resolveOnce(true);
       };
       
       audio.onerror = (error) => {
         console.error('❌ Audio error:', error);
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve(false);
-        }
+        resolveOnce(false);
       };
       
       audio.onabort = () => {
         console.warn('⚠️ Audio aborted');
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve(false);
-        }
+        resolveOnce(false);
       };
       
       // Set timeout to prevent hanging
       setTimeout(() => {
         if (!hasResolved) {
           console.warn('⏰ Audio playback timeout');
-          hasResolved = true;
-          resolve(false);
+          resolveOnce(false);
         }
-      }, 5000);
+      }, 3000);
       
       // Configure audio
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
-      audio.volume = 1.0; // Set volume before setting source
+      audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
       
       // Set source and attempt to play
       audio.src = soundUrl;
+      audio.load(); // Explicitly load the audio
       
-      // Attempt to play
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.catch((playError) => {
-          console.error('❌ Play promise rejected:', playError);
-          if (!hasResolved) {
-            hasResolved = true;
-            resolve(false);
-          }
-        });
-      }
+      // Attempt to play after a short delay
+      setTimeout(() => {
+        const playPromise = audio.play();
+        if (playPromise) {
+          playPromise.catch((playError) => {
+            console.error('❌ Play promise rejected:', playError);
+            resolveOnce(false);
+          });
+        }
+      }, 100);
     });
   };
 
-  const playSystemBeep = async () => {
+  const playSystemBeep = async (): Promise<boolean> => {
     try {
       console.log('🔊 ==> Playing system beep fallback...');
       
       if (!audioContext) {
         console.error('❌ No audio context available');
-        return;
+        return false;
       }
       
       // Resume context if suspended
@@ -400,7 +414,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       if (audioContext.state !== 'running') {
         console.error('❌ Audio context is not running:', audioContext.state);
-        return;
+        return false;
       }
       
       const oscillator = audioContext.createOscillator();
@@ -409,39 +423,39 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // High frequency beep for iPad speakers
-      oscillator.frequency.value = 2000; // Even higher frequency
-      oscillator.type = 'square'; // Square wave is more noticeable
+      // Enhanced beep configuration
+      oscillator.frequency.value = 1500; // Clear frequency
+      oscillator.type = 'sine'; // Smoother sine wave
       
-      // Maximum volume
-      const beepVolume = 0.8; // Slightly reduced to prevent distortion
-      gainNode.gain.value = beepVolume;
+      const beepVolume = Math.min(notificationSettings?.volume || 0.8, 0.8);
       
       console.log('🔊 System beep config - Volume:', beepVolume, 'Frequency:', oscillator.frequency.value);
       
-      // Create a longer, more noticeable beep pattern (5 beeps)
+      // Create multiple beeps pattern
       const currentTime = audioContext.currentTime;
-      const beepDuration = 0.15;
-      const pauseDuration = 0.1;
+      const beepDuration = 0.2;
+      const pauseDuration = 0.15;
+      const numberOfBeeps = 3;
       
-      // Pattern: beep-pause-beep-pause-beep-pause-beep-pause-beep
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < numberOfBeeps; i++) {
         const startTime = currentTime + (i * (beepDuration + pauseDuration));
         const endTime = startTime + beepDuration;
         
         gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.setValueAtTime(beepVolume, startTime + 0.01);
-        gainNode.gain.setValueAtTime(beepVolume, endTime - 0.01);
-        gainNode.gain.setValueAtTime(0, endTime);
+        gainNode.gain.linearRampToValueAtTime(beepVolume, startTime + 0.02);
+        gainNode.gain.setValueAtTime(beepVolume, endTime - 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, endTime);
       }
       
       oscillator.start(currentTime);
-      oscillator.stop(currentTime + (5 * (beepDuration + pauseDuration)));
+      oscillator.stop(currentTime + (numberOfBeeps * (beepDuration + pauseDuration)));
       
-      console.log('✅ System beep pattern started (5 beeps)');
+      console.log(`✅ System beep pattern started (${numberOfBeeps} beeps)`);
+      return true;
       
     } catch (beepError) {
       console.error('❌ System beep failed:', beepError);
+      return false;
     }
   };
 
@@ -471,7 +485,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           {newOrder && (
             <div className="space-y-4">
-              <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200 animate-pulse">
                 <p className="font-semibold text-lg">
                   ออเดอร์ #{newOrder.order_number}
                 </p>
@@ -494,7 +508,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               </div>
               
               <div className="flex gap-2">
-                <Button onClick={handleViewOrder} className="flex-1">
+                <Button onClick={handleViewOrder} className="flex-1 bg-orange-600 hover:bg-orange-700">
                   <Bell className="h-4 w-4 mr-2" />
                   ดูรายละเอียด
                 </Button>
