@@ -19,7 +19,8 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
-  Play
+  Play,
+  Square
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -74,6 +75,8 @@ const OnlineOrderManagement = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [playingSound, setPlayingSound] = useState<string | null>(null);
   const { toast: hookToast } = useToast();
 
   useEffect(() => {
@@ -285,6 +288,14 @@ const OnlineOrderManagement = () => {
     const sound = notificationSounds.find(s => s.id === soundId);
     if (sound && notificationSettings) {
       try {
+        // Stop current audio if playing
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          setCurrentAudio(null);
+          setPlayingSound(null);
+        }
+
         console.log('Testing sound:', sound.file_url);
         const audio = new Audio(sound.file_url);
         audio.volume = notificationSettings.volume;
@@ -297,14 +308,35 @@ const OnlineOrderManagement = () => {
         audio.addEventListener('error', (e) => {
           console.error('Audio error:', e);
           hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นไฟล์เสียงได้', variant: 'destructive' });
+          setPlayingSound(null);
+          setCurrentAudio(null);
         });
 
+        audio.addEventListener('ended', () => {
+          setPlayingSound(null);
+          setCurrentAudio(null);
+        });
+
+        setCurrentAudio(audio);
+        setPlayingSound(soundId);
         await audio.play();
         hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
       } catch (error: any) {
         console.error('Test sound error:', error);
         hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
+        setPlayingSound(null);
+        setCurrentAudio(null);
       }
+    }
+  };
+
+  const stopSound = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+      setPlayingSound(null);
+      hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
     }
   };
 
@@ -587,13 +619,23 @@ const OnlineOrderManagement = () => {
                           <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
                             <span className="flex-1 text-sm">{sound.name}</span>
                             <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => testSound(sound.id)}
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
+                              {playingSound === sound.id ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={stopSound}
+                                >
+                                  <Square className="w-4 h-4" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => testSound(sound.id)}
+                                >
+                                  <Play className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant={notificationSettings.selected_sound_id === sound.id ? "default" : "outline"}
                                 size="sm"
