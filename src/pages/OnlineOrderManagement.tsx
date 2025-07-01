@@ -83,10 +83,54 @@ const OnlineOrderManagement = () => {
     fetchOnlineOrders();
     fetchNotificationSettings();
     fetchNotificationSounds();
+    
+    // Set up real-time subscription for online orders
+    console.log('🔔 Setting up real-time subscription for online orders...');
+    
+    const channel = supabase
+      .channel('online-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: 'order_source=eq.online'
+        },
+        (payload) => {
+          console.log('🆕 New online order detected in management page:', payload);
+          // Refresh orders when new online order is added
+          fetchOnlineOrders();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: 'order_source=eq.online'
+        },
+        (payload) => {
+          console.log('🔄 Online order updated:', payload);
+          // Refresh orders when online order is updated
+          fetchOnlineOrders();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Online orders realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('🧹 Cleaning up online orders subscription...');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOnlineOrders = async () => {
     setLoading(true);
+    console.log('📦 Fetching online orders...');
+    
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -98,8 +142,10 @@ const OnlineOrderManagement = () => {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('❌ Error fetching online orders:', error);
       hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลออเดอร์ได้', variant: 'destructive' });
     } else {
+      console.log('✅ Online orders fetched:', data?.length || 0, 'orders');
       setOrders(data || []);
     }
     setLoading(false);
@@ -379,7 +425,7 @@ const OnlineOrderManagement = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold text-coffee-800">จัดการออเดอร์ออนไลน์</h1>
-                <p className="text-coffee-600">ออเดอร์ทั้งหมด {orders.length} รายการ</p>
+                <p className="text-coffee-600">{orders.length} รายการ</p>
               </div>
               
               <Button onClick={() => setShowSettings(true)} variant="outline">

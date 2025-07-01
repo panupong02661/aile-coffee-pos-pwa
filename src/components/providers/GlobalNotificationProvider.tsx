@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -28,6 +27,7 @@ interface NotificationSound {
   id: string;
   name: string;
   file_url: string;
+  is_active: boolean;
 }
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,11 +35,36 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
+
+  // Track user interaction to enable autoplay
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      console.log('🎯 User interaction detected, enabling sound autoplay');
+      setHasUserInteracted(true);
+      // Remove listeners after first interaction
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    if (!hasUserInteracted) {
+      document.addEventListener('click', handleUserInteraction);
+      document.addEventListener('keydown', handleUserInteraction);
+      document.addEventListener('touchstart', handleUserInteraction);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, [hasUserInteracted]);
 
   useEffect(() => {
     // Don't show notifications on customer mobile app page
@@ -126,7 +151,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('Cleaning up notification subscription...');
       supabase.removeChannel(channel);
     };
-  }, [navigate, isCustomerMobileApp]);
+  }, [navigate, isCustomerMobileApp, hasUserInteracted]);
 
   const fetchNotificationSettings = async () => {
     try {
@@ -184,6 +209,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
+    if (!hasUserInteracted) {
+      console.log('⚠️ No user interaction yet, cannot play sound due to autoplay policy');
+      await playSystemBeep();
+      return;
+    }
+
     try {
       let soundUrl = '';
       
@@ -207,18 +238,33 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (soundUrl) {
         console.log('🔊 Playing sound from URL:', soundUrl);
         
-        const audio = new Audio(soundUrl);
-        audio.volume = notificationSettings.volume || 0.8;
+        const audio = new Audio();
         
-        // Add event listeners for debugging
-        audio.onloadstart = () => console.log('🔄 Audio loading started');
-        audio.oncanplay = () => console.log('✅ Audio can play');
-        audio.onplay = () => console.log('▶️ Audio started playing');
-        audio.onended = () => console.log('⏹️ Audio finished playing');
-        audio.onerror = (error) => console.error('❌ Audio error:', error);
+        // Create a promise to handle the audio loading and playing
+        const playAudio = () => {
+          return new Promise((resolve, reject) => {
+            audio.onloadstart = () => console.log('🔄 Audio loading started');
+            audio.oncanplay = () => console.log('✅ Audio can play');
+            audio.onplay = () => {
+              console.log('▶️ Audio started playing');
+              resolve(true);
+            };
+            audio.onended = () => console.log('⏹️ Audio finished playing');
+            audio.onerror = (error) => {
+              console.error('❌ Audio error:', error);
+              reject(error);
+            };
+            
+            audio.volume = notificationSettings.volume || 0.8;
+            audio.src = soundUrl;
+            
+            // Try to play
+            audio.play().catch(reject);
+          });
+        };
         
         try {
-          await audio.play();
+          await playAudio();
           console.log('✅ Notification sound played successfully');
         } catch (playError) {
           console.error('❌ Error playing audio:', playError);
@@ -241,24 +287,42 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log('🔊 Playing system beep fallback...');
       
-      // Create Web Audio API beep
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800; // 800Hz tone
-      oscillator.type = 'sine';
-      gainNode.gain.value = (notificationSettings?.volume || 0.8) * 0.3; // Lower volume for beep
-      
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.3); // 300ms beep
-      
-      console.log('✅ System beep played');
+      // Try to create Web Audio API beep
+      if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // Resume context if it's suspended (required for autoplay policy)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800; // 800Hz tone
+        oscillator.type = 'sine';
+        gainNode.gain.value = (notificationSettings?.volume || 0.8) * 0.3; // Lower volume for beep
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3); // 300ms beep
+        
+        console.log('✅ System beep played');
+      } else {
+        console.log('⚠️ Web Audio API not available');
+      }
     } catch (beepError) {
       console.error('❌ System beep also failed:', beepError);
+      // Last resort: try to play a data URL sound
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjOR2O/NeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMc');
+        console.log('🎵 Attempting to play fallback sound');
+        await audio.play();
+      } catch (finalError) {
+        console.error('❌ All sound methods failed:', finalError);
+      }
     }
   };
 
