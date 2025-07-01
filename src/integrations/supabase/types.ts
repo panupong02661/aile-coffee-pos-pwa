@@ -1089,6 +1089,57 @@ export type Database = {
           },
         ]
       }
+      order_addons: {
+        Row: {
+          addon_id: string
+          addon_name: string
+          created_at: string
+          id: string
+          order_id: string
+          order_item_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          addon_id: string
+          addon_name: string
+          created_at?: string
+          id?: string
+          order_id: string
+          order_item_id: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          addon_id?: string
+          addon_name?: string
+          created_at?: string
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_order_addons_order_id"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_order_addons_order_item_id"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string

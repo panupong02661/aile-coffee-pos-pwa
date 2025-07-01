@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,12 +32,16 @@ interface DatabaseAddon {
   id: string;
   name: string;
   price: number;
+  addon_group_id?: string;
+  sort_order: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
   addon_groups?: {
     id: string;
     name: string;
-    allow_multiple: boolean;
     is_required: boolean;
+    allow_multiple: boolean;
   };
 }
 
@@ -107,8 +112,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         id,
         name,
         price,
+        addon_group_id,
+        sort_order,
         is_active,
-        addon_groups (
+        created_at,
+        updated_at,
+        addon_groups!addons_addon_group_id_fkey (
           id,
           name,
           allow_multiple,
