@@ -83,7 +83,6 @@ const OnlineOrderManagement = () => {
     fetchOnlineOrders();
     fetchNotificationSettings();
     fetchNotificationSounds();
-    setupRealtimeSubscription();
   }, []);
 
   const fetchOnlineOrders = async () => {
@@ -144,41 +143,6 @@ const OnlineOrderManagement = () => {
     } catch (error) {
       console.error('Error playing notification sound:', error);
     }
-  };
-
-  const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel('online-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-          filter: 'order_source=eq.online'
-        },
-        (payload) => {
-          console.log('New online order:', payload);
-          
-          // Show popup notification
-          toast.success('มีออเดอร์ออนไลน์ใหม่!', {
-            description: `ออเดอร์ #${payload.new?.order_number}`,
-            duration: 5000,
-            action: {
-              label: 'ดูออเดอร์',
-              onClick: () => fetchOnlineOrders()
-            }
-          });
-          
-          playNotificationSound();
-          fetchOnlineOrders();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   };
 
   const updateNotificationSettings = async (updates: Partial<NotificationSettings>) => {

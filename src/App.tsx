@@ -1,9 +1,11 @@
 
 import { Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/toaster';
+import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
+import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
 
 const queryClient = new QueryClient();
 
@@ -30,33 +32,36 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-background">
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            }>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/menu" element={<MenuManagement />} />
-                <Route path="/members" element={<MemberManagement />} />
-                <Route path="/member-registration" element={<MemberRegistration />} />
-                <Route path="/pos" element={<POS />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/shop-settings" element={<ShopSettings />} />
-                <Route path="/promotions" element={<Promotions />} />
-                <Route path="/online-system" element={<OnlineSystem />} />
-                <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-                <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-                <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-                <Route path="/inventory" element={<Inventory />} />
-                <Route path="/printer-settings" element={<PrinterSettings />} />
-                <Route path="/online-orders" element={<OnlineOrderManagement />} />
-              </Routes>
-            </Suspense>
-            <Toaster />
-          </div>
+          <GlobalNotificationProvider>
+            <div className="min-h-screen bg-background">
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              }>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/menu" element={<MenuManagement />} />
+                  <Route path="/members" element={<MemberManagement />} />
+                  <Route path="/member-registration" element={<MemberRegistration />} />
+                  <Route path="/pos" element={<POS />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/shop-settings" element={<ShopSettings />} />
+                  <Route path="/promotions" element={<Promotions />} />
+                  <Route path="/online-system" element={<OnlineSystem />} />
+                  <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
+                  <Route path="/customer-app-management" element={<CustomerAppManagement />} />
+                  <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
+                  <Route path="/inventory" element={<Inventory />} />
+                  <Route path="/printer-settings" element={<PrinterSettings />} />
+                  <Route path="/online-orders" element={<OnlineOrderManagement />} />
+                </Routes>
+              </Suspense>
+              <Toaster />
+              <SonnerToaster />
+            </div>
+          </GlobalNotificationProvider>
         </Router>
       </AuthProvider>
     </QueryClientProvider>
