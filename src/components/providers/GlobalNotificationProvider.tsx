@@ -49,21 +49,25 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🎯 User interaction detected, enabling sound autoplay');
       setHasUserInteracted(true);
       // Remove listeners after first interaction
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('click', handleUserInteraction, { capture: true });
+      document.removeEventListener('keydown', handleUserInteraction, { capture: true });
+      document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
+      document.removeEventListener('touchend', handleUserInteraction, { capture: true });
     };
 
     if (!hasUserInteracted) {
-      document.addEventListener('click', handleUserInteraction);
-      document.addEventListener('keydown', handleUserInteraction);
-      document.addEventListener('touchstart', handleUserInteraction);
+      // Use capture phase to ensure we catch the interaction
+      document.addEventListener('click', handleUserInteraction, { capture: true });
+      document.addEventListener('keydown', handleUserInteraction, { capture: true });
+      document.addEventListener('touchstart', handleUserInteraction, { capture: true });
+      document.addEventListener('touchend', handleUserInteraction, { capture: true });
     }
 
     return () => {
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('click', handleUserInteraction, { capture: true });
+      document.removeEventListener('keydown', handleUserInteraction, { capture: true });
+      document.removeEventListener('touchstart', handleUserInteraction, { capture: true });
+      document.removeEventListener('touchend', handleUserInteraction, { capture: true });
     };
   }, [hasUserInteracted]);
 
@@ -210,12 +214,6 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    if (!hasUserInteracted) {
-      console.log('⚠️ No user interaction yet, cannot play sound due to autoplay policy');
-      await playSystemBeep();
-      return;
-    }
-
     try {
       let soundUrl = '';
       
@@ -239,11 +237,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (soundUrl) {
         console.log('🔊 Playing sound from URL:', soundUrl);
         
-        // Force minimum volume to 90% to ensure it's loud enough
-        const volumeLevel = Math.max(notificationSettings.volume, 0.9);
+        // Force high volume for iPad compatibility
+        const volumeLevel = 1.0; // Always use maximum volume
         console.log('🔊 Setting audio volume to:', volumeLevel);
         
         const audio = new Audio();
+        
+        // iPad/iOS specific settings
+        audio.crossOrigin = 'anonymous';
+        audio.preload = 'auto';
         
         // Create a promise to handle the audio loading and playing
         const playAudio = () => {
@@ -269,8 +271,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             audio.volume = volumeLevel;
             audio.src = soundUrl;
             
-            // Try to play
-            audio.play().catch(reject);
+            // For iPad/iOS, try to play immediately
+            const playPromise = audio.play();
+            if (playPromise) {
+              playPromise.catch(reject);
+            }
           });
         };
         
@@ -298,7 +303,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       console.log('🔊 Playing system beep fallback...');
       
-      // Try to create Web Audio API beep
+      // Try to create Web Audio API beep for iPad compatibility
       if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         
@@ -313,21 +318,36 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        // Use higher frequency for more audible beep
-        oscillator.frequency.value = 1200;
-        oscillator.type = 'sine';
+        // Use very high frequency for iPad speakers
+        oscillator.frequency.value = 1800; // Higher frequency for better iPad speaker response
+        oscillator.type = 'square'; // Square wave is more noticeable
         
-        // Use much higher volume for system beep to ensure it's audible
-        const beepVolume = highVolume ? 0.9 : (notificationSettings?.volume || 0.8) * 0.7;
+        // Use maximum volume for iPad
+        const beepVolume = 1.0; // Always maximum volume
         gainNode.gain.value = beepVolume;
         
         console.log('🔊 System beep volume:', beepVolume);
         console.log('🔊 System beep frequency:', oscillator.frequency.value);
         
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.8); // Longer 800ms beep for better audibility
+        // Create a longer, more noticeable beep pattern
+        const currentTime = audioContext.currentTime;
         
-        console.log('✅ System beep played');
+        // First beep
+        oscillator.start(currentTime);
+        gainNode.gain.setValueAtTime(beepVolume, currentTime);
+        gainNode.gain.setValueAtTime(0, currentTime + 0.15);
+        
+        // Second beep after short pause
+        gainNode.gain.setValueAtTime(beepVolume, currentTime + 0.25);
+        gainNode.gain.setValueAtTime(0, currentTime + 0.4);
+        
+        // Third beep after short pause
+        gainNode.gain.setValueAtTime(beepVolume, currentTime + 0.5);
+        gainNode.gain.setValueAtTime(0, currentTime + 0.65);
+        
+        oscillator.stop(currentTime + 0.7);
+        
+        console.log('✅ System beep pattern played (3 beeps)');
       } else {
         console.log('⚠️ Web Audio API not available');
       }

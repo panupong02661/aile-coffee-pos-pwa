@@ -10,6 +10,7 @@ import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
+import AddonModal from '@/components/AddonModal';
 
 interface MenuItem {
   id: string;
@@ -26,11 +27,25 @@ interface Category {
   name: string;
 }
 
+interface DatabaseAddon {
+  id: string;
+  name: string;
+  price: number;
+  is_active: boolean;
+  addon_groups?: {
+    id: string;
+    name: string;
+    allow_multiple: boolean;
+    is_required: boolean;
+  };
+}
+
 interface CartItem {
   id: string;
   menu_item: MenuItem;
   quantity: number;
   total_price: number;
+  selected_addons?: DatabaseAddon[];
 }
 
 interface OnlineShopSectionProps {
@@ -48,11 +63,15 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [showPayment, setShowPayment] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [addons, setAddons] = useState<DatabaseAddon[]>([]);
+  const [showAddonModal, setShowAddonModal] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMenuItems();
     fetchCategories();
+    fetchAddons();
   }, []);
 
   const fetchMenuItems = async () => {
@@ -81,13 +100,45 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
-  const addToCart = (menuItem: MenuItem) => {
-    const existingItem = cartItems.find(item => item.menu_item.id === menuItem.id);
+  const fetchAddons = async () => {
+    const { data, error } = await supabase
+      .from('addons')
+      .select(`
+        id,
+        name,
+        price,
+        is_active,
+        addon_groups (
+          id,
+          name,
+          allow_multiple,
+          is_required
+        )
+      `)
+      .eq('is_active', true);
+    
+    if (!error) {
+      setAddons(data || []);
+    }
+  };
+
+  const addToCart = (menuItem: MenuItem, selectedAddons: DatabaseAddon[] = []) => {
+    const existingItem = cartItems.find(item => 
+      item.menu_item.id === menuItem.id &&
+      JSON.stringify(item.selected_addons) === JSON.stringify(selectedAddons)
+    );
+    
+    const addonPrice = selectedAddons.reduce((sum, addon) => sum + Number(addon.price), 0);
+    const itemTotalPrice = menuItem.price + addonPrice;
     
     if (existingItem) {
       setCartItems(cartItems.map(item => 
-        item.menu_item.id === menuItem.id 
-          ? { ...item, quantity: item.quantity + 1, total_price: (item.quantity + 1) * menuItem.price }
+        item.id === existingItem.id
+          ? { 
+              ...item, 
+              quantity: item.quantity + 1, 
+              total_price: (item.quantity + 1) * (menuItem.price + addonPrice)
+            }
           : item
       ));
     } else {
@@ -95,10 +146,29 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         id: Math.random().toString(36),
         menu_item: menuItem,
         quantity: 1,
-        total_price: menuItem.price
+        total_price: itemTotalPrice,
+        selected_addons: selectedAddons
       };
       setCartItems([...cartItems, newItem]);
     }
+  };
+
+  const handleAddToCart = (menuItem: MenuItem) => {
+    // Check if this menu item has any available addons
+    const itemAddons = addons.filter(addon => addon.is_active);
+    
+    if (itemAddons.length > 0) {
+      setSelectedMenuItem(menuItem);
+      setShowAddonModal(true);
+    } else {
+      addToCart(menuItem);
+    }
+  };
+
+  const handleAddonModalAddToCart = (menuItem: MenuItem, selectedAddons: DatabaseAddon[]) => {
+    addToCart(menuItem, selectedAddons);
+    setShowAddonModal(false);
+    setSelectedMenuItem(null);
   };
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
@@ -107,7 +177,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     } else {
       setCartItems(cartItems.map(item => 
         item.id === itemId 
-          ? { ...item, quantity: newQuantity, total_price: newQuantity * item.menu_item.price }
+          ? { 
+              ...item, 
+              quantity: newQuantity, 
+              total_price: newQuantity * (item.menu_item.price + (item.selected_addons?.reduce((sum, addon) => sum + Number(addon.price), 0) || 0))
+            }
           : item
       ));
     }
@@ -215,21 +289,43 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       if (orderError) throw orderError;
 
-      // เพิ่มรายการสินค้า
-      const orderItems = cartItems.map(item => ({
-        order_id: order.id,
-        menu_item_id: item.menu_item.id,
-        menu_item_name: item.menu_item.name,
-        quantity: item.quantity,
-        unit_price: item.menu_item.price,
-        total_price: item.total_price
-      }));
+      // เพิ่มรายการสินค้าและ add-ons
+      for (const item of cartItems) {
+        // เพิ่มรายการสินค้าหลัก
+        const { data: orderItem, error: itemError } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: order.id,
+            menu_item_id: item.menu_item.id,
+            menu_item_name: item.menu_item.name,
+            quantity: item.quantity,
+            unit_price: item.menu_item.price,
+            total_price: item.quantity * item.menu_item.price
+          })
+          .select()
+          .single();
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+        if (itemError) throw itemError;
 
-      if (itemsError) throw itemsError;
+        // เพิ่ม add-ons ถ้ามี
+        if (item.selected_addons && item.selected_addons.length > 0) {
+          const addonItems = item.selected_addons.map(addon => ({
+            order_id: order.id,
+            order_item_id: orderItem.id,
+            addon_id: addon.id,
+            addon_name: addon.name,
+            quantity: item.quantity,
+            unit_price: Number(addon.price),
+            total_price: item.quantity * Number(addon.price)
+          }));
+
+          const { error: addonError } = await supabase
+            .from('order_addons')
+            .insert(addonItems);
+
+          if (addonError) throw addonError;
+        }
+      }
 
       // อัปเดตแต้มสำหรับสมาชิก
       const pointsEarned = Math.floor(totalAmount);
@@ -283,7 +379,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
   const getMinPickupTime = () => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 30); // ขั้นต่ำ 30 นาที
+    now.setMinutes(now.getMinutes() + 30);
     return now.toISOString().slice(0, 16);
   };
 
@@ -343,7 +439,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                 </div>
                 
                 <Button 
-                  onClick={() => addToCart(item)}
+                  onClick={() => handleAddToCart(item)}
                   className="w-full text-xs py-0.5 h-6"
                   size="sm"
                 >
@@ -368,6 +464,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                 <div className="flex-1">
                   <h4 className="font-medium">{item.menu_item.name}</h4>
                   <p className="text-sm text-gray-600">฿{item.menu_item.price} x {item.quantity}</p>
+                  {item.selected_addons && item.selected_addons.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Add-ons: {item.selected_addons.map(addon => `${addon.name} (+฿${addon.price})`).join(', ')}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -485,6 +586,18 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Addon Modal */}
+      <AddonModal
+        isOpen={showAddonModal}
+        onClose={() => {
+          setShowAddonModal(false);
+          setSelectedMenuItem(null);
+        }}
+        menuItem={selectedMenuItem}
+        addons={addons}
+        onAddToCart={handleAddonModalAddToCart}
+      />
     </div>
   );
 };
