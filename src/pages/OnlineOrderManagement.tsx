@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -196,21 +195,55 @@ const OnlineOrderManagement = () => {
   };
 
   const uploadSoundFile = async () => {
-    if (!audioFile) return;
+    if (!audioFile) {
+      hookToast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกไฟล์เสียงก่อนอัพโหลด', variant: 'destructive' });
+      return;
+    }
 
     setUploading(true);
-    const fileName = `sound_${Date.now()}_${audioFile.name}`;
-    
+
+    // Validate file type
+    if (!audioFile.type.startsWith('audio/')) {
+      hookToast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกไฟล์เสียงเท่านั้น', variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (audioFile.size > 5 * 1024 * 1024) {
+      hookToast({ title: 'ข้อผิดพลาด', description: 'ไฟล์ใหญ่เกินไป (สูงสุด 5MB)', variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
+
     try {
+      // Generate unique filename with timestamp
+      const timestamp = Date.now();
+      const fileExtension = audioFile.name.split('.').pop() || 'mp3';
+      const fileName = `notification_sound_${timestamp}.${fileExtension}`;
+      
+      console.log('Uploading file:', fileName, 'Size:', audioFile.size);
+
       const { data, error } = await supabase.storage
         .from('notification-sounds')
-        .upload(fileName, audioFile);
+        .upload(fileName, audioFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
 
+      console.log('Upload successful:', data);
+
+      // Get public URL
       const { data: urlData } = supabase.storage
         .from('notification-sounds')
         .getPublicUrl(fileName);
+
+      console.log('Public URL:', urlData.publicUrl);
 
       // Save sound file info to database
       const { error: insertError } = await supabase
@@ -218,13 +251,23 @@ const OnlineOrderManagement = () => {
         .insert({
           name: audioFile.name.replace(/\.[^/.]+$/, ''),
           file_url: urlData.publicUrl,
-          is_active: false
+          is_active: true
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        throw insertError;
+      }
 
       hookToast({ title: 'สำเร็จ', description: 'อัปโหลดไฟล์เสียงแล้ว' });
       setAudioFile(null);
+      
+      // Reset file input
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      fileInputs.forEach(input => {
+        (input as HTMLInputElement).value = '';
+      });
+      
       fetchNotificationSounds();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -242,11 +285,23 @@ const OnlineOrderManagement = () => {
     const sound = notificationSounds.find(s => s.id === soundId);
     if (sound && notificationSettings) {
       try {
+        console.log('Testing sound:', sound.file_url);
         const audio = new Audio(sound.file_url);
         audio.volume = notificationSettings.volume;
+        
+        // Add event listeners to handle playback
+        audio.addEventListener('canplaythrough', () => {
+          console.log('Audio can play through');
+        });
+        
+        audio.addEventListener('error', (e) => {
+          console.error('Audio error:', e);
+          hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นไฟล์เสียงได้', variant: 'destructive' });
+        });
+
         await audio.play();
         hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Test sound error:', error);
         hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
       }
@@ -530,7 +585,7 @@ const OnlineOrderManagement = () => {
                       <div className="space-y-2 mt-2">
                         {notificationSounds.map(sound => (
                           <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
-                            <span className="flex-1">{sound.name}</span>
+                            <span className="flex-1 text-sm">{sound.name}</span>
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"
@@ -553,15 +608,16 @@ const OnlineOrderManagement = () => {
                     </div>
 
                     {/* Upload New Sound */}
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="audio-file">อัปโหลดเสียงใหม่</Label>
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2">
                         <Input
                           id="audio-file"
                           type="file"
                           accept="audio/*"
                           onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
                           disabled={uploading}
+                          className="flex-1"
                         />
                         <Button 
                           onClick={uploadSoundFile}
@@ -572,6 +628,9 @@ const OnlineOrderManagement = () => {
                           {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
                         </Button>
                       </div>
+                      <p className="text-xs text-gray-500">
+                        รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB
+                      </p>
                     </div>
                   </div>
                 )}
