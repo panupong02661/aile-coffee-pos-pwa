@@ -74,11 +74,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         },
         async (payload) => {
           console.log('🔔 New online order detected:', payload);
+          console.log('🔔 Order details:', payload.new);
           await handleNewOrder(payload.new.id);
         }
       )
       .subscribe((status) => {
         console.log('📡 Order subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to order notifications');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Error subscribing to order notifications');
+        }
       });
 
     // Setup cross-device notification sync channel
@@ -139,6 +145,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const handleNewOrder = async (orderId: string) => {
     try {
+      console.log('🔔 Processing new order notification for ID:', orderId);
+      
       // Small delay to ensure data is committed
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -159,6 +167,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (orderData) {
         console.log('📦 Order data fetched:', orderData);
+        console.log('🔔 Showing notification and playing sound...');
         
         // Show notification for new order
         setNewOrder(orderData);
@@ -186,12 +195,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const playNotificationSound = () => {
+    console.log('🔊 playNotificationSound called');
+    console.log('🔊 Sound enabled:', notificationSettings.sound_enabled);
+    console.log('🔊 Volume:', notificationSettings.volume);
+    console.log('🔊 Selected sound ID:', notificationSettings.selected_sound_id);
+    console.log('🔊 Available sounds:', notificationSounds);
+
     if (!notificationSettings.sound_enabled) {
-      console.log('🔇 Sound disabled');
+      console.log('🔇 Sound disabled, skipping');
       return;
     }
-
-    console.log('🔊 Playing notification sound...');
 
     // Try to play audio file first
     let soundUrl = '/sounds/default-notification.mp3';
@@ -202,7 +215,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       );
       if (selectedSound) {
         soundUrl = selectedSound.file_url;
+        console.log('🔊 Using selected sound:', selectedSound.name, soundUrl);
+      } else {
+        console.log('🔊 Selected sound not found, using default');
       }
+    } else {
+      console.log('🔊 No sound selected, using default:', soundUrl);
     }
 
     try {
@@ -212,28 +230,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         audioRef.current.currentTime = 0;
       }
 
+      console.log('🔊 Creating audio element with URL:', soundUrl);
       const audio = new Audio(soundUrl);
       audioRef.current = audio;
       audio.volume = Math.min(notificationSettings.volume, 1.0);
       
-      audio.oncanplaythrough = () => {
-        console.log('✅ Audio ready, playing...');
-        audio.play().catch(() => {
-          console.log('🔊 File audio failed, using beep fallback');
+      // Try to play immediately
+      audio.play()
+        .then(() => {
+          console.log('✅ Audio played successfully');
+        })
+        .catch((error) => {
+          console.log('🔊 Direct play failed:', error, 'Using beep fallback');
           createBeepSound();
         });
-      };
-
-      audio.onerror = () => {
-        console.log('🔊 Audio file error, using beep fallback');
-        createBeepSound();
-      };
-
-      // Load the audio
-      audio.load();
 
     } catch (error) {
-      console.log('🔊 Audio creation failed, using beep fallback');
+      console.log('🔊 Audio creation failed:', error, 'Using beep fallback');
       createBeepSound();
     }
   };
