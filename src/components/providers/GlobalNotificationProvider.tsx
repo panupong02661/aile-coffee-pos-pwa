@@ -260,14 +260,96 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .eq('is_active', true)
         .order('created_at');
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         setNotificationSounds(data);
         console.log('✅ Notification sounds loaded:', data);
       } else {
-        console.log('ℹ️ No notification sounds found');
+        console.log('ℹ️ No notification sounds found, creating default sound');
+        // Create default sound entry if none exists
+        const defaultSound = {
+          name: 'เสียงเริ่มต้น',
+          file_url: createDefaultNotificationSound(),
+          is_active: true
+        };
+        
+        const { data: newSound, error: insertError } = await supabase
+          .from('notification_sounds')
+          .insert(defaultSound)
+          .select()
+          .single();
+        
+        if (!insertError && newSound) {
+          setNotificationSounds([newSound]);
+          console.log('✅ Default notification sound created:', newSound);
+        } else {
+          // Fallback with hardcoded default
+          setNotificationSounds([{
+            id: 'default',
+            name: 'เสียงเริ่มต้น',
+            file_url: createDefaultNotificationSound(),
+            is_active: true
+          }]);
+        }
       }
     } catch (error) {
       console.error('❌ Error fetching notification sounds:', error);
+      // Fallback with hardcoded default
+      setNotificationSounds([{
+        id: 'default',
+        name: 'เสียงเริ่มต้น',
+        file_url: createDefaultNotificationSound(),
+        is_active: true
+      }]);
+    }
+  };
+
+  const createDefaultNotificationSound = (): string => {
+    // Create a simple notification sound using Web Audio API
+    if (!audioContext) return '';
+    
+    try {
+      // Create a simple beep sound data URL
+      const sampleRate = 44100;
+      const duration = 0.5;
+      const frequency = 800;
+      const samples = sampleRate * duration;
+      const buffer = new ArrayBuffer(44 + samples * 2);
+      const view = new DataView(buffer);
+      
+      // WAV header
+      const writeString = (offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+      
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples * 2, true);
+      
+      // Generate sine wave
+      for (let i = 0; i < samples; i++) {
+        const amplitude = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3;
+        const sample = Math.max(-1, Math.min(1, amplitude)) * 32767;
+        view.setInt16(44 + i * 2, sample, true);
+      }
+      
+      // Convert to base64 data URL
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error creating default sound:', error);
+      return '';
     }
   };
 
@@ -423,19 +505,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Enhanced beep configuration
-      oscillator.frequency.value = 1500; // Clear frequency
-      oscillator.type = 'sine'; // Smoother sine wave
+      // Enhanced beep configuration for Thai notification style
+      oscillator.frequency.value = 800; // Pleasant notification frequency
+      oscillator.type = 'sine'; // Smooth sine wave
       
       const beepVolume = Math.min(notificationSettings?.volume || 0.8, 0.8);
       
       console.log('🔊 System beep config - Volume:', beepVolume, 'Frequency:', oscillator.frequency.value);
       
-      // Create multiple beeps pattern
+      // Create a pleasant double beep pattern
       const currentTime = audioContext.currentTime;
-      const beepDuration = 0.2;
-      const pauseDuration = 0.15;
-      const numberOfBeeps = 3;
+      const beepDuration = 0.15;
+      const pauseDuration = 0.1;
+      const numberOfBeeps = 2;
       
       for (let i = 0; i < numberOfBeeps; i++) {
         const startTime = currentTime + (i * (beepDuration + pauseDuration));
@@ -473,46 +555,53 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <>
       {children}
       
-      {/* Order Alert Dialog */}
+      {/* Order Alert Dialog with enhanced styling */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md border-2 border-orange-300 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
-              <ShoppingBag className="h-5 w-5" />
-              ออเดอร์ออนไลน์ใหม่!
+            <DialogTitle className="flex items-center gap-2 text-orange-600 text-xl font-bold">
+              <ShoppingBag className="h-6 w-6 animate-bounce" />
+              🔔 ออเดอร์ออนไลน์ใหม่!
             </DialogTitle>
           </DialogHeader>
           
           {newOrder && (
             <div className="space-y-4">
-              <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200 animate-pulse">
-                <p className="font-semibold text-lg">
-                  ออเดอร์ #{newOrder.order_number}
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-4 rounded-lg border-2 border-orange-200 animate-pulse shadow-inner">
+                <p className="font-bold text-xl text-orange-700">
+                  📋 ออเดอร์ #{newOrder.order_number}
                 </p>
-                <p className="text-gray-600">
-                  จำนวน: {newOrder.items_count} รายการ
+                <p className="text-gray-700 font-medium">
+                  📦 จำนวน: {newOrder.items_count} รายการ
                 </p>
-                <p className="text-xl font-bold text-orange-600">
-                  ฿{newOrder.total_amount.toFixed(2)}
+                <p className="text-2xl font-bold text-orange-600 mt-2">
+                  💰 ฿{newOrder.total_amount.toFixed(2)}
                 </p>
                 {newOrder.members && (
-                  <div className="mt-2 pt-2 border-t">
-                    <p className="text-sm text-gray-600">
-                      ลูกค้า: {newOrder.members.name}
+                  <div className="mt-3 pt-3 border-t border-orange-200">
+                    <p className="text-sm text-gray-700 font-medium">
+                      👤 ลูกค้า: {newOrder.members.name}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      เบอร์: {newOrder.members.phone}
+                    <p className="text-sm text-gray-700">
+                      📱 เบอร์: {newOrder.members.phone}
                     </p>
                   </div>
                 )}
               </div>
               
               <div className="flex gap-2">
-                <Button onClick={handleViewOrder} className="flex-1 bg-orange-600 hover:bg-orange-700">
+                <Button 
+                  onClick={handleViewOrder} 
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                >
                   <Bell className="h-4 w-4 mr-2" />
                   ดูรายละเอียด
                 </Button>
-                <Button variant="outline" onClick={handleDismiss}>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDismiss}
+                  className="border-2 border-gray-300 hover:bg-gray-100 font-medium"
+                >
                   ปิด
                 </Button>
               </div>
