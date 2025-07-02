@@ -19,6 +19,11 @@ export interface LimitedReward {
   is_active: boolean;
 }
 
+interface ClaimRewardResponse {
+  success: boolean;
+  message: string;
+}
+
 export const useLimitedRewards = () => {
   return useQuery({
     queryKey: ['limited-rewards'],
@@ -62,15 +67,15 @@ export const useClaimLimitedReward = () => {
         throw error;
       }
       
-      return data;
+      return data as ClaimRewardResponse;
     },
     onSuccess: (data) => {
       console.log('Claim result:', data);
-      if (data.success) {
+      if (data?.success) {
         toast.success(data.message);
         queryClient.invalidateQueries({ queryKey: ['limited-rewards'] });
       } else {
-        toast.error(data.message);
+        toast.error(data?.message || 'เกิดข้อผิดพลาดในการรับรางวัล');
       }
     },
     onError: (error) => {
