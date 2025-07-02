@@ -286,58 +286,50 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('🔊 Attempting to play custom sound:', selectedSound.name);
         
         try {
-          // Get proper public URL for uploaded sound
-          const { data } = supabase.storage
-            .from('notification-sounds')
-            .getPublicUrl(selectedSound.file_url);
+          // Get proper public URL for uploaded sound - use full URL construction
+          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
+          console.log('🔊 Custom sound URL:', fullUrl);
           
-          if (data?.publicUrl) {
-            console.log('🔊 Custom sound URL:', data.publicUrl);
+          const audio = new Audio();
+          audioRef.current = audio;
+          audio.volume = Math.min(notificationSettings.volume, 1.0);
+          audio.crossOrigin = 'anonymous';
+          
+          // Try direct URL approach
+          try {
+            audio.src = fullUrl;
             
-            const audio = new Audio();
-            audioRef.current = audio;
-            audio.volume = Math.min(notificationSettings.volume, 1.0);
-            audio.crossOrigin = 'anonymous';
-            
-            // Test the URL first
-            const response = await fetch(data.publicUrl, { method: 'HEAD' }).catch(() => null);
-            console.log('🔊 URL test response:', response?.status, response?.ok);
-            
-            if (response && response.ok) {
-              audio.src = data.publicUrl;
+            // Simple approach - direct play with error handling
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                console.log('🔊 Custom sound timeout');
+                reject(new Error('Timeout'));
+              }, 5000);
               
-              // Wait for audio to be ready and play
-              await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                  console.log('🔊 Custom sound timeout');
-                  reject(new Error('Timeout'));
-                }, 3000);
-                
-                audio.oncanplaythrough = async () => {
-                  clearTimeout(timeout);
-                  console.log('🔊 Custom sound ready, playing...');
-                  try {
-                    await audio.play();
-                    console.log('✅ Custom sound played successfully');
-                    soundPlayed = true;
-                    resolve();
-                  } catch (playError) {
-                    console.log('🔊 Custom sound play failed:', playError);
-                    reject(playError);
-                  }
-                };
-                
-                audio.onerror = (error) => {
-                  clearTimeout(timeout);
-                  console.log('🔊 Custom sound error:', error);
-                  reject(error);
-                };
-                
-                audio.load();
-              });
-            } else {
-              console.log('🔊 Custom sound URL not accessible');
-            }
+              audio.onloadeddata = async () => {
+                clearTimeout(timeout);
+                console.log('🔊 Custom sound loaded, playing...');
+                try {
+                  await audio.play();
+                  console.log('✅ Custom sound played successfully');
+                  soundPlayed = true;
+                  resolve();
+                } catch (playError) {
+                  console.log('🔊 Custom sound play failed:', playError);
+                  reject(playError);
+                }
+              };
+              
+              audio.onerror = (error) => {
+                clearTimeout(timeout);
+                console.log('🔊 Custom sound error:', error);
+                reject(error);
+              };
+              
+              audio.load();
+            });
+          } catch (urlError) {
+            console.log('🔊 Custom sound URL error:', urlError);
           }
         } catch (error) {
           console.log('🔊 Custom sound failed:', error);
