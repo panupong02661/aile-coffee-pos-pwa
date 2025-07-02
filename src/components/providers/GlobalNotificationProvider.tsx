@@ -222,15 +222,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
 
-        // Play notification sound - Add user interaction check
+        // Play notification sound
         console.log('🔊 About to call playNotificationSound');
         
-        // For better browser compatibility, try to play immediately
         try {
           await playNotificationSound();
         } catch (soundError) {
           console.log('🔊 Sound play error:', soundError);
-          // Still create beep as fallback
           createBeepSound();
         }
         
@@ -273,10 +271,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       audioRef.current = null;
     }
 
-    // Try to play custom sound first, then fallback to beep
     let soundPlayed = false;
     
-    // Check if we have a custom sound selected
+    // Try to play custom sound first
     if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
       const selectedSound = notificationSounds.find(
         sound => sound.id === notificationSettings.selected_sound_id
@@ -286,51 +283,58 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('🔊 Attempting to play custom sound:', selectedSound.name);
         
         try {
-          // Get proper public URL for uploaded sound - use full URL construction
-          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
-          console.log('🔊 Custom sound URL:', fullUrl);
+          // Construct the full URL for the uploaded sound file
+          const { data: publicUrlData } = supabase.storage
+            .from('notification-sounds')
+            .getPublicUrl(selectedSound.file_url);
+          
+          const soundUrl = publicUrlData.publicUrl;
+          console.log('🔊 Custom sound URL:', soundUrl);
           
           const audio = new Audio();
           audioRef.current = audio;
           audio.volume = Math.min(notificationSettings.volume, 1.0);
           audio.crossOrigin = 'anonymous';
           
-          // Try direct URL approach
-          try {
-            audio.src = fullUrl;
+          // Set up event listeners before loading
+          const playPromise = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              console.log('🔊 Custom sound timeout');
+              reject(new Error('Timeout'));
+            }, 3000);
             
-            // Simple approach - direct play with error handling
-            await new Promise<void>((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                console.log('🔊 Custom sound timeout');
-                reject(new Error('Timeout'));
-              }, 5000);
-              
-              audio.onloadeddata = async () => {
-                clearTimeout(timeout);
-                console.log('🔊 Custom sound loaded, playing...');
-                try {
-                  await audio.play();
-                  console.log('✅ Custom sound played successfully');
-                  soundPlayed = true;
-                  resolve();
-                } catch (playError) {
-                  console.log('🔊 Custom sound play failed:', playError);
-                  reject(playError);
-                }
-              };
-              
-              audio.onerror = (error) => {
-                clearTimeout(timeout);
-                console.log('🔊 Custom sound error:', error);
-                reject(error);
-              };
-              
-              audio.load();
-            });
-          } catch (urlError) {
-            console.log('🔊 Custom sound URL error:', urlError);
-          }
+            audio.oncanplaythrough = async () => {
+              clearTimeout(timeout);
+              console.log('🔊 Custom sound loaded, attempting to play...');
+              try {
+                await audio.play();
+                console.log('✅ Custom sound played successfully');
+                soundPlayed = true;
+                resolve();
+              } catch (playError) {
+                console.log('🔊 Custom sound play failed:', playError);
+                reject(playError);
+              }
+            };
+            
+            audio.onerror = (error) => {
+              clearTimeout(timeout);
+              console.log('🔊 Custom sound error:', error);
+              reject(error);
+            };
+            
+            audio.onabort = () => {
+              clearTimeout(timeout);
+              console.log('🔊 Custom sound aborted');
+              reject(new Error('Aborted'));
+            };
+          });
+          
+          // Load the audio
+          audio.src = soundUrl;
+          audio.load();
+          
+          await playPromise;
         } catch (error) {
           console.log('🔊 Custom sound failed:', error);
         }
@@ -339,14 +343,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     // If custom sound didn't play, try default sound
     if (!soundPlayed) {
-      console.log('🔊 Trying default sound...');
+      console.log('🔊 Trying default notification sound...');
       try {
         const audio = new Audio();
         audioRef.current = audio;
         audio.volume = Math.min(notificationSettings.volume, 1.0);
         audio.src = '/sounds/default-notification.mp3';
         
-        await new Promise<void>((resolve, reject) => {
+        const playPromise = new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             console.log('🔊 Default sound timeout');
             reject(new Error('Timeout'));
@@ -374,6 +378,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           audio.load();
         });
+        
+        await playPromise;
       } catch (error) {
         console.log('🔊 Default sound failed:', error);
       }
