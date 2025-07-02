@@ -714,102 +714,6 @@ export type Database = {
         }
         Relationships: []
       }
-      limited_reward_claims: {
-        Row: {
-          claimed_at: string | null
-          customer_id: string | null
-          id: string
-          is_used: boolean | null
-          limited_reward_id: string | null
-          used_at: string | null
-        }
-        Insert: {
-          claimed_at?: string | null
-          customer_id?: string | null
-          id?: string
-          is_used?: boolean | null
-          limited_reward_id?: string | null
-          used_at?: string | null
-        }
-        Update: {
-          claimed_at?: string | null
-          customer_id?: string | null
-          id?: string
-          is_used?: boolean | null
-          limited_reward_id?: string | null
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "limited_reward_claims_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "limited_reward_claims_limited_reward_id_fkey"
-            columns: ["limited_reward_id"]
-            isOneToOne: false
-            referencedRelation: "limited_rewards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      limited_rewards: {
-        Row: {
-          created_at: string | null
-          current_claims: number | null
-          description: string | null
-          discount_type: string | null
-          discount_value: number | null
-          end_date: string
-          id: string
-          is_active: boolean | null
-          max_claims: number
-          name: string
-          reward_code: string | null
-          reward_type: string
-          start_date: string
-          target_month: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_claims?: number | null
-          description?: string | null
-          discount_type?: string | null
-          discount_value?: number | null
-          end_date: string
-          id?: string
-          is_active?: boolean | null
-          max_claims?: number
-          name: string
-          reward_code?: string | null
-          reward_type?: string
-          start_date: string
-          target_month?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_claims?: number | null
-          description?: string | null
-          discount_type?: string | null
-          discount_value?: number | null
-          end_date?: string
-          id?: string
-          is_active?: boolean | null
-          max_claims?: number
-          name?: string
-          reward_code?: string | null
-          reward_type?: string
-          start_date?: string
-          target_month?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       lottery: {
         Row: {
           created_at: string
@@ -1748,10 +1652,6 @@ export type Database = {
       calculate_menu_cost: {
         Args: { menu_id: string }
         Returns: number
-      }
-      claim_limited_reward: {
-        Args: { reward_id: string; user_id: string }
-        Returns: Json
       }
       generate_order_number: {
         Args: Record<PropertyKey, never>

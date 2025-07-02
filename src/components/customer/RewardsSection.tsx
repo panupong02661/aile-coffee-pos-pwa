@@ -3,9 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Gift, Clock, Users } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLimitedRewards, useClaimLimitedReward } from '@/hooks/useLimitedRewards';
 
 interface CustomerProfile {
   id: string;
@@ -35,8 +34,6 @@ interface RewardsSectionProps {
 
 const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSectionProps) => {
   const [redeemedRewards, setRedeemedRewards] = React.useState<{[key: string]: string}>({});
-  const { data: limitedRewards = [], isLoading: limitedLoading } = useLimitedRewards();
-  const claimMutation = useClaimLimitedReward();
 
   const getRewardType = (rewardName: string) => {
     const name = rewardName.toLowerCase();
@@ -76,238 +73,191 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
     return 'REWARD' + Math.floor(Math.random() * 100);
   };
 
+  const getGradientColors = (type: string, index: number) => {
+    const gradients = [
+      'from-orange-400 to-red-400', // MEGA SALE style
+      'from-blue-400 to-purple-500', // SPECIAL OFFER style  
+      'from-green-400 to-emerald-500', // FREE SHIPPING style
+      'from-pink-300 to-blue-300', // Free items style
+    ];
+    return gradients[index % gradients.length];
+  };
+
   const handleRedeemClick = (rewardId: string, pointsRequired: number, rewardName: string) => {
     const canRedeem = (currentUser?.points || 0) >= pointsRequired;
     if (!canRedeem) return;
 
+    // Generate a themed code for this reward
     const code = generateRewardCode(rewardName);
     setRedeemedRewards(prev => ({
       ...prev,
       [rewardId]: code
     }));
 
+    // Call the original redeem function
     onRedeemReward(rewardId, pointsRequired);
   };
 
-  const handleClaimLimitedReward = (rewardId: string) => {
-    if (!currentUser) {
-      toast.error('กรุณาเข้าสู่ระบบก่อน');
-      return;
-    }
-    
-    claimMutation.mutate({ rewardId, userId: currentUser.id });
-  };
-
-  const formatTimeRemaining = (endDate: string) => {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diff = end.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'หมดเวลาแล้ว';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `เหลือ ${days} วัน`;
-    } else if (hours > 0) {
-      return `เหลือ ${hours} ชม. ${minutes} นาที`;
-    } else {
-      return `เหลือ ${minutes} นาที`;
-    }
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Limited Time Rewards Section */}
-      {limitedRewards.length > 0 && (
-        <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <Clock className="w-5 h-5 animate-pulse" />
-              🔥 รางวัลพิเศษ - จำกัดจำนวน!
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {limitedRewards.map((reward) => {
-                const progress = (reward.current_claims / reward.max_claims) * 100;
-                const isAlmostFull = progress >= 80;
-                const isFull = reward.current_claims >= reward.max_claims;
-                
-                return (
-                  <div key={reward.id} className="relative">
-                    <div className={`bg-white rounded-lg border-2 ${isAlmostFull ? 'border-red-300' : 'border-orange-300'} shadow-lg overflow-hidden transform hover:scale-102 transition-all duration-200`}>
-                      {/* Header */}
-                      <div className={`p-3 text-white relative ${isAlmostFull ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-orange-500 to-red-500'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">⚡</span>
-                            <div>
-                              <h3 className="font-bold text-sm">{reward.name}</h3>
-                              <p className="text-xs opacity-90">{formatTimeRemaining(reward.end_date)}</p>
-                            </div>
-                          </div>
-                          {isAlmostFull && <Badge variant="secondary" className="text-xs bg-white text-red-600">เกือบหมด!</Badge>}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="w-5 h-5" />
+          ของรางวัล
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Compact Coupon-style grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {rewards.map((reward, index) => {
+            const rewardType = getRewardType(reward.name);
+            const discountInfo = getDiscountValue(reward.name);
+            const canRedeem = (currentUser?.points || 0) >= reward.points_required;
+            const rewardCode = redeemedRewards[reward.id];
+            const gradientClass = getGradientColors(rewardType, index);
+            
+            return (
+              <div key={reward.id} className="relative animate-fade-in">
+                <div className="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                  {/* Compact Header with gradient and title */}
+                  <div className={`bg-gradient-to-r ${gradientClass} p-3 text-white relative`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {rewardType === 'discount' && <span className="text-lg">🎯</span>}
+                      {rewardType === 'free' && <span className="text-lg">🎁</span>}
+                      {rewardType === 'shipping' && <span className="text-lg">🚚</span>}
+                      {rewardType === 'item' && <span className="text-lg">🍰</span>}
+                      <h3 className="font-bold text-lg">
+                        {rewardType === 'discount' ? 'MEGA SALE' : 
+                         rewardType === 'shipping' ? 'FREE SHIPPING' :
+                         rewardType === 'free' ? 'SPECIAL OFFER' : 
+                         reward.name}
+                      </h3>
+                    </div>
+                    <p className="text-xs opacity-90">
+                      {rewardType === 'discount' ? 'ลดราคาพิเศษ!' :
+                       rewardType === 'shipping' ? 'ส่งฟรี!' :
+                       rewardType === 'free' ? 'ข้อเสนอพิเศษ' :
+                       'ฟรีวันเกิด'}
+                    </p>
+                  </div>
+
+                  {/* Compact Main content */}
+                  <div className="p-4 text-center bg-white relative">
+                    {/* Discount Value */}
+                    <div className="mb-4">
+                      {rewardType === 'discount' ? (
+                        <div className="text-4xl font-black text-gray-800 mb-2">
+                          {discountInfo.type === 'percent' ? `${discountInfo.value}%` : `${discountInfo.value}฿`}
+                        </div>
+                      ) : rewardType === 'shipping' ? (
+                        <div className="text-4xl font-black text-emerald-600 mb-2">FREE</div>
+                      ) : rewardType === 'free' ? (
+                        <div className="text-4xl font-black text-blue-600 mb-2">{discountInfo.value}฿</div>
+                      ) : (
+                        <div className="text-4xl font-black text-pink-600 mb-2">FREE</div>
+                      )}
+                      
+                      {/* Small decoration */}
+                      <div className="flex justify-center">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full opacity-80"></div>
+                      </div>
+                    </div>
+
+                    {/* Compact Coupon Code Section */}
+                    <div className="relative mb-4">
+                      <div className="bg-gray-800 text-white py-2 px-4 rounded border-2 border-dashed border-gray-400 relative overflow-hidden">
+                        {/* Smaller Circular cutouts */}
+                        <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white rounded-full border border-dashed border-gray-400"></div>
+                        <div className="absolute -right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white rounded-full border border-dashed border-gray-400"></div>
+                        
+                        <div className="font-bold text-sm tracking-widest">
+                          {rewardCode || generateRewardCode(reward.name)}
                         </div>
                       </div>
+                    </div>
 
-                      {/* Content */}
-                      <div className="p-3">
-                        <div className="text-center mb-3">
-                          <div className="text-2xl font-black text-gray-800">
-                            {reward.discount_type === 'percent' ? `${reward.discount_value}%` : `${reward.discount_value}฿`}
-                          </div>
-                          <p className="text-xs text-gray-600">{reward.description}</p>
-                        </div>
+                    {/* Compact Conditions */}
+                    <div className="text-xs text-gray-600 mb-4 space-y-1 bg-gray-50 p-2 rounded">
+                      {rewardType === 'discount' && (
+                        <>
+                          <p><strong>ใช้ได้กับ:</strong> สินค้าทุกชิ้น</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> {Math.max(1000, reward.points_required * 10)} บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'shipping' && (
+                        <>
+                          <p><strong>ใช้ได้กับ:</strong> ทุกคำสั่งซื้อ</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> 500 บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'free' && (
+                        <>
+                          <p><strong>ส่วนลด:</strong> {discountInfo.value} บาท</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> 2,000 บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'item' && (
+                        <>
+                          <p><strong>เงื่อนไข:</strong> แสดงบัตรประชาชน (วันเกิด)</p>
+                          <p><strong>ใช้ได้:</strong> วันเกิด ± 3 วัน</p>
+                        </>
+                      )}
+                      <p><strong>หมดอายุ:</strong> 31 ธ.ค. 2025</p>
+                    </div>
 
-                        {/* Progress bar */}
-                        <div className="mb-3">
-                          <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <span>ความคืบหน้า</span>
-                            <span>{reward.current_claims}/{reward.max_claims}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all duration-300 ${isAlmostFull ? 'bg-red-500' : 'bg-orange-500'}`}
-                              style={{ width: `${Math.min(progress, 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {/* Action Button */}
+                    {/* Compact Action Button */}
+                    <div className="pt-2 border-t border-gray-200">
+                      {rewardCode ? (
                         <Button
                           size="sm"
-                          className={`w-full text-xs ${
-                            isFull 
-                              ? 'bg-gray-400 cursor-not-allowed' 
-                              : isAlmostFull 
-                                ? 'bg-red-600 hover:bg-red-700' 
-                                : 'bg-orange-600 hover:bg-orange-700'
-                          } text-white`}
-                          onClick={() => handleClaimLimitedReward(reward.id)}
-                          disabled={isFull || claimMutation.isPending}
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-2 text-sm shadow-lg transform transition-all duration-200 hover:scale-105"
+                          onClick={() => {
+                            navigator.clipboard.writeText(rewardCode);
+                            toast.success('คัดลอกโค้ดแล้ว!');
+                          }}
                         >
-                          {isFull ? 'หมดแล้ว' : claimMutation.isPending ? 'กำลังรับ...' : 'รับเลย!'}
+                          📋 คัดลอกโค้ด
                         </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Regular Rewards Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
-            ของรางวัล
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Compact grid for small coupons */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {rewards.map((reward, index) => {
-              const rewardType = getRewardType(reward.name);
-              const discountInfo = getDiscountValue(reward.name);
-              const canRedeem = (currentUser?.points || 0) >= reward.points_required;
-              const rewardCode = redeemedRewards[reward.id];
-              
-              return (
-                <div key={reward.id} className="relative">
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                    {/* Mini header */}
-                    <div className={`p-2 text-white text-center ${
-                      rewardType === 'discount' ? 'bg-gradient-to-r from-blue-500 to-purple-500' :
-                      rewardType === 'shipping' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                      rewardType === 'free' ? 'bg-gradient-to-r from-pink-400 to-red-400' :
-                      'bg-gradient-to-r from-orange-400 to-red-400'
-                    }`}>
-                      <div className="text-xs font-medium opacity-90">
-                        {rewardType === 'discount' ? 'ส่วนลด' :
-                         rewardType === 'shipping' ? 'ส่งฟรี' :
-                         rewardType === 'free' ? 'ฟรี' : 'ของขวัญ'}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-2 text-center">
-                      {/* Value */}
-                      <div className="mb-2">
-                        <div className="text-lg font-bold text-gray-800">
-                          {rewardType === 'discount' ? 
-                            (discountInfo.type === 'percent' ? `${discountInfo.value}%` : `${discountInfo.value}฿`) :
-                            rewardType === 'shipping' ? 'FREE' :
-                            rewardType === 'free' ? `${discountInfo.value}฿` : 'FREE'
-                          }
-                        </div>
-                      </div>
-
-                      {/* Code section */}
-                      {rewardCode ? (
-                        <div className="mb-2">
-                          <div className="bg-gray-800 text-white py-1 px-2 rounded text-xs font-mono">
-                            {rewardCode}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full mt-1 text-xs h-6"
-                            onClick={() => {
-                              navigator.clipboard.writeText(rewardCode);
-                              toast.success('คัดลอกโค้ดแล้ว!');
-                            }}
-                          >
-                            คัดลอก
-                          </Button>
-                        </div>
                       ) : (
-                        <div className="mb-2">
-                          <Button
-                            size="sm"
-                            className={`w-full text-xs h-6 ${
-                              canRedeem 
-                                ? 'bg-gray-800 hover:bg-gray-900 text-white' 
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                            onClick={() => canRedeem && handleRedeemClick(reward.id, reward.points_required, reward.name)}
-                            disabled={!canRedeem}
-                          >
-                            {canRedeem ? 'รับ' : `${reward.points_required} แต้ม`}
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Points indicator */}
-                      {!rewardCode && (
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">★</span>
-                          </div>
-                          <span>{reward.points_required}</span>
-                        </div>
+                        <Button
+                          size="sm"
+                          className={`w-full font-bold py-2 text-sm shadow-lg transform transition-all duration-200 ${
+                            canRedeem 
+                              ? 'bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white hover:scale-105' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => canRedeem && handleRedeemClick(reward.id, reward.points_required, reward.name)}
+                          disabled={!canRedeem}
+                        >
+                          {canRedeem ? 'รับรางวัล' : `ต้องการ ${reward.points_required} แต้ม`}
+                        </Button>
                       )}
                     </div>
+
+                    {/* Compact Points indicator */}
+                    {!rewardCode && (
+                      <div className="flex items-center justify-center gap-1 mt-2 text-xs text-gray-500">
+                        <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">★</span>
+                        </div>
+                        <span className="font-medium">{reward.points_required} แต้ม</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            );
+          })}
+        </div>
+        
+        {rewards.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Gift className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <p>ยังไม่มีของรางวัลในขณะนี้</p>
           </div>
-          
-          {rewards.length === 0 && limitedRewards.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Gift className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p>ยังไม่มีของรางวัลในขณะนี้</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
