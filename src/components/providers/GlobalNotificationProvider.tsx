@@ -34,7 +34,10 @@ interface NotificationSound {
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    sound_enabled: true,
+    volume: 1.0
+  });
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
@@ -53,12 +56,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     console.log('🔔 Setting up notification system...');
     
     // Load notification settings and sounds
-    const initializeNotifications = async () => {
-      await fetchNotificationSettings();
-      await fetchNotificationSounds();
-    };
-    
-    initializeNotifications();
+    loadNotificationData();
     
     // Setup realtime subscription
     console.log('📡 Setting up realtime subscription...');
@@ -75,54 +73,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         },
         async (payload) => {
           console.log('🔔 New online order detected:', payload);
-          
-          try {
-            // Small delay to ensure data is committed
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Fetch complete order data with member info
-            const { data: orderData, error } = await supabase
-              .from('orders')
-              .select(`
-                *,
-                members (name, phone)
-              `)
-              .eq('id', payload.new.id)
-              .single();
-
-            if (error) {
-              console.error('❌ Error fetching order details:', error);
-              return;
-            }
-
-            if (orderData) {
-              console.log('📦 Order data fetched:', orderData);
-              
-              // Show notification for new order
-              setNewOrder(orderData);
-              setShowOrderAlert(true);
-              
-              // Show toast notification
-              console.log('🍞 Showing toast notification...');
-              toast.success('มีออเดอร์ออนไลน์ใหม่!', {
-                description: `ออเดอร์ #${orderData.order_number} - ฿${orderData.total_amount}`,
-                duration: 15000,
-                action: {
-                  label: 'ดูรายละเอียด',
-                  onClick: () => {
-                    handleDismiss();
-                    navigate('/online-orders');
-                  }
-                }
-              });
-
-              // Play notification sound
-              console.log('🔊 Playing notification sound...');
-              playNotificationSound();
-            }
-          } catch (error) {
-            console.error('❌ Error processing new order notification:', error);
-          }
+          await handleNewOrder(payload.new.id);
         }
       )
       .subscribe((status) => {
@@ -132,92 +83,110 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       console.log('🧹 Cleaning up notification subscription...');
       supabase.removeChannel(channel);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, [navigate, isCustomerMobileApp]);
 
-  const fetchNotificationSettings = async () => {
+  const loadNotificationData = async () => {
     try {
-      console.log('⚙️ Fetching notification settings...');
-      const { data, error } = await supabase
+      // Load settings
+      const { data: settings } = await supabase
         .from('notification_settings')
         .select('*')
         .single();
 
-      if (!error && data) {
-        setNotificationSettings(data);
-        console.log('✅ Notification settings loaded:', data);
-      } else {
-        console.log('ℹ️ No notification settings found, using defaults');
+      if (settings) {
         setNotificationSettings({
-          sound_enabled: true,
-          volume: 1.0
+          sound_enabled: settings.sound_enabled ?? true,
+          selected_sound_id: settings.selected_sound_id || undefined,
+          volume: settings.volume ?? 1.0
         });
       }
-    } catch (error) {
-      console.error('❌ Error fetching notification settings:', error);
-      setNotificationSettings({
-        sound_enabled: true,
-        volume: 1.0
-      });
-    }
-  };
 
-  const fetchNotificationSounds = async () => {
-    try {
-      console.log('🎵 Fetching notification sounds...');
-      const { data, error } = await supabase
+      // Load sounds
+      const { data: sounds } = await supabase
         .from('notification_sounds')
         .select('*')
         .eq('is_active', true)
         .order('created_at');
 
-      if (!error && data && data.length > 0) {
-        setNotificationSounds(data);
-        console.log('✅ Notification sounds loaded:', data);
-      } else {
-        console.log('ℹ️ No notification sounds found, creating default');
-        const defaultSound = {
-          name: 'เสียงเริ่มต้น',
-          file_url: '/sounds/default-notification.mp3',
-          is_active: true
-        };
-        
-        const { data: newSound, error: insertError } = await supabase
-          .from('notification_sounds')
-          .insert(defaultSound)
-          .select()
-          .single();
-        
-        if (!insertError && newSound) {
-          setNotificationSounds([newSound]);
-          console.log('✅ Default notification sound created:', newSound);
-        } else {
-          // Fallback with hardcoded default
-          setNotificationSounds([{
-            id: 'default',
-            name: 'เสียงเริ่มต้น',
-            file_url: '/sounds/default-notification.mp3',
-            is_active: true
-          }]);
-        }
+      if (sounds && sounds.length > 0) {
+        setNotificationSounds(sounds);
       }
     } catch (error) {
-      console.error('❌ Error fetching notification sounds:', error);
-      setNotificationSounds([{
-        id: 'default',
-        name: 'เสียงเริ่มต้น',
-        file_url: '/sounds/default-notification.mp3',
-        is_active: true
-      }]);
+      console.error('❌ Error loading notification data:', error);
     }
   };
 
-  const playNotificationSound = async () => {
-    console.log('🔊 Starting notification sound playback...');
-    
-    if (!notificationSettings?.sound_enabled) {
-      console.log('🔇 Notification sound disabled in settings');
+  const handleNewOrder = async (orderId: string) => {
+    try {
+      // Small delay to ensure data is committed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch complete order data with member info
+      const { data: orderData, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          members (name, phone)
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching order details:', error);
+        return;
+      }
+
+      if (orderData) {
+        console.log('📦 Order data fetched:', orderData);
+        
+        // Show notification for new order
+        setNewOrder(orderData);
+        setShowOrderAlert(true);
+        
+        // Show toast notification
+        toast.success('มีออเดอร์ออนไลน์ใหม่!', {
+          description: `ออเดอร์ #${orderData.order_number} - ฿${orderData.total_amount}`,
+          duration: 15000,
+          action: {
+            label: 'ดูรายละเอียด',
+            onClick: () => {
+              handleDismiss();
+              navigate('/online-orders');
+            }
+          }
+        });
+
+        // Play notification sound
+        playNotificationSound();
+      }
+    } catch (error) {
+      console.error('❌ Error processing new order notification:', error);
+    }
+  };
+
+  const playNotificationSound = () => {
+    if (!notificationSettings.sound_enabled) {
+      console.log('🔇 Sound disabled');
       return;
+    }
+
+    console.log('🔊 Playing notification sound...');
+
+    // Try to play audio file first
+    let soundUrl = '/sounds/default-notification.mp3';
+    
+    if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
+      const selectedSound = notificationSounds.find(
+        sound => sound.id === notificationSettings.selected_sound_id
+      );
+      if (selectedSound) {
+        soundUrl = selectedSound.file_url;
+      }
     }
 
     try {
@@ -227,72 +196,35 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         audioRef.current.currentTime = 0;
       }
 
-      // Determine which sound to play
-      let soundUrl = '';
-      if (notificationSettings?.selected_sound_id && notificationSounds.length > 0) {
-        const selectedSound = notificationSounds.find(
-          sound => sound.id === notificationSettings.selected_sound_id
-        );
-        if (selectedSound) {
-          soundUrl = selectedSound.file_url;
-          console.log('🎵 Using selected sound:', selectedSound.name);
-        }
-      }
-      
-      if (!soundUrl && notificationSounds.length > 0) {
-        soundUrl = notificationSounds[0].file_url;
-        console.log('🎵 Using first available sound:', notificationSounds[0].name);
-      }
-
-      if (!soundUrl) {
-        soundUrl = '/sounds/default-notification.mp3';
-        console.log('🎵 Using default sound fallback');
-      }
-
-      console.log('🎵 Playing sound from URL:', soundUrl);
-      
       const audio = new Audio(soundUrl);
       audioRef.current = audio;
+      audio.volume = Math.min(notificationSettings.volume, 1.0);
       
-      // Set volume
-      audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
-      
-      // Handle audio events
       audio.oncanplaythrough = () => {
-        console.log('✅ Audio can play through');
+        console.log('✅ Audio ready, playing...');
+        audio.play().catch(() => {
+          console.log('🔊 File audio failed, using beep fallback');
+          createBeepSound();
+        });
       };
-      
-      audio.onplay = () => {
-        console.log('▶️ Audio started playing');
+
+      audio.onerror = () => {
+        console.log('🔊 Audio file error, using beep fallback');
+        createBeepSound();
       };
-      
-      audio.onended = () => {
-        console.log('⏹️ Audio finished playing');
-      };
-      
-      audio.onerror = (error) => {
-        console.error('❌ Audio error:', error);
-        // Fallback to Web Audio API beep
-        playWebAudioBeep();
-      };
-      
-      // Load and play
+
+      // Load the audio
       audio.load();
-      await audio.play();
-      
+
     } catch (error) {
-      console.error('❌ Error playing notification sound:', error);
-      // Fallback to Web Audio API beep
-      playWebAudioBeep();
+      console.log('🔊 Audio creation failed, using beep fallback');
+      createBeepSound();
     }
   };
 
-  const playWebAudioBeep = () => {
+  const createBeepSound = () => {
     try {
-      console.log('🔊 Playing Web Audio beep fallback...');
-      
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -302,25 +234,31 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       
-      const volume = Math.min(notificationSettings?.volume || 0.8, 0.8);
+      const volume = notificationSettings.volume * 0.3;
       const currentTime = audioContext.currentTime;
       
-      // Create double beep
+      // Create triple beep pattern
       gainNode.gain.setValueAtTime(0, currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.02);
+      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.05);
       gainNode.gain.setValueAtTime(volume, currentTime + 0.15);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.17);
-      gainNode.gain.setValueAtTime(0, currentTime + 0.25);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.27);
-      gainNode.gain.setValueAtTime(volume, currentTime + 0.4);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.42);
+      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0, currentTime + 0.3);
+      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.35);
+      gainNode.gain.setValueAtTime(volume, currentTime + 0.45);
+      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.5);
+      
+      gainNode.gain.setValueAtTime(0, currentTime + 0.6);
+      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.65);
+      gainNode.gain.setValueAtTime(volume, currentTime + 0.75);
+      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.8);
       
       oscillator.start(currentTime);
-      oscillator.stop(currentTime + 0.5);
+      oscillator.stop(currentTime + 1);
       
-      console.log('✅ Web Audio beep played');
+      console.log('✅ Beep sound played');
     } catch (error) {
-      console.error('❌ Web Audio beep failed:', error);
+      console.error('❌ Beep sound failed:', error);
     }
   };
 
