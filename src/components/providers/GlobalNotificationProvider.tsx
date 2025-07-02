@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -37,78 +37,48 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
-  // Initialize Audio Context with better error handling
+  // Enhanced user interaction detection - more aggressive
   useEffect(() => {
-    const initAudioContext = async () => {
-      try {
-        if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          
-          // Try to start the context immediately
-          if (ctx.state === 'suspended') {
-            try {
-              await ctx.resume();
-            } catch (error) {
-              console.log('🔊 Will resume audio context after user interaction');
-            }
-          }
-          
-          setAudioContext(ctx);
-          console.log('🎵 Audio Context initialized:', ctx.state);
-        }
-      } catch (error) {
-        console.error('❌ Failed to initialize audio context:', error);
-      }
-    };
-
-    initAudioContext();
-  }, []);
-
-  // Enhanced user interaction detection
-  useEffect(() => {
-    const handleUserInteraction = async () => {
+    const handleUserInteraction = () => {
       if (!hasUserInteracted) {
         console.log('🎯 User interaction detected, enabling notifications');
         setHasUserInteracted(true);
         
-        // Resume audio context if suspended
-        if (audioContext && audioContext.state === 'suspended') {
-          try {
-            await audioContext.resume();
-            console.log('🎵 Audio context resumed successfully');
-          } catch (error) {
-            console.error('❌ Failed to resume audio context:', error);
-          }
-        }
-        
         // Test sound immediately after first interaction
-        if (notificationSettings?.sound_enabled && notificationSounds.length > 0) {
-          setTimeout(() => {
-            playNotificationSound();
-          }, 500);
-        }
+        setTimeout(() => {
+          playTestSound();
+        }, 100);
       }
     };
 
-    // Add event listeners for user interaction
-    const events = ['click', 'keydown', 'touchstart', 'touchend'];
+    // Add more interaction events
+    const events = ['click', 'keydown', 'touchstart', 'touchend', 'mousedown', 'mousemove'];
     events.forEach(event => {
       document.addEventListener(event, handleUserInteraction, { once: true, capture: true });
     });
+
+    // Auto-enable after 3 seconds if no interaction
+    const autoEnableTimeout = setTimeout(() => {
+      if (!hasUserInteracted) {
+        console.log('🔄 Auto-enabling notifications after timeout');
+        setHasUserInteracted(true);
+      }
+    }, 3000);
 
     return () => {
       events.forEach(event => {
         document.removeEventListener(event, handleUserInteraction, { capture: true });
       });
+      clearTimeout(autoEnableTimeout);
     };
-  }, [hasUserInteracted, audioContext, notificationSettings, notificationSounds]);
+  }, [hasUserInteracted]);
 
   useEffect(() => {
     // Don't show notifications on customer mobile app page
@@ -127,7 +97,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     initializeNotifications();
     
-    // Setup realtime subscription with better configuration
+    // Setup realtime subscription - more robust configuration
     console.log('📡 Setting up realtime subscription...');
     
     const channel = supabase
@@ -170,6 +140,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             if (orderData) {
               console.log('📦 Order data fetched:', orderData);
               
+              // Always show notification for new orders (remove duplicate check)
               setNewOrder(orderData);
               setShowOrderAlert(true);
               
@@ -187,20 +158,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
               });
 
-              // Play notification sound with retry
+              // Play notification sound - multiple attempts with different methods
               console.log('🔊 Playing notification sound...');
-              let soundPlayed = false;
-              for (let i = 0; i < 3 && !soundPlayed; i++) {
-                soundPlayed = await playNotificationSound();
-                if (!soundPlayed) {
-                  console.log(`🔄 Sound attempt ${i + 1} failed, retrying...`);
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                }
-              }
-              
-              if (!soundPlayed) {
-                console.warn('⚠️ All sound attempts failed');
-              }
+              await playNotificationSoundWithFallback();
             }
           } catch (error) {
             console.error('❌ Error processing new order notification:', error);
@@ -222,7 +182,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🧹 Cleaning up notification subscription...');
       supabase.removeChannel(channel);
     };
-  }, [navigate, isCustomerMobileApp, hasUserInteracted, audioContext]);
+  }, [navigate, isCustomerMobileApp]);
 
   const fetchNotificationSettings = async () => {
     try {
@@ -264,11 +224,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setNotificationSounds(data);
         console.log('✅ Notification sounds loaded:', data);
       } else {
-        console.log('ℹ️ No notification sounds found, creating default sound');
-        // Create default sound entry if none exists
+        console.log('ℹ️ No notification sounds found, creating default');
         const defaultSound = {
           name: 'เสียงเริ่มต้น',
-          file_url: createDefaultNotificationSound(),
+          file_url: '/sounds/default-notification.mp3',
           is_active: true
         };
         
@@ -286,217 +245,155 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setNotificationSounds([{
             id: 'default',
             name: 'เสียงเริ่มต้น',
-            file_url: createDefaultNotificationSound(),
+            file_url: '/sounds/default-notification.mp3',
             is_active: true
           }]);
         }
       }
     } catch (error) {
       console.error('❌ Error fetching notification sounds:', error);
-      // Fallback with hardcoded default
       setNotificationSounds([{
         id: 'default',
         name: 'เสียงเริ่มต้น',
-        file_url: createDefaultNotificationSound(),
+        file_url: '/sounds/default-notification.mp3',
         is_active: true
       }]);
     }
   };
 
-  const createDefaultNotificationSound = (): string => {
-    // Create a simple notification sound using Web Audio API
-    if (!audioContext) return '';
-    
-    try {
-      // Create a simple beep sound data URL
-      const sampleRate = 44100;
-      const duration = 0.5;
-      const frequency = 800;
-      const samples = sampleRate * duration;
-      const buffer = new ArrayBuffer(44 + samples * 2);
-      const view = new DataView(buffer);
-      
-      // WAV header
-      const writeString = (offset: number, string: string) => {
-        for (let i = 0; i < string.length; i++) {
-          view.setUint8(offset + i, string.charCodeAt(i));
-        }
-      };
-      
-      writeString(0, 'RIFF');
-      view.setUint32(4, 36 + samples * 2, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(36, 'data');
-      view.setUint32(40, samples * 2, true);
-      
-      // Generate sine wave
-      for (let i = 0; i < samples; i++) {
-        const amplitude = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3;
-        const sample = Math.max(-1, Math.min(1, amplitude)) * 32767;
-        view.setInt16(44 + i * 2, sample, true);
-      }
-      
-      // Convert to base64 data URL
-      const blob = new Blob([buffer], { type: 'audio/wav' });
-      return URL.createObjectURL(blob);
-    } catch (error) {
-      console.error('Error creating default sound:', error);
-      return '';
-    }
+  const playTestSound = async () => {
+    console.log('🧪 Playing test sound...');
+    await playNotificationSoundWithFallback();
   };
 
-  const playNotificationSound = async (): Promise<boolean> => {
-    console.log('🔊 ==> Starting notification sound playback...');
+  const playNotificationSoundWithFallback = async (): Promise<boolean> => {
+    console.log('🔊 ==> Starting enhanced notification sound playback...');
     
     if (!notificationSettings?.sound_enabled) {
       console.log('🔇 Notification sound disabled in settings');
       return false;
     }
 
-    if (!hasUserInteracted) {
-      console.warn('⚠️ User has not interacted yet, cannot play sound');
-      return false;
+    // Try multiple sound methods in sequence
+    const methods = [
+      () => playAudioElement(),
+      () => playWebAudioBeep(),
+      () => playSystemBeep()
+    ];
+
+    for (let i = 0; i < methods.length; i++) {
+      try {
+        console.log(`🔊 Trying sound method ${i + 1}...`);
+        const success = await methods[i]();
+        if (success) {
+          console.log(`✅ Sound method ${i + 1} successful`);
+          return true;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Sound method ${i + 1} failed:`, error);
+      }
     }
 
-    try {
-      let soundUrl = '';
-      let selectedSoundName = '';
-      
-      // Use selected sound or fallback to first available sound
-      if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
-        const selectedSound = notificationSounds.find(
-          sound => sound.id === notificationSettings.selected_sound_id
-        );
-        if (selectedSound) {
-          soundUrl = selectedSound.file_url;
-          selectedSoundName = selectedSound.name;
-          console.log('🎵 Using selected sound:', selectedSoundName, soundUrl);
-        }
-      }
-      
-      // Fallback to first sound if no specific sound selected
-      if (!soundUrl && notificationSounds.length > 0) {
-        soundUrl = notificationSounds[0].file_url;
-        selectedSoundName = notificationSounds[0].name;
-        console.log('🎵 Using first available sound:', selectedSoundName, soundUrl);
-      }
-      
-      if (soundUrl) {
-        console.log('🔊 ==> Attempting to play sound from URL:', soundUrl);
-        const success = await playAudioFile(soundUrl);
-        if (success) {
-          console.log('✅ Sound played successfully');
-          return true;
-        } else {
-          console.log('🔊 Audio file failed, falling back to system beep');
-          return await playSystemBeep();
-        }
-      } else {
-        console.log('🔊 No sound URL available, using system beep');
-        return await playSystemBeep();
-      }
-      
-    } catch (error) {
-      console.error('❌ Error in playNotificationSound:', error);
-      return await playSystemBeep();
-    }
+    console.error('❌ All sound methods failed');
+    return false;
   };
 
-  const playAudioFile = async (soundUrl: string): Promise<boolean> => {
+  const playAudioElement = async (): Promise<boolean> => {
     return new Promise((resolve) => {
-      console.log('🎵 Creating new Audio element for:', soundUrl);
-      
-      const audio = new Audio();
-      let hasResolved = false;
-      
-      const resolveOnce = (success: boolean) => {
-        if (!hasResolved) {
-          hasResolved = true;
-          resolve(success);
+      try {
+        // Clean up previous audio
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
         }
-      };
-      
-      // Set up event handlers
-      audio.oncanplaythrough = () => {
-        console.log('✅ Audio can play through');
-      };
-      
-      audio.onplay = () => {
-        console.log('▶️ Audio started playing at volume:', audio.volume);
-        resolveOnce(true);
-      };
-      
-      audio.onended = () => {
-        console.log('⏹️ Audio finished playing');
-        if (!hasResolved) resolveOnce(true);
-      };
-      
-      audio.onerror = (error) => {
-        console.error('❌ Audio error:', error);
-        resolveOnce(false);
-      };
-      
-      audio.onabort = () => {
-        console.warn('⚠️ Audio aborted');
-        resolveOnce(false);
-      };
-      
-      // Set timeout to prevent hanging
-      setTimeout(() => {
-        if (!hasResolved) {
-          console.warn('⏰ Audio playback timeout');
+
+        let soundUrl = '';
+        if (notificationSettings?.selected_sound_id && notificationSounds.length > 0) {
+          const selectedSound = notificationSounds.find(
+            sound => sound.id === notificationSettings.selected_sound_id
+          );
+          if (selectedSound) {
+            soundUrl = selectedSound.file_url;
+          }
+        }
+        
+        if (!soundUrl && notificationSounds.length > 0) {
+          soundUrl = notificationSounds[0].file_url;
+        }
+
+        if (!soundUrl) {
+          soundUrl = '/sounds/default-notification.mp3';
+        }
+
+        console.log('🎵 Creating audio element with URL:', soundUrl);
+        
+        const audio = new Audio();
+        audioRef.current = audio;
+        
+        let resolved = false;
+        const resolveOnce = (success: boolean) => {
+          if (!resolved) {
+            resolved = true;
+            resolve(success);
+          }
+        };
+
+        audio.oncanplaythrough = () => {
+          console.log('✅ Audio can play through');
+        };
+        
+        audio.onplay = () => {
+          console.log('▶️ Audio started playing');
+          resolveOnce(true);
+        };
+        
+        audio.onended = () => {
+          console.log('⏹️ Audio finished');
+          if (!resolved) resolveOnce(true);
+        };
+        
+        audio.onerror = (error) => {
+          console.error('❌ Audio error:', error);
           resolveOnce(false);
-        }
-      }, 3000);
-      
-      // Configure audio
-      audio.crossOrigin = 'anonymous';
-      audio.preload = 'auto';
-      audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
-      
-      // Set source and attempt to play
-      audio.src = soundUrl;
-      audio.load(); // Explicitly load the audio
-      
-      // Attempt to play after a short delay
-      setTimeout(() => {
+        };
+        
+        // Set timeout
+        setTimeout(() => {
+          if (!resolved) {
+            console.warn('⏰ Audio timeout');
+            resolveOnce(false);
+          }
+        }, 2000);
+        
+        // Configure and play
+        audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
+        audio.src = soundUrl;
+        audio.load();
+        
+        // Try to play
         const playPromise = audio.play();
         if (playPromise) {
-          playPromise.catch((playError) => {
-            console.error('❌ Play promise rejected:', playError);
+          playPromise.catch((error) => {
+            console.error('❌ Play promise rejected:', error);
             resolveOnce(false);
           });
         }
-      }, 100);
+        
+      } catch (error) {
+        console.error('❌ Audio element error:', error);
+        resolve(false);
+      }
     });
   };
 
-  const playSystemBeep = async (): Promise<boolean> => {
+  const playWebAudioBeep = async (): Promise<boolean> => {
     try {
-      console.log('🔊 ==> Playing system beep fallback...');
+      console.log('🔊 Trying Web Audio API beep...');
       
-      if (!audioContext) {
-        console.error('❌ No audio context available');
-        return false;
-      }
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // Resume context if suspended
       if (audioContext.state === 'suspended') {
-        console.log('🔊 Resuming suspended audio context...');
         await audioContext.resume();
-      }
-      
-      if (audioContext.state !== 'running') {
-        console.error('❌ Audio context is not running:', audioContext.state);
-        return false;
       }
       
       const oscillator = audioContext.createOscillator();
@@ -505,38 +402,48 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Enhanced beep configuration for Thai notification style
-      oscillator.frequency.value = 800; // Pleasant notification frequency
-      oscillator.type = 'sine'; // Smooth sine wave
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
       
-      const beepVolume = Math.min(notificationSettings?.volume || 0.8, 0.8);
-      
-      console.log('🔊 System beep config - Volume:', beepVolume, 'Frequency:', oscillator.frequency.value);
-      
-      // Create a pleasant double beep pattern
+      const volume = Math.min(notificationSettings?.volume || 0.8, 0.8);
       const currentTime = audioContext.currentTime;
-      const beepDuration = 0.15;
-      const pauseDuration = 0.1;
-      const numberOfBeeps = 2;
       
-      for (let i = 0; i < numberOfBeeps; i++) {
-        const startTime = currentTime + (i * (beepDuration + pauseDuration));
-        const endTime = startTime + beepDuration;
-        
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(beepVolume, startTime + 0.02);
-        gainNode.gain.setValueAtTime(beepVolume, endTime - 0.02);
-        gainNode.gain.linearRampToValueAtTime(0, endTime);
-      }
+      // Create double beep
+      gainNode.gain.setValueAtTime(0, currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.02);
+      gainNode.gain.setValueAtTime(volume, currentTime + 0.15);
+      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.17);
+      gainNode.gain.setValueAtTime(0, currentTime + 0.25);
+      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.27);
+      gainNode.gain.setValueAtTime(volume, currentTime + 0.4);
+      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.42);
       
       oscillator.start(currentTime);
-      oscillator.stop(currentTime + (numberOfBeeps * (beepDuration + pauseDuration)));
+      oscillator.stop(currentTime + 0.5);
       
-      console.log(`✅ System beep pattern started (${numberOfBeeps} beeps)`);
+      console.log('✅ Web Audio beep created');
       return true;
+    } catch (error) {
+      console.error('❌ Web Audio beep failed:', error);
+      return false;
+    }
+  };
+
+  const playSystemBeep = async (): Promise<boolean> => {
+    try {
+      console.log('🔊 Trying system beep fallback...');
       
-    } catch (beepError) {
-      console.error('❌ System beep failed:', beepError);
+      // Create a data URL for a simple beep sound
+      const beepDataUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1O2+dSEFl8Dp3nEsDQZtRO7LUTUGj8Ey4MyCQQc+2ky6jhkHDmCh7t+vdSEFNqTA9N6HOwlMr+vFZTgGeMHt2nkPCGrQ7d+MLA0IrHDl5mlYD0xfqn9lOAZsVK52aQAITFFHSdxPCXGIV2+WOQWz5X1E';
+      
+      const audio = new Audio(beepDataUrl);
+      audio.volume = Math.min(notificationSettings?.volume || 0.5, 0.5);
+      await audio.play();
+      
+      console.log('✅ System beep played');
+      return true;
+    } catch (error) {
+      console.error('❌ System beep failed:', error);
       return false;
     }
   };
