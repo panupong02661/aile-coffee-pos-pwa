@@ -36,49 +36,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
-
-  // Enhanced user interaction detection - more aggressive
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      if (!hasUserInteracted) {
-        console.log('🎯 User interaction detected, enabling notifications');
-        setHasUserInteracted(true);
-        
-        // Test sound immediately after first interaction
-        setTimeout(() => {
-          playTestSound();
-        }, 100);
-      }
-    };
-
-    // Add more interaction events
-    const events = ['click', 'keydown', 'touchstart', 'touchend', 'mousedown', 'mousemove'];
-    events.forEach(event => {
-      document.addEventListener(event, handleUserInteraction, { once: true, capture: true });
-    });
-
-    // Auto-enable after 3 seconds if no interaction
-    const autoEnableTimeout = setTimeout(() => {
-      if (!hasUserInteracted) {
-        console.log('🔄 Auto-enabling notifications after timeout');
-        setHasUserInteracted(true);
-      }
-    }, 3000);
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleUserInteraction, { capture: true });
-      });
-      clearTimeout(autoEnableTimeout);
-    };
-  }, [hasUserInteracted]);
 
   useEffect(() => {
     // Don't show notifications on customer mobile app page
@@ -97,16 +60,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     initializeNotifications();
     
-    // Setup realtime subscription - more robust configuration
+    // Setup realtime subscription
     console.log('📡 Setting up realtime subscription...');
     
     const channel = supabase
-      .channel('online-orders-notifications', {
-        config: {
-          broadcast: { self: false },
-          presence: { key: 'admin' }
-        }
-      })
+      .channel('online-orders-notifications')
       .on(
         'postgres_changes',
         {
@@ -140,7 +98,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             if (orderData) {
               console.log('📦 Order data fetched:', orderData);
               
-              // Always show notification for new orders (remove duplicate check)
+              // Show notification for new order
               setNewOrder(orderData);
               setShowOrderAlert(true);
               
@@ -158,9 +116,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
               });
 
-              // Play notification sound - multiple attempts with different methods
+              // Play notification sound
               console.log('🔊 Playing notification sound...');
-              await playNotificationSoundWithFallback();
+              playNotificationSound();
             }
           } catch (error) {
             console.error('❌ Error processing new order notification:', error);
@@ -169,13 +127,6 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       )
       .subscribe((status) => {
         console.log('📡 Realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to online orders channel');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Channel subscription error');
-        } else if (status === 'TIMED_OUT') {
-          console.warn('⏰ Channel subscription timed out - will retry');
-        }
       });
 
     return () => {
@@ -261,140 +212,86 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const playTestSound = async () => {
-    console.log('🧪 Playing test sound...');
-    await playNotificationSoundWithFallback();
-  };
-
-  const playNotificationSoundWithFallback = async (): Promise<boolean> => {
-    console.log('🔊 ==> Starting enhanced notification sound playback...');
+  const playNotificationSound = async () => {
+    console.log('🔊 Starting notification sound playback...');
     
     if (!notificationSettings?.sound_enabled) {
       console.log('🔇 Notification sound disabled in settings');
-      return false;
+      return;
     }
 
-    // Try multiple sound methods in sequence
-    const methods = [
-      () => playAudioElement(),
-      () => playWebAudioBeep(),
-      () => playSystemBeep()
-    ];
-
-    for (let i = 0; i < methods.length; i++) {
-      try {
-        console.log(`🔊 Trying sound method ${i + 1}...`);
-        const success = await methods[i]();
-        if (success) {
-          console.log(`✅ Sound method ${i + 1} successful`);
-          return true;
-        }
-      } catch (error) {
-        console.warn(`⚠️ Sound method ${i + 1} failed:`, error);
-      }
-    }
-
-    console.error('❌ All sound methods failed');
-    return false;
-  };
-
-  const playAudioElement = async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      try {
-        // Clean up previous audio
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-
-        let soundUrl = '';
-        if (notificationSettings?.selected_sound_id && notificationSounds.length > 0) {
-          const selectedSound = notificationSounds.find(
-            sound => sound.id === notificationSettings.selected_sound_id
-          );
-          if (selectedSound) {
-            soundUrl = selectedSound.file_url;
-          }
-        }
-        
-        if (!soundUrl && notificationSounds.length > 0) {
-          soundUrl = notificationSounds[0].file_url;
-        }
-
-        if (!soundUrl) {
-          soundUrl = '/sounds/default-notification.mp3';
-        }
-
-        console.log('🎵 Creating audio element with URL:', soundUrl);
-        
-        const audio = new Audio();
-        audioRef.current = audio;
-        
-        let resolved = false;
-        const resolveOnce = (success: boolean) => {
-          if (!resolved) {
-            resolved = true;
-            resolve(success);
-          }
-        };
-
-        audio.oncanplaythrough = () => {
-          console.log('✅ Audio can play through');
-        };
-        
-        audio.onplay = () => {
-          console.log('▶️ Audio started playing');
-          resolveOnce(true);
-        };
-        
-        audio.onended = () => {
-          console.log('⏹️ Audio finished');
-          if (!resolved) resolveOnce(true);
-        };
-        
-        audio.onerror = (error) => {
-          console.error('❌ Audio error:', error);
-          resolveOnce(false);
-        };
-        
-        // Set timeout
-        setTimeout(() => {
-          if (!resolved) {
-            console.warn('⏰ Audio timeout');
-            resolveOnce(false);
-          }
-        }, 2000);
-        
-        // Configure and play
-        audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
-        audio.src = soundUrl;
-        audio.load();
-        
-        // Try to play
-        const playPromise = audio.play();
-        if (playPromise) {
-          playPromise.catch((error) => {
-            console.error('❌ Play promise rejected:', error);
-            resolveOnce(false);
-          });
-        }
-        
-      } catch (error) {
-        console.error('❌ Audio element error:', error);
-        resolve(false);
-      }
-    });
-  };
-
-  const playWebAudioBeep = async (): Promise<boolean> => {
     try {
-      console.log('🔊 Trying Web Audio API beep...');
+      // Clean up previous audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+
+      // Determine which sound to play
+      let soundUrl = '';
+      if (notificationSettings?.selected_sound_id && notificationSounds.length > 0) {
+        const selectedSound = notificationSounds.find(
+          sound => sound.id === notificationSettings.selected_sound_id
+        );
+        if (selectedSound) {
+          soundUrl = selectedSound.file_url;
+          console.log('🎵 Using selected sound:', selectedSound.name);
+        }
+      }
+      
+      if (!soundUrl && notificationSounds.length > 0) {
+        soundUrl = notificationSounds[0].file_url;
+        console.log('🎵 Using first available sound:', notificationSounds[0].name);
+      }
+
+      if (!soundUrl) {
+        soundUrl = '/sounds/default-notification.mp3';
+        console.log('🎵 Using default sound fallback');
+      }
+
+      console.log('🎵 Playing sound from URL:', soundUrl);
+      
+      const audio = new Audio(soundUrl);
+      audioRef.current = audio;
+      
+      // Set volume
+      audio.volume = Math.min(notificationSettings?.volume || 1.0, 1.0);
+      
+      // Handle audio events
+      audio.oncanplaythrough = () => {
+        console.log('✅ Audio can play through');
+      };
+      
+      audio.onplay = () => {
+        console.log('▶️ Audio started playing');
+      };
+      
+      audio.onended = () => {
+        console.log('⏹️ Audio finished playing');
+      };
+      
+      audio.onerror = (error) => {
+        console.error('❌ Audio error:', error);
+        // Fallback to Web Audio API beep
+        playWebAudioBeep();
+      };
+      
+      // Load and play
+      audio.load();
+      await audio.play();
+      
+    } catch (error) {
+      console.error('❌ Error playing notification sound:', error);
+      // Fallback to Web Audio API beep
+      playWebAudioBeep();
+    }
+  };
+
+  const playWebAudioBeep = () => {
+    try {
+      console.log('🔊 Playing Web Audio beep fallback...');
       
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
       
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -421,30 +318,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.start(currentTime);
       oscillator.stop(currentTime + 0.5);
       
-      console.log('✅ Web Audio beep created');
-      return true;
+      console.log('✅ Web Audio beep played');
     } catch (error) {
       console.error('❌ Web Audio beep failed:', error);
-      return false;
-    }
-  };
-
-  const playSystemBeep = async (): Promise<boolean> => {
-    try {
-      console.log('🔊 Trying system beep fallback...');
-      
-      // Create a data URL for a simple beep sound
-      const beepDataUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1O2+dSEFl8Dp3nEsDQZtRO7LUTUGj8Ey4MyCQQc+2ky6jhkHDmCh7t+vdSEFNqTA9N6HOwlMr+vFZTgGeMHt2nkPCGrQ7d+MLA0IrHDl5mlYD0xfqn9lOAZsVK52aQAITFFHSdxPCXGIV2+WOQWz5X1E';
-      
-      const audio = new Audio(beepDataUrl);
-      audio.volume = Math.min(notificationSettings?.volume || 0.5, 0.5);
-      await audio.play();
-      
-      console.log('✅ System beep played');
-      return true;
-    } catch (error) {
-      console.error('❌ System beep failed:', error);
-      return false;
     }
   };
 
@@ -462,7 +338,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <>
       {children}
       
-      {/* Order Alert Dialog with enhanced styling */}
+      {/* Order Alert Dialog */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="sm:max-w-md border-2 border-orange-300 shadow-2xl">
           <DialogHeader>
