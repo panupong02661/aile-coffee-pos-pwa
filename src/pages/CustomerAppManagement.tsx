@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -351,6 +352,7 @@ const CustomerAppManagement = () => {
       start_date: new Date(limitedStartDate).toISOString(),
       end_date: new Date(limitedEndDate).toISOString(),
       reward_code: limitedRewardCode || null,
+      target_month: null, // Add target_month as null for regular limited rewards
       is_active: true
     });
 
@@ -383,6 +385,7 @@ const CustomerAppManagement = () => {
       start_date: startOfMonth.toISOString(),
       end_date: endOfMonth.toISOString(),
       target_month: birthdayTargetMonth,
+      reward_code: null, // Add reward_code as null for birthday rewards
       is_active: true
     });
 
