@@ -95,6 +95,36 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setShowOrderAlert(false);
         setNewOrder(null);
       })
+      .on('broadcast', { event: 'new-order-notification' }, (payload) => {
+        console.log('📡 Received cross-device order notification:', payload);
+        const orderData = payload.payload;
+        
+        // Show notification on this device too
+        setNewOrder({
+          id: orderData.orderId,
+          order_number: orderData.orderNumber,
+          total_amount: orderData.totalAmount,
+          items_count: orderData.itemsCount,
+          members: orderData.memberInfo
+        });
+        setShowOrderAlert(true);
+        
+        // Play sound on this device
+        playNotificationSound();
+        
+        // Show toast
+        toast.success('มีออเดอร์ออนไลน์ใหม่!', {
+          description: `ออเดอร์ #${orderData.orderNumber} - ฿${orderData.totalAmount}`,
+          duration: 15000,
+          action: {
+            label: 'ดูรายละเอียด',
+            onClick: () => {
+              handleDismiss();
+              navigate('/online-orders');
+            }
+          }
+        });
+      })
       .subscribe((status) => {
         console.log('📡 Sync subscription status:', status);
       });
@@ -188,13 +218,28 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         // Play notification sound
         playNotificationSound();
+        
+        // Broadcast notification to all devices
+        if (notificationChannelRef.current) {
+          notificationChannelRef.current.send({
+            type: 'broadcast',
+            event: 'new-order-notification',
+            payload: {
+              orderId: orderData.id,
+              orderNumber: orderData.order_number,
+              totalAmount: orderData.total_amount,
+              itemsCount: orderData.items_count,
+              memberInfo: orderData.members
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Error processing new order notification:', error);
     }
   };
 
-  const playNotificationSound = () => {
+  const playNotificationSound = async () => {
     console.log('🔊 playNotificationSound called');
     console.log('🔊 Sound enabled:', notificationSettings.sound_enabled);
     console.log('🔊 Volume:', notificationSettings.volume);
@@ -206,16 +251,25 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // Try to play audio file first
+    // Get sound URL - prioritize selected sound from Supabase storage
     let soundUrl = '/sounds/default-notification.mp3';
     
     if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
       const selectedSound = notificationSounds.find(
         sound => sound.id === notificationSettings.selected_sound_id
       );
-      if (selectedSound) {
-        soundUrl = selectedSound.file_url;
-        console.log('🔊 Using selected sound:', selectedSound.name, soundUrl);
+      if (selectedSound && selectedSound.file_url) {
+        // Convert Supabase storage URL to proper public URL
+        const { data } = supabase.storage
+          .from('notification-sounds')
+          .getPublicUrl(selectedSound.file_url);
+        
+        if (data?.publicUrl) {
+          soundUrl = data.publicUrl;
+          console.log('🔊 Using selected sound:', selectedSound.name, soundUrl);
+        } else {
+          console.log('🔊 Failed to get public URL, using default');
+        }
       } else {
         console.log('🔊 Selected sound not found, using default');
       }
@@ -228,22 +282,57 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
+        audioRef.current = null;
       }
 
       console.log('🔊 Creating audio element with URL:', soundUrl);
-      const audio = new Audio(soundUrl);
+      
+      // Test if URL is accessible first
+      const testResponse = await fetch(soundUrl, { method: 'HEAD' }).catch(() => null);
+      if (!testResponse || !testResponse.ok) {
+        console.log('🔊 Sound file not accessible, using beep fallback');
+        createBeepSound();
+        return;
+      }
+
+      const audio = new Audio();
       audioRef.current = audio;
       audio.volume = Math.min(notificationSettings.volume, 1.0);
+      audio.preload = 'auto';
       
-      // Try to play immediately
-      audio.play()
-        .then(() => {
-          console.log('✅ Audio played successfully');
-        })
-        .catch((error) => {
-          console.log('🔊 Direct play failed:', error, 'Using beep fallback');
+      // Set up event handlers
+      audio.oncanplaythrough = () => {
+        console.log('✅ Audio ready, playing...');
+        audio.play()
+          .then(() => {
+            console.log('✅ Audio played successfully');
+          })
+          .catch((error) => {
+            console.log('🔊 Play failed:', error, 'Using beep fallback');
+            createBeepSound();
+          });
+      };
+
+      audio.onerror = (error) => {
+        console.log('🔊 Audio error:', error, 'Using beep fallback');
+        createBeepSound();
+      };
+
+      audio.onloadstart = () => {
+        console.log('🔊 Starting to load audio...');
+      };
+
+      // Start loading
+      audio.src = soundUrl;
+      audio.load();
+
+      // Fallback timeout
+      setTimeout(() => {
+        if (audio.readyState < 3) { // Not ready to play
+          console.log('🔊 Audio load timeout, using beep fallback');
           createBeepSound();
-        });
+        }
+      }, 3000);
 
     } catch (error) {
       console.log('🔊 Audio creation failed:', error, 'Using beep fallback');
