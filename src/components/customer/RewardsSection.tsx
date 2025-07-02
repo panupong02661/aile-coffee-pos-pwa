@@ -34,32 +34,60 @@ interface RewardsSectionProps {
 const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSectionProps) => {
   const [redeemedRewards, setRedeemedRewards] = React.useState<{[key: string]: string}>({});
 
-  const isVoucher = (rewardName: string) => {
-    return rewardName.toLowerCase().includes('voucher') || 
-           rewardName.toLowerCase().includes('คูปอง') || 
-           rewardName.toLowerCase().includes('บาท');
-  };
-
-  const getVoucherValue = (rewardName: string) => {
-    const match = rewardName.match(/(\d+)\s*บาท/);
-    return match ? match[1] : '200';
-  };
-
-  const generateRewardCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  const getRewardType = (rewardName: string) => {
+    const name = rewardName.toLowerCase();
+    if (name.includes('ส่วนลด') || name.includes('discount') || name.includes('%')) {
+      return 'discount';
     }
-    return result;
+    if (name.includes('ฟรี') || name.includes('free')) {
+      return 'free';
+    }
+    if (name.includes('shipping') || name.includes('จัดส่ง')) {
+      return 'shipping';
+    }
+    return 'item';
   };
 
-  const handleRedeemClick = (rewardId: string, pointsRequired: number) => {
+  const getDiscountValue = (rewardName: string) => {
+    const percentMatch = rewardName.match(/(\d+)%/);
+    if (percentMatch) return { value: percentMatch[1], type: 'percent' };
+    
+    const amountMatch = rewardName.match(/(\d+)\s*บาท/);
+    if (amountMatch) return { value: amountMatch[1], type: 'amount' };
+    
+    return { value: '50', type: 'percent' };
+  };
+
+  const generateRewardCode = (rewardName: string) => {
+    const name = rewardName.toLowerCase();
+    if (name.includes('ส่วนลด') || name.includes('discount')) {
+      return 'SAVE' + Math.floor(Math.random() * 100);
+    }
+    if (name.includes('shipping') || name.includes('จัดส่ง')) {
+      return 'FREESHIP';
+    }
+    if (name.includes('birthday') || name.includes('วันเกิด')) {
+      return 'BIRTHDAY';
+    }
+    return 'REWARD' + Math.floor(Math.random() * 100);
+  };
+
+  const getGradientColors = (type: string, index: number) => {
+    const gradients = [
+      'from-orange-400 to-red-400', // MEGA SALE style
+      'from-blue-400 to-purple-500', // SPECIAL OFFER style  
+      'from-green-400 to-emerald-500', // FREE SHIPPING style
+      'from-pink-300 to-blue-300', // Free items style
+    ];
+    return gradients[index % gradients.length];
+  };
+
+  const handleRedeemClick = (rewardId: string, pointsRequired: number, rewardName: string) => {
     const canRedeem = (currentUser?.points || 0) >= pointsRequired;
     if (!canRedeem) return;
 
-    // Generate a unique code for this reward
-    const code = generateRewardCode();
+    // Generate a themed code for this reward
+    const code = generateRewardCode(rewardName);
     setRedeemedRewards(prev => ({
       ...prev,
       [rewardId]: code
@@ -78,124 +106,140 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Updated grid: 2 columns on mobile, 4-5 columns on tablet+ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
-          {rewards.map((reward) => {
-            const isVoucherItem = isVoucher(reward.name);
-            const voucherValue = isVoucherItem ? getVoucherValue(reward.name) : '';
+        {/* Coupon-style grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {rewards.map((reward, index) => {
+            const rewardType = getRewardType(reward.name);
+            const discountInfo = getDiscountValue(reward.name);
             const canRedeem = (currentUser?.points || 0) >= reward.points_required;
             const rewardCode = redeemedRewards[reward.id];
+            const gradientClass = getGradientColors(rewardType, index);
             
             return (
               <div key={reward.id} className="relative">
-                <Card className="h-full overflow-hidden border border-gray-200 rounded-lg shadow-sm">
-                  <CardContent className="p-0 relative">
-                    {/* Image/Content Section - Made smaller */}
-                    <div className="relative aspect-square">
-                      {/* REDEEM Badge - Smaller */}
-                      {canRedeem && (
-                        <div className="absolute top-1 right-1 z-10 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          REDEEM
-                        </div>
-                      )}
-                      
-                      {/* HOT DEAL Badge - Smaller */}
-                      {reward.points_required <= 30 && (
-                        <div className="absolute top-1 left-1 z-10 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          HOT DEAL
-                        </div>
-                      )}
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                  {/* Header with gradient and title */}
+                  <div className={`bg-gradient-to-r ${gradientClass} p-4 text-white`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {rewardType === 'discount' && <span className="text-2xl">🎯</span>}
+                      {rewardType === 'free' && <span className="text-2xl">🎁</span>}
+                      {rewardType === 'shipping' && <span className="text-2xl">🚚</span>}
+                      {rewardType === 'item' && <span className="text-2xl">🍰</span>}
+                      <h3 className="font-bold text-lg">
+                        {rewardType === 'discount' ? 'MEGA SALE' : 
+                         rewardType === 'shipping' ? 'FREE SHIPPING' :
+                         rewardType === 'free' ? 'SPECIAL OFFER' : 
+                         reward.name}
+                      </h3>
+                    </div>
+                    <p className="text-sm opacity-90">
+                      {rewardType === 'discount' ? 'ลดราคาพิเศษ!' :
+                       rewardType === 'shipping' ? 'ส่งฟรี!' :
+                       rewardType === 'free' ? 'ข้อเสนอพิเศษ' :
+                       'ฟรีวันเกิด'}
+                    </p>
+                  </div>
 
-                      {/* Content */}
-                      {isVoucherItem ? (
-                        // Voucher Design - Smaller
-                        <div className="h-full bg-white flex flex-col items-center justify-center p-2 relative">
-                          <div className="text-[8px] text-gray-600 font-medium mb-0.5">CASH VOUCHER</div>
-                          <div className="text-2xl md:text-3xl font-bold text-gray-800 mb-0.5">{voucherValue}</div>
-                          <div className="text-xs text-gray-600 font-medium mb-1">THB</div>
-                          <div className="text-[6px] md:text-[8px] text-gray-500 text-center">
-                            {voucherValue === '100' ? 'ONE HUNDRED BAHT' : 
-                             voucherValue === '200' ? 'TWO HUNDRED BAHT' : 
-                             `${voucherValue} BAHT`}
-                          </div>
-                          {/* Voucher side design - Smaller */}
-                          <div className="absolute right-0 top-0 h-full w-4 bg-gray-100 flex flex-col items-center justify-center">
-                            <div className="text-[6px] md:text-[8px] text-gray-500 transform rotate-90 whitespace-nowrap">
-                              COUPON
-                            </div>
-                          </div>
+                  {/* Main content */}
+                  <div className="p-6 text-center bg-white">
+                    {/* Discount Value */}
+                    <div className="mb-4">
+                      {rewardType === 'discount' ? (
+                        <div className="text-5xl font-bold text-gray-800">
+                          {discountInfo.type === 'percent' ? `${discountInfo.value}%` : `${discountInfo.value}฿`}
                         </div>
+                      ) : rewardType === 'shipping' ? (
+                        <div className="text-5xl font-bold text-emerald-600">FREE</div>
+                      ) : rewardType === 'free' ? (
+                        <div className="text-5xl font-bold text-blue-600">{discountInfo.value}฿</div>
                       ) : (
-                        // Menu Item Image
-                        <div className="h-full">
-                          {reward.image_url ? (
-                            <img 
-                              src={reward.image_url} 
-                              alt={reward.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                              <Gift className="w-8 h-8 md:w-12 md:h-12 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
+                        <div className="text-5xl font-bold text-pink-600">FREE</div>
                       )}
                     </div>
 
-                    {/* Text Content - Smaller */}
-                    <div className="p-2">
-                      <h4 className="text-xs md:text-sm font-medium text-gray-800 text-center line-clamp-2 leading-tight min-h-[2rem] md:min-h-[2.5rem]">
-                        {reward.name}
-                      </h4>
+                    {/* Coupon Code Section */}
+                    <div className="relative mb-4">
+                      <div className="bg-gray-800 text-white py-3 px-4 rounded-lg border-2 border-dashed border-gray-400 relative">
+                        {/* Circular cutouts */}
+                        <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full"></div>
+                        <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full"></div>
+                        
+                        <div className="font-bold text-lg tracking-wider">
+                          {rewardCode || generateRewardCode(reward.name)}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Dotted line separator */}
-                    <div className="border-t-2 border-dashed border-gray-300 mx-2"></div>
+                    {/* Conditions */}
+                    <div className="text-sm text-gray-600 mb-4 space-y-1">
+                      {rewardType === 'discount' && (
+                        <>
+                          <p>ใช้ได้กับ: สินค้าทุกชิ้น</p>
+                          <p>ยอดขั้นต่ำ: {reward.points_required * 10} บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'shipping' && (
+                        <>
+                          <p>ใช้ได้กับ: ทุกคำสั่งซื้อ</p>
+                          <p>ยอดขั้นต่ำ: 500 บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'free' && (
+                        <>
+                          <p>ส่วนลด: {discountInfo.value} บาท</p>
+                          <p>ยอดขั้นต่ำ: 2,000 บาท</p>
+                        </>
+                      )}
+                      {rewardType === 'item' && (
+                        <>
+                          <p>เงื่อนไข: แสดงบัตรประชาชน (วันเกิด)</p>
+                          <p>ใช้ได้: วันเกิด ± 3 วัน</p>
+                        </>
+                      )}
+                      <p>หมดอายุ: 31 ธ.ค. 2025</p>
+                      <p>สาขา: ทุกสาขา</p>
+                    </div>
 
-                    {/* Bottom section with points/code - Smaller */}
-                    <div className="bg-gray-50 p-2">
+                    {/* Action Button */}
+                    <div className="pt-4 border-t border-gray-200">
                       {rewardCode ? (
-                        // Show code after redemption
-                        <div className="text-center">
-                          <div className="text-[10px] text-gray-600 mb-1">โค้ดของคุณ</div>
-                          <div className="text-sm md:text-lg font-bold text-green-600 mb-1">{rewardCode}</div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-[10px] md:text-xs px-2 py-0.5 h-6"
-                            onClick={() => {
-                              navigator.clipboard.writeText(rewardCode);
-                            }}
-                          >
-                            คัดลอกโค้ด
-                          </Button>
-                        </div>
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3"
+                          onClick={() => {
+                            navigator.clipboard.writeText(rewardCode);
+                          }}
+                        >
+                          คัดลอกโค้ด
+                        </Button>
                       ) : (
-                        // Show points and redeem button
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                              <span className="text-white text-[8px] font-bold">●</span>
-                            </div>
-                            <span className="text-sm md:text-lg font-bold text-green-600">
-                              {reward.points_required}
-                            </span>
-                          </div>
-                          <div className="text-[10px] md:text-xs text-gray-600 mb-1">POINTS</div>
-                          <Button
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-[10px] md:text-xs px-2 py-0.5 h-6"
-                            onClick={() => handleRedeemClick(reward.id, reward.points_required)}
-                            disabled={!canRedeem}
-                          >
-                            ใช้โค้ด
-                          </Button>
-                        </div>
+                        <Button
+                          className={`w-full font-bold py-3 ${
+                            canRedeem 
+                              ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => canRedeem && handleRedeemClick(reward.id, reward.points_required, reward.name)}
+                          disabled={!canRedeem}
+                        >
+                          {canRedeem ? 
+                            (rewardType === 'item' ? '1 ชิ้นฟรี วันเกิด' : 'ใช้โค้ดร่วมกับโปรอื่น ไม่ได้') :
+                            `ต้องการ ${reward.points_required} แต้ม`
+                          }
+                        </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+
+                    {/* Points indicator */}
+                    {!rewardCode && (
+                      <div className="flex items-center justify-center gap-2 mt-3 text-sm text-gray-500">
+                        <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">●</span>
+                        </div>
+                        <span>{reward.points_required} แต้ม</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}

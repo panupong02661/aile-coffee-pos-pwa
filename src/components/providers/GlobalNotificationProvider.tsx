@@ -251,91 +251,95 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
+    // Clean up previous audio first
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+
     // Get sound URL - prioritize selected sound from Supabase storage
     let soundUrl = '/sounds/default-notification.mp3';
+    let useCustomSound = false;
     
     if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
       const selectedSound = notificationSounds.find(
         sound => sound.id === notificationSettings.selected_sound_id
       );
+      
       if (selectedSound && selectedSound.file_url) {
-        // Convert Supabase storage URL to proper public URL
+        // Get proper public URL for uploaded sound
         const { data } = supabase.storage
           .from('notification-sounds')
           .getPublicUrl(selectedSound.file_url);
         
         if (data?.publicUrl) {
           soundUrl = data.publicUrl;
-          console.log('🔊 Using selected sound:', selectedSound.name, soundUrl);
-        } else {
-          console.log('🔊 Failed to get public URL, using default');
+          useCustomSound = true;
+          console.log('🔊 Using uploaded sound:', selectedSound.name, soundUrl);
         }
-      } else {
-        console.log('🔊 Selected sound not found, using default');
       }
-    } else {
-      console.log('🔊 No sound selected, using default:', soundUrl);
     }
 
     try {
-      // Clean up previous audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        audioRef.current = null;
-      }
-
       console.log('🔊 Creating audio element with URL:', soundUrl);
       
-      // Test if URL is accessible first
-      const testResponse = await fetch(soundUrl, { method: 'HEAD' }).catch(() => null);
-      if (!testResponse || !testResponse.ok) {
-        console.log('🔊 Sound file not accessible, using beep fallback');
-        createBeepSound();
-        return;
-      }
-
       const audio = new Audio();
       audioRef.current = audio;
       audio.volume = Math.min(notificationSettings.volume, 1.0);
-      audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous'; // Help with CORS
       
-      // Set up event handlers
-      audio.oncanplaythrough = () => {
-        console.log('✅ Audio ready, playing...');
-        audio.play()
-          .then(() => {
-            console.log('✅ Audio played successfully');
-          })
-          .catch((error) => {
-            console.log('🔊 Play failed:', error, 'Using beep fallback');
-            createBeepSound();
-          });
-      };
+      // Promise-based approach for better error handling
+      const playPromise = new Promise((resolve, reject) => {
+        audio.oncanplaythrough = () => {
+          console.log('✅ Audio loaded successfully, attempting to play...');
+          audio.play()
+            .then(() => {
+              console.log('✅ Audio played successfully');
+              resolve(true);
+            })
+            .catch(reject);
+        };
 
-      audio.onerror = (error) => {
-        console.log('🔊 Audio error:', error, 'Using beep fallback');
-        createBeepSound();
-      };
+        audio.onerror = (error) => {
+          console.log('🔊 Audio error:', error);
+          reject(error);
+        };
 
-      audio.onloadstart = () => {
-        console.log('🔊 Starting to load audio...');
-      };
+        audio.onloadstart = () => {
+          console.log('🔊 Starting to load audio...');
+        };
 
-      // Start loading
-      audio.src = soundUrl;
-      audio.load();
+        audio.onabort = () => {
+          console.log('🔊 Audio loading aborted');
+          reject(new Error('Audio loading aborted'));
+        };
 
-      // Fallback timeout
-      setTimeout(() => {
-        if (audio.readyState < 3) { // Not ready to play
-          console.log('🔊 Audio load timeout, using beep fallback');
-          createBeepSound();
-        }
-      }, 3000);
+        // Start loading
+        audio.src = soundUrl;
+        audio.load();
+      });
+
+      // Set timeout for loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Audio loading timeout'));
+        }, 5000);
+      });
+
+      // Race between loading and timeout
+      await Promise.race([playPromise, timeoutPromise]);
 
     } catch (error) {
-      console.log('🔊 Audio creation failed:', error, 'Using beep fallback');
+      console.log('🔊 Failed to play custom sound:', error, 'Using beep fallback');
+      
+      // Clean up failed audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      // Always fall back to beep sound
       createBeepSound();
     }
   };
