@@ -48,7 +48,7 @@ export const useClaimLimitedReward = () => {
         if (typeof data === 'string') {
           result = JSON.parse(data) as ClaimRewardResponse;
         } else if (data && typeof data === 'object' && 'success' in data && 'message' in data) {
-          result = data as ClaimRewardResponse;
+          result = data as unknown as ClaimRewardResponse;
         } else {
           throw new Error('Invalid response format');
         }
