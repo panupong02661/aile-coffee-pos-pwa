@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, 
   Gift, 
@@ -21,10 +22,13 @@ import {
   Trash2,
   Edit,
   Calendar,
-  ShoppingBag
+  ShoppingBag,
+  Zap,
+  Cake
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLimitedRewards, useCreateLimitedReward } from '@/hooks/useLimitedRewards';
 
 interface Customer {
   id: string;
@@ -78,6 +82,27 @@ const CustomerAppManagement = () => {
   const [giftType, setGiftType] = useState<'reward' | 'promotion' | 'menu_item'>('reward');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Limited Rewards states
+  const [limitedRewardName, setLimitedRewardName] = useState('');
+  const [limitedRewardDescription, setLimitedRewardDescription] = useState('');
+  const [limitedRewardType, setLimitedRewardType] = useState<'discount' | 'free_item'>('discount');
+  const [limitedDiscountType, setLimitedDiscountType] = useState<'percent' | 'amount'>('percent');
+  const [limitedDiscountValue, setLimitedDiscountValue] = useState(0);
+  const [limitedMaxClaims, setLimitedMaxClaims] = useState(100);
+  const [limitedStartDate, setLimitedStartDate] = useState('');
+  const [limitedEndDate, setLimitedEndDate] = useState('');
+  const [limitedRewardCode, setLimitedRewardCode] = useState('');
+
+  // Birthday Rewards states
+  const [birthdayRewardType, setBirthdayRewardType] = useState<'discount' | 'free_item'>('discount');
+  const [birthdayDiscountType, setBirthdayDiscountType] = useState<'percent' | 'amount'>('percent');
+  const [birthdayDiscountValue, setBirthdayDiscountValue] = useState(0);
+  const [birthdayTargetMonth, setBirthdayTargetMonth] = useState(1);
+  const [birthdayDescription, setBirthdayDescription] = useState('');
+
+  const { data: limitedRewards } = useLimitedRewards();
+  const { mutate: createLimitedReward } = useCreateLimitedReward();
 
   // Load data
   useEffect(() => {
@@ -305,254 +330,571 @@ const CustomerAppManagement = () => {
     }
   };
 
+  const handleCreateLimitedReward = async () => {
+    if (!limitedRewardName || !limitedStartDate || !limitedEndDate) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
+      return;
+    }
+
+    if (new Date(limitedStartDate) >= new Date(limitedEndDate)) {
+      toast({ title: 'ข้อผิดพลาด', description: 'วันที่เริ่มต้นต้องน้อยกว่าวันที่สิ้นสุด', variant: 'destructive' });
+      return;
+    }
+
+    createLimitedReward({
+      name: limitedRewardName,
+      description: limitedRewardDescription,
+      reward_type: limitedRewardType,
+      discount_type: limitedDiscountType,
+      discount_value: limitedDiscountValue,
+      max_claims: limitedMaxClaims,
+      start_date: new Date(limitedStartDate).toISOString(),
+      end_date: new Date(limitedEndDate).toISOString(),
+      reward_code: limitedRewardCode || null,
+      is_active: true
+    });
+
+    // Reset form
+    setLimitedRewardName('');
+    setLimitedRewardDescription('');
+    setLimitedDiscountValue(0);
+    setLimitedMaxClaims(100);
+    setLimitedStartDate('');
+    setLimitedEndDate('');
+    setLimitedRewardCode('');
+  };
+
+  const handleCreateBirthdayReward = async () => {
+    if (!birthdayDescription) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกคำอธิบาย', variant: 'destructive' });
+      return;
+    }
+
+    const startOfMonth = new Date(new Date().getFullYear(), birthdayTargetMonth - 1, 1);
+    const endOfMonth = new Date(new Date().getFullYear(), birthdayTargetMonth, 0, 23, 59, 59);
+
+    createLimitedReward({
+      name: `ของรางวัลวันเกิด เดือน ${birthdayTargetMonth}`,
+      description: birthdayDescription,
+      reward_type: birthdayRewardType,
+      discount_type: birthdayDiscountType,
+      discount_value: birthdayDiscountValue,
+      max_claims: 1000, // High limit for birthday rewards
+      start_date: startOfMonth.toISOString(),
+      end_date: endOfMonth.toISOString(),
+      target_month: birthdayTargetMonth,
+      is_active: true
+    });
+
+    // Reset form
+    setBirthdayDescription('');
+    setBirthdayDiscountValue(0);
+  };
+
+  const monthNames = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b p-6">
         <h1 className="text-2xl font-bold text-gray-800">จัดการแอปลูกค้า</h1>
-        <p className="text-gray-600 mt-1">ส่งของขวัญและโปรโมชั่นให้ลูกค้า</p>
+        <p className="text-gray-600 mt-1">ส่งของขวัญ สร้างของรางวัลพิเศษ และจัดการของรางวัลวันเกิด</p>
       </div>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Customer Selection */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  เลือกลูกค้า ({selectedCustomers.length} คน)
-                </CardTitle>
-                
-                {/* Search and Filter */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="ค้นหาชื่อหรือเบอร์โทร..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="send-gifts" className="flex items-center gap-2">
+              <Send className="w-4 h-4" />
+              ส่งของขวัญ
+            </TabsTrigger>
+            <TabsTrigger value="limited-rewards" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              ของรางวัลพิเศษ
+            </TabsTrigger>
+            <TabsTrigger value="birthday-rewards" className="flex items-center gap-2">
+              <Cake className="w-4 h-4" />
+              ของรางวัลวันเกิด
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="send-gifts">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Customer Selection */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      เลือกลูกค้า ({selectedCustomers.length} คน)
+                    </CardTitle>
+                    
+                    {/* Search and Filter */}
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <Select value={tierFilter} onValueChange={setTierFilter}>
+                        <SelectTrigger className="w-40">
+                          <Filter className="w-4 h-4 mr-2" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">ทุกระดับ</SelectItem>
+                          <SelectItem value="platinum">แพลทินัม</SelectItem>
+                          <SelectItem value="gold">ทอง</SelectItem>
+                          <SelectItem value="silver">เงิน</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                  <Select value={tierFilter} onValueChange={setTierFilter}>
-                    <SelectTrigger className="w-40">
-                      <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">ทุกระดับ</SelectItem>
-                      <SelectItem value="platinum">แพลทินัม</SelectItem>
-                      <SelectItem value="gold">ทอง</SelectItem>
-                      <SelectItem value="silver">เงิน</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={handleSelectAll}
-                  className="w-fit"
-                >
-                  {selectedCustomers.length === filteredCustomers.length ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-96 overflow-y-auto space-y-2">
-                  {filteredCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedCustomers.includes(customer.id)
-                          ? 'bg-blue-50 border-blue-300'
-                          : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleCustomerSelect(customer.id)}
+                    
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSelectAll}
+                      className="w-fit"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            {getTierIcon(customer.tier)}
-                            <div>
-                              <div className="font-medium">{customer.name}</div>
-                              <div className="text-sm text-gray-600">{customer.phone}</div>
+                      {selectedCustomers.length === filteredCustomers.length ? 'ยกเลิกเลือกทั้งหมด' : 'เลือกทั้งหมด'}
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-96 overflow-y-auto space-y-2">
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedCustomers.includes(customer.id)
+                              ? 'bg-blue-50 border-blue-300'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => handleCustomerSelect(customer.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                {getTierIcon(customer.tier)}
+                                <div>
+                                  <div className="font-medium">{customer.name}</div>
+                                  <div className="text-sm text-gray-600">{customer.phone}</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge className={getTierBadgeColor(customer.tier)}>
+                                {customer.tier}
+                              </Badge>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {customer.points.toLocaleString()} แต้ม
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge className={getTierBadgeColor(customer.tier)}>
-                            {customer.tier}
-                          </Badge>
-                          <div className="text-sm text-gray-600 mt-1">
-                            {customer.points.toLocaleString()} แต้ม
-                          </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Gift Selection */}
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      เลือกของขวัญ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Gift Type Selection */}
+                    <div>
+                      <Label>ประเภทของขวัญ</Label>
+                      <Select value={giftType} onValueChange={(value: 'reward' | 'promotion' | 'menu_item') => {
+                        setGiftType(value);
+                        setSelectedReward('');
+                        setSelectedPromotion('');
+                        setSelectedMenuItem('');
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="reward">
+                            <div className="flex items-center gap-2">
+                              <Gift className="w-4 h-4" />
+                              ของรางวัล
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="promotion">
+                            <div className="flex items-center gap-2">
+                              <Tag className="w-4 h-4" />
+                              โปรโมชั่น
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="menu_item">
+                            <div className="flex items-center gap-2">
+                              <ShoppingBag className="w-4 h-4" />
+                              เมนูอาหาร
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Gift Selection based on type */}
+                    {giftType === 'reward' && (
+                      <div>
+                        <Label>ของรางวัล</Label>
+                        <Select value={selectedReward} onValueChange={setSelectedReward}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกของรางวัล" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {rewards.map((reward) => (
+                              <SelectItem key={reward.id} value={reward.id}>
+                                {reward.name} ({reward.points_required} แต้ม)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {giftType === 'promotion' && (
+                      <div>
+                        <Label>โปรโมชั่น</Label>
+                        <Select value={selectedPromotion} onValueChange={setSelectedPromotion}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกโปรโมชั่น" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {promotions.map((promotion) => (
+                              <SelectItem key={promotion.id} value={promotion.id}>
+                                {promotion.name} ({promotion.discount_value}
+                                {promotion.discount_type === 'percentage' ? '%' : '฿'})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {giftType === 'menu_item' && (
+                      <div>
+                        <Label>เมนูอาหาร</Label>
+                        <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกเมนูอาหาร" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {menuItems.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.name} ({item.price}฿)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    {/* Expiration Date */}
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        วันหมดอายุ (ไม่บังคับ)
+                      </Label>
+                      <Input
+                        type="datetime-local"
+                        value={expirationDate}
+                        onChange={(e) => setExpirationDate(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Message */}
+                    <div>
+                      <Label>ข้อความแนบ (ไม่บังคับ)</Label>
+                      <Textarea
+                        placeholder="ข้อความที่ต้องการส่งไปพร้อมของขวัญ..."
+                        value={giftMessage}
+                        onChange={(e) => setGiftMessage(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Send Button */}
+                    <Button 
+                      onClick={handleSendGift}
+                      disabled={isLoading || selectedCustomers.length === 0 || !getCurrentGiftData()}
+                      className="w-full"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {isLoading ? 'กำลังส่ง...' : 'ส่งของขวัญ'}
+                    </Button>
+
+                    {/* Summary */}
+                    {selectedCustomers.length > 0 && getCurrentGiftData() && (
+                      <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                        <div className="font-medium text-blue-800">สรุป:</div>
+                        <div className="text-blue-700">
+                          • ลูกค้าที่เลือก: {selectedCustomers.length} คน<br/>
+                          • ประเภท: {giftType === 'reward' ? 'ของรางวัล' : giftType === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'}<br/>
+                          • ชื่อ: {getCurrentGiftData()?.name}<br/>
+                          {expirationDate && <span>• หมดอายุ: {new Date(expirationDate).toLocaleDateString('th-TH')}</span>}
                         </div>
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="limited-rewards">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Create Limited Reward Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    สร้างของรางวัลพิเศษใหม่
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>ชื่อรางวัล *</Label>
+                    <Input
+                      placeholder="เช่น ส่วนลด 20% พิเศษ"
+                      value={limitedRewardName}
+                      onChange={(e) => setLimitedRewardName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>ประเภทรางวัล</Label>
+                      <Select value={limitedRewardType} onValueChange={(value: 'discount' | 'free_item') => setLimitedRewardType(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="discount">ส่วนลด</SelectItem>
+                          <SelectItem value="free_item">ของฟรี</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Gift Selection */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  เลือกของขวัญ
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Gift Type Selection */}
-                <div>
-                  <Label>ประเภทของขวัญ</Label>
-                  <Select value={giftType} onValueChange={(value: 'reward' | 'promotion' | 'menu_item') => {
-                    setGiftType(value);
-                    setSelectedReward('');
-                    setSelectedPromotion('');
-                    setSelectedMenuItem('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="reward">
-                        <div className="flex items-center gap-2">
-                          <Gift className="w-4 h-4" />
-                          ของรางวัล
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="promotion">
-                        <div className="flex items-center gap-2">
-                          <Tag className="w-4 h-4" />
-                          โปรโมชั่น
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="menu_item">
-                        <div className="flex items-center gap-2">
-                          <ShoppingBag className="w-4 h-4" />
-                          เมนูอาหาร
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div>
+                      <Label>ประเภทส่วนลด</Label>
+                      <Select value={limitedDiscountType} onValueChange={(value: 'percent' | 'amount') => setLimitedDiscountType(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percent">เปอร์เซ็นต์ (%)</SelectItem>
+                          <SelectItem value="amount">จำนวนเงิน (บาท)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-                {/* Gift Selection based on type */}
-                {giftType === 'reward' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>มูลค่า</Label>
+                      <Input
+                        type="number"
+                        value={limitedDiscountValue}
+                        onChange={(e) => setLimitedDiscountValue(Number(e.target.value))}
+                      />
+                    </div>
+
+                    <div>
+                      <Label>จำนวนสิทธิ์ทั้งหมด</Label>
+                      <Input
+                        type="number"
+                        value={limitedMaxClaims}
+                        onChange={(e) => setLimitedMaxClaims(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>วันเริ่ม *</Label>
+                      <Input
+                        type="datetime-local"
+                        value={limitedStartDate}
+                        onChange={(e) => setLimitedStartDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <Label>วันสิ้นสุด *</Label>
+                      <Input
+                        type="datetime-local"
+                        value={limitedEndDate}
+                        onChange={(e) => setLimitedEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>คำอธิบาย</Label>
+                    <Textarea
+                      placeholder="อธิบายเงื่อนไขและรายละเอียดของรางวัล..."
+                      value={limitedRewardDescription}
+                      onChange={(e) => setLimitedRewardDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>รหัสคูปอง (ถ้ามี)</Label>
+                    <Input
+                      placeholder="เช่น SPECIAL20"
+                      value={limitedRewardCode}
+                      onChange={(e) => setLimitedRewardCode(e.target.value)}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleCreateLimitedReward}
+                    className="w-full"
+                    disabled={!limitedRewardName || !limitedStartDate || !limitedEndDate}
+                  >
+                    สร้างรางวัล
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Limited Rewards List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    รายการของรางวัลพิเศษ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {limitedRewards?.map((reward) => (
+                      <div key={reward.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">{reward.name}</h3>
+                          <Badge variant={reward.is_active ? "default" : "secondary"}>
+                            {reward.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span>
+                            {reward.discount_value}
+                            {reward.discount_type === 'percent' ? '%' : '฿'}
+                          </span>
+                          <span className="text-gray-500">
+                            {reward.current_claims || 0}/{reward.max_claims} ใช้แล้ว
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {new Date(reward.start_date).toLocaleDateString('th-TH')} - {new Date(reward.end_date).toLocaleDateString('th-TH')}
+                        </div>
+                      </div>
+                    ))}
+                    {(!limitedRewards || limitedRewards.length === 0) && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Zap className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                        <p>ยังไม่มีของรางวัลพิเศษ</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="birthday-rewards">
+            <div className="max-w-2xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Cake className="w-5 h-5" />
+                    เลือกของรางวัล
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>ประเภทของรางวัล</Label>
+                    <Select value={birthdayRewardType} onValueChange={(value: 'discount' | 'free_item') => setBirthdayRewardType(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="discount">
+                          <div className="flex items-center gap-2">
+                            <Gift className="w-4 h-4" />
+                            ของรางวัล
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label>ของรางวัล</Label>
-                    <Select value={selectedReward} onValueChange={setSelectedReward}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกของรางวัล" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rewards.map((reward) => (
-                          <SelectItem key={reward.id} value={reward.id}>
-                            {reward.name} ({reward.points_required} แต้ม)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      placeholder="เลือกของรางวัล"
+                      value="เค้กของรางวัล"
+                      readOnly
+                    />
                   </div>
-                )}
 
-                {giftType === 'promotion' && (
                   <div>
-                    <Label>โปรโมชั่น</Label>
-                    <Select value={selectedPromotion} onValueChange={setSelectedPromotion}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกโปรโมชั่น" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {promotions.map((promotion) => (
-                          <SelectItem key={promotion.id} value={promotion.id}>
-                            {promotion.name} ({promotion.discount_value}
-                            {promotion.discount_type === 'percentage' ? '%' : '฿'})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      วันหมดอายุ (ไม่บังคับ)
+                    </Label>
+                    <Input
+                      type="date"
+                      defaultValue="2024-12-31"
+                    />
                   </div>
-                )}
 
-                {giftType === 'menu_item' && (
                   <div>
-                    <Label>เมนูอาหาร</Label>
-                    <Select value={selectedMenuItem} onValueChange={setSelectedMenuItem}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเมนูอาหาร" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {menuItems.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.name} ({item.price}฿)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>ข้อความแนบ (ไม่บังคับ)</Label>
+                    <Textarea
+                      placeholder="ข้อความที่ต้องการกำหนดสำหรับของรางวัลของขวัญ..."
+                      value={birthdayDescription}
+                      onChange={(e) => setBirthdayDescription(e.target.value)}
+                      rows={3}
+                    />
                   </div>
-                )}
 
-                <Separator />
-
-                {/* Expiration Date */}
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    วันหมดอายุ (ไม่บังคับ)
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    value={expirationDate}
-                    onChange={(e) => setExpirationDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 16)}
-                  />
-                </div>
-
-                <Separator />
-
-                {/* Message */}
-                <div>
-                  <Label>ข้อความแนบ (ไม่บังคับ)</Label>
-                  <Textarea
-                    placeholder="ข้อความที่ต้องการส่งไปพร้อมของขวัญ..."
-                    value={giftMessage}
-                    onChange={(e) => setGiftMessage(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                {/* Send Button */}
-                <Button 
-                  onClick={handleSendGift}
-                  disabled={isLoading || selectedCustomers.length === 0 || !getCurrentGiftData()}
-                  className="w-full"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {isLoading ? 'กำลังส่ง...' : 'ส่งของขวัญ'}
-                </Button>
-
-                {/* Summary */}
-                {selectedCustomers.length > 0 && getCurrentGiftData() && (
-                  <div className="bg-blue-50 p-3 rounded-lg text-sm">
-                    <div className="font-medium text-blue-800">สรุป:</div>
-                    <div className="text-blue-700">
-                      • ลูกค้าที่เลือก: {selectedCustomers.length} คน<br/>
-                      • ประเภท: {giftType === 'reward' ? 'ของรางวัล' : giftType === 'promotion' ? 'โปรโมชั่น' : 'เมนูอาหาร'}<br/>
-                      • ชื่อ: {getCurrentGiftData()?.name}<br/>
-                      {expirationDate && <span>• หมดอายุ: {new Date(expirationDate).toLocaleDateString('th-TH')}</span>}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  <Button 
+                    onClick={handleCreateBirthdayReward}
+                    className="w-full"
+                    disabled={!birthdayDescription}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    ส่งของรางวัล
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
