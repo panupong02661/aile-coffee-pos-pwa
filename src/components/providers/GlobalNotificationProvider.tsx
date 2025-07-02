@@ -40,6 +40,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   });
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const notificationChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -58,10 +59,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Load notification settings and sounds
     loadNotificationData();
     
-    // Setup realtime subscription
+    // Setup realtime subscription for new orders
     console.log('📡 Setting up realtime subscription...');
     
-    const channel = supabase
+    const orderChannel = supabase
       .channel('online-orders-notifications')
       .on(
         'postgres_changes',
@@ -77,12 +78,27 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       )
       .subscribe((status) => {
-        console.log('📡 Realtime subscription status:', status);
+        console.log('📡 Order subscription status:', status);
       });
 
+    // Setup cross-device notification sync channel
+    const syncChannel = supabase
+      .channel('notification-sync')
+      .on('broadcast', { event: 'dismiss-notification' }, () => {
+        console.log('📡 Received dismiss broadcast');
+        setShowOrderAlert(false);
+        setNewOrder(null);
+      })
+      .subscribe((status) => {
+        console.log('📡 Sync subscription status:', status);
+      });
+
+    notificationChannelRef.current = syncChannel;
+
     return () => {
-      console.log('🧹 Cleaning up notification subscription...');
-      supabase.removeChannel(channel);
+      console.log('🧹 Cleaning up notification subscriptions...');
+      supabase.removeChannel(orderChannel);
+      supabase.removeChannel(syncChannel);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -263,6 +279,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleDismiss = () => {
+    // Broadcast dismiss to all devices
+    if (notificationChannelRef.current) {
+      notificationChannelRef.current.send({
+        type: 'broadcast',
+        event: 'dismiss-notification'
+      });
+    }
+    
     setShowOrderAlert(false);
     setNewOrder(null);
   };
