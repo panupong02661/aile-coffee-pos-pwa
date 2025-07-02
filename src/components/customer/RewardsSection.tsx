@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CustomerProfile {
   id: string;
@@ -116,16 +117,16 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
             const gradientClass = getGradientColors(rewardType, index);
             
             return (
-              <div key={reward.id} className="relative">
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div key={reward.id} className="relative animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
                   {/* Header with gradient and title */}
-                  <div className={`bg-gradient-to-r ${gradientClass} p-4 text-white`}>
+                  <div className={`bg-gradient-to-r ${gradientClass} p-4 text-white relative`}>
                     <div className="flex items-center gap-2 mb-1">
                       {rewardType === 'discount' && <span className="text-2xl">🎯</span>}
                       {rewardType === 'free' && <span className="text-2xl">🎁</span>}
                       {rewardType === 'shipping' && <span className="text-2xl">🚚</span>}
                       {rewardType === 'item' && <span className="text-2xl">🍰</span>}
-                      <h3 className="font-bold text-lg">
+                      <h3 className="font-bold text-xl">
                         {rewardType === 'discount' ? 'MEGA SALE' : 
                          rewardType === 'shipping' ? 'FREE SHIPPING' :
                          rewardType === 'free' ? 'SPECIAL OFFER' : 
@@ -138,104 +139,118 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
                        rewardType === 'free' ? 'ข้อเสนอพิเศษ' :
                        'ฟรีวันเกิด'}
                     </p>
+                    
+                    {/* Decorative elements */}
+                    <div className="absolute top-2 right-2 opacity-20">
+                      <div className="w-16 h-16 border-4 border-white rounded-full"></div>
+                    </div>
                   </div>
 
                   {/* Main content */}
-                  <div className="p-6 text-center bg-white">
-                    {/* Discount Value */}
-                    <div className="mb-4">
+                  <div className="p-6 text-center bg-white relative">
+                    {/* Discount Value with animation */}
+                    <div className="mb-6 animate-scale-in">
                       {rewardType === 'discount' ? (
-                        <div className="text-5xl font-bold text-gray-800">
+                        <div className="text-6xl font-black text-gray-800 mb-2">
                           {discountInfo.type === 'percent' ? `${discountInfo.value}%` : `${discountInfo.value}฿`}
                         </div>
                       ) : rewardType === 'shipping' ? (
-                        <div className="text-5xl font-bold text-emerald-600">FREE</div>
+                        <div className="text-6xl font-black text-emerald-600 mb-2">FREE</div>
                       ) : rewardType === 'free' ? (
-                        <div className="text-5xl font-bold text-blue-600">{discountInfo.value}฿</div>
+                        <div className="text-6xl font-black text-blue-600 mb-2">{discountInfo.value}฿</div>
                       ) : (
-                        <div className="text-5xl font-bold text-pink-600">FREE</div>
+                        <div className="text-6xl font-black text-pink-600 mb-2">FREE</div>
                       )}
+                      
+                      {/* Small circle decoration */}
+                      <div className="flex justify-center">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full opacity-80"></div>
+                      </div>
                     </div>
 
-                    {/* Coupon Code Section */}
-                    <div className="relative mb-4">
-                      <div className="bg-gray-800 text-white py-3 px-4 rounded-lg border-2 border-dashed border-gray-400 relative">
+                    {/* Coupon Code Section with dashed border */}
+                    <div className="relative mb-6">
+                      <div className="bg-gray-800 text-white py-4 px-6 rounded-lg border-2 border-dashed border-gray-400 relative overflow-hidden">
                         {/* Circular cutouts */}
-                        <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full"></div>
-                        <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full"></div>
+                        <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full border-2 border-dashed border-gray-400"></div>
+                        <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white rounded-full border-2 border-dashed border-gray-400"></div>
                         
-                        <div className="font-bold text-lg tracking-wider">
+                        <div className="font-bold text-xl tracking-widest">
                           {rewardCode || generateRewardCode(reward.name)}
                         </div>
                       </div>
                     </div>
 
-                    {/* Conditions */}
-                    <div className="text-sm text-gray-600 mb-4 space-y-1">
+                    {/* Conditions in smaller text */}
+                    <div className="text-xs text-gray-600 mb-6 space-y-1 bg-gray-50 p-3 rounded-lg">
                       {rewardType === 'discount' && (
                         <>
-                          <p>ใช้ได้กับ: สินค้าทุกชิ้น</p>
-                          <p>ยอดขั้นต่ำ: {reward.points_required * 10} บาท</p>
+                          <p><strong>ใช้ได้กับ:</strong> สินค้าทุกชิ้น</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> {Math.max(1000, reward.points_required * 10)} บาท</p>
                         </>
                       )}
                       {rewardType === 'shipping' && (
                         <>
-                          <p>ใช้ได้กับ: ทุกคำสั่งซื้อ</p>
-                          <p>ยอดขั้นต่ำ: 500 บาท</p>
+                          <p><strong>ใช้ได้กับ:</strong> ทุกคำสั่งซื้อ</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> 500 บาท</p>
                         </>
                       )}
                       {rewardType === 'free' && (
                         <>
-                          <p>ส่วนลด: {discountInfo.value} บาท</p>
-                          <p>ยอดขั้นต่ำ: 2,000 บาท</p>
+                          <p><strong>ส่วนลด:</strong> {discountInfo.value} บาท</p>
+                          <p><strong>ยอดขั้นต่ำ:</strong> 2,000 บาท</p>
                         </>
                       )}
                       {rewardType === 'item' && (
                         <>
-                          <p>เงื่อนไข: แสดงบัตรประชาชน (วันเกิด)</p>
-                          <p>ใช้ได้: วันเกิด ± 3 วัน</p>
+                          <p><strong>เงื่อนไข:</strong> แสดงบัตรประชาชน (วันเกิด)</p>
+                          <p><strong>ใช้ได้:</strong> วันเกิด ± 3 วัน</p>
+                          <p><strong>สาขา:</strong> ทุกสาขา</p>
                         </>
                       )}
-                      <p>หมดอายุ: 31 ธ.ค. 2025</p>
-                      <p>สาขา: ทุกสาขา</p>
+                      <p><strong>หมดอายุ:</strong> 31 ธ.ค. 2025</p>
                     </div>
 
                     {/* Action Button */}
                     <div className="pt-4 border-t border-gray-200">
                       {rewardCode ? (
                         <Button
-                          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3"
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 text-lg shadow-lg transform transition-all duration-200 hover:scale-105"
                           onClick={() => {
                             navigator.clipboard.writeText(rewardCode);
+                            toast.success('คัดลอกโค้ดแล้ว!');
                           }}
                         >
-                          คัดลอกโค้ด
+                          📋 คัดลอกโค้ด
                         </Button>
                       ) : (
                         <Button
-                          className={`w-full font-bold py-3 ${
+                          className={`w-full font-bold py-4 text-lg shadow-lg transform transition-all duration-200 ${
                             canRedeem 
-                              ? 'bg-gray-800 hover:bg-gray-900 text-white' 
+                              ? 'bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white hover:scale-105' 
                               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                           }`}
                           onClick={() => canRedeem && handleRedeemClick(reward.id, reward.points_required, reward.name)}
                           disabled={!canRedeem}
                         >
                           {canRedeem ? 
-                            (rewardType === 'item' ? '1 ชิ้นฟรี วันเกิด' : 'ใช้โค้ดร่วมกับโปรอื่น ไม่ได้') :
-                            `ต้องการ ${reward.points_required} แต้ม`
+                            (rewardType === 'item' ? '🎂 1 ชิ้นต่อคนค่ะ ฟร็อคเค้กวันเกิด' : 
+                             rewardType === 'shipping' ? '🚚 ใช้ได้ทุกปี โปรเหล่านี้มี' :
+                             rewardType === 'free' ? '🎁 ใช้ได้เพาะรองทุเล่ม โปรอื่น ไม่ได้' :
+                             '🔥 ใช้ร่วมกับโปรอื่น ไม่ได้') :
+                            `💰 ต้องการ ${reward.points_required} แต้ม`
                           }
                         </Button>
                       )}
                     </div>
 
-                    {/* Points indicator */}
+                    {/* Points indicator with animation */}
                     {!rewardCode && (
-                      <div className="flex items-center justify-center gap-2 mt-3 text-sm text-gray-500">
-                        <div className="w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">●</span>
+                      <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500 animate-pulse">
+                        <div className="w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">★</span>
                         </div>
-                        <span>{reward.points_required} แต้ม</span>
+                        <span className="font-medium">{reward.points_required} แต้มสะสม</span>
                       </div>
                     )}
                   </div>
