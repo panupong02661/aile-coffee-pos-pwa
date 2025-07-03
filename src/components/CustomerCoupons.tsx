@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Ticket, Clock, CheckCircle, Gift } from 'lucide-react';
-import { useCustomerPromotionClaims } from '@/hooks/useLimitedPromotions';
 
 interface Coupon {
   id: string;
@@ -13,25 +12,24 @@ interface Coupon {
   expiryDate: Date;
   isUsed: boolean;
   isLimited?: boolean;
-  promoCode?: string;
 }
 
-interface CustomerCouponsProps {
-  activeOnly?: boolean;
-  usedOnly?: boolean;
-}
-
-const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCouponsProps) => {
-  // Mock customer ID - ในการใช้งานจริงจะได้จาก authentication
-  const mockCustomerId = 'customer-123';
-  
-  const { data: claimedPromotions = [] } = useCustomerPromotionClaims(mockCustomerId);
-  
+const CustomerCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([
     {
       id: '1',
+      title: 'Flash Sale 50% Off!',
+      description: 'ลดราคา 50% สำหรับเมนูเครื่องดื่มทุกแก้ว',
+      discountValue: 50,
+      discountType: 'percentage',
+      expiryDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      isUsed: false,
+      isLimited: true
+    },
+    {
+      id: '2',
       title: 'ส่วนลด 30 บาท',
-      description: 'ส่วนลด 30 บาท เมื่อสั่งซื้อครับ 200 บาท',
+      description: 'ส่วนลด 30 บาท เมื่อสั่งซื้อครบ 200 บาท',
       discountValue: 30,
       discountType: 'amount',
       minPurchase: 200,
@@ -39,7 +37,7 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
       isUsed: false
     },
     {
-      id: '2',
+      id: '3',
       title: 'ส่วนลด 15%',
       description: 'ส่วนลด 15% สำหรับออเดอร์แรก',
       discountValue: 15,
@@ -49,23 +47,6 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
       isUsed: true
     }
   ]);
-
-  // รวมโปรโมชั่นที่รับจากฐานข้อมูลเข้ากับคูปองปกติ
-  const allCoupons = [
-    ...coupons,
-    ...claimedPromotions.map((claim: any) => ({
-      id: claim.id,
-      title: claim.limited_promotions?.title || 'โปรโมชั่นพิเศษ',
-      description: claim.limited_promotions?.description || '',
-      discountValue: claim.limited_promotions?.discount_value || 0,
-      discountType: claim.limited_promotions?.discount_type || 'percentage',
-      minPurchase: claim.limited_promotions?.min_purchase || 0,
-      expiryDate: new Date(claim.limited_promotions?.end_date || Date.now()),
-      isUsed: claim.is_used,
-      isLimited: true,
-      promoCode: claim.limited_promotions?.promo_code
-    }))
-  ];
 
   const getTimeRemaining = (expiryDate: Date) => {
     const now = new Date();
@@ -84,14 +65,9 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
     return new Date() > expiryDate;
   };
 
-  // กรองคูปองตามประเภทที่ต้องการแสดง
-  let filteredCoupons = allCoupons;
-  
-  if (activeOnly) {
-    filteredCoupons = allCoupons.filter(c => !c.isUsed && !isExpired(c.expiryDate));
-  } else if (usedOnly) {
-    filteredCoupons = allCoupons.filter(c => c.isUsed);
-  }
+  const activeCoupons = coupons.filter(c => !c.isUsed && !isExpired(c.expiryDate));
+  const usedCoupons = coupons.filter(c => c.isUsed);
+  const expiredCoupons = coupons.filter(c => !c.isUsed && isExpired(c.expiryDate));
 
   const CouponCard = ({ coupon }: { coupon: Coupon }) => (
     <div className={`relative overflow-hidden rounded-lg border-2 border-dashed ${
@@ -141,11 +117,6 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
               }`}>
                 {coupon.description}
               </p>
-              {coupon.promoCode && (
-                <p className="text-xs font-mono bg-gray-100 px-2 py-1 rounded mt-1">
-                  โค้ด: {coupon.promoCode}
-                </p>
-              )}
             </div>
           </div>
 
@@ -165,7 +136,7 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
           </div>
         </div>
 
-        {coupon.minPurchase && coupon.minPurchase > 0 && (
+        {coupon.minPurchase && (
           <div className={`text-sm mb-2 ${
             coupon.isUsed || isExpired(coupon.expiryDate) ? 'text-gray-400' : 'text-gray-600'
           }`}>
@@ -198,22 +169,69 @@ const CustomerCoupons = ({ activeOnly = false, usedOnly = false }: CustomerCoupo
   );
 
   return (
-    <div className="space-y-4">
-      {filteredCoupons.length > 0 ? (
-        <div className="grid gap-4">
-          {filteredCoupons.map(coupon => (
-            <CouponCard key={coupon.id} coupon={coupon} />
-          ))}
+    <div className="space-y-6">
+      <div className="flex items-center space-x-2">
+        <Ticket className="h-6 w-6 text-orange-500" />
+        <h2 className="text-2xl font-bold text-gray-800">คูปองของฉัน</h2>
+      </div>
+
+      {/* Active Coupons */}
+      {activeCoupons.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm mr-2">
+              {activeCoupons.length}
+            </span>
+            คูปองที่ใช้ได้
+          </h3>
+          <div className="grid gap-4">
+            {activeCoupons.map(coupon => (
+              <CouponCard key={coupon.id} coupon={coupon} />
+            ))}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* Used Coupons */}
+      {usedCoupons.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-sm mr-2">
+              {usedCoupons.length}
+            </span>
+            คูปองที่ใช้แล้ว
+          </h3>
+          <div className="grid gap-4">
+            {usedCoupons.map(coupon => (
+              <CouponCard key={coupon.id} coupon={coupon} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expired Coupons */}
+      {expiredCoupons.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-sm mr-2">
+              {expiredCoupons.length}
+            </span>
+            คูปองหมดอายุ
+          </h3>
+          <div className="grid gap-4">
+            {expiredCoupons.map(coupon => (
+              <CouponCard key={coupon.id} coupon={coupon} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {activeCoupons.length === 0 && usedCoupons.length === 0 && expiredCoupons.length === 0 && (
         <div className="text-center py-12">
           <Ticket className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {activeOnly ? 'ยังไม่มีคูปองที่ใช้ได้' : usedOnly ? 'ยังไม่มีคูปองที่ใช้แล้ว' : 'ยังไม่มีคูปอง'}
-          </h3>
-          <p className="text-gray-500">
-            {activeOnly ? 'ไปดูโปรโมชั่นพิเศษเพื่อรับคูปองใหม่' : ''}
-          </p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">ยังไม่มีคูปอง</h3>
+          <p className="text-gray-500">ไปดูโปรโมชั่นพิเศษเพื่อรับคูปองใหม่</p>
         </div>
       )}
     </div>

@@ -1,34 +1,80 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Gift, Clock, Users, Zap } from 'lucide-react';
-import { useLimitedPromotions, useClaimPromotion } from '@/hooks/useLimitedPromotions';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+
+interface LimitedPromotion {
+  id: string;
+  title: string;
+  description: string;
+  discountValue: number;
+  discountType: 'percentage' | 'amount';
+  maxClaims: number;
+  currentClaims: number;
+  startTime: Date;
+  endTime: Date;
+  isActive: boolean;
+}
 
 const LimitedPromotions = () => {
-  const { data: promotions = [], isLoading } = useLimitedPromotions();
-  const claimPromotion = useClaimPromotion();
-
-  // Mock customer ID - ในการใช้งานจริงจะได้จาก authentication
-  const mockCustomerId = 'customer-123';
-
-  const { data: claimedPromotions = [] } = useQuery({
-    queryKey: ['customer-promotion-claims', mockCustomerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customer_promotion_claims')
-        .select('promotion_id')
-        .eq('customer_id', mockCustomerId);
-
-      if (error) throw error;
-      return data?.map(claim => claim.promotion_id) || [];
+  const [promotions, setPromotions] = useState<LimitedPromotion[]>([
+    {
+      id: '1',
+      title: 'Flash Sale 50% Off!',
+      description: 'ลดราคา 50% สำหรับเมนูเครื่องดื่มทุกแก้ว',
+      discountValue: 50,
+      discountType: 'percentage',
+      maxClaims: 100,
+      currentClaims: 23,
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 ชั่วโมง
+      isActive: true
     },
-  });
+    {
+      id: '2',
+      title: 'ลด 30 บาท ทันที!',
+      description: 'ส่วนลด 30 บาท เมื่อสั่งซื้อครบ 200 บาท',
+      discountValue: 30,
+      discountType: 'amount',
+      maxClaims: 50,
+      currentClaims: 12,
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 ชั่วโมง
+      isActive: true
+    }
+  ]);
 
-  const getTimeRemaining = (endDate: string) => {
+  const [claimedPromotions, setClaimedPromotions] = useState<string[]>([]);
+
+  const claimPromotion = (promotionId: string) => {
+    if (claimedPromotions.includes(promotionId)) {
+      alert('คุณได้รับคูปองนี้แล้ว');
+      return;
+    }
+
+    const promotion = promotions.find(p => p.id === promotionId);
+    if (!promotion) return;
+
+    if (promotion.currentClaims >= promotion.maxClaims) {
+      alert('คูปองหมดแล้ว');
+      return;
+    }
+
+    // อัปเดตจำนวนการรับคูปอง
+    setPromotions(promotions.map(p => 
+      p.id === promotionId 
+        ? { ...p, currentClaims: p.currentClaims + 1 }
+        : p
+    ));
+
+    // เพิ่มลงในรายการที่รับแล้ว
+    setClaimedPromotions([...claimedPromotions, promotionId]);
+    
+    alert('รับคูปองสำเร็จ! ไปดูในหน้า Coupons');
+  };
+
+  const getTimeRemaining = (endTime: Date) => {
     const now = new Date();
-    const end = new Date(endDate);
-    const diff = end.getTime() - now.getTime();
+    const diff = endTime.getTime() - now.getTime();
     
     if (diff <= 0) return 'หมดเวลา';
     
@@ -42,14 +88,6 @@ const LimitedPromotions = () => {
     return Math.min((current / max) * 100, 100);
   };
 
-  const handleClaimPromotion = (promotionId: string) => {
-    claimPromotion.mutate({ promotionId, customerId: mockCustomerId });
-  };
-
-  if (isLoading) {
-    return <div className="text-center py-8">กำลังโหลด...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2 mb-4">
@@ -60,7 +98,7 @@ const LimitedPromotions = () => {
         </span>
       </div>
 
-      {promotions.map(promotion => (
+      {promotions.filter(p => p.isActive).map(promotion => (
         <div key={promotion.id} className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-1">
           <div className="bg-white rounded-lg p-4">
             <div className="flex justify-between items-start mb-3">
@@ -71,20 +109,20 @@ const LimitedPromotions = () => {
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                   <div className="flex items-center space-x-1">
                     <Clock className="h-4 w-4" />
-                    <span>{getTimeRemaining(promotion.end_date)}</span>
+                    <span>{getTimeRemaining(promotion.endTime)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="h-4 w-4" />
-                    <span>{promotion.max_claims - promotion.current_claims} ใบเหลือ</span>
+                    <span>{promotion.maxClaims - promotion.currentClaims} ใบเหลือ</span>
                   </div>
                 </div>
               </div>
 
               <div className="text-right">
                 <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold mb-2">
-                  {promotion.discount_type === 'percentage' 
-                    ? `${promotion.discount_value}% OFF` 
-                    : `฿${promotion.discount_value} OFF`
+                  {promotion.discountType === 'percentage' 
+                    ? `${promotion.discountValue}% OFF` 
+                    : `฿${promotion.discountValue} OFF`
                   }
                 </div>
               </div>
@@ -93,40 +131,37 @@ const LimitedPromotions = () => {
             {/* Progress Bar */}
             <div className="mb-3">
               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>รับไปแล้ว {promotion.current_claims}/{promotion.max_claims}</span>
-                <span>{Math.round(getProgressPercentage(promotion.current_claims, promotion.max_claims))}%</span>
+                <span>รับไปแล้ว {promotion.currentClaims}/{promotion.maxClaims}</span>
+                <span>{Math.round(getProgressPercentage(promotion.currentClaims, promotion.maxClaims))}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${getProgressPercentage(promotion.current_claims, promotion.max_claims)}%` }}
+                  style={{ width: `${getProgressPercentage(promotion.currentClaims, promotion.maxClaims)}%` }}
                 ></div>
               </div>
             </div>
 
             <button
-              onClick={() => handleClaimPromotion(promotion.id)}
+              onClick={() => claimPromotion(promotion.id)}
               disabled={
                 claimedPromotions.includes(promotion.id) || 
-                promotion.current_claims >= promotion.max_claims ||
-                new Date() > new Date(promotion.end_date) ||
-                claimPromotion.isPending
+                promotion.currentClaims >= promotion.maxClaims ||
+                new Date() > promotion.endTime
               }
               className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${
                 claimedPromotions.includes(promotion.id)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : promotion.current_claims >= promotion.max_claims || new Date() > new Date(promotion.end_date)
+                  : promotion.currentClaims >= promotion.maxClaims || new Date() > promotion.endTime
                   ? 'bg-red-300 text-red-700 cursor-not-allowed'
                   : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600'
               }`}
             >
-              {claimPromotion.isPending
-                ? 'กำลังรับ...'
-                : claimedPromotions.includes(promotion.id)
+              {claimedPromotions.includes(promotion.id)
                 ? '✓ รับแล้ว'
-                : promotion.current_claims >= promotion.max_claims
+                : promotion.currentClaims >= promotion.maxClaims
                 ? 'หมดแล้ว'
-                : new Date() > new Date(promotion.end_date)
+                : new Date() > promotion.endTime
                 ? 'หมดเวลา'
                 : '🎁 รับคูปอง'
               }
@@ -135,7 +170,7 @@ const LimitedPromotions = () => {
         </div>
       ))}
 
-      {promotions.length === 0 && (
+      {promotions.filter(p => p.isActive).length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <Gift className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>ไม่มีโปรโมชั่นพิเศษในขณะนี้</p>

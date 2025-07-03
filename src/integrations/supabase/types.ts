@@ -525,44 +525,6 @@ export type Database = {
         }
         Relationships: []
       }
-      customer_promotion_claims: {
-        Row: {
-          claimed_at: string | null
-          customer_id: string
-          id: string
-          is_used: boolean | null
-          order_id: string | null
-          promotion_id: string | null
-          used_at: string | null
-        }
-        Insert: {
-          claimed_at?: string | null
-          customer_id: string
-          id?: string
-          is_used?: boolean | null
-          order_id?: string | null
-          promotion_id?: string | null
-          used_at?: string | null
-        }
-        Update: {
-          claimed_at?: string | null
-          customer_id?: string
-          id?: string
-          is_used?: boolean | null
-          order_id?: string | null
-          promotion_id?: string | null
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customer_promotion_claims_promotion_id_fkey"
-            columns: ["promotion_id"]
-            isOneToOne: false
-            referencedRelation: "limited_promotions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       customer_rewards: {
         Row: {
           customer_id: string | null
@@ -749,57 +711,6 @@ export type Database = {
           supplier?: string | null
           unit?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      limited_promotions: {
-        Row: {
-          created_at: string | null
-          current_claims: number
-          description: string | null
-          discount_type: string
-          discount_value: number
-          end_date: string
-          id: string
-          is_active: boolean | null
-          max_claims: number
-          min_purchase: number | null
-          promo_code: string | null
-          start_date: string
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_claims?: number
-          description?: string | null
-          discount_type?: string
-          discount_value?: number
-          end_date: string
-          id?: string
-          is_active?: boolean | null
-          max_claims?: number
-          min_purchase?: number | null
-          promo_code?: string | null
-          start_date: string
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_claims?: number
-          description?: string | null
-          discount_type?: string
-          discount_value?: number
-          end_date?: string
-          id?: string
-          is_active?: boolean | null
-          max_claims?: number
-          min_purchase?: number | null
-          promo_code?: string | null
-          start_date?: string
-          title?: string
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1837,10 +1748,6 @@ export type Database = {
       calculate_menu_cost: {
         Args: { menu_id: string }
         Returns: number
-      }
-      claim_limited_promotion: {
-        Args: { promotion_id_param: string; customer_id_param: string }
-        Returns: Json
       }
       claim_limited_reward: {
         Args: { reward_id: string; user_id: string }

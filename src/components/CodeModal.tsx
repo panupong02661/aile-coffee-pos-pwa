@@ -14,6 +14,33 @@ interface CodeModalProps {
   onApplyCode: (giftData: any) => void;
 }
 
+interface CustomerGiftWithMenuItem {
+  id: string;
+  customer_id: string;
+  gift_type: string;
+  gift_id: string;
+  gift_name: string;
+  gift_description?: string;
+  gift_value: number;
+  expires_at?: string;
+  is_used: boolean;
+  used_at?: string;
+  gift_code?: string;
+  message?: string;
+  created_at: string;
+  updated_at: string;
+  sent_by?: string;
+  menu_items?: {
+    id: string;
+    name: string;
+    price: number;
+    description?: string;
+    image_url?: string;
+    category_id?: string;
+    is_available: boolean;
+  };
+}
+
 const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,46 +57,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const upperCode = code.toUpperCase().trim();
       console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      // ตรวจสอบโค้ดจากโปรโมชั่นพิเศษก่อน
-      const { data: promotions, error: promoError } = await supabase
-        .from('limited_promotions')
-        .select('*')
-        .eq('promo_code', upperCode)
-        .eq('is_active', true)
-        .lte('start_date', new Date().toISOString())
-        .gte('end_date', new Date().toISOString());
-
-      if (promoError) {
-        console.error('ข้อผิดพลาดในการค้นหาโปรโมชั่น:', promoError);
-      }
-
-      if (promotions && promotions.length > 0) {
-        const promotion = promotions[0];
-        console.log('พบโปรโมชั่นพิเศษ:', promotion);
-        
-        onApplyCode({
-          id: promotion.id,
-          gift_type: 'promotion',
-          gift_name: promotion.title,
-          gift_description: promotion.description,
-          gift_value: promotion.discount_value,
-          discount_type: promotion.discount_type,
-          gift_code: promotion.promo_code,
-          expires_at: promotion.end_date,
-          min_purchase: promotion.min_purchase
-        });
-
-        toast({ 
-          title: 'ใช้โค้ดสำเร็จ', 
-          description: `ใช้โปรโมชั่น ${promotion.title} แล้ว` 
-        });
-        
-        setCode('');
-        onClose();
-        return;
-      }
-
-      // ค้นหาโค้ดในตาราง customer_gifts
+      // ค้นหาโค้ดในฐานข้อมูล
       const { data: gifts, error: queryError } = await supabase
         .from('customer_gifts')
         .select(`
@@ -87,7 +75,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         .eq('gift_code', upperCode)
         .order('created_at', { ascending: false });
 
-      console.log('ผลการค้นหาโค้ดของขวัญ:', { gifts, error: queryError });
+      console.log('ผลการค้นหาโค้ด:', { gifts, error: queryError });
 
       if (queryError) {
         console.error('ข้อผิดพลาดในการค้นหา:', queryError);
@@ -109,17 +97,18 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      const gift = gifts[0];
-      console.log('พบโค้ดของขวัญ:', { 
+      // ใช้โค้ดตัวแรกที่พบ
+      const gift = gifts[0] as CustomerGiftWithMenuItem;
+      console.log('พบโค้ด:', { 
         id: gift.id, 
         gift_code: gift.gift_code, 
         used_at: gift.used_at, 
         expires_at: gift.expires_at 
       });
 
-      // ตรวจสอบว่าใช้แล้วหรือยัง
+      // เงื่อนไขเดียว: ถ้ามี used_at แสดงว่าชำระเงินแล้ว ห้ามใช้
       if (gift.used_at) {
-        console.log('โค้ดถูกใช้งานแล้ว:', gift.used_at);
+        console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', gift.used_at);
         toast({ 
           title: 'โค้ดถูกใช้แล้ว', 
           description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว ไม่สามารถใช้ซ้ำได้', 
@@ -144,10 +133,11 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
-      // โค้ดใช้งานได้
+      // โค้ดใช้งานได้ - นำไปใช้งาน
       console.log('โค้ดพร้อมใช้งาน:', gift);
       onApplyCode(gift);
 
+      // แสดงข้อความสำเร็จ
       let successMessage = '';
       
       if (gift.gift_type === 'menu_item') {
@@ -198,19 +188,18 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
             <Label htmlFor="code">โค้ด 6 หลัก</Label>
             <Input
               id="code"
-              placeholder="กรอกโค้ด เช่น FLASH50"
+              placeholder="กรอกโค้ด เช่น ABC123"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              maxLength={10}
+              maxLength={6}
               className="font-mono text-center text-lg"
             />
           </div>
           
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-            <p><strong>ประเภทโค้ดที่รองรับ:</strong></p>
-            <p>• โค้ดโปรโมชั่นพิเศษ (Limited Time)</p>
-            <p>• โค้ดของขวัญจากแอดมิน</p>
-            <p>• โค้ดของรางวัลวันเกิด</p>
+            <p><strong>เงื่อนไขการใช้งานโค้ด:</strong></p>
+            <p>• โค้ดสามารถใช้ได้หลายครั้งก่อนชำระเงิน</p>
+            <p>• เมื่อชำระเงินแล้ว โค้ดจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
           
           <div className="flex gap-2">
