@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Gift, Users, Clock, Zap } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useLimitedPromotions } from '@/hooks/useLimitedPromotions';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -29,7 +27,6 @@ interface SpecialPromotion {
 
 const SpecialPromotionsManager = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   // ดึงข้อมูลโปรโมชั่นจากฐานข้อมูล
   const { data: promotions = [], refetch } = useQuery({
@@ -69,12 +66,12 @@ const SpecialPromotionsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นใหม่เรียบร้อย' });
+      toast.success('สำเร็จ - สร้างโปรโมชั่นใหม่เรียบร้อย');
       refetch();
       resetForm();
     },
     onError: (error: any) => {
-      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      toast.error('ข้อผิดพลาด: ' + error.message);
     },
   });
 
@@ -89,12 +86,12 @@ const SpecialPromotionsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อย' });
+      toast.success('สำเร็จ - แก้ไขโปรโมชั่นเรียบร้อย');
       refetch();
       resetForm();
     },
     onError: (error: any) => {
-      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      toast.error('ข้อผิดพลาด: ' + error.message);
     },
   });
 
@@ -109,11 +106,11 @@ const SpecialPromotionsManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นเรียบร้อย' });
+      toast.success('สำเร็จ - ลบโปรโมชั่นเรียบร้อย');
       refetch();
     },
     onError: (error: any) => {
-      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      toast.error('ข้อผิดพลาด: ' + error.message);
     },
   });
 
@@ -121,7 +118,7 @@ const SpecialPromotionsManager = () => {
     e.preventDefault();
     
     if (!formData.title || !formData.description || !formData.start_date || !formData.end_date) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
+      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
 
@@ -161,13 +158,13 @@ const SpecialPromotionsManager = () => {
     setShowForm(false);
   };
 
-  const handleEdit = (promotion: SpecialPromotion) => {
+  const handleEdit = (promotion: any) => {
     setEditingPromotion(promotion);
     setFormData({
       title: promotion.title,
       description: promotion.description,
       discount_value: promotion.discount_value,
-      discount_type: promotion.discount_type,
+      discount_type: promotion.discount_type as 'percentage' | 'amount',
       max_claims: promotion.max_claims,
       start_date: new Date(promotion.start_date).toISOString().slice(0, 16),
       end_date: new Date(promotion.end_date).toISOString().slice(0, 16),
@@ -190,7 +187,7 @@ const SpecialPromotionsManager = () => {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      toast.error('ข้อผิดพลาด: ' + error.message);
     } else {
       refetch();
     }
