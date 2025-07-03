@@ -8,95 +8,154 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Gift, Users, Clock, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLimitedPromotions } from '@/hooks/useLimitedPromotions';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface SpecialPromotion {
   id: string;
   title: string;
   description: string;
-  discountValue: number;
-  discountType: 'percentage' | 'amount';
-  maxClaims: number;
-  currentClaims: number;
-  startTime: Date;
-  endTime: Date;
-  isActive: boolean;
-  minPurchase?: number;
+  discount_value: number;
+  discount_type: 'percentage' | 'amount';
+  max_claims: number;
+  current_claims: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  min_purchase?: number;
+  promo_code?: string;
 }
 
 const SpecialPromotionsManager = () => {
-  const [promotions, setPromotions] = useState<SpecialPromotion[]>([
-    {
-      id: '1',
-      title: 'Flash Sale 50% Off!',
-      description: 'ลดราคา 50% สำหรับเมนูเครื่องดื่มทุกแก้ว',
-      discountValue: 50,
-      discountType: 'percentage',
-      maxClaims: 100,
-      currentClaims: 23,
-      startTime: new Date(),
-      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      isActive: true
-    }
-  ]);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // ดึงข้อมูลโปรโมชั่นจากฐานข้อมูล
+  const { data: promotions = [], refetch } = useQuery({
+    queryKey: ['special-promotions-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('limited_promotions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<SpecialPromotion | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    discountValue: 0,
-    discountType: 'percentage' as 'percentage' | 'amount',
-    maxClaims: 1,
-    startTime: '',
-    endTime: '',
-    minPurchase: 0
+    discount_value: 0,
+    discount_type: 'percentage' as 'percentage' | 'amount',
+    max_claims: 1,
+    start_date: '',
+    end_date: '',
+    min_purchase: 0,
+    promo_code: ''
   });
 
-  const { toast } = useToast();
+  // Mutation สำหรับสร้างโปรโมชั่นใหม่
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase
+        .from('limited_promotions')
+        .insert([data]);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นใหม่เรียบร้อย' });
+      refetch();
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Mutation สำหรับแก้ไขโปรโมชั่น
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase
+        .from('limited_promotions')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อย' });
+      refetch();
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Mutation สำหรับลบโปรโมชั่น
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('limited_promotions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นเรียบร้อย' });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description || !formData.startTime || !formData.endTime) {
+    if (!formData.title || !formData.description || !formData.start_date || !formData.end_date) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
       return;
     }
 
-    const newPromotion: SpecialPromotion = {
-      id: editingPromotion?.id || Date.now().toString(),
+    const promotionData = {
       title: formData.title,
       description: formData.description,
-      discountValue: formData.discountValue,
-      discountType: formData.discountType,
-      maxClaims: formData.maxClaims,
-      currentClaims: editingPromotion?.currentClaims || 0,
-      startTime: new Date(formData.startTime),
-      endTime: new Date(formData.endTime),
-      isActive: true,
-      minPurchase: formData.minPurchase > 0 ? formData.minPurchase : undefined
+      discount_value: formData.discount_value,
+      discount_type: formData.discount_type,
+      max_claims: formData.max_claims,
+      start_date: formData.start_date,
+      end_date: formData.end_date,
+      min_purchase: formData.min_purchase > 0 ? formData.min_purchase : 0,
+      promo_code: formData.promo_code || null,
+      is_active: true
     };
 
     if (editingPromotion) {
-      setPromotions(promotions.map(p => p.id === editingPromotion.id ? newPromotion : p));
-      toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อย' });
+      updateMutation.mutate({ id: editingPromotion.id, data: promotionData });
     } else {
-      setPromotions([...promotions, newPromotion]);
-      toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นใหม่เรียบร้อย' });
+      createMutation.mutate(promotionData);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
     setFormData({
       title: '',
       description: '',
-      discountValue: 0,
-      discountType: 'percentage',
-      maxClaims: 1,
-      startTime: '',
-      endTime: '',
-      minPurchase: 0
+      discount_value: 0,
+      discount_type: 'percentage',
+      max_claims: 1,
+      start_date: '',
+      end_date: '',
+      min_purchase: 0,
+      promo_code: ''
     });
     setEditingPromotion(null);
     setShowForm(false);
@@ -107,32 +166,40 @@ const SpecialPromotionsManager = () => {
     setFormData({
       title: promotion.title,
       description: promotion.description,
-      discountValue: promotion.discountValue,
-      discountType: promotion.discountType,
-      maxClaims: promotion.maxClaims,
-      startTime: promotion.startTime.toISOString().slice(0, 16),
-      endTime: promotion.endTime.toISOString().slice(0, 16),
-      minPurchase: promotion.minPurchase || 0
+      discount_value: promotion.discount_value,
+      discount_type: promotion.discount_type,
+      max_claims: promotion.max_claims,
+      start_date: new Date(promotion.start_date).toISOString().slice(0, 16),
+      end_date: new Date(promotion.end_date).toISOString().slice(0, 16),
+      min_purchase: promotion.min_purchase || 0,
+      promo_code: promotion.promo_code || ''
     });
     setShowForm(true);
   };
 
   const handleDelete = (id: string) => {
     if (confirm('คุณต้องการลบโปรโมชั่นนี้หรือไม่?')) {
-      setPromotions(promotions.filter(p => p.id !== id));
-      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นเรียบร้อย' });
+      deleteMutation.mutate(id);
     }
   };
 
-  const toggleActive = (id: string) => {
-    setPromotions(promotions.map(p => 
-      p.id === id ? { ...p, isActive: !p.isActive } : p
-    ));
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('limited_promotions')
+      .update({ is_active: !currentStatus })
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+    } else {
+      refetch();
+    }
   };
 
-  const getTimeRemaining = (endTime: Date) => {
+  const getTimeRemaining = (endTime: string) => {
     const now = new Date();
-    const diff = endTime.getTime() - now.getTime();
+    const end = new Date(endTime);
+    const diff = end.getTime() - now.getTime();
     
     if (diff <= 0) return 'หมดเวลา';
     
@@ -182,8 +249,8 @@ const SpecialPromotionsManager = () => {
                     id="maxClaims"
                     type="number"
                     min="1"
-                    value={formData.maxClaims}
-                    onChange={(e) => setFormData({...formData, maxClaims: parseInt(e.target.value)})}
+                    value={formData.max_claims}
+                    onChange={(e) => setFormData({...formData, max_claims: parseInt(e.target.value)})}
                   />
                 </div>
               </div>
@@ -198,10 +265,10 @@ const SpecialPromotionsManager = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="discountType">ประเภทส่วนลด</Label>
-                  <Select value={formData.discountType} onValueChange={(value: 'percentage' | 'amount') => setFormData({...formData, discountType: value})}>
+                  <Select value={formData.discount_type} onValueChange={(value: 'percentage' | 'amount') => setFormData({...formData, discount_type: value})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -217,8 +284,8 @@ const SpecialPromotionsManager = () => {
                     id="discountValue"
                     type="number"
                     min="0"
-                    value={formData.discountValue}
-                    onChange={(e) => setFormData({...formData, discountValue: parseFloat(e.target.value)})}
+                    value={formData.discount_value}
+                    onChange={(e) => setFormData({...formData, discount_value: parseFloat(e.target.value)})}
                   />
                 </div>
                 <div>
@@ -227,9 +294,18 @@ const SpecialPromotionsManager = () => {
                     id="minPurchase"
                     type="number"
                     min="0"
-                    value={formData.minPurchase}
-                    onChange={(e) => setFormData({...formData, minPurchase: parseFloat(e.target.value)})}
+                    value={formData.min_purchase}
+                    onChange={(e) => setFormData({...formData, min_purchase: parseFloat(e.target.value)})}
                     placeholder="0 = ไม่มีขั้นต่ำ"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="promoCode">โค้ดโปรโมชั่น (ถ้ามี)</Label>
+                  <Input
+                    id="promoCode"
+                    value={formData.promo_code}
+                    onChange={(e) => setFormData({...formData, promo_code: e.target.value.toUpperCase()})}
+                    placeholder="เช่น FLASH50"
                   />
                 </div>
               </div>
@@ -240,8 +316,8 @@ const SpecialPromotionsManager = () => {
                   <Input
                     id="startTime"
                     type="datetime-local"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                   />
                 </div>
                 <div>
@@ -249,15 +325,19 @@ const SpecialPromotionsManager = () => {
                   <Input
                     id="endTime"
                     type="datetime-local"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({...formData, end_date: e.target.value})}
                   />
                 </div>
               </div>
 
               <div className="flex space-x-2">
-                <Button type="submit" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                  {editingPromotion ? 'บันทึกการแก้ไข' : 'สร้างโปรโมชั่น'}
+                <Button 
+                  type="submit" 
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  {createMutation.isPending || updateMutation.isPending ? 'กำลังบันทึก...' : (editingPromotion ? 'บันทึกการแก้ไข' : 'สร้างโปรโมชั่น')}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   ยกเลิก
@@ -271,13 +351,13 @@ const SpecialPromotionsManager = () => {
       {/* Promotions List */}
       <div className="grid gap-4">
         {promotions.map(promotion => (
-          <Card key={promotion.id} className={`${promotion.isActive ? 'border-l-4 border-l-purple-500' : 'opacity-60'}`}>
+          <Card key={promotion.id} className={`${promotion.is_active ? 'border-l-4 border-l-purple-500' : 'opacity-60'}`}>
             <CardContent className="p-4">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <h3 className="text-lg font-semibold">{promotion.title}</h3>
-                    {promotion.isActive && (
+                    {promotion.is_active && (
                       <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                         เปิดใช้งาน
                       </span>
@@ -285,27 +365,32 @@ const SpecialPromotionsManager = () => {
                   </div>
                   <p className="text-gray-600 mb-3">{promotion.description}</p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div className="flex items-center space-x-1">
                       <Gift className="h-4 w-4 text-purple-500" />
                       <span>
-                        {promotion.discountType === 'percentage' 
-                          ? `${promotion.discountValue}% OFF` 
-                          : `฿${promotion.discountValue} OFF`
+                        {promotion.discount_type === 'percentage' 
+                          ? `${promotion.discount_value}% OFF` 
+                          : `฿${promotion.discount_value} OFF`
                         }
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Users className="h-4 w-4 text-blue-500" />
-                      <span>{promotion.currentClaims}/{promotion.maxClaims}</span>
+                      <span>{promotion.current_claims}/{promotion.max_claims}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4 text-orange-500" />
-                      <span>{getTimeRemaining(promotion.endTime)}</span>
+                      <span>{getTimeRemaining(promotion.end_date)}</span>
                     </div>
-                    {promotion.minPurchase && (
+                    {promotion.min_purchase > 0 && (
                       <div className="text-gray-500">
-                        ขั้นต่ำ ฿{promotion.minPurchase}
+                        ขั้นต่ำ ฿{promotion.min_purchase}
+                      </div>
+                    )}
+                    {promotion.promo_code && (
+                      <div className="font-mono text-purple-600">
+                        โค้ด: {promotion.promo_code}
                       </div>
                     )}
                   </div>
@@ -315,7 +400,7 @@ const SpecialPromotionsManager = () => {
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min((promotion.currentClaims / promotion.maxClaims) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((promotion.current_claims / promotion.max_claims) * 100, 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -325,9 +410,9 @@ const SpecialPromotionsManager = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleActive(promotion.id)}
+                    onClick={() => toggleActive(promotion.id, promotion.is_active)}
                   >
-                    {promotion.isActive ? 'ปิด' : 'เปิด'}
+                    {promotion.is_active ? 'ปิด' : 'เปิด'}
                   </Button>
                   <Button
                     variant="outline"
@@ -341,6 +426,7 @@ const SpecialPromotionsManager = () => {
                     size="sm"
                     onClick={() => handleDelete(promotion.id)}
                     className="text-red-600 hover:text-red-700"
+                    disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>

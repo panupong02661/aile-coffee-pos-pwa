@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -50,7 +49,8 @@ import {
   Database,
   HardDrive,
   FileCheck,
-  Lock
+  Lock,
+  Zap
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -133,6 +133,12 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
     { id: 'line-notify', label: 'แจ้งเตือน LINE', icon: MessageCircle, path: '/line-notify' },
     { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
+    {
+      icon: Zap,
+      label: 'โปรโมชั่นพิเศษ',
+      path: '/special-promotions',
+      subItems: []
+    },
   ];
 
   const handleMenuClick = () => {
