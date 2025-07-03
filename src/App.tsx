@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import POS from './pages/POS';
 import Promotions from './pages/Promotions';
 import SpecialPromotions from './pages/SpecialPromotions';
+import AuthProvider from './components/AuthProvider';
 
 const queryClient = new QueryClient();
 
@@ -13,15 +14,17 @@ function App() {
   return (
     <Router>
       <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            <Route path="/" element={<POS />} />
-            <Route path="/pos" element={<POS />} />
-            <Route path="/promotions" element={<Promotions />} />
-            <Route path="/special-promotions" element={<SpecialPromotions />} />
-          </Routes>
-        </div>
-        <Toaster />
+        <AuthProvider>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<POS />} />
+              <Route path="/pos" element={<POS />} />
+              <Route path="/promotions" element={<Promotions />} />
+              <Route path="/special-promotions" element={<SpecialPromotions />} />
+            </Routes>
+          </div>
+          <Toaster />
+        </AuthProvider>
       </QueryClientProvider>
     </Router>
   );
