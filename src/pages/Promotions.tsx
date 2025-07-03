@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +54,22 @@ const Promotions = () => {
         return;
       }
 
-      setPromotions(data || []);
+      // Transform the data to match our interface
+      const transformedPromotions: Promotion[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        discount_type: item.discount_type as 'percentage' | 'amount',
+        discount_value: item.discount_value,
+        max_claims: item.max_claims,
+        current_claims: item.current_claims,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        is_active: item.is_active,
+        promo_code: item.promo_code
+      }));
+
+      setPromotions(transformedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการโหลดโปรโมชั่น', variant: 'destructive' });
@@ -84,7 +100,22 @@ const Promotions = () => {
         return;
       }
 
-      setPromotions([...promotions, ...(data || [])]);
+      // Transform new data and add to state
+      const newPromotions = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        discount_type: item.discount_type as 'percentage' | 'amount',
+        discount_value: item.discount_value,
+        max_claims: item.max_claims,
+        current_claims: item.current_claims,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        is_active: item.is_active,
+        promo_code: item.promo_code
+      }));
+
+      setPromotions([...promotions, ...newPromotions]);
       setIsFormOpen(false);
       setFormData({
         title: '',

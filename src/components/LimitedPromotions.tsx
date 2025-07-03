@@ -39,7 +39,22 @@ const LimitedPromotions = () => {
         return;
       }
 
-      setPromotions(data || []);
+      // Transform the data to match our interface
+      const transformedPromotions: LimitedPromotion[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || '',
+        discount_value: item.discount_value,
+        discount_type: item.discount_type as 'percentage' | 'amount',
+        max_claims: item.max_claims,
+        current_claims: item.current_claims,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        is_active: item.is_active,
+        promo_code: item.promo_code
+      }));
+
+      setPromotions(transformedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
     }
