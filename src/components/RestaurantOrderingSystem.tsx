@@ -260,38 +260,31 @@ const RestaurantOrderingSystem = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Menu Section - ปรับขนาดให้เล็กลง 50% */}
           <div className="lg:col-span-2">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">เมนูอาหาร</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-6">เมนูอาหาร</h2>
             
             {categories.map(category => (
-              <div key={category} className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-700 mb-3 border-b-2 border-orange-200 pb-2">
+              <div key={category} className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-orange-200 pb-2">
                   {category}
                 </h3>
-                {/* ปรับ grid ให้แสดง 3-4 items ต่อแถว และขนาดเล็กลง */}
+                {/* ปรับให้เป็น grid 3-4 คอลัมน์และขนาดเล็กลง 2x3 นิ้ว */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {menuItems.filter(item => item.category === category).map(item => (
-                    <div key={item.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                       <div className="p-3">
-                        {/* พื้นที่สำหรับรูปภาพ - ขนาดเล็กลง */}
-                        <div className="aspect-square w-full bg-gray-100 rounded-lg flex items-center justify-center mb-2">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="text-2xl">{item.image}</div>
+                          <span className="text-lg font-bold text-orange-600">฿{item.price}</span>
                         </div>
-                        
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-semibold text-gray-800 line-clamp-1">{item.name}</h4>
-                          <p className="text-xs text-gray-600 line-clamp-2">{item.description}</p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-orange-600">฿{item.price}</span>
-                          </div>
-                        </div>
-                        
+                        <h4 className="text-sm font-semibold text-gray-800 mb-1 truncate">{item.name}</h4>
+                        <p className="text-gray-600 text-xs mb-2 line-clamp-2 h-8">{item.description}</p>
                         <button
                           onClick={() => addToCart(item)}
-                          className="w-full bg-orange-500 text-white py-1.5 px-2 rounded-md hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1 mt-2 text-xs"
+                          className="w-full bg-orange-500 text-white py-1.5 px-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1 text-sm"
                         >
                           <Plus className="h-3 w-3" />
                           <span>เพิ่ม</span>
