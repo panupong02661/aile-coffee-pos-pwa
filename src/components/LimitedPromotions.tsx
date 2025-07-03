@@ -26,6 +26,8 @@ const LimitedPromotions = () => {
   // Fetch limited promotions from database
   const fetchPromotions = async () => {
     try {
+      console.log('Fetching limited promotions...');
+      
       const { data, error } = await supabase
         .from('limited_promotions')
         .select('*')
@@ -39,21 +41,27 @@ const LimitedPromotions = () => {
         return;
       }
 
-      // Transform the data to match our interface
-      const transformedPromotions: LimitedPromotion[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        discount_value: item.discount_value,
-        discount_type: item.discount_type as 'percentage' | 'amount',
-        max_claims: item.max_claims,
-        current_claims: item.current_claims,
-        start_date: item.start_date,
-        end_date: item.end_date,
-        is_active: item.is_active,
-        promo_code: item.promo_code
-      }));
+      console.log('Raw promotion data from DB:', data);
 
+      // Transform the data to match our interface
+      const transformedPromotions: LimitedPromotion[] = (data || []).map(item => {
+        console.log('Transforming promotion:', item);
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          discount_value: Number(item.discount_value),
+          discount_type: item.discount_type as 'percentage' | 'amount',
+          max_claims: item.max_claims,
+          current_claims: item.current_claims,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          is_active: item.is_active,
+          promo_code: item.promo_code
+        };
+      });
+
+      console.log('Transformed promotions:', transformedPromotions);
       setPromotions(transformedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
@@ -164,6 +172,14 @@ const LimitedPromotions = () => {
     return Math.min((current / max) * 100, 100);
   };
 
+  const formatDiscountDisplay = (value: number, type: 'percentage' | 'amount') => {
+    if (type === 'percentage') {
+      return `${value}% OFF`;
+    } else {
+      return `฿${value} OFF`;
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2 mb-4">
@@ -196,10 +212,7 @@ const LimitedPromotions = () => {
 
               <div className="text-right">
                 <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold mb-2">
-                  {promotion.discount_type === 'percentage' 
-                    ? `${promotion.discount_value}% OFF` 
-                    : `฿${promotion.discount_value} OFF`
-                  }
+                  {formatDiscountDisplay(promotion.discount_value, promotion.discount_type)}
                 </div>
               </div>
             </div>
