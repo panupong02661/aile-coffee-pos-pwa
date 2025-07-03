@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, Bell, Settings, User, Store, Plus, Minus, Clock, CheckCircle, X, Volume2, VolumeX } from 'lucide-react';
 import * as Tone from 'tone';
@@ -12,10 +11,10 @@ const RestaurantOrderingSystem = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState('bell');
   const [customSound, setCustomSound] = useState(null);
-  const [volume, setVolume] = useState(0.8); // เพิ่มการควบคุมระดับเสียง
+  const [volume, setVolume] = useState(0.8);
   const audioRef = useRef(null);
 
-  // Menu items
+  // Menu items - ปรับลดขนาดลง 50%
   const menuItems = [
     { id: 1, name: 'ผัดไทย', price: 60, category: 'อาหารจานหลัก', image: '🍜', description: 'ผัดไทยกุ้งสด รสชาติแท้' },
     { id: 2, name: 'ต้มยำกุ้ง', price: 120, category: 'ซุป', image: '🍲', description: 'ต้มยำกุ้งน้ำใส รสจัดจ้าน' },
@@ -31,35 +30,32 @@ const RestaurantOrderingSystem = () => {
 
   const categories = [...new Set(menuItems.map(item => item.category))];
 
-  // Sound options
+  // เพิ่มเสียงแจ้งเตือนพื้นฐานมากขึ้น
   const soundOptions = [
     { id: 'bell', name: 'ระฆัง', frequency: 800 },
     { id: 'chime', name: 'กิ่งแก้ว', frequency: 1000 },
     { id: 'notification', name: 'แจ้งเตือน', frequency: 600 },
     { id: 'alert', name: 'ปลุก', frequency: 1200 },
+    { id: 'ding', name: 'กระดิ่ง', frequency: 1500 },
+    { id: 'beep', name: 'ออด', frequency: 440 },
     { id: 'custom', name: 'เพลงกำหนดเอง', frequency: null }
   ];
 
-  // Play notification sound - ปรับปรุงให้เล่นเสียงดังขึ้น
+  // ปรับปรุงเสียงแจ้งเตือนให้ดังและชัดเจนขึ้น
   const playNotificationSound = async () => {
     if (!soundEnabled) return;
 
     try {
       if (selectedSound === 'custom' && customSound) {
-        // หยุดเสียงเก่าก่อน (ถ้ามี)
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
         }
 
-        // สร้างและเล่นเสียงใหม่
         const audio = new Audio(customSound);
         audioRef.current = audio;
+        audio.volume = Math.min(volume, 1.0);
         
-        // ตั้งค่าระดับเสียงให้ดัง
-        audio.volume = Math.min(volume, 1.0); // ใช้ระดับเสียงที่ตั้งไว้
-        
-        // เพิ่ม event listeners
         audio.addEventListener('canplaythrough', () => {
           console.log('เสียงพร้อมเล่น');
         });
@@ -68,7 +64,6 @@ const RestaurantOrderingSystem = () => {
           console.error('ไม่สามารถเล่นเสียงได้:', e);
         });
 
-        // เล่นเสียง
         const playPromise = audio.play();
         
         if (playPromise !== undefined) {
@@ -82,11 +77,9 @@ const RestaurantOrderingSystem = () => {
         }
         
       } else {
-        // เล่นเสียง Tone.js
         await Tone.start();
         const sound = soundOptions.find(s => s.id === selectedSound);
         if (sound && sound.frequency) {
-          // สร้าง synth พร้อมความดังที่เพิ่มขึ้น
           const synth = new Tone.Synth({
             oscillator: {
               type: "sine"
@@ -99,15 +92,22 @@ const RestaurantOrderingSystem = () => {
             }
           }).toDestination();
           
-          // ตั้งระดับเสียง
           synth.volume.value = Tone.gainToDb(volume);
           
-          synth.triggerAttackRelease(sound.frequency, '0.5n');
-          
-          // เพิ่มจังหวะสำหรับระฆัง
+          // เพิ่มจังหวะสำหรับเสียงต่างๆ
           if (selectedSound === 'bell') {
+            synth.triggerAttackRelease(sound.frequency, '0.5n');
             setTimeout(() => synth.triggerAttackRelease(sound.frequency, '0.3n'), 300);
             setTimeout(() => synth.triggerAttackRelease(sound.frequency, '0.2n'), 600);
+          } else if (selectedSound === 'ding') {
+            synth.triggerAttackRelease(sound.frequency, '0.2n');
+            setTimeout(() => synth.triggerAttackRelease(sound.frequency * 1.2, '0.1n'), 200);
+          } else if (selectedSound === 'beep') {
+            synth.triggerAttackRelease(sound.frequency, '0.1n');
+            setTimeout(() => synth.triggerAttackRelease(sound.frequency, '0.1n'), 150);
+            setTimeout(() => synth.triggerAttackRelease(sound.frequency, '0.1n'), 300);
+          } else {
+            synth.triggerAttackRelease(sound.frequency, '0.5n');
           }
         }
       }
@@ -163,18 +163,17 @@ const RestaurantOrderingSystem = () => {
       total: getTotal(),
       status: 'รอดำเนินการ',
       timestamp: new Date().toLocaleString('th-TH'),
-      orderNumber: `#${Math.floor(Math.random() * 9000) + 1000}`
+      orderNumber: `#${Math.floor(Math.random() * 9000) + 1000}`,
+      isOnline: true // เพิ่มตัวบ่งชี้ออเดอร์ออนไลน์
     };
 
     setOrders([newOrder, ...orders]);
     setCart([]);
     setCustomerInfo({ name: '', phone: '', address: '' });
     setNewOrderAlert(true);
-    playNotificationSound();
+    playNotificationSound(); // เล่นเสียงเมื่อมีออเดอร์ใหม่
 
-    // Hide alert after 5 seconds
     setTimeout(() => setNewOrderAlert(false), 5000);
-
     alert('สั่งอาหารสำเร็จ! ขอบคุณครับ');
   };
 
@@ -189,15 +188,12 @@ const RestaurantOrderingSystem = () => {
   const handleCustomSoundUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // ตรวจสอบประเภทไฟล์
       const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac'];
       
       if (allowedTypes.includes(file.type)) {
         const url = URL.createObjectURL(file);
         setCustomSound(url);
         setSelectedSound('custom');
-        
-        // แสดงชื่อไฟล์
         console.log('อัปโหลดไฟล์เสียง:', file.name);
       } else {
         alert('กรุณาเลือกไฟล์เสียงเท่านั้น (MP3, WAV, OGG, M4A, AAC)');
@@ -210,30 +206,30 @@ const RestaurantOrderingSystem = () => {
     playNotificationSound();
   };
 
-  // Customer View
+  // Customer View - ปรับปรุง UI ให้สวยงามและขนาดเล็กลง
   const CustomerView = () => (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       <header className="bg-white shadow-lg sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="text-3xl">🍽️</div>
-              <h1 className="text-2xl font-bold text-gray-800">ร้านอาหารออนไลน์</h1>
+              <div className="text-2xl">🍽️</div>
+              <h1 className="text-xl font-bold text-gray-800">ร้านอาหารออนไลน์</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <ShoppingCart className="h-8 w-8 text-orange-600" />
+                <ShoppingCart className="h-6 w-6 text-orange-600" />
                 {cart.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
                     {cart.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 )}
               </div>
               <button
                 onClick={() => setCurrentView('restaurant')}
-                className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-2 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
               >
-                <Store className="h-5 w-5" />
+                <Store className="h-4 w-4" />
                 <span>หน้าร้านค้า</span>
               </button>
             </div>
@@ -241,33 +237,64 @@ const RestaurantOrderingSystem = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Menu Section */}
+      {/* ปุ่มเมนู 5 ปุ่มแถวเดียวกัน - ปรับให้สั้นลงและ responsive */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex justify-center space-x-2 md:space-x-4">
+            {[
+              { name: 'โปรไฟล์', icon: '👤' },
+              { name: 'Rewards', icon: '🎁' },
+              { name: 'Coupons', icon: '🎫' },
+              { name: 'ประวัติ', icon: '📋' },
+              { name: 'Shop', icon: '🛍️' }
+            ].map((item, index) => (
+              <button
+                key={index}
+                className="flex flex-col items-center justify-center px-2 py-2 md:px-4 md:py-3 rounded-lg hover:bg-orange-50 transition-colors flex-1 min-w-0"
+              >
+                <div className="text-lg md:text-xl mb-1">{item.icon}</div>
+                <span className="text-xs md:text-sm font-medium text-gray-700 truncate">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Menu Section - ปรับขนาดให้เล็กลง 50% */}
           <div className="lg:col-span-2">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">เมนูอาหาร</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">เมนูอาหาร</h2>
             
             {categories.map(category => (
-              <div key={category} className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-orange-200 pb-2">
+              <div key={category} className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3 border-b-2 border-orange-200 pb-2">
                   {category}
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
+                {/* ปรับ grid ให้แสดง 3-4 items ต่อแถว และขนาดเล็กลง */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {menuItems.filter(item => item.category === category).map(item => (
-                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="text-4xl">{item.image}</div>
-                          <span className="text-2xl font-bold text-orange-600">฿{item.price}</span>
+                    <div key={item.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                      <div className="p-3">
+                        {/* พื้นที่สำหรับรูปภาพ - ขนาดเล็กลง */}
+                        <div className="aspect-square w-full bg-gray-100 rounded-lg flex items-center justify-center mb-2">
+                          <div className="text-2xl">{item.image}</div>
                         </div>
-                        <h4 className="text-lg font-semibold text-gray-800 mb-2">{item.name}</h4>
-                        <p className="text-gray-600 text-sm mb-4">{item.description}</p>
+                        
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-semibold text-gray-800 line-clamp-1">{item.name}</h4>
+                          <p className="text-xs text-gray-600 line-clamp-2">{item.description}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-orange-600">฿{item.price}</span>
+                          </div>
+                        </div>
+                        
                         <button
                           onClick={() => addToCart(item)}
-                          className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center space-x-2"
+                          className="w-full bg-orange-500 text-white py-1.5 px-2 rounded-md hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1 mt-2 text-xs"
                         >
-                          <Plus className="h-4 w-4" />
-                          <span>เพิ่มลงตะกร้า</span>
+                          <Plus className="h-3 w-3" />
+                          <span>เพิ่ม</span>
                         </button>
                       </div>
                     </div>
@@ -277,79 +304,79 @@ const RestaurantOrderingSystem = () => {
             ))}
           </div>
 
-          {/* Cart Section */}
+          {/* Cart Section - ปรับขนาดให้เล็กลง */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                <ShoppingCart className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-lg p-4 sticky top-32">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <ShoppingCart className="h-4 w-4 mr-2" />
                 ตะกร้าสินค้า
               </h3>
 
               {cart.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">ไม่มีสินค้าในตะกร้า</p>
+                <p className="text-gray-500 text-center py-6 text-sm">ไม่มีสินค้าในตะกร้า</p>
               ) : (
                 <>
-                  <div className="space-y-3 mb-6">
+                  <div className="space-y-2 mb-4">
                     {cart.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-800">{item.name}</h4>
-                          <p className="text-orange-600 font-semibold">฿{item.price}</p>
+                          <h4 className="text-sm font-medium text-gray-800">{item.name}</h4>
+                          <p className="text-xs text-orange-600 font-semibold">฿{item.price}</p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1">
                           <button
                             onClick={() => removeFromCart(item.id)}
                             className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"
                           >
-                            <Minus className="h-4 w-4" />
+                            <Minus className="h-3 w-3" />
                           </button>
-                          <span className="w-8 text-center">{item.quantity}</span>
+                          <span className="w-6 text-center text-sm">{item.quantity}</span>
                           <button
                             onClick={() => addToCart(item)}
                             className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200"
                           >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="border-t pt-4 mb-6">
-                    <div className="flex justify-between text-xl font-bold text-gray-800">
+                  <div className="border-t pt-3 mb-4">
+                    <div className="flex justify-between text-lg font-bold text-gray-800">
                       <span>รวมทั้งหมด:</span>
                       <span className="text-orange-600">฿{getTotal()}</span>
                     </div>
                   </div>
 
-                  {/* Customer Info */}
-                  <div className="space-y-4 mb-6">
-                    <h4 className="font-semibold text-gray-800">ข้อมูลลูกค้า</h4>
+                  {/* Customer Info - ปรับขนาดให้เล็กลง */}
+                  <div className="space-y-3 mb-4">
+                    <h4 className="font-semibold text-gray-800 text-sm">ข้อมูลลูกค้า</h4>
                     <input
                       type="text"
                       placeholder="ชื่อ-นามสกุล"
                       value={customerInfo.name}
                       onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     />
                     <input
                       type="tel"
                       placeholder="เบอร์โทรศัพท์"
                       value={customerInfo.phone}
                       onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     />
                     <textarea
                       placeholder="ที่อยู่จัดส่ง"
                       value={customerInfo.address}
                       onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-20"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-16 text-sm"
                     />
                   </div>
 
                   <button
                     onClick={submitOrder}
-                    className="w-full bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-colors font-semibold text-lg"
+                    className="w-full bg-green-500 text-white py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors font-semibold"
                   >
                     สั่งอาหาร
                   </button>
@@ -362,7 +389,7 @@ const RestaurantOrderingSystem = () => {
     </div>
   );
 
-  // Restaurant View
+  // Restaurant View - ปรับปรุงการแจ้งเตือน
   const RestaurantView = () => (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <header className="bg-white shadow-lg">
@@ -373,10 +400,17 @@ const RestaurantOrderingSystem = () => {
               <h1 className="text-2xl font-bold text-gray-800">หน้าร้านค้า - จัดการออเดอร์</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* แจ้งเตือนออเดอร์ออนไลน์ใหม่ */}
               {newOrderAlert && (
-                <div className="flex items-center space-x-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg animate-pulse">
-                  <Bell className="h-5 w-5" />
-                  <span>ออเดอร์ใหม่!</span>
+                <div className="flex items-center space-x-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg animate-pulse border-2 border-red-300">
+                  <Bell className="h-5 w-5 animate-bounce" />
+                  <span className="font-semibold">ออเดอร์ออนไลน์ใหม่!</span>
+                  <button 
+                    onClick={() => setNewOrderAlert(false)}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               )}
               <button
@@ -405,10 +439,17 @@ const RestaurantOrderingSystem = () => {
             ) : (
               <div className="space-y-6">
                 {orders.map(order => (
-                  <div key={order.id} className="bg-white rounded-lg shadow-lg p-6">
+                  <div key={order.id} className={`bg-white rounded-lg shadow-lg p-6 ${order.isOnline ? 'border-l-4 border-blue-500' : ''}`}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-800">{order.orderNumber}</h3>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-xl font-semibold text-gray-800">{order.orderNumber}</h3>
+                          {order.isOnline && (
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                              ออนไลน์
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-600">{order.timestamp}</p>
                         <p className="text-gray-600">
                           <strong>ลูกค้า:</strong> {order.customer.name} ({order.customer.phone})
@@ -491,7 +532,7 @@ const RestaurantOrderingSystem = () => {
                   </button>
                 </div>
 
-                {/* เพิ่มการควบคุมระดับเสียง */}
+                {/* การควบคุมระดับเสียง */}
                 <div>
                   <label className="block text-gray-700 mb-2">ระดับเสียง: {Math.round(volume * 100)}%</label>
                   <input
@@ -547,6 +588,12 @@ const RestaurantOrderingSystem = () => {
                   <div className="flex justify-between">
                     <span>ออเดอร์ทั้งหมด:</span>
                     <span className="font-semibold">{orders.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>ออเดอร์ออนไลน์:</span>
+                    <span className="font-semibold text-blue-600">
+                      {orders.filter(order => order.isOnline).length}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>ยอดขายรวม:</span>
