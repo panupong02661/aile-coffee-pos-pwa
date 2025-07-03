@@ -1,9 +1,6 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tag } from 'lucide-react';
-import LimitedPromotions from '../LimitedPromotions';
-import CustomerCoupons from '../CustomerCoupons';
+import CouponsTabsSection from './CouponsTabsSection';
 
 interface Coupon {
   id: string;
@@ -22,11 +19,7 @@ interface CouponsSectionProps {
 const CouponsSection = ({ coupons }: CouponsSectionProps) => {
   return (
     <div className="space-y-6">
-      {/* โปรโมชั่นพิเศษ Limited Time */}
-      <LimitedPromotions />
-      
-      {/* คูปองปกติของลูกค้า */}
-      <CustomerCoupons />
+      <CouponsTabsSection />
     </div>
   );
 };

@@ -1,227 +1,382 @@
-
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar, Plus, Edit, Trash2, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import PromotionForm from '@/components/PromotionForm';
-import Header from '@/components/Header';
-import MainSidebar from '@/components/MainSidebar';
+import { supabase } from '@/integrations/supabase/client';
+import BirthdayGiftManager from '@/components/BirthdayGiftManager';
+
+interface Promotion {
+  id: string;
+  title: string;
+  description?: string;
+  discount_type: 'percentage' | 'amount';
+  discount_value: number;
+  max_claims: number;
+  current_claims: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  promo_code?: string;
+}
 
 const Promotions = () => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingPromotion, setEditingPromotion] = useState<any>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    discount_type: 'percentage' as 'percentage' | 'amount',
+    discount_value: 0,
+    max_claims: 100,
+    start_date: '',
+    end_date: '',
+    promo_code: ''
+  });
   const { toast } = useToast();
 
-  const { data: promotions = [], refetch } = useQuery({
-    queryKey: ['promotions'],
-    queryFn: async () => {
+  const fetchPromotions = async () => {
+    try {
       const { data, error } = await supabase
-        .from('promotions')
-        .select(`
-          *,
-          promotion_menu_items (
-            menu_items (
-              id,
-              name
-            )
-          )
-        `)
+        .from('limited_promotions')
+        .select('*')
         .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('คุณต้องการลบโปรโมชั่นนี้หรือไม่?')) return;
-    
-    const { error } = await supabase.from('promotions').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบโปรโมชั่นได้', variant: 'destructive' });
-    } else {
-      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นสำเร็จ' });
-      refetch();
+      if (error) {
+        console.error('Error fetching promotions:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดโปรโมชั่นได้', variant: 'destructive' });
+        return;
+      }
+
+      setPromotions(data || []);
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการโหลดโปรโมชั่น', variant: 'destructive' });
     }
   };
 
-  const getPromotionTypeLabel = (type: string) => {
-    switch (type) {
-      case 'percentage': return 'ส่วนลดเปอร์เซ็นต์';
-      case 'amount': return 'ส่วนลดจำนวนเงิน';
-      case 'buy_get': return 'ซื้อแถม';
-      case 'free_item': return 'ของแถม';
-      default: return type;
+  const handleCreatePromotion = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('limited_promotions')
+        .insert([{
+          title: formData.title,
+          description: formData.description,
+          discount_type: formData.discount_type,
+          discount_value: formData.discount_value,
+          max_claims: formData.max_claims,
+          current_claims: 0,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          is_active: true,
+          promo_code: formData.promo_code
+        }])
+        .select();
+
+      if (error) {
+        console.error('Error creating promotion:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโปรโมชั่นได้', variant: 'destructive' });
+        return;
+      }
+
+      setPromotions([...promotions, ...(data || [])]);
+      setIsFormOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        discount_type: 'percentage',
+        discount_value: 0,
+        max_claims: 100,
+        start_date: '',
+        end_date: '',
+        promo_code: ''
+      });
+      toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นเรียบร้อยแล้ว' });
+    } catch (error) {
+      console.error('Error creating promotion:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการสร้างโปรโมชั่น', variant: 'destructive' });
     }
   };
 
-  const getTargetGroupLabel = (group: string) => {
-    switch (group) {
-      case 'all': return 'ทุกคน';
-      case 'silver': return 'สมาชิกเงิน';
-      case 'gold': return 'สมาชิกทอง';
-      case 'platinum': return 'สมาชิกแพลตตินั่ม';
-      default: return group;
+  const handleUpdatePromotion = async () => {
+    if (!editingPromotion) return;
+
+    try {
+      const { error } = await supabase
+        .from('limited_promotions')
+        .update({
+          title: formData.title,
+          description: formData.description,
+          discount_type: formData.discount_type,
+          discount_value: formData.discount_value,
+          max_claims: formData.max_claims,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          promo_code: formData.promo_code
+        })
+        .eq('id', editingPromotion.id);
+
+      if (error) {
+        console.error('Error updating promotion:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถแก้ไขโปรโมชั่นได้', variant: 'destructive' });
+        return;
+      }
+
+      setPromotions(promotions.map(promo =>
+        promo.id === editingPromotion.id ? { ...promo, ...formData } : promo
+      ));
+      setIsFormOpen(false);
+      setEditingPromotion(null);
+      setFormData({
+        title: '',
+        description: '',
+        discount_type: 'percentage',
+        discount_value: 0,
+        max_claims: 100,
+        start_date: '',
+        end_date: '',
+        promo_code: ''
+      });
+      toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อยแล้ว' });
+    } catch (error) {
+      console.error('Error updating promotion:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการแก้ไขโปรโมชั่น', variant: 'destructive' });
     }
   };
 
-  const handleToggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  const handleDeletePromotion = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('limited_promotions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting promotion:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบโปรโมชั่นได้', variant: 'destructive' });
+        return;
+      }
+
+      setPromotions(promotions.filter(promo => promo.id !== id));
+      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นเรียบร้อยแล้ว' });
+    } catch (error) {
+      console.error('Error deleting promotion:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการลบโปรโมชั่น', variant: 'destructive' });
+    }
   };
 
-  const handleCloseSidebar = () => {
-    setIsSidebarOpen(false);
-  };
+  useEffect(() => {
+    fetchPromotions();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={handleCloseSidebar}
-      />
-      
-      <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
-      }`}>
-        <div className="max-w-7xl mx-auto">
-          <Header 
-            onToggleSidebar={handleToggleSidebar}
-            categories={[]}
-            selectedCategory=""
-            onCategorySelect={() => {}}
-            gridColumns={4}
-            setGridColumns={() => {}}
-            itemSize="medium"
-            setItemSize={() => {}}
-            page="other"
-          />
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">จัดการแอปลูกค้า</h1>
+      </div>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-coffee-800">จัดการโปรโมชั่น</h1>
-            <p className="text-coffee-600 mt-2">สร้างและจัดการโปรโมชั่นต่างๆ</p>
-          </div>
-
-          <Card className="border-coffee-200">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-coffee-800">รายการโปรโมชั่น</CardTitle>
-              <Button 
-                className="bg-coffee-600 hover:bg-coffee-700"
-                onClick={() => {
-                  setEditingPromotion(null);
-                  setShowForm(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                สร้างโปรโมชั่น
-              </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Promotion Management */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Limited Promotions Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  สร้างของรางวัลพิเศษใหม่
+                </CardTitle>
+                <Button onClick={() => setIsFormOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  เพิ่มโปรโมชั่น
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {promotions.length === 0 ? (
-                <div className="text-center py-8 text-coffee-500">
-                  <p>ยังไม่มีโปรโมชั่น</p>
-                  <p className="text-sm mt-2">คลิกปุ่ม "สร้างโปรโมชั่น" เพื่อเริ่มต้น</p>
+              {/* Form for creating/editing promotions */}
+              {isFormOpen && (
+                <div className="space-y-4 p-4 border rounded-lg mb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="title">ชื่อรางวัล *</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        placeholder="เช่น ส่วนลด 20% พิเศษ"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="promo_code">รหัสคูปอง (ถ้ามี)</Label>
+                      <Input
+                        id="promo_code"
+                        value={formData.promo_code}
+                        onChange={(e) => setFormData({...formData, promo_code: e.target.value})}
+                        placeholder="เช่น SPECIAL20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="discount_type">ประเภทส่วนลด</Label>
+                      <Select 
+                        value={formData.discount_type} 
+                        onValueChange={(value: 'percentage' | 'amount') => 
+                          setFormData({...formData, discount_type: value})
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={formData.discount_type === 'percentage' ? 'เปอร์เซ็นต์ (%)' : 'จำนวนเงิน (บาท)'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">เปอร์เซ็นต์ (%)</SelectItem>
+                          <SelectItem value="amount">จำนวนเงิน (บาท)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="discount_value">จำนวนส่วนลดหรือมูลค่า</Label>
+                      <Input
+                        id="discount_value"
+                        type="number"
+                        value={formData.discount_value.toString()}
+                        onChange={(e) => setFormData({...formData, discount_value: parseFloat(e.target.value) || 0})}
+                        placeholder="100"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="max_claims">จำนวนคนที่รับได้สูงสุด</Label>
+                    <Input
+                      id="max_claims"
+                      type="number"
+                      value={formData.max_claims.toString()}
+                      onChange={(e) => setFormData({...formData, max_claims: parseInt(e.target.value) || 0})}
+                      placeholder="100"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="start_date">วันเริ่ม *</Label>
+                      <Input
+                        id="start_date"
+                        type="datetime-local"
+                        value={formData.start_date}
+                        onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end_date">วันสิ้นสุด *</Label>
+                      <Input
+                        id="end_date"
+                        type="datetime-local"
+                        value={formData.end_date}
+                        onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">คำอธิบาย</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      placeholder="อธิบายเงื่อนไขและรายละเอียดของรางวัล..."
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={() => {
+                      setIsFormOpen(false);
+                      setEditingPromotion(null);
+                      setFormData({
+                        title: '',
+                        description: '',
+                        discount_type: 'percentage',
+                        discount_value: 0,
+                        max_claims: 100,
+                        start_date: '',
+                        end_date: '',
+                        promo_code: ''
+                      });
+                    }} variant="outline">
+                      ยกเลิก
+                    </Button>
+                    <Button onClick={() => {
+                      if (editingPromotion) {
+                        handleUpdatePromotion();
+                      } else {
+                        handleCreatePromotion();
+                      }
+                    }}>
+                      {editingPromotion ? 'บันทึกการแก้ไข' : 'สร้างรางวัล'}
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {promotions.map((promotion) => (
-                    <div key={promotion.id} className="border border-coffee-100 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-coffee-800 mb-2">{promotion.name}</h3>
-                          <p className="text-sm text-coffee-600 mb-3">{promotion.description}</p>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium text-coffee-700">ประเภท:</span>
-                              <p className="text-coffee-600">{getPromotionTypeLabel(promotion.type)}</p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-coffee-700">ส่วนลด:</span>
-                              <p className="text-coffee-600">
-                                {promotion.type === 'percentage' ? `${promotion.discount_value}%` : `฿${promotion.discount_value}`}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-coffee-700">กลุ่มเป้าหมาย:</span>
-                              <p className="text-coffee-600">{getTargetGroupLabel(promotion.target_group)}</p>
-                            </div>
-                            <div>
-                              <span className="font-medium text-coffee-700">การใช้งาน:</span>
-                              <p className="text-coffee-600">
-                                {promotion.used_count}{promotion.usage_limit ? `/${promotion.usage_limit}` : ''} ครั้ง
-                              </p>
-                            </div>
-                          </div>
+              )}
 
-                          <div className="mt-3 text-sm">
-                            <span className="font-medium text-coffee-700">ระยะเวลา:</span>
-                            <p className="text-coffee-600">
-                              {new Date(promotion.start_date).toLocaleDateString('th-TH')} - {new Date(promotion.end_date).toLocaleDateString('th-TH')}
-                            </p>
+              {/* Promotions List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">รายการของรางวัลพิเศษ</h3>
+                {promotions.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">ยังไม่มีโปรโมชั่น</p>
+                ) : (
+                  promotions.map(promotion => (
+                    <div key={promotion.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold">{promotion.title}</h4>
+                          <p className="text-sm text-gray-600">{promotion.description}</p>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                            <span>ส่วนลด: {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : '฿'}</span>
+                            <span>รับแล้ว: {promotion.current_claims}/{promotion.max_claims}</span>
+                            <span className={promotion.is_active ? 'text-green-600' : 'text-red-600'}>
+                              {promotion.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                            </span>
                           </div>
-
-                          {promotion.promotion_menu_items && promotion.promotion_menu_items.length > 0 && (
-                            <div className="mt-3 text-sm">
-                              <span className="font-medium text-coffee-700">เมนูที่ใช้ได้:</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {promotion.promotion_menu_items.map((item: any, index: number) => (
-                                  <span key={index} className="bg-coffee-100 text-coffee-700 px-2 py-1 rounded text-xs">
-                                    {item.menu_items?.name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
-
-                        <div className="flex items-center space-x-2 ml-4">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            promotion.is_active 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-red-100 text-red-700'
-                          }`}>
-                            {promotion.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                          </span>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingPromotion(promotion);
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit className="w-3 h-3" />
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => {
+                            setIsFormOpen(true);
+                            setEditingPromotion(promotion);
+                            setFormData({
+                              title: promotion.title,
+                              description: promotion.description || '',
+                              discount_type: promotion.discount_type,
+                              discount_value: promotion.discount_value,
+                              max_claims: promotion.max_claims,
+                              start_date: promotion.start_date,
+                              end_date: promotion.end_date,
+                              promo_code: promotion.promo_code || ''
+                            });
+                          }}>
+                            <Edit className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-red-600"
-                            onClick={() => handleDelete(promotion.id)}
-                          >
-                            <Trash2 className="w-3 h-3" />
+                          <Button size="sm" variant="outline" onClick={() => handleDeletePromotion(promotion.id)}>
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
+        </div>
 
-          <PromotionForm
-            isOpen={showForm}
-            onClose={() => setShowForm(false)}
-            onSuccess={() => {
-              refetch();
-              setEditingPromotion(null);
-            }}
-            editPromotion={editingPromotion}
-          />
+        {/* Right Column - Birthday Gift Manager */}
+        <div className="space-y-6">
+          <BirthdayGiftManager />
         </div>
       </div>
     </div>

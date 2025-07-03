@@ -57,7 +57,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       const upperCode = code.toUpperCase().trim();
       console.log('กำลังตรวจสอบโค้ด:', upperCode);
       
-      // ค้นหาโค้ดในฐานข้อมูล
+      // Search for code in customer_gifts table (includes limited promotions and birthday gifts)
       const { data: gifts, error: queryError } = await supabase
         .from('customer_gifts')
         .select(`
@@ -75,19 +75,94 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         .eq('gift_code', upperCode)
         .order('created_at', { ascending: false });
 
-      console.log('ผลการค้นหาโค้ด:', { gifts, error: queryError });
+      console.log('ผลการค้นหาโค้ดในของขวัญ:', { gifts, error: queryError });
 
       if (queryError) {
-        console.error('ข้อผิดพลาดในการค้นหา:', queryError);
-        toast({ 
-          title: 'ข้อผิดพลาด', 
-          description: `เกิดข้อผิดพลาดในการตรวจสอบ: ${queryError.message}`, 
-          variant: 'destructive' 
-        });
-        return;
+        console.error('ข้อผิดพลาดในการค้นหาของขวัญ:', queryError);
+        // Continue to check other sources
       }
 
-      if (!gifts || gifts.length === 0) {
+      let foundGift = null;
+
+      // Check customer gifts first
+      if (gifts && gifts.length > 0) {
+        foundGift = gifts[0] as CustomerGiftWithMenuItem;
+        
+        // Check if already used (paid for)
+        if (foundGift.used_at) {
+          console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', foundGift.used_at);
+          toast({ 
+            title: 'โค้ดถูกใช้แล้ว', 
+            description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว ไม่สามารถใช้ซ้ำได้', 
+            variant: 'destructive' 
+          });
+          return;
+        }
+
+        // Check expiry
+        if (foundGift.expires_at) {
+          const expiryDate = new Date(foundGift.expires_at);
+          const currentDate = new Date();
+          
+          if (expiryDate < currentDate) {
+            console.log('โค้ดหมดอายุแล้ว:', { expires_at: foundGift.expires_at, current: currentDate.toISOString() });
+            toast({ 
+              title: 'โค้ดหมดอายุ', 
+              description: 'โค้ดนี้หมดอายุแล้ว', 
+              variant: 'destructive' 
+            });
+            return;
+          }
+        }
+      }
+
+      // If not found in gifts, check limited_promotions table for promo codes
+      if (!foundGift) {
+        const { data: promotions, error: promoError } = await supabase
+          .from('limited_promotions')
+          .select('*')
+          .eq('promo_code', upperCode)
+          .eq('is_active', true)
+          .lte('start_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString());
+
+        console.log('ผลการค้นหาโค้ดในโปรโมชั่น:', { promotions, error: promoError });
+
+        if (promotions && promotions.length > 0) {
+          const promotion = promotions[0];
+          
+          // Check if promotion is full
+          if (promotion.current_claims >= promotion.max_claims) {
+            toast({ 
+              title: 'โปรโมชั่นหมด', 
+              description: 'โปรโมชั่นนี้หมดแล้ว', 
+              variant: 'destructive' 
+            });
+            return;
+          }
+
+          // Create a gift-like object for the promotion
+          foundGift = {
+            id: promotion.id,
+            customer_id: '',
+            gift_type: 'promotion',
+            gift_id: promotion.id,
+            gift_name: promotion.title,
+            gift_description: promotion.description,
+            gift_value: promotion.discount_value,
+            expires_at: promotion.end_date,
+            is_used: false,
+            used_at: null,
+            gift_code: promotion.promo_code,
+            message: `โปรโมชั่นพิเศษ: ${promotion.description}`,
+            created_at: promotion.created_at,
+            updated_at: promotion.updated_at,
+            sent_by: 'promotion_system'
+          } as CustomerGiftWithMenuItem;
+        }
+      }
+
+      if (!foundGift) {
         console.log('ไม่พบโค้ดในระบบ');
         toast({ 
           title: 'ไม่พบโค้ด', 
@@ -97,56 +172,20 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         return;
       }
 
-      // ใช้โค้ดตัวแรกที่พบ
-      const gift = gifts[0] as CustomerGiftWithMenuItem;
-      console.log('พบโค้ด:', { 
-        id: gift.id, 
-        gift_code: gift.gift_code, 
-        used_at: gift.used_at, 
-        expires_at: gift.expires_at 
-      });
+      // Code is valid - apply it
+      console.log('โค้ดพร้อมใช้งาน:', foundGift);
+      onApplyCode(foundGift);
 
-      // เงื่อนไขเดียว: ถ้ามี used_at แสดงว่าชำระเงินแล้ว ห้ามใช้
-      if (gift.used_at) {
-        console.log('โค้ดถูกใช้งานและชำระเงินแล้ว:', gift.used_at);
-        toast({ 
-          title: 'โค้ดถูกใช้แล้ว', 
-          description: 'โค้ดนี้ถูกใช้งานและชำระเงินแล้ว ไม่สามารถใช้ซ้ำได้', 
-          variant: 'destructive' 
-        });
-        return;
-      }
-
-      // ตรวจสอบวันหมดอายุ
-      if (gift.expires_at) {
-        const expiryDate = new Date(gift.expires_at);
-        const currentDate = new Date();
-        
-        if (expiryDate < currentDate) {
-          console.log('โค้ดหมดอายุแล้ว:', { expires_at: gift.expires_at, current: currentDate.toISOString() });
-          toast({ 
-            title: 'โค้ดหมดอายุ', 
-            description: 'โค้ดนี้หมดอายุแล้ว', 
-            variant: 'destructive' 
-          });
-          return;
-        }
-      }
-
-      // โค้ดใช้งานได้ - นำไปใช้งาน
-      console.log('โค้ดพร้อมใช้งาน:', gift);
-      onApplyCode(gift);
-
-      // แสดงข้อความสำเร็จ
+      // Show success message
       let successMessage = '';
       
-      if (gift.gift_type === 'menu_item') {
-        const menuItemName = gift.menu_items?.name || gift.gift_name;
+      if (foundGift.gift_type === 'menu_item') {
+        const menuItemName = foundGift.menu_items?.name || foundGift.gift_name;
         successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)`;
-      } else if (gift.gift_type === 'promotion') {
-        successMessage = `ใช้โปรโมชั่น ${gift.gift_name} แล้ว (ส่วนลด ${gift.gift_value}฿)`;
+      } else if (foundGift.gift_type === 'promotion' || foundGift.gift_type === 'voucher') {
+        successMessage = `ใช้โค้ด ${foundGift.gift_name} แล้ว (ส่วนลด ${foundGift.gift_value}${foundGift.discount_type === 'percentage' ? '%' : '฿'})`;
       } else {
-        successMessage = `ใช้โค้ด ${gift.gift_name} แล้ว`;
+        successMessage = `ใช้โค้ด ${foundGift.gift_name} แล้ว`;
       }
 
       toast({ 
@@ -191,13 +230,14 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
               placeholder="กรอกโค้ด เช่น ABC123"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              maxLength={6}
+              maxLength={10}
               className="font-mono text-center text-lg"
             />
           </div>
           
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p><strong>เงื่อนไขการใช้งานโค้ด:</strong></p>
+            <p>• รองรับโค้ดจากโปรโมชั่นพิเศษและของรางวัลวันเกิด</p>
             <p>• โค้ดสามารถใช้ได้หลายครั้งก่อนชำระเงิน</p>
             <p>• เมื่อชำระเงินแล้ว โค้ดจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
