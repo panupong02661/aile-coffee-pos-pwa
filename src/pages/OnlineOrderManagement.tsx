@@ -54,6 +54,7 @@ interface NotificationSettings {
   sound_enabled: boolean;
   selected_sound_id?: string;
   volume: number;
+  duration: number;
 }
 
 interface NotificationSound {
@@ -176,7 +177,8 @@ const OnlineOrderManagement = () => {
         .insert({
           sound_enabled: true,
           selected_sound_id: 'bell',
-          volume: 0.8
+          volume: 0.8,
+          duration: 2
         })
         .select()
         .single();
@@ -203,6 +205,7 @@ const OnlineOrderManagement = () => {
 
     try {
       const selectedSoundId = notificationSettings.selected_sound_id;
+      const duration = (notificationSettings.duration || 2) * 1000; // แปลงเป็น milliseconds
       
       // ตรวจสอบว่าเป็นเสียงพื้นฐานหรือไม่
       const basicSound = basicSounds.find(sound => sound.id === selectedSoundId);
@@ -250,12 +253,14 @@ const OnlineOrderManagement = () => {
         oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
         oscillator.type = waveType;
         
+        const durationInSeconds = duration / 1000;
+        
         gainNode.gain.setValueAtTime(0, audioContext.currentTime);
         gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + durationInSeconds);
         
         oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
+        oscillator.stop(audioContext.currentTime + durationInSeconds);
         
       } else {
         // เล่นเสียงที่อัพโหลด
@@ -266,7 +271,27 @@ const OnlineOrderManagement = () => {
         if (selectedSound) {
           const audio = new Audio(selectedSound.file_url);
           audio.volume = notificationSettings.volume;
-          await audio.play();
+          
+          // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
+          const playDuration = duration;
+          const soundDuration = await new Promise<number>((resolve) => {
+            audio.addEventListener('loadedmetadata', () => {
+              resolve(audio.duration * 1000);
+            });
+            audio.load();
+          });
+          
+          let totalPlayTime = 0;
+          const playLoop = async () => {
+            while (totalPlayTime < playDuration) {
+              audio.currentTime = 0;
+              await audio.play();
+              await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, playDuration - totalPlayTime)));
+              totalPlayTime += soundDuration;
+            }
+          };
+          
+          await playLoop();
         }
       }
     } catch (error) {
@@ -390,6 +415,7 @@ const OnlineOrderManagement = () => {
       }
 
       setPlayingSound(soundId);
+      const duration = (notificationSettings.duration || 2) * 1000;
 
       // ตรวจสอบว่าเป็นเสียงพื้นฐานหรือไม่
       const basicSound = basicSounds.find(s => s.id === soundId);
@@ -436,17 +462,19 @@ const OnlineOrderManagement = () => {
         oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
         oscillator.type = waveType;
         
+        const durationInSeconds = duration / 1000;
+        
         gainNode.gain.setValueAtTime(0, audioContext.currentTime);
         gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + durationInSeconds);
         
         oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
+        oscillator.stop(audioContext.currentTime + durationInSeconds);
         
-        // หยุดการแสดงสถานะการเล่นหลังจาก 500ms
+        // หยุดการแสดงสถานะการเล่นหลังจากระยะเวลาที่กำหนด
         setTimeout(() => {
           setPlayingSound(null);
-        }, 500);
+        }, duration);
         
       } else {
         // เล่นเสียงที่อัพโหลด
@@ -469,7 +497,28 @@ const OnlineOrderManagement = () => {
           });
 
           setCurrentAudio(audio);
-          await audio.play();
+          
+          // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
+          const soundDuration = await new Promise<number>((resolve) => {
+            audio.addEventListener('loadedmetadata', () => {
+              resolve(audio.duration * 1000);
+            });
+            audio.load();
+          });
+          
+          let totalPlayTime = 0;
+          const playLoop = async () => {
+            while (totalPlayTime < duration && playingSound === soundId) {
+              audio.currentTime = 0;
+              await audio.play();
+              await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, duration - totalPlayTime)));
+              totalPlayTime += soundDuration;
+            }
+            setPlayingSound(null);
+            setCurrentAudio(null);
+          };
+          
+          await playLoop();
           hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
         }
       }
@@ -486,6 +535,9 @@ const OnlineOrderManagement = () => {
       currentAudio.pause();
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
+      setPlayingSound(null);
+      hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
+    } else {
       setPlayingSound(null);
       hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
     }
@@ -758,6 +810,21 @@ const OnlineOrderManagement = () => {
                         step="0.1"
                         value={notificationSettings.volume}
                         onChange={(e) => updateNotificationSettings({ volume: parseFloat(e.target.value) })}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    {/* Duration Control */}
+                    <div>
+                      <Label htmlFor="duration">ระยะเวลาการดัง ({notificationSettings.duration || 2} วินาที)</Label>
+                      <Input
+                        id="duration"
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={notificationSettings.duration || 2}
+                        onChange={(e) => updateNotificationSettings({ duration: parseInt(e.target.value) })}
                         className="mt-2"
                       />
                     </div>
