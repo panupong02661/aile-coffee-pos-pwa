@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -218,13 +217,13 @@ const OnlineOrderManagement = () => {
 
     try {
       const selectedSoundId = notificationSettings.selected_sound_id;
-      const duration = (notificationSettings.duration || 2) * 1000; // แปลงเป็น milliseconds
+      const duration = (notificationSettings.duration || 2) * 1000;
       
       // ตรวจสอบว่าเป็นเสียงพื้นฐานหรือไม่
       const basicSound = basicSounds.find(sound => sound.id === selectedSoundId);
       
       if (basicSound) {
-        // เล่นเสียงพื้นฐานด้วย Web Audio API
+        // เล่นเสียงพื้นฐาน
         await playBasicSound(selectedSoundId, duration);
       } else {
         // เล่นเสียงที่อัพโหลด
@@ -302,21 +301,18 @@ const OnlineOrderManagement = () => {
       const audio = new Audio(sound.file_url);
       audio.volume = notificationSettings?.volume || 0.8;
       
-      // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
-      const playDuration = duration;
-      let totalPlayTime = 0;
+      // เล่นเสียงตามระยะเวลาที่กำหนด
+      const playPromise = audio.play();
       
-      const playLoop = async () => {
-        while (totalPlayTime < playDuration) {
+      // หยุดเสียงหลังจากเวลาที่กำหนด
+      setTimeout(() => {
+        if (!audio.paused) {
+          audio.pause();
           audio.currentTime = 0;
-          await audio.play();
-          const soundDuration = (audio.duration || 1) * 1000;
-          await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, playDuration - totalPlayTime)));
-          totalPlayTime += soundDuration;
         }
-      };
+      }, duration);
       
-      await playLoop();
+      await playPromise;
     } catch (error) {
       console.error('Error playing uploaded sound:', error);
     }
@@ -435,8 +431,8 @@ const OnlineOrderManagement = () => {
         currentAudio.pause();
         currentAudio.currentTime = 0;
         setCurrentAudio(null);
-        setPlayingSound(null);
       }
+      setPlayingSound(null);
 
       setPlayingSound(soundId);
       const duration = (notificationSettings.duration || 2) * 1000;
@@ -452,12 +448,10 @@ const OnlineOrderManagement = () => {
         setTimeout(() => {
           setPlayingSound(null);
         }, duration);
-        
       } else {
         // เล่นเสียงที่อัพโหลด
         const sound = notificationSounds.find(s => s.id === soundId);
         if (sound) {
-          console.log('Testing sound:', sound.file_url);
           const audio = new Audio(sound.file_url);
           audio.volume = notificationSettings.volume;
           
@@ -473,10 +467,18 @@ const OnlineOrderManagement = () => {
             setCurrentAudio(null);
           });
 
+          // หยุดเสียงหลังจากเวลาที่กำหนด
+          setTimeout(() => {
+            if (!audio.paused) {
+              audio.pause();
+              audio.currentTime = 0;
+              setPlayingSound(null);
+              setCurrentAudio(null);
+            }
+          }, duration);
+
           setCurrentAudio(audio);
           await audio.play();
-          
-          hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
         }
       }
     } catch (error: any) {
@@ -492,12 +494,9 @@ const OnlineOrderManagement = () => {
       currentAudio.pause();
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
-      setPlayingSound(null);
-      hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
-    } else {
-      setPlayingSound(null);
-      hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
     }
+    setPlayingSound(null);
+    hookToast({ title: 'หยุดเล่นเสียง', description: 'หยุดเล่นเสียงแล้ว' });
   };
 
   const getStatusBadge = (order: OnlineOrder) => {
