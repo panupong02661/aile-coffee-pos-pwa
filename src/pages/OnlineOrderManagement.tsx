@@ -169,7 +169,15 @@ const OnlineOrderManagement = () => {
       .single();
 
     if (!error && data) {
-      setNotificationSettings(data);
+      // ให้ค่า default สำหรับ duration หากไม่มี
+      const settingsWithDefaults: NotificationSettings = {
+        id: data.id,
+        sound_enabled: data.sound_enabled ?? true,
+        selected_sound_id: data.selected_sound_id ?? 'bell',
+        volume: data.volume ?? 0.8,
+        duration: data.duration ?? 2
+      };
+      setNotificationSettings(settingsWithDefaults);
     } else {
       // สร้างการตั้งค่าเริ่มต้นถ้าไม่มี
       const { data: newSettings, error: insertError } = await supabase
@@ -183,8 +191,15 @@ const OnlineOrderManagement = () => {
         .select()
         .single();
 
-      if (!insertError) {
-        setNotificationSettings(newSettings);
+      if (!insertError && newSettings) {
+        const settingsWithDefaults: NotificationSettings = {
+          id: newSettings.id,
+          sound_enabled: newSettings.sound_enabled ?? true,
+          selected_sound_id: newSettings.selected_sound_id ?? 'bell',
+          volume: newSettings.volume ?? 0.8,
+          duration: newSettings.duration ?? 2
+        };
+        setNotificationSettings(settingsWithDefaults);
       }
     }
   };
