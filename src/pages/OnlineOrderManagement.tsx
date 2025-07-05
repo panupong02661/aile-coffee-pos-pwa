@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -169,15 +170,13 @@ const OnlineOrderManagement = () => {
       .single();
 
     if (!error && data) {
-      // ให้ค่า default สำหรับ duration หากไม่มี
-      const settingsWithDefaults: NotificationSettings = {
+      setNotificationSettings({
         id: data.id,
         sound_enabled: data.sound_enabled ?? true,
         selected_sound_id: data.selected_sound_id ?? 'bell',
         volume: data.volume ?? 0.8,
         duration: data.duration ?? 2
-      };
-      setNotificationSettings(settingsWithDefaults);
+      });
     } else {
       // สร้างการตั้งค่าเริ่มต้นถ้าไม่มี
       const { data: newSettings, error: insertError } = await supabase
@@ -192,14 +191,13 @@ const OnlineOrderManagement = () => {
         .single();
 
       if (!insertError && newSettings) {
-        const settingsWithDefaults: NotificationSettings = {
+        setNotificationSettings({
           id: newSettings.id,
           sound_enabled: newSettings.sound_enabled ?? true,
           selected_sound_id: newSettings.selected_sound_id ?? 'bell',
           volume: newSettings.volume ?? 0.8,
           duration: newSettings.duration ?? 2
-        };
-        setNotificationSettings(settingsWithDefaults);
+        });
       }
     }
   };
@@ -227,56 +225,7 @@ const OnlineOrderManagement = () => {
       
       if (basicSound) {
         // เล่นเสียงพื้นฐานด้วย Web Audio API
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // กำหนดความถี่และรูปแบบเสียงตามประเภท
-        let frequency = 440;
-        let waveType: OscillatorType = 'sine';
-        
-        switch (selectedSoundId) {
-          case 'bell':
-            frequency = 800;
-            waveType = 'sine';
-            break;
-          case 'chime':
-            frequency = 1000;
-            waveType = 'triangle';
-            break;
-          case 'notification':
-            frequency = 600;
-            waveType = 'square';
-            break;
-          case 'alert':
-            frequency = 1200;
-            waveType = 'sawtooth';
-            break;
-          case 'ding':
-            frequency = 1500;
-            waveType = 'sine';
-            break;
-          case 'beep':
-            frequency = 440;
-            waveType = 'square';
-            break;
-        }
-        
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-        oscillator.type = waveType;
-        
-        const durationInSeconds = duration / 1000;
-        
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + durationInSeconds);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + durationInSeconds);
-        
+        await playBasicSound(selectedSoundId, duration);
       } else {
         // เล่นเสียงที่อัพโหลด
         const selectedSound = notificationSounds.find(
@@ -284,33 +233,92 @@ const OnlineOrderManagement = () => {
         );
         
         if (selectedSound) {
-          const audio = new Audio(selectedSound.file_url);
-          audio.volume = notificationSettings.volume;
-          
-          // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
-          const playDuration = duration;
-          const soundDuration = await new Promise<number>((resolve) => {
-            audio.addEventListener('loadedmetadata', () => {
-              resolve(audio.duration * 1000);
-            });
-            audio.load();
-          });
-          
-          let totalPlayTime = 0;
-          const playLoop = async () => {
-            while (totalPlayTime < playDuration) {
-              audio.currentTime = 0;
-              await audio.play();
-              await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, playDuration - totalPlayTime)));
-              totalPlayTime += soundDuration;
-            }
-          };
-          
-          await playLoop();
+          await playUploadedSound(selectedSound, duration);
         }
       }
     } catch (error) {
       console.error('Error playing notification sound:', error);
+    }
+  };
+
+  const playBasicSound = async (soundId: string, duration: number) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // กำหนดความถี่และรูปแบบเสียงตามประเภท
+      let frequency = 440;
+      let waveType: OscillatorType = 'sine';
+      
+      switch (soundId) {
+        case 'bell':
+          frequency = 800;
+          waveType = 'sine';
+          break;
+        case 'chime':
+          frequency = 1000;
+          waveType = 'triangle';
+          break;
+        case 'notification':
+          frequency = 600;
+          waveType = 'square';
+          break;
+        case 'alert':
+          frequency = 1200;
+          waveType = 'sawtooth';
+          break;
+        case 'ding':
+          frequency = 1500;
+          waveType = 'sine';
+          break;
+        case 'beep':
+          frequency = 440;
+          waveType = 'square';
+          break;
+      }
+      
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.type = waveType;
+      
+      const durationInSeconds = duration / 1000;
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(notificationSettings?.volume || 0.8, audioContext.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + durationInSeconds);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + durationInSeconds);
+    } catch (error) {
+      console.error('Error playing basic sound:', error);
+    }
+  };
+
+  const playUploadedSound = async (sound: NotificationSound, duration: number) => {
+    try {
+      const audio = new Audio(sound.file_url);
+      audio.volume = notificationSettings?.volume || 0.8;
+      
+      // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
+      const playDuration = duration;
+      let totalPlayTime = 0;
+      
+      const playLoop = async () => {
+        while (totalPlayTime < playDuration) {
+          audio.currentTime = 0;
+          await audio.play();
+          const soundDuration = (audio.duration || 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, playDuration - totalPlayTime)));
+          totalPlayTime += soundDuration;
+        }
+      };
+      
+      await playLoop();
+    } catch (error) {
+      console.error('Error playing uploaded sound:', error);
     }
   };
 
@@ -323,6 +331,7 @@ const OnlineOrderManagement = () => {
       .eq('id', notificationSettings.id);
 
     if (error) {
+      console.error('Error updating notification settings:', error);
       hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปเดตการตั้งค่าได้', variant: 'destructive' });
     } else {
       setNotificationSettings({ ...notificationSettings, ...updates });
@@ -437,54 +446,7 @@ const OnlineOrderManagement = () => {
       
       if (basicSound) {
         // เล่นเสียงพื้นฐาน
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        let frequency = 440;
-        let waveType: OscillatorType = 'sine';
-        
-        switch (soundId) {
-          case 'bell':
-            frequency = 800;
-            waveType = 'sine';
-            break;
-          case 'chime':
-            frequency = 1000;
-            waveType = 'triangle';
-            break;
-          case 'notification':
-            frequency = 600;
-            waveType = 'square';
-            break;
-          case 'alert':
-            frequency = 1200;
-            waveType = 'sawtooth';
-            break;
-          case 'ding':
-            frequency = 1500;
-            waveType = 'sine';
-            break;
-          case 'beep':
-            frequency = 440;
-            waveType = 'square';
-            break;
-        }
-        
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-        oscillator.type = waveType;
-        
-        const durationInSeconds = duration / 1000;
-        
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + durationInSeconds);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + durationInSeconds);
+        await playBasicSound(soundId, duration);
         
         // หยุดการแสดงสถานะการเล่นหลังจากระยะเวลาที่กำหนด
         setTimeout(() => {
@@ -512,28 +474,8 @@ const OnlineOrderManagement = () => {
           });
 
           setCurrentAudio(audio);
+          await audio.play();
           
-          // เล่นเสียงซ้ำตามระยะเวลาที่กำหนด
-          const soundDuration = await new Promise<number>((resolve) => {
-            audio.addEventListener('loadedmetadata', () => {
-              resolve(audio.duration * 1000);
-            });
-            audio.load();
-          });
-          
-          let totalPlayTime = 0;
-          const playLoop = async () => {
-            while (totalPlayTime < duration && playingSound === soundId) {
-              audio.currentTime = 0;
-              await audio.play();
-              await new Promise(resolve => setTimeout(resolve, Math.min(soundDuration, duration - totalPlayTime)));
-              totalPlayTime += soundDuration;
-            }
-            setPlayingSound(null);
-            setCurrentAudio(null);
-          };
-          
-          await playLoop();
           hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
         }
       }
@@ -697,7 +639,7 @@ const OnlineOrderManagement = () => {
                               รายละเอียด
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
+                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>รายละเอียดออเดอร์ #{order.order_number}</DialogTitle>
                             </DialogHeader>
@@ -776,7 +718,7 @@ const OnlineOrderManagement = () => {
                                 สลีป
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>สลีปการชำระเงิน</DialogTitle>
                               </DialogHeader>
@@ -797,7 +739,7 @@ const OnlineOrderManagement = () => {
 
             {/* Notification Settings Dialog */}
             <Dialog open={showSettings} onOpenChange={setShowSettings}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>ตั้งค่าเสียงแจ้งเตือน</DialogTitle>
                 </DialogHeader>
