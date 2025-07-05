@@ -1156,6 +1156,7 @@ export type Database = {
       notification_settings: {
         Row: {
           created_at: string | null
+          duration: number | null
           id: string
           selected_sound_id: string | null
           sound_enabled: boolean | null
@@ -1164,6 +1165,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          duration?: number | null
           id?: string
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
@@ -1172,6 +1174,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          duration?: number | null
           id?: string
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
