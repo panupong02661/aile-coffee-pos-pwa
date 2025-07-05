@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,6 +70,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [addons, setAddons] = useState<DatabaseAddon[]>([]);
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+  const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -131,6 +131,52 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
+  // ฟังก์ชันดึง addon ที่เกี่ยวข้องกับเมนูและหมวดหมู่
+  const getRelevantAddons = async (menuItem: MenuItem) => {
+    console.log('Getting addons for menu item:', menuItem);
+    
+    try {
+      // ดึง addon groups ที่เกี่ยวข้องกับเมนูนี้โดยตรง
+      const { data: menuAddonGroups, error: menuError } = await supabase
+        .from('menu_addon_groups')
+        .select('addon_group_id')
+        .eq('menu_item_id', menuItem.id);
+
+      if (menuError) {
+        console.error('Error fetching menu addon groups:', menuError);
+      }
+
+      // ดึง addon groups ที่เกี่ยวข้องกับหมวดหมู่
+      const { data: categoryAddonGroups, error: categoryError } = await supabase
+        .from('category_addon_groups')
+        .select('addon_group_id')
+        .eq('category_id', menuItem.category_id);
+
+      if (categoryError) {
+        console.error('Error fetching category addon groups:', categoryError);
+      }
+
+      // รวม addon group IDs ทั้งหมด
+      const allAddonGroupIds = new Set([
+        ...(menuAddonGroups || []).map(ag => ag.addon_group_id),
+        ...(categoryAddonGroups || []).map(ag => ag.addon_group_id)
+      ]);
+
+      console.log('All addon group IDs:', Array.from(allAddonGroupIds));
+
+      // กรอง addons ที่เกี่ยวข้อง
+      const relevantAddons = addons.filter(addon => 
+        addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
+      );
+
+      console.log('Relevant addons:', relevantAddons);
+      return relevantAddons;
+    } catch (error) {
+      console.error('Error getting relevant addons:', error);
+      return [];
+    }
+  };
+
   const addToCart = (menuItem: MenuItem, selectedAddons: DatabaseAddon[] = []) => {
     const existingItem = cartItems.find(item => 
       item.menu_item.id === menuItem.id &&
@@ -162,12 +208,15 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
-  const handleAddToCart = (menuItem: MenuItem) => {
-    // Check if this menu item has any available addons
-    const itemAddons = addons.filter(addon => addon.is_active);
+  const handleAddToCart = async (menuItem: MenuItem) => {
+    console.log('Adding to cart:', menuItem);
     
-    if (itemAddons.length > 0) {
+    // ตรวจสอบ addon ที่เกี่ยวข้องกับเมนูนี้
+    const relevantAddons = await getRelevantAddons(menuItem);
+    
+    if (relevantAddons.length > 0) {
       setSelectedMenuItem(menuItem);
+      setAvailableAddons(relevantAddons);
       setShowAddonModal(true);
     } else {
       addToCart(menuItem);
@@ -178,6 +227,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     addToCart(menuItem, selectedAddons);
     setShowAddonModal(false);
     setSelectedMenuItem(null);
+    setAvailableAddons([]);
   };
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
@@ -602,9 +652,10 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         onClose={() => {
           setShowAddonModal(false);
           setSelectedMenuItem(null);
+          setAvailableAddons([]);
         }}
         menuItem={selectedMenuItem}
-        addons={addons}
+        addons={availableAddons}
         onAddToCart={handleAddonModalAddToCart}
       />
     </div>

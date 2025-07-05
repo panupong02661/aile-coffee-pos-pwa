@@ -17,8 +17,6 @@ import {
   Image, 
   Volume2, 
   Upload,
-  CheckCircle,
-  AlertCircle,
   Play,
   Square
 } from 'lucide-react';
@@ -79,6 +77,16 @@ const OnlineOrderManagement = () => {
   const [playingSound, setPlayingSound] = useState<string | null>(null);
   const { toast: hookToast } = useToast();
 
+  // เสียงพื้นฐาน
+  const basicSounds = [
+    { id: 'bell', name: 'ระฆัง', url: null },
+    { id: 'chime', name: 'กิ่งแก้ว', url: null },
+    { id: 'notification', name: 'แจ้งเตือน', url: null },
+    { id: 'alert', name: 'ปลุก', url: null },
+    { id: 'ding', name: 'กระดิ่ง', url: null },
+    { id: 'beep', name: 'ออด', url: null }
+  ];
+
   useEffect(() => {
     fetchOnlineOrders();
     fetchNotificationSettings();
@@ -99,6 +107,8 @@ const OnlineOrderManagement = () => {
         },
         (payload) => {
           console.log('🆕 New online order detected in management page:', payload);
+          // เล่นเสียงแจ้งเตือนทันที
+          playNotificationSound();
           // Refresh orders when new online order is added
           fetchOnlineOrders();
         }
@@ -159,6 +169,21 @@ const OnlineOrderManagement = () => {
 
     if (!error && data) {
       setNotificationSettings(data);
+    } else {
+      // สร้างการตั้งค่าเริ่มต้นถ้าไม่มี
+      const { data: newSettings, error: insertError } = await supabase
+        .from('notification_settings')
+        .insert({
+          sound_enabled: true,
+          selected_sound_id: 'bell',
+          volume: 0.8
+        })
+        .select()
+        .single();
+
+      if (!insertError) {
+        setNotificationSettings(newSettings);
+      }
     }
   };
 
@@ -177,14 +202,72 @@ const OnlineOrderManagement = () => {
     if (!notificationSettings?.sound_enabled) return;
 
     try {
-      const selectedSound = notificationSounds.find(
-        sound => sound.id === notificationSettings.selected_sound_id
-      );
+      const selectedSoundId = notificationSettings.selected_sound_id;
       
-      if (selectedSound) {
-        const audio = new Audio(selectedSound.file_url);
-        audio.volume = notificationSettings.volume;
-        await audio.play();
+      // ตรวจสอบว่าเป็นเสียงพื้นฐานหรือไม่
+      const basicSound = basicSounds.find(sound => sound.id === selectedSoundId);
+      
+      if (basicSound) {
+        // เล่นเสียงพื้นฐานด้วย Web Audio API
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // กำหนดความถี่และรูปแบบเสียงตามประเภท
+        let frequency = 440;
+        let waveType: OscillatorType = 'sine';
+        
+        switch (selectedSoundId) {
+          case 'bell':
+            frequency = 800;
+            waveType = 'sine';
+            break;
+          case 'chime':
+            frequency = 1000;
+            waveType = 'triangle';
+            break;
+          case 'notification':
+            frequency = 600;
+            waveType = 'square';
+            break;
+          case 'alert':
+            frequency = 1200;
+            waveType = 'sawtooth';
+            break;
+          case 'ding':
+            frequency = 1500;
+            waveType = 'sine';
+            break;
+          case 'beep':
+            frequency = 440;
+            waveType = 'square';
+            break;
+        }
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = waveType;
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+      } else {
+        // เล่นเสียงที่อัพโหลด
+        const selectedSound = notificationSounds.find(
+          sound => sound.id === selectedSoundId
+        );
+        
+        if (selectedSound) {
+          const audio = new Audio(selectedSound.file_url);
+          audio.volume = notificationSettings.volume;
+          await audio.play();
+        }
       }
     } catch (error) {
       console.error('Error playing notification sound:', error);
@@ -295,48 +378,106 @@ const OnlineOrderManagement = () => {
   };
 
   const testSound = async (soundId: string) => {
-    const sound = notificationSounds.find(s => s.id === soundId);
-    if (sound && notificationSettings) {
-      try {
-        // Stop current audio if playing
-        if (currentAudio) {
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
-          setCurrentAudio(null);
-          setPlayingSound(null);
-        }
+    if (!notificationSettings) return;
 
-        console.log('Testing sound:', sound.file_url);
-        const audio = new Audio(sound.file_url);
-        audio.volume = notificationSettings.volume;
-        
-        // Add event listeners to handle playback
-        audio.addEventListener('canplaythrough', () => {
-          console.log('Audio can play through');
-        });
-        
-        audio.addEventListener('error', (e) => {
-          console.error('Audio error:', e);
-          hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นไฟล์เสียงได้', variant: 'destructive' });
-          setPlayingSound(null);
-          setCurrentAudio(null);
-        });
-
-        audio.addEventListener('ended', () => {
-          setPlayingSound(null);
-          setCurrentAudio(null);
-        });
-
-        setCurrentAudio(audio);
-        setPlayingSound(soundId);
-        await audio.play();
-        hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
-      } catch (error: any) {
-        console.error('Test sound error:', error);
-        hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
-        setPlayingSound(null);
+    try {
+      // Stop current audio if playing
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
         setCurrentAudio(null);
+        setPlayingSound(null);
       }
+
+      setPlayingSound(soundId);
+
+      // ตรวจสอบว่าเป็นเสียงพื้นฐานหรือไม่
+      const basicSound = basicSounds.find(s => s.id === soundId);
+      
+      if (basicSound) {
+        // เล่นเสียงพื้นฐาน
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        let frequency = 440;
+        let waveType: OscillatorType = 'sine';
+        
+        switch (soundId) {
+          case 'bell':
+            frequency = 800;
+            waveType = 'sine';
+            break;
+          case 'chime':
+            frequency = 1000;
+            waveType = 'triangle';
+            break;
+          case 'notification':
+            frequency = 600;
+            waveType = 'square';
+            break;
+          case 'alert':
+            frequency = 1200;
+            waveType = 'sawtooth';
+            break;
+          case 'ding':
+            frequency = 1500;
+            waveType = 'sine';
+            break;
+          case 'beep':
+            frequency = 440;
+            waveType = 'square';
+            break;
+        }
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = waveType;
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(notificationSettings.volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+        // หยุดการแสดงสถานะการเล่นหลังจาก 500ms
+        setTimeout(() => {
+          setPlayingSound(null);
+        }, 500);
+        
+      } else {
+        // เล่นเสียงที่อัพโหลด
+        const sound = notificationSounds.find(s => s.id === soundId);
+        if (sound) {
+          console.log('Testing sound:', sound.file_url);
+          const audio = new Audio(sound.file_url);
+          audio.volume = notificationSettings.volume;
+          
+          audio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นไฟล์เสียงได้', variant: 'destructive' });
+            setPlayingSound(null);
+            setCurrentAudio(null);
+          });
+
+          audio.addEventListener('ended', () => {
+            setPlayingSound(null);
+            setCurrentAudio(null);
+          });
+
+          setCurrentAudio(audio);
+          await audio.play();
+          hookToast({ title: 'เล่นเสียงสำเร็จ', description: `กำลังเล่น: ${sound.name}` });
+        }
+      }
+    } catch (error: any) {
+      console.error('Test sound error:', error);
+      hookToast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเล่นเสียงได้', variant: 'destructive' });
+      setPlayingSound(null);
+      setCurrentAudio(null);
     }
   };
 
@@ -624,8 +765,11 @@ const OnlineOrderManagement = () => {
                     {/* Sound Selection */}
                     <div>
                       <Label>เลือกเสียงแจ้งเตือน</Label>
+                      
+                      {/* เสียงพื้นฐาน */}
                       <div className="space-y-2 mt-2">
-                        {notificationSounds.map(sound => (
+                        <h4 className="text-sm font-medium text-gray-700">เสียงพื้นฐาน</h4>
+                        {basicSounds.map(sound => (
                           <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
                             <span className="flex-1 text-sm">{sound.name}</span>
                             <div className="flex gap-2">
@@ -657,6 +801,44 @@ const OnlineOrderManagement = () => {
                           </div>
                         ))}
                       </div>
+
+                      {/* เสียงที่อัพโหลด */}
+                      {notificationSounds.length > 0 && (
+                        <div className="space-y-2 mt-4">
+                          <h4 className="text-sm font-medium text-gray-700">เสียงที่อัพโหลด</h4>
+                          {notificationSounds.map(sound => (
+                            <div key={sound.id} className="flex items-center justify-between p-2 border rounded">
+                              <span className="flex-1 text-sm">{sound.name}</span>
+                              <div className="flex gap-2">
+                                {playingSound === sound.id ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={stopSound}
+                                  >
+                                    <Square className="w-4 h-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => testSound(sound.id)}
+                                  >
+                                    <Play className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant={notificationSettings.selected_sound_id === sound.id ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateNotificationSettings({ selected_sound_id: sound.id })}
+                                >
+                                  {notificationSettings.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Upload New Sound */}
