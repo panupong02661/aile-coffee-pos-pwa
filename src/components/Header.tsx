@@ -47,6 +47,7 @@ const Header = ({
           <>
             {/* First row - Menu button and action buttons */}
             <div className="flex justify-between items-center mb-2">
+              {/* Always show hamburger menu button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -95,6 +96,7 @@ const Header = ({
           <div className="flex justify-between items-center">
             {/* Left side - Menu button and category filter */}
             <div className="flex items-center space-x-4 flex-1">
+              {/* Always show hamburger menu button */}
               <Button
                 variant="ghost"
                 size="sm"

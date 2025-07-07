@@ -26,6 +26,7 @@ const QRCodePromptPayPage = lazy(() => import('./pages/QRCodePromptPayPage'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
 const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
+const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommendationsPage'));
 
 // New 5 main system pages
 const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
@@ -64,6 +65,7 @@ function App() {
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/printer-settings" element={<PrinterSettings />} />
                   <Route path="/online-orders" element={<OnlineOrderManagement />} />
+                  <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
                   
                   {/* New 5 main system routes */}
                   <Route path="/advanced-reports" element={<AdvancedReports />} />

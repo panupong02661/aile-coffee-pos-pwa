@@ -242,6 +242,7 @@ const OnlineOrderManagement = () => {
 
   const playBasicSound = async (soundId: string, duration: number) => {
     try {
+      // ใช้ Web Audio API สร้างเสียงสังเคราะห์
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -426,7 +427,7 @@ const OnlineOrderManagement = () => {
     if (!notificationSettings) return;
 
     try {
-      // Stop current audio if playing
+      // หยุดเสียงปัจจุบันถ้ามี
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
@@ -816,7 +817,10 @@ const OnlineOrderManagement = () => {
                               <Button
                                 variant={notificationSettings.selected_sound_id === sound.id ? "default" : "outline"}
                                 size="sm"
-                                onClick={() => updateNotificationSettings({ selected_sound_id: sound.id })}
+                                onClick={() => {
+                                  console.log('Selecting basic sound:', sound.id);
+                                  updateNotificationSettings({ selected_sound_id: sound.id });
+                                }}
                               >
                                 {notificationSettings.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
                               </Button>
