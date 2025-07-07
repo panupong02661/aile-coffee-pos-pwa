@@ -29,7 +29,12 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // เริ่มต้นด้วยผู้ใช้ที่ล็อกอินแล้ว (สำหรับระบบ POS)
+  const [user, setUser] = useState<User | null>({
+    id: '1',
+    email: 'admin@example.com',
+    name: 'Admin User'
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const login = async (email: string, password: string): Promise<boolean> => {
