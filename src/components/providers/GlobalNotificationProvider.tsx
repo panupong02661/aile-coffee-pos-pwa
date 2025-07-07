@@ -22,7 +22,6 @@ interface GlobalNotificationProviderProps {
 
 export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProps> = ({ children }) => {
   const [hasNewOrders, setHasNewOrders] = useState(false);
-  const [lastOrderCount, setLastOrderCount] = useState(0);
 
   useEffect(() => {
     // ตั้งค่าการฟัง real-time updates
@@ -74,26 +73,98 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
       if (!settings?.sound_enabled) return;
 
-      // เล่นเสียงตามการตั้งค่า
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const selectedSound = settings.selected_sound_id;
       const duration = (settings.duration || 2) * 1000;
       const volume = settings.volume || 0.8;
       
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      // เสียงพื้นฐาน
+      const basicSounds = ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'];
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
+      if (basicSounds.includes(selectedSound)) {
+        // เล่นเสียงพื้นฐาน
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        let frequency = 800;
+        switch (selectedSound) {
+          case 'ระฆัง': frequency = 800; break;
+          case 'กิ่งก่า': frequency = 1000; break;
+          case 'แจ้งเตือน': frequency = 600; break;
+          case 'ปลุก': frequency = 1200; break;
+          case 'กระดิ่ง': frequency = 900; break;
+          case 'ออด': frequency = 400; break;
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration / 1000);
+        
+      } else if (selectedSound === 'initial') {
+        // เล่นเสียงเริ่มต้น
+        const audio = new Audio('/sounds/default-notification.mp3');
+        audio.volume = volume;
+        
+        await audio.play();
+        
+        setTimeout(() => {
+          if (audio && !audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+        }, duration);
+        
+      } else if (selectedSound) {
+        // เล่นเสียงที่อัปโหลด
+        const { data: soundData } = await supabase
+          .from('notification_sounds')
+          .select('file_url')
+          .eq('id', selectedSound)
+          .single();
+          
+        if (soundData) {
+          const audio = new Audio(soundData.file_url);
+          audio.volume = volume;
+          
+          await audio.play();
+          
+          setTimeout(() => {
+            if (audio && !audio.paused) {
+              audio.pause();
+              audio.currentTime = 0;
+            }
+          }, duration);
+        }
+      } else {
+        // เล่นเสียงเริ่มต้นถ้าไม่มีการเลือก
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration / 1000);
+      }
       
     } catch (error) {
       console.error('Error playing notification sound:', error);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
+import { useNotifications } from '@/components/providers/GlobalNotificationProvider';
 
 interface OnlineOrder {
   id: string;
@@ -78,10 +80,10 @@ const OnlineOrderManagement = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
-  const [newOrderAlert, setNewOrderAlert] = useState(false);
-  const [lastOrderCount, setLastOrderCount] = useState(0);
   const queryClient = useQueryClient();
+  const { clearNewOrders } = useNotifications();
 
+  // ดึงข้อมูลออเดอร์ออนไลน์จาก customer_orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['customer-orders'],
     queryFn: async () => {
@@ -99,22 +101,8 @@ const OnlineOrderManagement = () => {
       if (error) throw error;
       return data as OnlineOrder[];
     },
-    refetchInterval: 5000,
+    refetchInterval: 5000, // อัปเดตทุก 5 วินาที
   });
-
-  useEffect(() => {
-    if (orders.length > lastOrderCount && lastOrderCount > 0) {
-      setNewOrderAlert(true);
-      playNotificationSound();
-      toast.success('มีออเดอร์ออนไลน์ใหม่!', {
-        description: `ออเดอร์ ${orders[0]?.order_number} เข้ามาแล้ว`,
-        duration: 5000,
-      });
-      
-      setTimeout(() => setNewOrderAlert(false), 10000);
-    }
-    setLastOrderCount(orders.length);
-  }, [orders.length, lastOrderCount]);
 
   const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
     queryKey: ['notification-sounds'],
@@ -150,6 +138,11 @@ const OnlineOrderManagement = () => {
       setNotificationSettings(settingsData);
     }
   }, [settingsData]);
+
+  // Clear new orders notification when visiting this page
+  useEffect(() => {
+    clearNewOrders();
+  }, [clearNewOrders]);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -304,24 +297,6 @@ const OnlineOrderManagement = () => {
     }
   };
 
-  const playNotificationSound = async () => {
-    if (!notificationSettings?.sound_enabled) return;
-
-    const selectedSound = notificationSettings.selected_sound_id;
-    const basicSounds = ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'];
-
-    if (basicSounds.includes(selectedSound)) {
-      await playBasicSound(selectedSound);
-    } else if (selectedSound === 'initial') {
-      await playInitialSound();
-    } else {
-      const sound = notificationSounds.find(s => s.id === selectedSound);
-      if (sound) {
-        await playUploadedSound(sound.file_url, sound.name);
-      }
-    }
-  };
-
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -431,14 +406,22 @@ const OnlineOrderManagement = () => {
     }
   };
 
-  const selectUploadedSound = async (soundId: string) => {
+  const selectUploadedSound = async (soundId: string, soundName: string) => {
     try {
-      await updateNotificationSettings({
+      const updates = {
         selected_sound_id: soundId,
         sound_enabled: true
-      });
+      };
+
+      await updateNotificationSettings(updates);
       
-      toast.success('เลือกเสียงสำเร็จ');
+      setNotificationSettings(prev => prev ? {
+        ...prev,
+        selected_sound_id: soundId,
+        sound_enabled: true
+      } : null);
+
+      toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
     } catch (error) {
       console.error('Error selecting uploaded sound:', error);
       toast.error('ไม่สามารถเลือกเสียงได้');
@@ -530,22 +513,6 @@ const OnlineOrderManagement = () => {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800">จัดการออเดอร์ออนไลน์</h1>
             <div className="flex items-center gap-4">
-              {newOrderAlert && (
-                <Alert className="bg-red-50 border-red-200 animate-pulse">
-                  <Bell className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
-                    มีออเดอร์ออนไลน์ใหม่เข้ามา!
-                  </AlertDescription>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setNewOrderAlert(false)}
-                    className="ml-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </Alert>
-              )}
               <Button
                 onClick={() => setIsSoundSettingsOpen(true)}
                 variant="outline"
@@ -758,7 +725,7 @@ const OnlineOrderManagement = () => {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => selectUploadedSound('initial')}
+                      onClick={() => selectUploadedSound('initial', 'เสียงเริ่มต้น')}
                       variant={notificationSettings?.selected_sound_id === 'initial' ? "default" : "outline"}
                     >
                       เลือก
@@ -785,7 +752,7 @@ const OnlineOrderManagement = () => {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => selectUploadedSound(sound.id)}
+                        onClick={() => selectUploadedSound(sound.id, sound.name)}
                         variant={notificationSettings?.selected_sound_id === sound.id ? "default" : "outline"}
                       >
                         เลือก
