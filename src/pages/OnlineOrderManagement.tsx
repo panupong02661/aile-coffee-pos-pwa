@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Settings, 
   Volume2, 
@@ -23,7 +23,9 @@ import {
   User,
   ShoppingBag,
   DollarSign,
-  Trash2
+  Trash2,
+  Bell,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,10 +78,12 @@ const OnlineOrderManagement = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [newOrderAlert, setNewOrderAlert] = useState(false);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['online-orders'],
+    queryKey: ['customer-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customer_orders')
@@ -97,6 +101,20 @@ const OnlineOrderManagement = () => {
     },
     refetchInterval: 5000,
   });
+
+  useEffect(() => {
+    if (orders.length > lastOrderCount && lastOrderCount > 0) {
+      setNewOrderAlert(true);
+      playNotificationSound();
+      toast.success('มีออเดอร์ออนไลน์ใหม่!', {
+        description: `ออเดอร์ ${orders[0]?.order_number} เข้ามาแล้ว`,
+        duration: 5000,
+      });
+      
+      setTimeout(() => setNewOrderAlert(false), 10000);
+    }
+    setLastOrderCount(orders.length);
+  }, [orders.length, lastOrderCount]);
 
   const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
     queryKey: ['notification-sounds'],
@@ -154,14 +172,11 @@ const OnlineOrderManagement = () => {
     try {
       stopAllSounds();
       
-      const audio = new Audio();
-      
-      // Generate tone using Web Audio API for basic sounds
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const duration = (notificationSettings?.duration || 2) * 1000; // Convert to milliseconds
+      const duration = (notificationSettings?.duration || 2) * 1000;
       const volume = notificationSettings?.volume || 0.8;
       
-      let frequency = 800; // Default frequency
+      let frequency = 800;
       
       switch (soundName) {
         case 'ระฆัง':
@@ -186,7 +201,6 @@ const OnlineOrderManagement = () => {
           frequency = 800;
       }
       
-      // Create oscillator
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -208,8 +222,6 @@ const OnlineOrderManagement = () => {
       setTimeout(() => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
       }, duration);
-      
-      console.log(`Playing basic sound: ${soundName} at ${frequency}Hz for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing basic sound:', error);
@@ -233,7 +245,6 @@ const OnlineOrderManagement = () => {
       
       await audio.play();
       
-      // Stop after duration
       setTimeout(() => {
         if (audio && !audio.paused) {
           audio.pause();
@@ -247,8 +258,6 @@ const OnlineOrderManagement = () => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
         setPlayingAudio(null);
       });
-      
-      console.log(`Playing uploaded sound: ${soundName} from ${soundUrl} for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing uploaded sound:', error);
@@ -273,7 +282,6 @@ const OnlineOrderManagement = () => {
       
       await audio.play();
       
-      // Stop after duration
       setTimeout(() => {
         if (audio && !audio.paused) {
           audio.pause();
@@ -288,8 +296,6 @@ const OnlineOrderManagement = () => {
         setPlayingAudio(null);
       });
       
-      console.log(`Playing initial sound for ${duration}ms`);
-      
     } catch (error) {
       console.error('Error playing initial sound:', error);
       toast.error('ไม่สามารถเล่นเสียงเริ่มต้นได้');
@@ -298,11 +304,29 @@ const OnlineOrderManagement = () => {
     }
   };
 
+  const playNotificationSound = async () => {
+    if (!notificationSettings?.sound_enabled) return;
+
+    const selectedSound = notificationSettings.selected_sound_id;
+    const basicSounds = ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'];
+
+    if (basicSounds.includes(selectedSound)) {
+      await playBasicSound(selectedSound);
+    } else if (selectedSound === 'initial') {
+      await playInitialSound();
+    } else {
+      const sound = notificationSounds.find(s => s.id === selectedSound);
+      if (sound) {
+        await playUploadedSound(sound.file_url, sound.name);
+      }
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const validTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
       if (!validTypes.includes(file.type)) {
         toast.error('รองรับเฉพาะไฟล์เสียง MP3, WAV, OGG เท่านั้น');
@@ -388,16 +412,15 @@ const OnlineOrderManagement = () => {
   const selectBasicSound = async (soundName: string) => {
     try {
       const updates = {
-        selected_sound_id: null, // Clear selected sound ID for basic sounds
+        selected_sound_id: soundName,
         sound_enabled: true
       };
 
       await updateNotificationSettings(updates);
       
-      // Store the basic sound name in local state
       setNotificationSettings(prev => prev ? {
         ...prev,
-        selected_sound_id: soundName, // Use sound name as identifier for basic sounds
+        selected_sound_id: soundName,
         sound_enabled: true
       } : null);
 
@@ -436,6 +459,23 @@ const OnlineOrderManagement = () => {
     } catch (error) {
       console.error('Error deleting sound:', error);
       toast.error('ไม่สามารถลบเสียงได้');
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('customer_orders')
+        .update({ order_status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast.success('อัปเดตสถานะออเดอร์สำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('ไม่สามารถอัปเดตสถานะได้');
     }
   };
 
@@ -489,14 +529,32 @@ const OnlineOrderManagement = () => {
           
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800">จัดการออเดอร์ออนไลน์</h1>
-            <Button
-              onClick={() => setIsSoundSettingsOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              ตั้งค่าเสียงแจ้งเตือน
-            </Button>
+            <div className="flex items-center gap-4">
+              {newOrderAlert && (
+                <Alert className="bg-red-50 border-red-200 animate-pulse">
+                  <Bell className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    มีออเดอร์ออนไลน์ใหม่เข้ามา!
+                  </AlertDescription>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNewOrderAlert(false)}
+                    className="ml-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </Alert>
+              )}
+              <Button
+                onClick={() => setIsSoundSettingsOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                ตั้งค่าเสียงแจ้งเตือน
+              </Button>
+            </div>
           </div>
 
           {ordersLoading ? (
@@ -543,7 +601,7 @@ const OnlineOrderManagement = () => {
                       </div>
                       
                       <div className="border-t pt-4">
-                        <div className="flex justify-between items-center text-sm">
+                        <div className="flex justify-between items-center text-sm mb-2">
                           <span>รายการ: {order.items.length} รายการ</span>
                           <span>การชำระเงิน: {order.payment_method}</span>
                           <span>ประเภท: {order.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
@@ -553,6 +611,36 @@ const OnlineOrderManagement = () => {
                             <strong>หมายเหตุ:</strong> {order.notes}
                           </div>
                         )}
+                        <div className="flex space-x-2 mt-4">
+                          <Button
+                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                            size="sm"
+                            className="bg-blue-500 hover:bg-blue-600"
+                          >
+                            ยืนยัน
+                          </Button>
+                          <Button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600"
+                          >
+                            กำลังทำ
+                          </Button>
+                          <Button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            พร้อมส่ง
+                          </Button>
+                          <Button
+                            onClick={() => updateOrderStatus(order.id, 'completed')}
+                            size="sm"
+                            variant="outline"
+                          >
+                            เสร็จสิ้น
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
