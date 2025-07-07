@@ -27,28 +27,31 @@ const UserProfile = () => {
     }
   };
 
+  // Default role for mock user
+  const userRole = 'admin';
+
   return (
     <div className="p-4 border-b border-coffee-200 bg-coffee-50">
       <div className="flex items-center space-x-3 mb-3">
         <Avatar className="w-12 h-12 border-2 border-coffee-300">
-          <AvatarImage src={user.avatar_url} alt={user.full_name || user.username} />
+          <AvatarImage src="" alt={user.name} />
           <AvatarFallback className="bg-coffee-600 text-white">
             <User className="w-6 h-6" />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-coffee-800 truncate">
-            {user.full_name || user.username}
+            {user.name}
           </p>
-          <p className="text-xs text-coffee-600">@{user.username}</p>
+          <p className="text-xs text-coffee-600">{user.email}</p>
         </div>
       </div>
       
       <div className="flex items-center justify-between">
         <span 
-          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeColor(user.role)}`}
+          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeColor(userRole)}`}
         >
-          {getLevelDisplayName(user.role)}
+          {getLevelDisplayName(userRole)}
         </span>
         
         <Button

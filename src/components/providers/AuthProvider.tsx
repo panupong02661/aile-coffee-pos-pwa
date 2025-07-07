@@ -9,7 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Mock login - replace with actual authentication logic
@@ -42,8 +42,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: 'Admin User'
       };
       setUser(mockUser);
+      return true;
     } catch (error) {
       console.error('Login failed:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
