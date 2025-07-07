@@ -226,12 +226,12 @@ const CustomerCoupons = () => {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* No Coupons */}
       {activeCoupons.length === 0 && usedCoupons.length === 0 && expiredCoupons.length === 0 && (
         <div className="text-center py-12">
           <Ticket className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">ยังไม่มีคูปอง</h3>
-          <p className="text-gray-500">ไปดูโปรโมชั่นพิเศษเพื่อรับคูปองใหม่</p>
+          <p className="text-gray-500">คูปองใหม่จะปรากฏที่นี่เมื่อคุณได้รับ</p>
         </div>
       )}
     </div>

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       addon_groups: {
         Row: {
           allow_multiple: boolean
@@ -667,6 +700,39 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_type: string
+          id: string
+          stack_trace: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_type: string
+          id?: string
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_type?: string
+          id?: string
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       gift_usage_history: {
         Row: {
           customer_gift_id: string
@@ -1220,6 +1286,39 @@ export type Database = {
         }
         Relationships: []
       }
+      offline_sync_queue: {
+        Row: {
+          action_type: string
+          created_at: string
+          data: Json
+          device_id: string
+          id: string
+          is_synced: boolean
+          synced_at: string | null
+          table_name: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          data: Json
+          device_id: string
+          id?: string
+          is_synced?: boolean
+          synced_at?: string | null
+          table_name: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          data?: Json
+          device_id?: string
+          id?: string
+          is_synced?: boolean
+          synced_at?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       online_orders: {
         Row: {
           created_at: string | null
@@ -1685,6 +1784,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shop_settings: {
         Row: {
           address: string | null
@@ -1846,6 +1975,14 @@ export type Database = {
         Args: { menu_id: string }
         Returns: number
       }
+      check_rate_limit: {
+        Args: {
+          identifier: string
+          max_requests?: number
+          time_window_minutes?: number
+        }
+        Returns: boolean
+      }
       claim_limited_promotion: {
         Args: { promotion_id_param: string; customer_id_param: string }
         Returns: Json
@@ -1895,6 +2032,10 @@ export type Database = {
           success: boolean
           error_message: string
         }[]
+      }
+      validate_input: {
+        Args: { input_text: string; input_type?: string }
+        Returns: boolean
       }
     }
     Enums: {
