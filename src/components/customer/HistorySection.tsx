@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +47,32 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
   const fetchOrderHistory = async () => {
     setLoading(true);
     try {
+      // ดึงข้อมูลจากตาราง orders แทนที่จะดึงจาก customers_orders
+      // ใช้ phone จาก currentUser เพื่อเชื่อมกับตาราง members
+      const { data: memberData, error: memberError } = await supabase
+        .from('members')
+        .select('id')
+        .eq('phone', currentUser.phone)
+        .maybeSingle();
+
+      if (memberError) {
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: 'ไม่สามารถค้นหาข้อมูลสมาชิก', 
+          variant: 'destructive' 
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!memberData) {
+        // ถ้าไม่พบ member ที่ตรงกับ phone ที่ส่งมา
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      // ดึงข้อมูลออเดอร์จากตาราง orders โดยใช้ member_id จากที่ค้นหาได้
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -64,7 +89,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
             total_price
           )
         `)
-        .eq('member_id', currentUser.id)
+        .eq('member_id', memberData.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -73,6 +98,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
           description: 'ไม่สามารถโหลดประวัติการสั่งซื้อได้', 
           variant: 'destructive' 
         });
+        setLoading(false);
         return;
       }
 
