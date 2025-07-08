@@ -295,6 +295,39 @@ const OnlineOrderManagement = () => {
         case 'ออด':
           frequency = 400;
           break;
+        case 'ตีดๆๆๆ':
+          // Create beep pattern for "ตีดๆๆๆ"
+          const beepCount = 3;
+          const beepDuration = 150;
+          const beepInterval = 200;
+          
+          for (let i = 0; i < beepCount; i++) {
+            const startTime = audioContext.currentTime + (i * beepInterval / 1000);
+            const endTime = startTime + (beepDuration / 1000);
+            
+            const beepOscillator = audioContext.createOscillator();
+            const beepGainNode = audioContext.createGain();
+            
+            beepOscillator.connect(beepGainNode);
+            beepGainNode.connect(audioContext.destination);
+            
+            beepOscillator.frequency.setValueAtTime(800, startTime);
+            beepOscillator.type = 'sine';
+            
+            beepGainNode.gain.setValueAtTime(0, startTime);
+            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
+            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
+            
+            beepOscillator.start(startTime);
+            beepOscillator.stop(endTime);
+          }
+          
+          setIsPlaying(prev => ({ ...prev, [soundName]: true }));
+          setTimeout(() => {
+            setIsPlaying(prev => ({ ...prev, [soundName]: false }));
+          }, beepCount * beepInterval);
+          return; // Exit early for beep pattern
         default:
           frequency = 800;
       }
@@ -509,23 +542,16 @@ const OnlineOrderManagement = () => {
 
   const selectUploadedSound = async (soundId: string) => {
     try {
-      // Deactivate all sounds first
-      await supabase
-        .from('notification_sounds')
-        .update({ is_active: false })
-        .eq('is_active', true);
-
-      // Activate the selected sound
-      await supabase
-        .from('notification_sounds')
-        .update({ is_active: true })
-        .eq('id', soundId);
-
+      console.log('🔧 Selecting uploaded sound:', soundId);
+      
+      // Update notification settings to use the selected sound
       await updateNotificationSettings({
         selected_sound_id: soundId,
         sound_enabled: true
       });
       
+      // Refresh sound settings
+      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
       toast.success('เลือกเสียงสำเร็จ');
     } catch (error) {
@@ -567,7 +593,7 @@ const OnlineOrderManagement = () => {
   };
 
   const basicSounds = [
-    'ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'
+    'ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'
   ];
 
   const getPaymentMethodText = (method: string) => {
@@ -980,37 +1006,39 @@ const OnlineOrderManagement = () => {
               <div className="space-y-3">
                 <Label className="text-base font-medium">เสียงที่อัพโหลด</Label>
                 
-                {notificationSounds.map((sound) => (
-                  <div key={sound.id} className={`flex items-center justify-between p-3 border rounded-lg ${
-                    sound.is_active ? 'bg-green-50 border-green-300' : ''
-                  }`}>
-                    <span className="text-sm">{sound.name}</span>
-                    <div className="flex items-center gap-2">
-                      {sound.is_active && (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${sound.file_url}`;
-                          playUploadedSound(fullUrl, sound.name);
-                        }}
-                        disabled={isPlaying[sound.name]}
-                      >
+                 {notificationSounds.map((sound) => (
+                   <div key={sound.id} className={`flex items-center justify-between p-3 border rounded-lg ${
+                     notificationSettings?.selected_sound_id === sound.id ? 'bg-orange-50 border-orange-300' : ''
+                   }`}>
+                     <span className="text-sm">{sound.name}</span>
+                     <div className="flex items-center gap-2">
+                       {notificationSettings?.selected_sound_id === sound.id && (
+                         <CheckCircle className="w-4 h-4 text-orange-600" />
+                       )}
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => {
+                           console.log('🔊 Playing uploaded sound:', sound.name, sound.file_url);
+                           const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${sound.file_url}`;
+                           console.log('🔊 Full URL:', fullUrl);
+                           playUploadedSound(fullUrl, sound.name);
+                         }}
+                         disabled={isPlaying[sound.name]}
+                       >
                         {isPlaying[sound.name] ? (
                           <Pause className="w-4 h-4" />
                         ) : (
                           <Play className="w-4 h-4" />
                         )}
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => selectUploadedSound(sound.id)}
-                        variant={sound.is_active ? "default" : "outline"}
-                      >
-                        {sound.is_active ? 'ใช้งาน' : 'เลือก'}
-                      </Button>
+                       <Button
+                         size="sm"
+                         onClick={() => selectUploadedSound(sound.id)}
+                         variant={notificationSettings?.selected_sound_id === sound.id ? "default" : "outline"}
+                       >
+                         {notificationSettings?.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
+                       </Button>
                       <Button
                         size="sm"
                         variant="outline"

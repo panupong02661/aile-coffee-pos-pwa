@@ -110,7 +110,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       // Check if we have a custom sound selected (UUID format)
       if (notificationSettings.selected_sound_id && 
-          !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+          !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
         
         console.log('🔊 Looking for custom sound with ID:', notificationSettings.selected_sound_id);
         
@@ -175,7 +175,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       // If custom sound didn't play, try basic sounds
       if (!soundPlayed) {
         if (notificationSettings.selected_sound_id && 
-            ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+            ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
           console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
           await playBasicSuccessSound(notificationSettings.selected_sound_id, notificationSettings);
         } else {
@@ -208,6 +208,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         case 'ปลุก': frequency = 1200; break;
         case 'กระดิ่ง': frequency = 900; break;
         case 'ออด': frequency = 400; break;
+        case 'ตีดๆๆๆ': frequency = 800; break;
       }
       
       // Create oscillator for the selected basic sound

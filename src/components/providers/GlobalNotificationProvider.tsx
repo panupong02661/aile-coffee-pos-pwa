@@ -302,7 +302,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     // Check if we have a custom sound selected (UUID format)
     if (notificationSettings.selected_sound_id && 
-        !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+        !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
       
       console.log('🔊 Looking for custom sound with ID:', notificationSettings.selected_sound_id);
       
@@ -414,9 +414,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     // If custom sound didn't play, try basic sounds or beep fallback
     if (!soundPlayed) {
-      // Check if it's a basic sound
+    // Check if it's a basic sound
       if (notificationSettings.selected_sound_id && 
-          ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+          ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
         console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
         await playBasicSound(notificationSettings.selected_sound_id);
         soundPlayed = true;
@@ -460,6 +460,36 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         case 'ออด':
           frequency = 400;
           break;
+        case 'ตีดๆๆๆ':
+          // Create beep pattern for "ตีดๆๆๆ"
+          const beepCount = 3;
+          const beepDuration = 150;
+          const beepInterval = 200;
+          
+          for (let i = 0; i < beepCount; i++) {
+            const startTime = audioContext.currentTime + (i * beepInterval / 1000);
+            const endTime = startTime + (beepDuration / 1000);
+            
+            const beepOscillator = audioContext.createOscillator();
+            const beepGainNode = audioContext.createGain();
+            
+            beepOscillator.connect(beepGainNode);
+            beepGainNode.connect(audioContext.destination);
+            
+            beepOscillator.frequency.setValueAtTime(800, startTime);
+            beepOscillator.type = 'sine';
+            
+            beepGainNode.gain.setValueAtTime(0, startTime);
+            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
+            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
+            
+            beepOscillator.start(startTime);
+            beepOscillator.stop(endTime);
+          }
+          
+          console.log(`✅ Enhanced beep sound played: ${soundName}`);
+          return; // Exit early for beep pattern
       }
       
       // Create multiple oscillators for richer sound
