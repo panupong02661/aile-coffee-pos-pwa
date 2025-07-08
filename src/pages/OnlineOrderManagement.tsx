@@ -482,7 +482,11 @@ const OnlineOrderManagement = () => {
 
   const updateNotificationSettings = async (updates: Partial<NotificationSettings>) => {
     try {
+      console.log('🔧 updateNotificationSettings called with:', updates);
+      console.log('🔧 Current notificationSettings:', notificationSettings);
+      
       if (notificationSettings?.id) {
+        console.log('🔧 Updating existing settings with ID:', notificationSettings.id);
         const { error } = await supabase
           .from('notification_settings')
           .update(updates)
@@ -490,6 +494,7 @@ const OnlineOrderManagement = () => {
 
         if (error) throw error;
       } else {
+        console.log('🔧 Creating new settings');
         const { data, error } = await supabase
           .from('notification_settings')
           .insert(updates)
@@ -502,8 +507,7 @@ const OnlineOrderManagement = () => {
 
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       
-      console.log('🔧 Settings updated:', updates);
-      console.log('🔧 Current settings after update:', notificationSettings);
+      console.log('🔧 Settings updated successfully:', updates);
       
       toast.success('บันทึกการตั้งค่าสำเร็จ');
     } catch (error) {
@@ -514,20 +518,19 @@ const OnlineOrderManagement = () => {
 
   const selectBasicSound = async (soundName: string) => {
     try {
-      // Deactivate all uploaded sounds
-      await supabase
-        .from('notification_sounds')
-        .update({ is_active: false })
-        .eq('is_active', true);
-
+      console.log('🔧 Selecting basic sound:', soundName);
+      
+      // Don't deactivate notification_sounds table for basic sounds
+      // Only update notification_settings
+      
       const updates = {
         selected_sound_id: soundName, // Use sound name as identifier for basic sounds
         sound_enabled: true
       };
 
+      console.log('🔧 Updating settings with:', updates);
       await updateNotificationSettings(updates);
       
-      console.log('🔧 Selecting basic sound:', soundName);
       console.log('🔧 Settings after update:', updates);
       
       // Force refresh of notification settings
