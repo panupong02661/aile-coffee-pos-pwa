@@ -1939,6 +1939,53 @@ export type Database = {
           },
         ]
       }
+      time_attendance: {
+        Row: {
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          staff_id: string
+          status: string
+          updated_at: string
+          work_hours: number | null
+        }
+        Insert: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          staff_id: string
+          status?: string
+          updated_at?: string
+          work_hours?: number | null
+        }
+        Update: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          staff_id?: string
+          status?: string
+          updated_at?: string
+          work_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_attendance_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
