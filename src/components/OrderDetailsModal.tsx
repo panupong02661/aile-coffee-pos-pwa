@@ -71,29 +71,27 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
         throw itemsError;
       }
 
+      // Fetch order addons
+      const { data: orderAddons, error: addonsError } = await supabase
+        .from('order_addons')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at');
+
+      if (addonsError) {
+        console.error('Error fetching order addons:', addonsError);
+        throw addonsError;
+      }
+
       console.log('Order fetched:', order);
       console.log('Order items fetched:', orderItems);
+      console.log('Order addons fetched:', orderAddons);
 
       // Transform the data
       const transformedItems: OrderItem[] = orderItems?.map(item => {
-        let addons: string[] = [];
-        try {
-          if (item.selected_addons) {
-            // Handle different types of selected_addons
-            if (typeof item.selected_addons === 'string') {
-              const parsedAddons = JSON.parse(item.selected_addons);
-              addons = Array.isArray(parsedAddons) ? parsedAddons.map((addon: any) => 
-                typeof addon === 'string' ? addon : (addon.name || String(addon))
-              ) : [];
-            } else if (Array.isArray(item.selected_addons)) {
-              addons = item.selected_addons.map((addon: any) => 
-                typeof addon === 'string' ? addon : (addon.name || String(addon))
-              );
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to parse addons for item:', item.id);
-        }
+        // Get addons for this item
+        const itemAddons = orderAddons?.filter(addon => addon.order_item_id === item.id) || [];
+        const addons = itemAddons.map(addon => addon.addon_name);
 
         return {
           id: item.id,

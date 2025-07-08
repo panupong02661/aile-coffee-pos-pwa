@@ -406,7 +406,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.type = 'sine';
       
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume * 0.3, audioContext.currentTime + 0.1);
+      gainNode.gain.linearRampToValueAtTime(volume * 0.8, audioContext.currentTime + 0.1);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
       
       oscillator.start(audioContext.currentTime);
@@ -431,7 +431,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       
-      const volume = notificationSettings.volume * 0.3;
+      const volume = notificationSettings.volume * 0.8;
       const duration = notificationSettings.duration;
       const currentTime = audioContext.currentTime;
       
