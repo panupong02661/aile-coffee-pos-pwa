@@ -214,9 +214,15 @@ const OnlineOrderManagement = () => {
 
   useEffect(() => {
     if (settingsData) {
+      console.log('🔧 Loading notification settings:', settingsData);
       setNotificationSettings(settingsData);
     }
   }, [settingsData]);
+
+  // Debug: Log current notification settings
+  useEffect(() => {
+    console.log('🔧 Current notification settings state:', notificationSettings);
+  }, [notificationSettings]);
 
   // Refetch data when settings change
   useEffect(() => {
@@ -496,8 +502,8 @@ const OnlineOrderManagement = () => {
 
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       
-      // Update local state immediately
-      setNotificationSettings(prev => prev ? { ...prev, ...updates } : null);
+      console.log('🔧 Settings updated:', updates);
+      console.log('🔧 Current settings after update:', notificationSettings);
       
       toast.success('บันทึกการตั้งค่าสำเร็จ');
     } catch (error) {
@@ -521,17 +527,11 @@ const OnlineOrderManagement = () => {
 
       await updateNotificationSettings(updates);
       
-      // Update local state immediately to reflect the change
-      setNotificationSettings(prev => prev ? { 
-        ...prev, 
-        selected_sound_id: soundName,
-        sound_enabled: true 
-      } : {
-        sound_enabled: true,
-        selected_sound_id: soundName,
-        volume: 0.8,
-        duration: 2
-      });
+      console.log('🔧 Selecting basic sound:', soundName);
+      console.log('🔧 Settings after update:', updates);
+      
+      // Force refresh of notification settings
+      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       
       toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
     } catch (error) {
@@ -544,13 +544,15 @@ const OnlineOrderManagement = () => {
     try {
       console.log('🔧 Selecting uploaded sound:', soundId);
       
+      console.log('🔧 Selecting uploaded sound:', soundId);
+      
       // Update notification settings to use the selected sound
       await updateNotificationSettings({
         selected_sound_id: soundId,
         sound_enabled: true
       });
       
-      // Refresh sound settings
+      // Force refresh of notification settings
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
       queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
       toast.success('เลือกเสียงสำเร็จ');
@@ -655,7 +657,7 @@ const OnlineOrderManagement = () => {
                   <span className="text-xs text-gray-500">
                     {notificationSettings.sound_enabled ? (
                       notificationSettings.selected_sound_id ? (
-                        ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id) 
+                        ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id) 
                           ? `เสียง: ${notificationSettings.selected_sound_id}`
                           : `เสียง: ${notificationSounds.find(s => s.id === notificationSettings.selected_sound_id)?.name || 'ไม่ทราบ'}`
                       ) : 'ไม่ได้เลือกเสียง'
