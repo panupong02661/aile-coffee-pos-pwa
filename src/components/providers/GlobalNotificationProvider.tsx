@@ -206,8 +206,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('📦 Complete order data fetched:', completeOrder);
         console.log('🔔 Showing notification and playing sound...');
         
+        // Convert items from Json to array
+        const items = Array.isArray(completeOrder.items) ? completeOrder.items : [];
+        
         // Show notification for new order
-        setNewOrder(completeOrder);
+        const orderForNotification: OnlineOrder = {
+          id: completeOrder.id,
+          order_number: completeOrder.order_number,
+          total_amount: completeOrder.total_amount,
+          items: items,
+          customer_profiles: completeOrder.customer_profiles
+        };
+        
+        setNewOrder(orderForNotification);
         setShowOrderAlert(true);
         
         // Show toast notification
@@ -242,7 +253,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               orderId: completeOrder.id,
               orderNumber: completeOrder.order_number,
               totalAmount: completeOrder.total_amount,
-              items: completeOrder.items,
+              items: items,
               customerInfo: completeOrder.customer_profiles
             }
           });
@@ -285,7 +296,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('🔊 Attempting to play custom sound:', selectedSound.name);
         
         try {
-          const fullUrl = `${supabase.supabaseUrl}/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
+          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
           console.log('🔊 Custom sound URL:', fullUrl);
           
           const audio = new Audio();

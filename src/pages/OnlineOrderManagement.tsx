@@ -664,7 +664,7 @@ const OnlineOrderManagement = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const fullUrl = `${supabase.supabaseUrl}/storage/v1/object/public/notification-sounds/${sound.file_url}`;
+                          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${sound.file_url}`;
                           playUploadedSound(fullUrl, sound.name);
                         }}
                         disabled={isPlaying[sound.name]}
