@@ -208,10 +208,41 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         case 'ปลุก': frequency = 1200; break;
         case 'กระดิ่ง': frequency = 900; break;
         case 'ออด': frequency = 400; break;
-        case 'ตีดๆๆๆ': frequency = 800; break;
+        case 'ตีดๆๆๆ': 
+          // Create beep pattern for "ตีดๆๆๆ"
+          const beepCount = 3;
+          const beepDuration = 150;
+          const beepInterval = 200;
+          
+          for (let i = 0; i < beepCount; i++) {
+            const startTime = audioContext.currentTime + (i * beepInterval / 1000);
+            const endTime = startTime + (beepDuration / 1000);
+            
+            const beepOscillator = audioContext.createOscillator();
+            const beepGainNode = audioContext.createGain();
+            
+            beepOscillator.connect(beepGainNode);
+            beepGainNode.connect(audioContext.destination);
+            
+            beepOscillator.frequency.setValueAtTime(800, startTime);
+            beepOscillator.type = 'sine';
+            
+            beepGainNode.gain.setValueAtTime(0, startTime);
+            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
+            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
+            
+            beepOscillator.start(startTime);
+            beepOscillator.stop(endTime);
+          }
+          
+          console.log(`✅ Basic sound played: ${soundName}`);
+          return; // Exit early for beep pattern
+        default:
+          frequency = 800;
       }
       
-      // Create oscillator for the selected basic sound
+      // Create enhanced sound with musical qualities for order success
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -246,10 +277,70 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       const duration = settings.duration;
       const currentTime = audioContext.currentTime;
       
-      // Create beep pattern
-      const beepCount = Math.max(2, Math.floor(duration / 0.3));
+      // Create beautiful success melody using musical notes
+      // Using a pleasant chord progression: C4 -> E4 -> G4 -> C5
+      const successMelody = [
+        { freq: 261.63, time: 0.0, duration: 0.3 },     // C4
+        { freq: 329.63, time: 0.2, duration: 0.3 },     // E4
+        { freq: 392.00, time: 0.4, duration: 0.3 },     // G4
+        { freq: 523.25, time: 0.6, duration: 0.6 }      // C5 (hold longer)
+      ];
       
-      for (let i = 0; i < beepCount; i++) {
+      successMelody.forEach((note, index) => {
+        if (note.time < duration) {
+          // Main note
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = note.freq;
+          oscillator.type = 'sine'; // Smooth sine wave for pleasant sound
+          
+          const startTime = currentTime + note.time;
+          const endTime = startTime + Math.min(note.duration, duration - note.time);
+          
+          // Smooth envelope for pleasant sound
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(volume * 0.6, startTime + 0.02);
+          gainNode.gain.setValueAtTime(volume * 0.6, endTime - 0.1);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+          
+          oscillator.start(startTime);
+          oscillator.stop(endTime);
+          
+          // Add harmonic for richer sound
+          if (index === successMelody.length - 1) { // Only on the final note
+            const harmonicOscillator = audioContext.createOscillator();
+            const harmonicGain = audioContext.createGain();
+            
+            harmonicOscillator.connect(harmonicGain);
+            harmonicGain.connect(audioContext.destination);
+            
+            harmonicOscillator.frequency.value = note.freq * 2; // Octave higher
+            harmonicOscillator.type = 'triangle';
+            
+            harmonicGain.gain.setValueAtTime(0, startTime);
+            harmonicGain.gain.linearRampToValueAtTime(volume * 0.3, startTime + 0.1);
+            harmonicGain.gain.exponentialRampToValueAtTime(0.01, endTime);
+            
+            harmonicOscillator.start(startTime + 0.1);
+            harmonicOscillator.stop(endTime);
+          }
+        }
+      });
+      
+      console.log('✅ Success melody played');
+    } catch (error) {
+      console.error('Success melody failed:', error);
+      // Fallback to simple beeps if melody fails
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -259,21 +350,15 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         oscillator.frequency.value = 800;
         oscillator.type = 'sine';
         
-        const startTime = currentTime + (i * 0.3);
-        const endTime = startTime + 0.15;
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(settings.volume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
         
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
-        gainNode.gain.linearRampToValueAtTime(0, endTime);
-        
-        oscillator.start(startTime);
-        oscillator.stop(endTime);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 1);
+      } catch (fallbackError) {
+        console.error('Fallback beep also failed:', fallbackError);
       }
-      
-      console.log('✅ Success beep sound played');
-    } catch (error) {
-      console.error('Success beep sound failed:', error);
     }
   };
 
