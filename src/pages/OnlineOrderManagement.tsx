@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,10 @@ import {
   User,
   ShoppingBag,
   DollarSign,
-  Trash2
+  Trash2,
+  Phone,
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,10 +77,12 @@ const OnlineOrderManagement = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['online-orders'],
+    queryKey: ['customer-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customer_orders')
@@ -138,6 +142,28 @@ const OnlineOrderManagement = () => {
 
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
+  };
+
+  const handleViewOrderDetail = (order: OnlineOrder) => {
+    setSelectedOrder(order);
+    setIsOrderDetailOpen(true);
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('customer_orders')
+        .update({ order_status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast.success('อัปเดตสถานะออเดอร์สำเร็จ');
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('ไม่สามารถอัปเดตสถานะออเดอร์ได้');
+    }
   };
 
   const stopAllSounds = () => {
@@ -465,6 +491,24 @@ const OnlineOrderManagement = () => {
     }
   };
 
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'รอชำระ';
+      case 'paid': return 'ชำระแล้ว';
+      case 'failed': return 'ชำระไม่สำเร็จ';
+      default: return status;
+    }
+  };
+
   return (
     <div className="h-screen bg-cream-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
@@ -515,44 +559,140 @@ const OnlineOrderManagement = () => {
                   <Card key={order.id} className="hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-2">
                             <ShoppingBag className="w-5 h-5 text-orange-500" />
                             #{order.order_number}
                           </h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                            <div className="flex items-center gap-1">
-                              <User className="w-4 h-4" />
-                              {order.customer_profiles?.full_name || 'ไม่ระบุชื่อ'}
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                <span className="font-medium">ลูกค้า:</span>
+                                <span>{order.customer_profiles?.full_name || 'ไม่ระบุชื่อ'}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-4 h-4" />
+                                <span className="font-medium">เบอร์โทร:</span>
+                                <span>{order.customer_profiles?.phone || 'ไม่ระบุ'}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4" />
+                                <span className="font-medium">วันที่สั่ง:</span>
+                                <span>{new Date(order.created_at).toLocaleString('th-TH')}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {new Date(order.created_at).toLocaleString('th-TH')}
+                            
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">ประเภท:</span>
+                                <span>{order.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
+                              </div>
+                              
+                              {order.delivery_address && (
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 mt-0.5" />
+                                  <div>
+                                    <span className="font-medium">ที่อยู่:</span>
+                                    <p className="text-gray-500 mt-1">{order.delivery_address}</p>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">รายการ:</span>
+                                <span>{Array.isArray(order.items) ? order.items.length : 0} รายการ</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">การชำระเงิน:</span>
+                                <span>{order.payment_method || 'ไม่ระบุ'}</span>
+                              </div>
                             </div>
                           </div>
+                          
+                          {order.notes && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <FileText className="w-4 h-4 mt-0.5 text-gray-500" />
+                                <div>
+                                  <span className="font-medium text-gray-700">หมายเหตุ:</span>
+                                  <p className="text-gray-600 mt-1">{order.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <Badge className={getStatusColor(order.order_status)}>
-                            {getStatusText(order.order_status)}
-                          </Badge>
-                          <div className="text-lg font-semibold text-orange-600 mt-1 flex items-center">
-                            <DollarSign className="w-4 h-4 mr-1" />
+                        
+                        <div className="text-right ml-4">
+                          <div className="space-y-2 mb-3">
+                            <Badge className={getStatusColor(order.order_status)}>
+                              {getStatusText(order.order_status)}
+                            </Badge>
+                            <Badge className={getPaymentStatusColor(order.payment_status || 'pending')}>
+                              {getPaymentStatusText(order.payment_status || 'pending')}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-2xl font-bold text-orange-600 mb-3 flex items-center justify-end">
+                            <DollarSign className="w-5 h-5 mr-1" />
                             ฿{order.total_amount.toFixed(2)}
                           </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between items-center text-sm">
-                          <span>รายการ: {order.items.length} รายการ</span>
-                          <span>การชำระเงิน: {order.payment_method}</span>
-                          <span>ประเภท: {order.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
-                        </div>
-                        {order.notes && (
-                          <div className="mt-2 text-sm text-gray-600">
-                            <strong>หมายเหตุ:</strong> {order.notes}
+                          
+                          <div className="space-y-2">
+                            <Button
+                              onClick={() => handleViewOrderDetail(order)}
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                            >
+                              ดูรายละเอียด
+                            </Button>
+                            
+                            {order.order_status === 'pending' && (
+                              <Button
+                                onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                                size="sm"
+                                className="w-full bg-blue-600 hover:bg-blue-700"
+                              >
+                                ยืนยันออเดอร์
+                              </Button>
+                            )}
+                            
+                            {order.order_status === 'confirmed' && (
+                              <Button
+                                onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                size="sm"
+                                className="w-full bg-orange-600 hover:bg-orange-700"
+                              >
+                                เริ่มเตรียม
+                              </Button>
+                            )}
+                            
+                            {order.order_status === 'preparing' && (
+                              <Button
+                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                size="sm"
+                                className="w-full bg-green-600 hover:bg-green-700"
+                              >
+                                พร้อมแล้ว
+                              </Button>
+                            )}
+                            
+                            {order.order_status === 'ready' && (
+                              <Button
+                                onClick={() => updateOrderStatus(order.id, 'completed')}
+                                size="sm"
+                                className="w-full bg-gray-600 hover:bg-gray-700"
+                              >
+                                เสร็จสิ้น
+                              </Button>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -562,6 +702,126 @@ const OnlineOrderManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Order Detail Dialog */}
+      <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดออเดอร์ #{selectedOrder?.order_number}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-800">ข้อมูลลูกค้า</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>{selectedOrder.customer_profiles?.full_name || 'ไม่ระบุชื่อ'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      <span>{selectedOrder.customer_profiles?.phone || 'ไม่ระบุ'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-800">ข้อมูลออเดอร์</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">สถานะ: </span>
+                      <Badge className={getStatusColor(selectedOrder.order_status)}>
+                        {getStatusText(selectedOrder.order_status)}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">การชำระเงิน: </span>
+                      <Badge className={getPaymentStatusColor(selectedOrder.payment_status || 'pending')}>
+                        {getPaymentStatusText(selectedOrder.payment_status || 'pending')}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">ประเภท: </span>
+                      <span>{selectedOrder.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedOrder.delivery_address && (
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">ที่อยู่จัดส่ง</h3>
+                  <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+                    {selectedOrder.delivery_address}
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3">รายการสินค้า</h3>
+                <div className="space-y-3">
+                  {Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 ? (
+                    selectedOrder.items.map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{item.name || `รายการที่ ${index + 1}`}</p>
+                          <p className="text-sm text-gray-600">จำนวน: {item.quantity || 1}</p>
+                          {item.addons && item.addons.length > 0 && (
+                            <p className="text-xs text-gray-500">
+                              เพิ่มเติม: {item.addons.map((addon: any) => addon.name).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">฿{(item.price || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">ไม่มีรายการสินค้า</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>ยอดรวม:</span>
+                    <span>฿{selectedOrder.subtotal.toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.discount_amount > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>ส่วนลด:</span>
+                      <span>-฿{selectedOrder.discount_amount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>ยอดสุทธิ:</span>
+                    <span>฿{selectedOrder.total_amount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedOrder.notes && (
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">หมายเหตุ</h3>
+                  <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+                    {selectedOrder.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setIsOrderDetailOpen(false)}>
+              ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sound Settings Dialog */}
       <Dialog open={isSoundSettingsOpen} onOpenChange={setIsSoundSettingsOpen}>
