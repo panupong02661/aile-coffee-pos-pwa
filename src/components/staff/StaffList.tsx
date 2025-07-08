@@ -29,6 +29,8 @@ const StaffList = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [newStaff, setNewStaff] = useState({
     name: '',
     position: '',
@@ -52,7 +54,6 @@ const StaffList = () => {
 
       if (error) throw error;
       
-      // Type cast the data to ensure proper typing
       const typedStaff = (data || []).map(item => ({
         ...item,
         status: item.status as 'active' | 'inactive'
@@ -98,21 +99,57 @@ const StaffList = () => {
     }
   };
 
-  const handleDeleteStaff = async (id: string) => {
+  const handleEditStaff = async () => {
+    if (!editingStaff) return;
+
     try {
       const { error } = await supabase
         .from('staff')
-        .delete()
-        .eq('id', id);
+        .update({
+          name: editingStaff.name,
+          position: editingStaff.position,
+          role: editingStaff.role,
+          phone: editingStaff.phone,
+          email: editingStaff.email,
+          salary: editingStaff.salary,
+          status: editingStaff.status
+        })
+        .eq('id', editingStaff.id);
 
       if (error) throw error;
 
       await fetchStaff();
-      toast({ title: 'สำเร็จ', description: 'ลบพนักงานเรียบร้อยแล้ว' });
+      setIsEditDialogOpen(false);
+      setEditingStaff(null);
+      toast({ title: 'สำเร็จ', description: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว' });
     } catch (error) {
-      console.error('Error deleting staff:', error);
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบพนักงานได้', variant: 'destructive' });
+      console.error('Error updating staff:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปเดตข้อมูลพนักงานได้', variant: 'destructive' });
     }
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    if (confirm('คุณต้องการลบพนักงานคนนี้หรือไม่?')) {
+      try {
+        const { error } = await supabase
+          .from('staff')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        await fetchStaff();
+        toast({ title: 'สำเร็จ', description: 'ลบพนักงานเรียบร้อยแล้ว' });
+      } catch (error) {
+        console.error('Error deleting staff:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบพนักงานได้', variant: 'destructive' });
+      }
+    }
+  };
+
+  const openEditDialog = (staffMember: Staff) => {
+    setEditingStaff(staffMember);
+    setIsEditDialogOpen(true);
   };
 
   const getRoleBadge = (role: string) => {
@@ -263,7 +300,11 @@ const StaffList = () => {
                 <TableCell>{new Date(member.hire_date).toLocaleDateString('th-TH')}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openEditDialog(member)}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button 
@@ -280,6 +321,105 @@ const StaffList = () => {
             ))}
           </TableBody>
         </Table>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>แก้ไขข้อมูลพนักงาน</DialogTitle>
+            </DialogHeader>
+            {editingStaff && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">ชื่อ-นามสกุล</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingStaff.name}
+                    onChange={(e) => setEditingStaff(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-position" className="text-right">ตำแหน่ง</Label>
+                  <Input
+                    id="edit-position"
+                    value={editingStaff.position}
+                    onChange={(e) => setEditingStaff(prev => prev ? { ...prev, position: e.target.value } : null)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-role" className="text-right">สิทธิ์</Label>
+                  <Select 
+                    value={editingStaff.role} 
+                    onValueChange={(value) => setEditingStaff(prev => prev ? { ...prev, role: value } : null)}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-phone" className="text-right">เบอร์โทร</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingStaff.phone}
+                    onChange={(e) => setEditingStaff(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-email" className="text-right">อีเมล</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingStaff.email || ''}
+                    onChange={(e) => setEditingStaff(prev => prev ? { ...prev, email: e.target.value } : null)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-salary" className="text-right">เงินเดือน</Label>
+                  <Input
+                    id="edit-salary"
+                    type="number"
+                    value={editingStaff.salary}
+                    onChange={(e) => setEditingStaff(prev => prev ? { ...prev, salary: Number(e.target.value) } : null)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-status" className="text-right">สถานะ</Label>
+                  <Select 
+                    value={editingStaff.status} 
+                    onValueChange={(value: 'active' | 'inactive') => setEditingStaff(prev => prev ? { ...prev, status: value } : null)}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">ทำงานอยู่</SelectItem>
+                      <SelectItem value="inactive">ลาออก</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleEditStaff}>
+                บันทึกการแก้ไข
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

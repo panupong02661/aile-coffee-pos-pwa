@@ -1,14 +1,14 @@
 
-import { useState } from 'react';
-import { DatabaseMenuItem } from '@/hooks/useSupabaseData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, ImageIcon } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Edit, Trash2, Camera } from 'lucide-react';
+import { DatabaseMenuItem } from '@/hooks/useSupabaseData';
 
 interface MenuManagementGridProps {
   menuItems: DatabaseMenuItem[];
+  gridColumns?: number;
+  itemSize?: string;
   onEdit: (item: DatabaseMenuItem) => void;
   onDelete: (item: DatabaseMenuItem) => void;
   onAddImage: (item: DatabaseMenuItem) => void;
@@ -16,100 +16,98 @@ interface MenuManagementGridProps {
 
 const MenuManagementGrid = ({ 
   menuItems, 
+  gridColumns = 4, 
+  itemSize = 'medium',
   onEdit, 
-  onDelete,
+  onDelete, 
   onAddImage 
 }: MenuManagementGridProps) => {
-  const isMobile = useIsMobile();
+  const getGridClasses = () => {
+    const columnClasses = {
+      3: 'grid-cols-3',
+      4: 'grid-cols-4',
+      5: 'grid-cols-5',
+      6: 'grid-cols-6'
+    };
+    return `grid ${columnClasses[gridColumns as keyof typeof columnClasses] || 'grid-cols-4'} gap-4`;
+  };
 
-  const getGridStyle = () => {
-    if (isMobile) {
-      return 'grid-cols-2';
+  const getItemSizeClasses = () => {
+    switch (itemSize) {
+      case 'small':
+        return 'h-48';
+      case 'large':
+        return 'h-72';
+      default:
+        return 'h-60';
     }
-    return 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
   };
 
   return (
-    <div className={`grid ${getGridStyle()} gap-4`}>
+    <div className={getGridClasses()}>
       {menuItems.map((item) => (
-        <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <CardContent className="p-3">
-            <div className="space-y-3">
-              {/* รูปภาพเมนู */}
-              <div className="relative aspect-square w-full bg-gray-100 rounded-md overflow-hidden">
-                {item.image_url ? (
-                  <img 
-                    src={item.image_url} 
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                    <ImageIcon className="w-8 h-8 mb-2" />
-                    <span className="text-xs">ไม่มีรูปภาพ</span>
-                  </div>
-                )}
-                
-                {/* ปุ่มเพิ่มรูปภาพ */}
-                {!item.image_url && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onAddImage(item)}
-                      className="text-xs"
-                    >
-                      <ImageIcon className="w-3 h-3 mr-1" />
-                      เพิ่มรูป
-                    </Button>
-                  </div>
-                )}
+        <Card key={item.id} className={`relative group hover:shadow-lg transition-shadow ${getItemSizeClasses()}`}>
+          <CardContent className="p-4 h-full flex flex-col">
+            <div className="relative mb-3 flex-shrink-0">
+              {item.image_url ? (
+                <img
+                  src={item.image_url}
+                  alt={item.name}
+                  className="w-full h-24 object-cover rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-400 text-sm">ไม่มีรูปภาพ</span>
+                </div>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100"
+                onClick={() => onAddImage(item)}
+              >
+                <Camera className="w-3 h-3" />
+              </Button>
+            </div>
+            
+            <div className="flex-1 flex flex-col">
+              <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">{item.name}</h3>
+              
+              {item.description && (
+                <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+              )}
+              
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg font-bold text-coffee-600">฿{item.price}</span>
+                <Badge variant={item.is_available ? "default" : "secondary"}>
+                  {item.is_available ? 'พร้อมขาย' : 'หมด'}
+                </Badge>
               </div>
-
-              {/* ข้อมูลเมนู */}
-              <div className="space-y-2">
-                <div>
-                  <h3 className="font-medium text-sm line-clamp-2 text-coffee-800">
-                    {item.name}
-                  </h3>
-                  <p className="text-xs text-gray-600 line-clamp-1">
-                    หมวด: {item.categories?.name || 'ไม่ระบุ'}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-coffee-600">
-                    ฿{item.price}
-                  </span>
-                  <Badge 
-                    variant={item.is_available ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {item.is_available ? "พร้อมขาย" : "หมด"}
-                  </Badge>
-                </div>
-
-                {/* ปุ่มจัดการ */}
-                <div className="flex gap-1 pt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onEdit(item)}
-                    className="flex-1 text-xs h-8"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    แก้ไข
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onDelete(item)}
-                    className="flex-1 text-xs h-8 text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    ลบ
-                  </Button>
-                </div>
+              
+              {item.categories && (
+                <Badge variant="outline" className="mb-2 w-fit">
+                  {item.categories.name}
+                </Badge>
+              )}
+              
+              <div className="flex space-x-2 mt-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onEdit(item)}
+                  className="flex-1"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  แก้ไข
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onDelete(item)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
               </div>
             </div>
           </CardContent>

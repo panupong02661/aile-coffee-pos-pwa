@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Edit, Trash2, Menu } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Menu, Settings } from 'lucide-react';
 import { useSupabaseData, DatabaseMenuItem, DatabaseCategory, DatabaseAddonGroup, DatabaseAddon } from '@/hooks/useSupabaseData';
 import MenuItemForm from '@/components/MenuItemForm';
 import CategoryForm from '@/components/CategoryForm';
@@ -13,6 +12,7 @@ import AddonForm from '@/components/AddonForm';
 import AddonGroupForm from '@/components/AddonGroupForm';
 import MenuManagementGrid from '@/components/MenuManagementGrid';
 import ImageCropper from '@/components/ImageCropper';
+import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,6 +34,10 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   const [imageEditingItem, setImageEditingItem] = useState<DatabaseMenuItem | null>(null);
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [cropperImageSrc, setCropperImageSrc] = useState('');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  const [gridColumns, setGridColumns] = useState(4);
+  const [itemSize, setItemSize] = useState('medium');
+  const [categoryMenuCounts, setCategoryMenuCounts] = useState<{ [key: string]: number }>({});
   
   const { 
     menuItems, 
@@ -45,6 +49,15 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   } = useSupabaseData();
   
   const { toast } = useToast();
+
+  // Calculate menu count for each category
+  useEffect(() => {
+    const counts: { [key: string]: number } = {};
+    categories.forEach(category => {
+      counts[category.id] = menuItems.filter(item => item.category_id === category.id).length;
+    });
+    setCategoryMenuCounts(counts);
+  }, [menuItems, categories]);
 
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -81,7 +94,6 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
 
   const handleAddImage = (item: DatabaseMenuItem) => {
     setImageEditingItem(item);
-    // For now, we'll use a placeholder image source since we need file upload
     setCropperImageSrc('/placeholder.svg');
     setShowImageCropper(true);
   };
@@ -212,6 +224,14 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
           )}
           <h1 className="text-3xl font-bold text-coffee-800">จัดการเมนู</h1>
         </div>
+        <Button
+          onClick={() => setShowDisplaySettings(true)}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Settings className="w-4 h-4" />
+          ตั้งค่าการแสดงผล
+        </Button>
       </div>
 
       <Tabs defaultValue="menu" className="w-full">
@@ -261,6 +281,8 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
 
               <MenuManagementGrid 
                 menuItems={filteredItems}
+                gridColumns={gridColumns}
+                itemSize={itemSize}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onAddImage={handleAddImage}
@@ -302,6 +324,11 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
                         <div>
                           <h3 className="font-medium text-coffee-800">{category.name}</h3>
                           <p className="text-sm text-coffee-600">{category.description}</p>
+                          <div className="flex items-center gap-4 mt-2">
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {categoryMenuCounts[category.id] || 0} เมนู
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button 
@@ -359,44 +386,62 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {addonGroups.map((group) => (
-                    <div key={group.id} className="border border-coffee-100 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-coffee-800">{group.name}</h3>
-                          <p className="text-sm text-coffee-600">{group.description}</p>
-                          <div className="flex space-x-4 mt-1">
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {group.is_required ? 'บังคับเลือก' : 'ไม่บังคับ'}
-                            </span>
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                              {group.allow_multiple ? 'เลือกได้หลายรายการ' : 'เลือกได้รายการเดียว'}
-                            </span>
+                  {addonGroups.map((group) => {
+                    const groupAddons = addons.filter(addon => addon.addon_group_id === group.id);
+                    return (
+                      <div key={group.id} className="border border-coffee-100 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium text-coffee-800">{group.name}</h3>
+                            <p className="text-sm text-coffee-600">{group.description}</p>
+                            <div className="flex space-x-4 mt-2">
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {group.is_required ? 'บังคับเลือก' : 'ไม่บังคับ'}
+                              </span>
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {group.allow_multiple ? 'เลือกได้หลายรายการ' : 'เลือกได้รายการเดียว'}
+                              </span>
+                              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                {groupAddons.length} รายการ
+                              </span>
+                            </div>
+                            {groupAddons.length > 0 && (
+                              <div className="mt-3">
+                                <p className="text-xs text-gray-600 mb-1">รายการใน Add-on นี้:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {groupAddons.map((addon) => (
+                                    <span key={addon.id} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                                      {addon.name} (฿{addon.price})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingAddonGroup(group);
+                                setShowAddonGroupForm(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => handleDeleteAddonGroup(group.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingAddonGroup(group);
-                              setShowAddonGroupForm(true);
-                            }}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-red-600"
-                            onClick={() => handleDeleteAddonGroup(group.id)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -469,6 +514,16 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Display Settings Modal */}
+      <DisplaySettingsModal
+        isOpen={showDisplaySettings}
+        onClose={() => setShowDisplaySettings(false)}
+        gridColumns={gridColumns}
+        setGridColumns={setGridColumns}
+        itemSize={itemSize}
+        setItemSize={setItemSize}
+      />
 
       {/* Forms and Modals */}
       {showItemForm && (

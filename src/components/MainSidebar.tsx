@@ -61,6 +61,21 @@ interface MainSidebarProps {
 const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const location = useLocation();
   
+  // Pages that exist and have implementations
+  const existingPages = [
+    '/', '/dashboard', '/menu', '/members', '/pos', '/reports', '/shop-settings', 
+    '/promotions', '/online-system', '/customer-mobile-app', '/customer-app-management',
+    '/qr-promptpay', '/inventory', '/printer-settings', '/online-orders', 
+    '/security-recommendations', '/advanced-reports', '/sales-reports', '/product-reports',
+    '/customer-analytics', '/staff', '/time-attendance', '/permissions', '/branch-management',
+    '/accounting', '/income-expense', '/profit-loss', '/tax-system', '/vat-calculation',
+    '/tax-invoice', '/credit-system', '/crm', '/customer-data', '/purchase-history',
+    '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
+    '/digital-payment', '/credit-card', '/api-system', '/external-integration',
+    '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
+    '/usage-logs', '/role-access', '/access-control'
+  ];
+  
   const menuItems = [
     // POS และ Dashboard หลัก
     { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
@@ -168,6 +183,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
+                  const hasPage = existingPages.includes(item.path);
                   
                   return (
                     <Link
@@ -177,7 +193,9 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                       className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                         isActive
                           ? 'bg-coffee-600 text-white'
-                          : 'text-coffee-700 hover:bg-coffee-50'
+                          : hasPage 
+                            ? 'text-coffee-700 hover:bg-coffee-50'
+                            : 'text-black hover:bg-coffee-50'
                       }`}
                     >
                       <Icon className="w-4 h-4" />

@@ -1,87 +1,76 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Settings } from 'lucide-react';
 
 interface DisplaySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   gridColumns: number;
   setGridColumns: (columns: number) => void;
-  itemSize: 'small' | 'medium' | 'large';
-  setItemSize: (size: 'small' | 'medium' | 'large') => void;
+  itemSize: string;
+  setItemSize: (size: string) => void;
 }
 
-const DisplaySettingsModal = ({
-  isOpen,
-  onClose,
-  gridColumns,
-  setGridColumns,
-  itemSize,
-  setItemSize
+const DisplaySettingsModal = ({ 
+  isOpen, 
+  onClose, 
+  gridColumns, 
+  setGridColumns, 
+  itemSize, 
+  setItemSize 
 }: DisplaySettingsModalProps) => {
-  const columnOptions = [3, 4, 5, 6];
-  const sizeOptions: Array<'small' | 'medium' | 'large'> = ['small', 'medium', 'large'];
-  
-  const getSizeLabel = (size: 'small' | 'medium' | 'large') => {
-    switch (size) {
-      case 'small': return 'เล็ก';
-      case 'medium': return 'กลาง';
-      case 'large': return 'ใหญ่';
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md border-coffee-200">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-coffee-800">ตั้งค่าการแสดงผล</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            ตั้งค่าการแสดงผล
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          <div>
-            <h4 className="font-medium mb-3 text-coffee-700">จำนวนเมนูต่อแถว</h4>
-            <div className="grid grid-cols-4 gap-2">
-              {columnOptions.map((option) => (
-                <Button
-                  key={option}
-                  variant={gridColumns === option ? "default" : "outline"}
-                  onClick={() => setGridColumns(option)}
-                  className={`${
-                    gridColumns === option
-                      ? 'bg-coffee-600 hover:bg-coffee-700 text-white'
-                      : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
-                  }`}
-                >
-                  {option}
-                </Button>
-              ))}
+          {/* Grid Columns Setting */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">จำนวนคอลัมน์ ({gridColumns} คอลัมน์)</Label>
+            <Slider
+              value={[gridColumns]}
+              onValueChange={([value]) => setGridColumns(value)}
+              min={3}
+              max={6}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+              <span>6</span>
             </div>
           </div>
 
-          <div>
-            <h4 className="font-medium mb-3 text-coffee-700">ขนาดเมนู</h4>
-            <div className="grid grid-cols-3 gap-2">
-              {sizeOptions.map((option) => (
-                <Button
-                  key={option}
-                  variant={itemSize === option ? "default" : "outline"}
-                  onClick={() => setItemSize(option)}
-                  className={`${
-                    itemSize === option
-                      ? 'bg-coffee-600 hover:bg-coffee-700 text-white'
-                      : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
-                  }`}
-                >
-                  {getSizeLabel(option)}
-                </Button>
-              ))}
-            </div>
+          {/* Item Size Setting */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">ขนาดรายการ</Label>
+            <Select value={itemSize} onValueChange={setItemSize}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">เล็ก</SelectItem>
+                <SelectItem value="medium">กลาง</SelectItem>
+                <SelectItem value="large">ใหญ่</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </div>
 
-          <Button 
-            onClick={onClose}
-            className="w-full bg-coffee-600 hover:bg-coffee-700"
-          >
+        <div className="flex justify-end pt-4">
+          <Button onClick={onClose}>
             ปิด
           </Button>
         </div>
