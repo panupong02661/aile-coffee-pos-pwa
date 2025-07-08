@@ -73,9 +73,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const { toast } = useToast();
 
-  // Notification sound function
+  // Notification sound function - ใช้ฟังก์ชันเดียวกันกับหน้าตั้งค่าเสียง
   const playOrderSuccessSound = async () => {
     try {
+      console.log('🔊 Playing order success sound...');
+      
       // Load notification settings
       const { data: settings } = await supabase
         .from('notification_settings')
@@ -89,6 +91,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         duration: settings?.duration ?? 2
       };
 
+      console.log('🔊 Loaded settings:', notificationSettings);
+
       if (!notificationSettings.sound_enabled) {
         console.log('🔇 Sound disabled');
         return;
@@ -98,24 +102,35 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       const { data: sounds } = await supabase
         .from('notification_sounds')
         .select('*')
-        .eq('is_active', true);
+        .order('created_at');
+
+      console.log('🔊 Loaded sounds:', sounds);
 
       let soundPlayed = false;
 
-      // Check if we have a custom sound selected
+      // Check if we have a custom sound selected (UUID format)
       if (notificationSettings.selected_sound_id && 
           !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+        
+        console.log('🔊 Looking for custom sound with ID:', notificationSettings.selected_sound_id);
+        
         const selectedSound = sounds?.find(
           sound => sound.id === notificationSettings.selected_sound_id
         );
         
+        console.log('🔊 Found custom sound:', selectedSound);
+        
         if (selectedSound && selectedSound.file_url) {
+          console.log('🔊 Playing custom sound:', selectedSound.name);
+          
           try {
             const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
+            console.log('🔊 Custom sound URL:', fullUrl);
             
             const audio = new Audio();
-            audio.volume = 1.0;
+            audio.volume = Math.min(notificationSettings.volume * 1.5, 1.0);
             audio.src = fullUrl;
+            audio.preload = 'auto';
             
             await new Promise<void>((resolve, reject) => {
               const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
@@ -124,6 +139,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                 clearTimeout(timeout);
                 try {
                   await audio.play();
+                  console.log('✅ Custom sound played successfully');
                   soundPlayed = true;
                   
                   setTimeout(() => {
@@ -135,25 +151,35 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                   
                   resolve();
                 } catch (e) {
+                  console.log('🔊 Audio play failed:', e);
                   reject(e);
                 }
               };
               
-              audio.onerror = reject;
+              audio.onerror = (error) => {
+                console.log('🔊 Audio error:', error);
+                clearTimeout(timeout);
+                reject(error);
+              };
+              
               audio.load();
             });
           } catch (error) {
             console.log('🔊 Custom sound failed:', error);
           }
+        } else {
+          console.log('🔊 Selected custom sound not found or has no file_url');
         }
       }
       
-      // If custom sound didn't play, try basic sounds or beep fallback
+      // If custom sound didn't play, try basic sounds
       if (!soundPlayed) {
         if (notificationSettings.selected_sound_id && 
             ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+          console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
           await playBasicSuccessSound(notificationSettings.selected_sound_id, notificationSettings);
         } else {
+          console.log('🔊 Using default beep sound');
           await createSuccessBeepSound(notificationSettings);
         }
       }
@@ -184,30 +210,24 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         case 'ออด': frequency = 400; break;
       }
       
-      // Create success sound pattern (positive melody)
-      const frequencies = [frequency, frequency * 1.25, frequency * 1.5];
+      // Create oscillator for the selected basic sound
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
       
-      for (let i = 0; i < frequencies.length; i++) {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(frequencies[i], audioContext.currentTime);
-        oscillator.type = 'sine';
-        
-        const startTime = audioContext.currentTime + (i * 0.2);
-        const endTime = startTime + 0.15;
-        
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
-        gainNode.gain.linearRampToValueAtTime(0, endTime);
-        
-        oscillator.start(startTime);
-        oscillator.stop(endTime);
-      }
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+      
+      console.log(`✅ Basic sound played: ${soundName}`);
     } catch (error) {
       console.error('Basic success sound failed:', error);
     }
@@ -222,31 +242,35 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       }
       
       const volume = Math.min(settings.volume * 2.0, 1.0);
+      const duration = settings.duration;
+      const currentTime = audioContext.currentTime;
       
-      // Create a pleasant success melody
-      const notes = [523, 659, 784]; // C, E, G (major chord)
+      // Create beep pattern
+      const beepCount = Math.max(2, Math.floor(duration / 0.3));
       
-      for (let i = 0; i < notes.length; i++) {
+      for (let i = 0; i < beepCount; i++) {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
-        oscillator.frequency.value = notes[i];
+        oscillator.frequency.value = 800;
         oscillator.type = 'sine';
         
-        const startTime = audioContext.currentTime + (i * 0.15);
-        const endTime = startTime + 0.3;
+        const startTime = currentTime + (i * 0.3);
+        const endTime = startTime + 0.15;
         
         gainNode.gain.setValueAtTime(0, startTime);
         gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-        gainNode.gain.setValueAtTime(volume, endTime - 0.05);
+        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
         gainNode.gain.linearRampToValueAtTime(0, endTime);
         
         oscillator.start(startTime);
         oscillator.stop(endTime);
       }
+      
+      console.log('✅ Success beep sound played');
     } catch (error) {
       console.error('Success beep sound failed:', error);
     }
