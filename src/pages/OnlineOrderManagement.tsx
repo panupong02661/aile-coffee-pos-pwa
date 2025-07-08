@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Settings, 
   Volume2, 
@@ -24,7 +25,9 @@ import {
   Trash2,
   Phone,
   MapPin,
-  FileText
+  FileText,
+  Calendar,
+  Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,6 +72,8 @@ interface NotificationSettings {
   duration: number;
 }
 
+type DateFilter = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'this_year' | 'all' | 'custom';
+
 const OnlineOrderManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSoundSettingsOpen, setIsSoundSettingsOpen] = useState(false);
@@ -79,12 +84,63 @@ const OnlineOrderManagement = () => {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const queryClient = useQueryClient();
 
+  const getDateRange = (filter: DateFilter) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (filter) {
+      case 'today':
+        return {
+          start: today.toISOString(),
+          end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString()
+        };
+      case 'yesterday':
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        return {
+          start: yesterday.toISOString(),
+          end: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString()
+        };
+      case 'this_week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        return {
+          start: weekStart.toISOString(),
+          end: now.toISOString()
+        };
+      case 'this_month':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return {
+          start: monthStart.toISOString(),
+          end: now.toISOString()
+        };
+      case 'this_year':
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        return {
+          start: yearStart.toISOString(),
+          end: now.toISOString()
+        };
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          return {
+            start: new Date(customStartDate).toISOString(),
+            end: new Date(customEndDate + 'T23:59:59').toISOString()
+          };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['customer-orders'],
+    queryKey: ['customer-orders', dateFilter, customStartDate, customEndDate],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('customer_orders')
         .select(`
           *,
@@ -95,6 +151,14 @@ const OnlineOrderManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
+      const dateRange = getDateRange(dateFilter);
+      if (dateRange) {
+        query = query
+          .gte('created_at', dateRange.start)
+          .lte('created_at', dateRange.end);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as OnlineOrder[];
     },
@@ -509,6 +573,21 @@ const OnlineOrderManagement = () => {
     }
   };
 
+  const getDateFilterText = () => {
+    switch (dateFilter) {
+      case 'today': return 'วันนี้';
+      case 'yesterday': return 'เมื่อวาน';
+      case 'this_week': return 'สัปดาห์นี้';
+      case 'this_month': return 'เดือนนี้';
+      case 'this_year': return 'ปีนี้';
+      case 'custom': return 'กำหนดเอง';
+      default: return 'ทั้งหมด';
+    }
+  };
+
+  const ordersCount = orders.length;
+  const totalAmount = orders.reduce((sum, order) => sum + order.total_amount, 0);
+
   return (
     <div className="h-screen bg-cream-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
@@ -541,6 +620,68 @@ const OnlineOrderManagement = () => {
             </Button>
           </div>
 
+          {/* Date Filter Section */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                ตัวกรองแสดงผล
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                <div className="flex-1">
+                  <Label htmlFor="date-filter">ช่วงเวลา</Label>
+                  <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="today">วันนี้</SelectItem>
+                      <SelectItem value="yesterday">เมื่อวาน</SelectItem>
+                      <SelectItem value="this_week">สัปดาห์นี้</SelectItem>
+                      <SelectItem value="this_month">เดือนนี้</SelectItem>
+                      <SelectItem value="this_year">ปีนี้</SelectItem>
+                      <SelectItem value="custom">กำหนดเอง</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {dateFilter === 'custom' && (
+                  <>
+                    <div>
+                      <Label htmlFor="start-date">วันที่เริ่มต้น</Label>
+                      <Input
+                        id="start-date"
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end-date">วันที่สิ้นสุด</Label>
+                      <Input
+                        id="end-date"
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  <div className="font-medium mb-1">สรุป: {getDateFilterText()}</div>
+                  <div className="flex gap-4">
+                    <span>{ordersCount} ออเดอร์</span>
+                    <span>฿{totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {ordersLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -551,7 +692,9 @@ const OnlineOrderManagement = () => {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <ShoppingBag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">ยังไม่มีออเดอร์ออนไลน์</p>
+                    <p className="text-gray-500">
+                      {dateFilter === 'all' ? 'ยังไม่มีออเดอร์ออนไลน์' : `ไม่มีออเดอร์ในช่วง${getDateFilterText()}`}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -956,7 +1099,7 @@ const OnlineOrderManagement = () => {
 
               {/* Upload New Sound */}
               <div className="space-y-3">
-                <Label className="text-base font-medium">อัปโหลดเสียงใหม่</Label>
+                <Label className="text-base font-medium">อัพโหลดเสียงใหม่</Label>
                 <div className="flex items-center gap-3">
                   <Input
                     type="file"
@@ -969,7 +1112,7 @@ const OnlineOrderManagement = () => {
                     disabled={!uploadedFile || isUploading}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {isUploading ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
+                    {isUploading ? 'กำลังอัพโหลด...' : 'อัพโหลด'}
                   </Button>
                 </div>
                 {uploadedFile && (
@@ -978,7 +1121,7 @@ const OnlineOrderManagement = () => {
                   </div>
                 )}
                 <div className="text-xs text-gray-500">
-                  รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB • เมื่ออัปโหลดจะตั้งเป็นเสียงเริ่มต้นทันที
+                  รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB • เมื่ออัพโหลดจะตั้งเป็นเสียงเริ่มต้นทันที
                 </div>
               </div>
             </div>
