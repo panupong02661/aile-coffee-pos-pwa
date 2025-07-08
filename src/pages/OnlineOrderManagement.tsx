@@ -214,7 +214,7 @@ const OnlineOrderManagement = () => {
 
   useEffect(() => {
     if (settingsData) {
-      console.log('🔧 Loading notification settings:', settingsData);
+      console.log('🔧 Loading notification settings from database:', settingsData);
       setNotificationSettings(settingsData);
     }
   }, [settingsData]);
@@ -222,6 +222,9 @@ const OnlineOrderManagement = () => {
   // Debug: Log current notification settings
   useEffect(() => {
     console.log('🔧 Current notification settings state:', notificationSettings);
+    if (notificationSettings?.selected_sound_id) {
+      console.log('🔧 Currently selected sound:', notificationSettings.selected_sound_id);
+    }
   }, [notificationSettings]);
 
   // Refetch data when settings change
@@ -662,7 +665,11 @@ const OnlineOrderManagement = () => {
                       notificationSettings.selected_sound_id ? (
                         ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id) 
                           ? `เสียง: ${notificationSettings.selected_sound_id}`
-                          : `เสียง: ${notificationSounds.find(s => s.id === notificationSettings.selected_sound_id)?.name || 'ไม่ทราบ'}`
+                          : (() => {
+                              const foundSound = notificationSounds.find(s => s.id === notificationSettings.selected_sound_id);
+                              console.log('🔧 Looking for uploaded sound with ID:', notificationSettings.selected_sound_id, 'Found:', foundSound);
+                              return `เสียง: ${foundSound?.name || 'ไม่ทราบ'}`;
+                            })()
                       ) : 'ไม่ได้เลือกเสียง'
                     ) : 'ปิดเสียง'}
                   </span>
