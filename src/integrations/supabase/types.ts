@@ -1252,15 +1252,7 @@ export type Database = {
           updated_at?: string | null
           volume?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notification_settings_selected_sound_id_fkey"
-            columns: ["selected_sound_id"]
-            isOneToOne: false
-            referencedRelation: "notification_sounds"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notification_sounds: {
         Row: {
