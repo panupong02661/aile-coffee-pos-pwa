@@ -315,7 +315,7 @@ const OnlineOrderManagement = () => {
       
       const audio = new Audio();
       const duration = (notificationSettings?.duration || 2) * 1000;
-      const volume = notificationSettings?.volume || 0.8;
+      const volume = Math.min((notificationSettings?.volume || 0.8) * 1.5, 1.0);
       
       audio.volume = volume;
       audio.src = soundUrl;

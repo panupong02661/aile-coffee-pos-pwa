@@ -307,8 +307,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           const audio = new Audio();
           audioRef.current = audio;
-          audio.volume = Math.min(notificationSettings.volume, 1.0);
+          
+          // Increase volume significantly for custom sounds
+          audio.volume = Math.min(notificationSettings.volume * 1.5, 1.0);
           audio.src = fullUrl;
+          
+          // Add audio context for enhanced volume
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const source = audioContext.createMediaElementSource(audio);
+          const gainNode = audioContext.createGain();
+          
+          source.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          gainNode.gain.value = Math.min(notificationSettings.volume * 2.0, 1.0);
           
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -406,7 +417,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.type = 'sine';
       
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume * 0.8, audioContext.currentTime + 0.1);
+      gainNode.gain.linearRampToValueAtTime(volume * 1.2, audioContext.currentTime + 0.1);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
       
       oscillator.start(audioContext.currentTime);
@@ -431,7 +442,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       
-      const volume = notificationSettings.volume * 0.8;
+      const volume = Math.min(notificationSettings.volume * 1.5, 1.0);
       const duration = notificationSettings.duration;
       const currentTime = audioContext.currentTime;
       

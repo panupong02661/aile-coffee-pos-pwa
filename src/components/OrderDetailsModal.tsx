@@ -59,39 +59,34 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
         throw orderError;
       }
 
-      // Fetch order items
-      const { data: orderItems, error: itemsError } = await supabase
+      // Fetch order items with their addons in one query
+      const { data: orderItemsWithAddons, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          *,
+          order_addons (
+            id,
+            addon_name,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
         .eq('order_id', orderId)
         .order('created_at');
 
       if (itemsError) {
-        console.error('Error fetching order items:', itemsError);
+        console.error('Error fetching order items with addons:', itemsError);
         throw itemsError;
       }
 
-      // Fetch order addons
-      const { data: orderAddons, error: addonsError } = await supabase
-        .from('order_addons')
-        .select('*')
-        .eq('order_id', orderId)
-        .order('created_at');
-
-      if (addonsError) {
-        console.error('Error fetching order addons:', addonsError);
-        throw addonsError;
-      }
-
       console.log('Order fetched:', order);
-      console.log('Order items fetched:', orderItems);
-      console.log('Order addons fetched:', orderAddons);
+      console.log('Order items with addons fetched:', orderItemsWithAddons);
 
       // Transform the data
-      const transformedItems: OrderItem[] = orderItems?.map(item => {
-        // Get addons for this item
-        const itemAddons = orderAddons?.filter(addon => addon.order_item_id === item.id) || [];
-        const addons = itemAddons.map(addon => addon.addon_name);
+      const transformedItems: OrderItem[] = orderItemsWithAddons?.map(item => {
+        // Get addon names from the joined data
+        const addons = item.order_addons?.map((addon: any) => addon.addon_name) || [];
 
         return {
           id: item.id,
@@ -99,7 +94,7 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
           quantity: item.quantity,
           unit_price: Number(item.unit_price),
           total_price: Number(item.total_price),
-          addons
+          addons: addons.length > 0 ? addons : undefined
         };
       }) || [];
 
