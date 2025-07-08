@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Settings, 
   Volume2, 
@@ -24,16 +23,13 @@ import {
   User,
   ShoppingBag,
   DollarSign,
-  Trash2,
-  Bell,
-  X
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
-import { useNotifications } from '@/components/providers/GlobalNotificationProvider';
 
 interface OnlineOrder {
   id: string;
@@ -81,11 +77,9 @@ const OnlineOrderManagement = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const queryClient = useQueryClient();
-  const { clearNewOrders } = useNotifications();
 
-  // ดึงข้อมูลออเดอร์ออนไลน์จาก customer_orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['customer-orders'],
+    queryKey: ['online-orders'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customer_orders')
@@ -101,7 +95,7 @@ const OnlineOrderManagement = () => {
       if (error) throw error;
       return data as OnlineOrder[];
     },
-    refetchInterval: 5000, // อัปเดตทุก 5 วินาที
+    refetchInterval: 5000,
   });
 
   const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
@@ -139,11 +133,6 @@ const OnlineOrderManagement = () => {
     }
   }, [settingsData]);
 
-  // Clear new orders notification when visiting this page
-  useEffect(() => {
-    clearNewOrders();
-  }, [clearNewOrders]);
-
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -165,11 +154,14 @@ const OnlineOrderManagement = () => {
     try {
       stopAllSounds();
       
+      const audio = new Audio();
+      
+      // Generate tone using Web Audio API for basic sounds
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const duration = (notificationSettings?.duration || 2) * 1000;
+      const duration = (notificationSettings?.duration || 2) * 1000; // Convert to milliseconds
       const volume = notificationSettings?.volume || 0.8;
       
-      let frequency = 800;
+      let frequency = 800; // Default frequency
       
       switch (soundName) {
         case 'ระฆัง':
@@ -194,6 +186,7 @@ const OnlineOrderManagement = () => {
           frequency = 800;
       }
       
+      // Create oscillator
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -215,6 +208,8 @@ const OnlineOrderManagement = () => {
       setTimeout(() => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
       }, duration);
+      
+      console.log(`Playing basic sound: ${soundName} at ${frequency}Hz for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing basic sound:', error);
@@ -238,6 +233,7 @@ const OnlineOrderManagement = () => {
       
       await audio.play();
       
+      // Stop after duration
       setTimeout(() => {
         if (audio && !audio.paused) {
           audio.pause();
@@ -251,6 +247,8 @@ const OnlineOrderManagement = () => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
         setPlayingAudio(null);
       });
+      
+      console.log(`Playing uploaded sound: ${soundName} from ${soundUrl} for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing uploaded sound:', error);
@@ -275,6 +273,7 @@ const OnlineOrderManagement = () => {
       
       await audio.play();
       
+      // Stop after duration
       setTimeout(() => {
         if (audio && !audio.paused) {
           audio.pause();
@@ -289,6 +288,8 @@ const OnlineOrderManagement = () => {
         setPlayingAudio(null);
       });
       
+      console.log(`Playing initial sound for ${duration}ms`);
+      
     } catch (error) {
       console.error('Error playing initial sound:', error);
       toast.error('ไม่สามารถเล่นเสียงเริ่มต้นได้');
@@ -301,7 +302,7 @@ const OnlineOrderManagement = () => {
     const file = event.target.files?.[0];
     if (file) {
       const validTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
-      const maxSize = 5 * 1024 * 1024;
+      const maxSize = 5 * 1024 * 1024; // 5MB
 
       if (!validTypes.includes(file.type)) {
         toast.error('รองรับเฉพาะไฟล์เสียง MP3, WAV, OGG เท่านั้น');
@@ -387,15 +388,16 @@ const OnlineOrderManagement = () => {
   const selectBasicSound = async (soundName: string) => {
     try {
       const updates = {
-        selected_sound_id: soundName,
+        selected_sound_id: null, // Clear selected sound ID for basic sounds
         sound_enabled: true
       };
 
       await updateNotificationSettings(updates);
       
+      // Store the basic sound name in local state
       setNotificationSettings(prev => prev ? {
         ...prev,
-        selected_sound_id: soundName,
+        selected_sound_id: soundName, // Use sound name as identifier for basic sounds
         sound_enabled: true
       } : null);
 
@@ -406,22 +408,14 @@ const OnlineOrderManagement = () => {
     }
   };
 
-  const selectUploadedSound = async (soundId: string, soundName: string) => {
+  const selectUploadedSound = async (soundId: string) => {
     try {
-      const updates = {
+      await updateNotificationSettings({
         selected_sound_id: soundId,
         sound_enabled: true
-      };
-
-      await updateNotificationSettings(updates);
+      });
       
-      setNotificationSettings(prev => prev ? {
-        ...prev,
-        selected_sound_id: soundId,
-        sound_enabled: true
-      } : null);
-
-      toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
+      toast.success('เลือกเสียงสำเร็จ');
     } catch (error) {
       console.error('Error selecting uploaded sound:', error);
       toast.error('ไม่สามารถเลือกเสียงได้');
@@ -442,23 +436,6 @@ const OnlineOrderManagement = () => {
     } catch (error) {
       console.error('Error deleting sound:', error);
       toast.error('ไม่สามารถลบเสียงได้');
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('customer_orders')
-        .update({ order_status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      toast.success('อัปเดตสถานะออเดอร์สำเร็จ');
-      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error('ไม่สามารถอัปเดตสถานะได้');
     }
   };
 
@@ -512,16 +489,14 @@ const OnlineOrderManagement = () => {
           
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800">จัดการออเดอร์ออนไลน์</h1>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => setIsSoundSettingsOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                ตั้งค่าเสียงแจ้งเตือน
-              </Button>
-            </div>
+            <Button
+              onClick={() => setIsSoundSettingsOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              ตั้งค่าเสียงแจ้งเตือน
+            </Button>
           </div>
 
           {ordersLoading ? (
@@ -568,7 +543,7 @@ const OnlineOrderManagement = () => {
                       </div>
                       
                       <div className="border-t pt-4">
-                        <div className="flex justify-between items-center text-sm mb-2">
+                        <div className="flex justify-between items-center text-sm">
                           <span>รายการ: {order.items.length} รายการ</span>
                           <span>การชำระเงิน: {order.payment_method}</span>
                           <span>ประเภท: {order.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
@@ -578,36 +553,6 @@ const OnlineOrderManagement = () => {
                             <strong>หมายเหตุ:</strong> {order.notes}
                           </div>
                         )}
-                        <div className="flex space-x-2 mt-4">
-                          <Button
-                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                            size="sm"
-                            className="bg-blue-500 hover:bg-blue-600"
-                          >
-                            ยืนยัน
-                          </Button>
-                          <Button
-                            onClick={() => updateOrderStatus(order.id, 'preparing')}
-                            size="sm"
-                            className="bg-orange-500 hover:bg-orange-600"
-                          >
-                            กำลังทำ
-                          </Button>
-                          <Button
-                            onClick={() => updateOrderStatus(order.id, 'ready')}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600"
-                          >
-                            พร้อมส่ง
-                          </Button>
-                          <Button
-                            onClick={() => updateOrderStatus(order.id, 'completed')}
-                            size="sm"
-                            variant="outline"
-                          >
-                            เสร็จสิ้น
-                          </Button>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -725,7 +670,7 @@ const OnlineOrderManagement = () => {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => selectUploadedSound('initial', 'เสียงเริ่มต้น')}
+                      onClick={() => selectUploadedSound('initial')}
                       variant={notificationSettings?.selected_sound_id === 'initial' ? "default" : "outline"}
                     >
                       เลือก
@@ -752,7 +697,7 @@ const OnlineOrderManagement = () => {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => selectUploadedSound(sound.id, sound.name)}
+                        onClick={() => selectUploadedSound(sound.id)}
                         variant={notificationSettings?.selected_sound_id === sound.id ? "default" : "outline"}
                       >
                         เลือก
