@@ -28,7 +28,7 @@ interface TimeAttendanceRecord {
   check_in_time: string | null;
   check_out_time: string | null;
   work_hours: number;
-  status: 'present' | 'absent' | 'late' | 'half_day';
+  status: string;
   notes: string | null;
   staff: Staff;
 }
