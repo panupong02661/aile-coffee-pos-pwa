@@ -305,59 +305,91 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
           console.log('🔊 Custom sound URL:', fullUrl);
           
-          const audio = new Audio();
-          audioRef.current = audio;
-          
-          // Increase volume significantly for custom sounds
-          audio.volume = Math.min(notificationSettings.volume * 1.5, 1.0);
-          audio.src = fullUrl;
-          
-          // Add audio context for enhanced volume
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const source = audioContext.createMediaElementSource(audio);
-          const gainNode = audioContext.createGain();
-          
-          source.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          gainNode.gain.value = Math.min(notificationSettings.volume * 2.0, 1.0);
-          
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              console.log('🔊 Custom sound timeout');
-              reject(new Error('Timeout'));
-            }, 5000);
-            
-            audio.oncanplaythrough = async () => {
-              clearTimeout(timeout);
-              console.log('🔊 Custom sound ready, playing...');
-              try {
-                await audio.play();
-                console.log('✅ Custom sound played successfully');
-                soundPlayed = true;
+          // Try multiple approaches for maximum compatibility
+          await Promise.race([
+            // Approach 1: Simple Audio with max volume
+            (async () => {
+              const audio = new Audio();
+              audioRef.current = audio;
+              audio.volume = 1.0; // Maximum volume
+              audio.src = fullUrl;
+              audio.preload = 'auto';
+              
+              await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
                 
-                // Stop after duration
-                setTimeout(() => {
-                  if (audio && !audio.paused) {
-                    audio.pause();
-                    audio.currentTime = 0;
+                audio.oncanplaythrough = async () => {
+                  clearTimeout(timeout);
+                  try {
+                    await audio.play();
+                    console.log('✅ Custom sound played (simple approach)');
+                    soundPlayed = true;
+                    
+                    setTimeout(() => {
+                      if (audio && !audio.paused) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                      }
+                    }, notificationSettings.duration * 1000);
+                    
+                    resolve();
+                  } catch (e) {
+                    reject(e);
                   }
-                }, notificationSettings.duration * 1000);
+                };
                 
-                resolve();
-              } catch (playError) {
-                console.log('🔊 Custom sound play failed:', playError);
-                reject(playError);
+                audio.onerror = reject;
+                audio.load();
+              });
+            })(),
+            
+            // Approach 2: Audio Context with Gain
+            (async () => {
+              const audio = new Audio();
+              audio.volume = 1.0;
+              audio.src = fullUrl;
+              audio.crossOrigin = 'anonymous';
+              
+              const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+              if (audioContext.state === 'suspended') {
+                await audioContext.resume();
               }
-            };
-            
-            audio.onerror = (error) => {
-              clearTimeout(timeout);
-              console.log('🔊 Custom sound error:', error);
-              reject(error);
-            };
-            
-            audio.load();
-          });
+              
+              const source = audioContext.createMediaElementSource(audio);
+              const gainNode = audioContext.createGain();
+              
+              source.connect(gainNode);
+              gainNode.connect(audioContext.destination);
+              gainNode.gain.value = 2.0; // Amplify volume
+              
+              await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
+                
+                audio.oncanplaythrough = async () => {
+                  clearTimeout(timeout);
+                  try {
+                    await audio.play();
+                    console.log('✅ Custom sound played (audio context approach)');
+                    soundPlayed = true;
+                    
+                    setTimeout(() => {
+                      if (audio && !audio.paused) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                      }
+                    }, notificationSettings.duration * 1000);
+                    
+                    resolve();
+                  } catch (e) {
+                    reject(e);
+                  }
+                };
+                
+                audio.onerror = reject;
+                audio.load();
+              });
+            })()
+          ]);
         } catch (error) {
           console.log('🔊 Custom sound failed:', error);
         }
@@ -369,20 +401,26 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Check if it's a basic sound
       if (notificationSettings.selected_sound_id && ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
         console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
-        playBasicSound(notificationSettings.selected_sound_id);
+        await playBasicSound(notificationSettings.selected_sound_id);
         soundPlayed = true;
       } else {
         console.log('🔊 Using beep fallback');
-        createBeepSound();
+        await createBeepSound();
       }
     }
   };
 
-  const playBasicSound = (soundName: string) => {
+  const playBasicSound = async (soundName: string) => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume audio context if suspended
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
       const duration = notificationSettings.duration * 1000;
-      const volume = notificationSettings.volume;
+      const volume = Math.min(notificationSettings.volume * 2.0, 1.0); // Increase volume significantly
       
       let frequency = 800;
       
@@ -407,32 +445,59 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           break;
       }
       
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      // Create multiple oscillators for richer sound
+      const oscillators: OscillatorNode[] = [];
+      const gainNodes: GainNode[] = [];
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Main oscillator
+      const oscillator1 = audioContext.createOscillator();
+      const gainNode1 = audioContext.createGain();
+      oscillator1.connect(gainNode1);
+      gainNode1.connect(audioContext.destination);
+      oscillator1.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator1.type = 'sine';
       
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      oscillator.type = 'sine';
+      // Harmonic oscillator for richer sound
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+      oscillator2.frequency.setValueAtTime(frequency * 1.5, audioContext.currentTime);
+      oscillator2.type = 'triangle';
       
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume * 1.2, audioContext.currentTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      oscillators.push(oscillator1, oscillator2);
+      gainNodes.push(gainNode1, gainNode2);
       
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
+      // Set up gain envelopes
+      gainNodes.forEach((gainNode, index) => {
+        const nodeVolume = index === 0 ? volume : volume * 0.3; // Second oscillator quieter
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(nodeVolume, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      });
       
-      console.log(`✅ Basic sound played: ${soundName}`);
+      // Start oscillators
+      oscillators.forEach(oscillator => {
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration / 1000);
+      });
+      
+      console.log(`✅ Enhanced basic sound played: ${soundName}`);
     } catch (error) {
       console.error('❌ Basic sound failed:', error);
-      createBeepSound();
+      await createBeepSound();
     }
   };
 
-  const createBeepSound = () => {
+  const createBeepSound = async () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume audio context if suspended
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -442,27 +507,27 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       
-      const volume = Math.min(notificationSettings.volume * 1.5, 1.0);
+      const volume = Math.min(notificationSettings.volume * 2.0, 1.0); // Increase volume significantly
       const duration = notificationSettings.duration;
       const currentTime = audioContext.currentTime;
       
-      // Create beep pattern based on duration
-      const beepCount = Math.max(1, Math.floor(duration / 0.5));
+      // Create stronger beep pattern based on duration
+      const beepCount = Math.max(2, Math.floor(duration / 0.3)); // More frequent beeps
       
       for (let i = 0; i < beepCount; i++) {
-        const startTime = currentTime + (i * 0.5);
-        const endTime = startTime + 0.2;
+        const startTime = currentTime + (i * 0.3);
+        const endTime = startTime + 0.15; // Longer beep duration
         
         gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.05);
-        gainNode.gain.setValueAtTime(volume, endTime - 0.05);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
         gainNode.gain.linearRampToValueAtTime(0, endTime);
       }
       
       oscillator.start(currentTime);
       oscillator.stop(currentTime + duration);
       
-      console.log('✅ Beep sound played');
+      console.log('✅ Enhanced beep sound played');
     } catch (error) {
       console.error('❌ Beep sound failed:', error);
     }
