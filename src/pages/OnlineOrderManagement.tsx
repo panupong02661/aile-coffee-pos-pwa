@@ -70,7 +70,7 @@ interface NotificationSound {
 }
 
 interface NotificationSettings {
-  id: string;
+  id?: string;
   sound_enabled: boolean;
   selected_sound_id?: string;
   volume: number;
@@ -217,6 +217,12 @@ const OnlineOrderManagement = () => {
       setNotificationSettings(settingsData);
     }
   }, [settingsData]);
+
+  // Refetch data when settings change
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+    queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
+  }, [queryClient]);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -481,6 +487,18 @@ const OnlineOrderManagement = () => {
       };
 
       await updateNotificationSettings(updates);
+      
+      // Update local state immediately to reflect the change
+      setNotificationSettings(prev => prev ? { 
+        ...prev, 
+        selected_sound_id: soundName,
+        sound_enabled: true 
+      } : {
+        sound_enabled: true,
+        selected_sound_id: soundName,
+        volume: 0.8,
+        duration: 2
+      });
       
       toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
     } catch (error) {

@@ -153,11 +153,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const loadNotificationData = async () => {
     try {
+      console.log('🔊 Loading notification data...');
+      
       // Load settings
       const { data: settings } = await supabase
         .from('notification_settings')
         .select('*')
         .single();
+
+      console.log('🔊 Loaded settings:', settings);
 
       if (settings) {
         setNotificationSettings({
@@ -168,12 +172,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
       }
 
-      // Load sounds
+      // Load all sounds (both active and inactive for proper selection display)
       const { data: sounds } = await supabase
         .from('notification_sounds')
         .select('*')
-        .eq('is_active', true)
         .order('created_at');
+
+      console.log('🔊 Loaded sounds:', sounds);
 
       if (sounds && sounds.length > 0) {
         setNotificationSounds(sounds);
@@ -292,11 +297,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     let soundPlayed = false;
     
-    // Check if we have a custom sound selected
-    if (notificationSettings.selected_sound_id && !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+    console.log('🔊 Selected sound ID:', notificationSettings.selected_sound_id);
+    console.log('🔊 Available custom sounds:', notificationSounds);
+    
+    // Check if we have a custom sound selected (UUID format)
+    if (notificationSettings.selected_sound_id && 
+        !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+      
+      console.log('🔊 Looking for custom sound with ID:', notificationSettings.selected_sound_id);
+      
       const selectedSound = notificationSounds.find(
         sound => sound.id === notificationSettings.selected_sound_id
       );
+      
+      console.log('🔊 Found custom sound:', selectedSound);
       
       if (selectedSound && selectedSound.file_url) {
         console.log('🔊 Attempting to play custom sound:', selectedSound.name);
@@ -393,13 +407,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         } catch (error) {
           console.log('🔊 Custom sound failed:', error);
         }
+      } else {
+        console.log('🔊 Selected custom sound not found or has no file_url');
       }
     }
     
     // If custom sound didn't play, try basic sounds or beep fallback
     if (!soundPlayed) {
       // Check if it's a basic sound
-      if (notificationSettings.selected_sound_id && ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+      if (notificationSettings.selected_sound_id && 
+          ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
         console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
         await playBasicSound(notificationSettings.selected_sound_id);
         soundPlayed = true;
