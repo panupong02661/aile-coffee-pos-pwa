@@ -25,6 +25,12 @@ interface OrderHistory {
     quantity: number;
     unit_price: number;
     total_price: number;
+    order_addons?: Array<{
+      addon_name: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
   }>;
 }
 
@@ -72,7 +78,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
         return;
       }
 
-      // ดึงข้อมูลออเดอร์จากตาราง orders โดยใช้ member_id จากที่ค้นหาได้
+      // ดึงข้อมูลออเดอร์จากตาราง orders โดยใช้ member_id จากที่ค้นหาได้ รวมถึง add-ons
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -86,7 +92,13 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
             menu_item_name,
             quantity,
             unit_price,
-            total_price
+            total_price,
+            order_addons (
+              addon_name,
+              quantity,
+              unit_price,
+              total_price
+            )
           )
         `)
         .eq('member_id', memberData.id)
@@ -248,12 +260,17 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
                           <div className="space-y-2">
                             {selectedOrder.order_items?.map((item, index) => (
                               <div key={index} className="flex justify-between items-center p-2 border rounded">
-                                <div>
-                                  <p className="font-medium">{item.menu_item_name}</p>
-                                  <p className="text-sm text-gray-600">
-                                    ฿{item.unit_price} x {item.quantity}
-                                  </p>
-                                </div>
+                                 <div>
+                                   <p className="font-medium">{item.menu_item_name}</p>
+                                   {item.order_addons && item.order_addons.length > 0 && (
+                                     <p className="text-sm text-gray-600">
+                                       + {item.order_addons.map(addon => addon.addon_name).join(', ')}
+                                     </p>
+                                   )}
+                                   <p className="text-sm text-gray-600">
+                                     ฿{item.unit_price} x {item.quantity}
+                                   </p>
+                                 </div>
                                 <p className="font-bold">฿{item.total_price}</p>
                               </div>
                             ))}

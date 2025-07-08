@@ -49,6 +49,12 @@ interface OnlineOrder {
     quantity: number;
     unit_price: number;
     total_price: number;
+    order_addons?: Array<{
+      addon_name: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
   }>;
   members?: {
     name: string;
@@ -151,7 +157,13 @@ const OnlineOrderManagement = () => {
             menu_item_name,
             quantity,
             unit_price,
-            total_price
+            total_price,
+            order_addons (
+              addon_name,
+              quantity,
+              unit_price,
+              total_price
+            )
           )
         `)
         .eq('order_source', 'online')
@@ -802,6 +814,11 @@ const OnlineOrderManagement = () => {
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div>
                           <p className="font-medium">{item.menu_item_name}</p>
+                          {item.order_addons && item.order_addons.length > 0 && (
+                            <p className="text-sm text-gray-600">
+                              + {item.order_addons.map(addon => addon.addon_name).join(', ')}
+                            </p>
+                          )}
                           <p className="text-sm text-gray-600">จำนวน: {item.quantity}</p>
                         </div>
                         <div className="text-right">
@@ -900,6 +917,9 @@ const OnlineOrderManagement = () => {
                     }`}>
                       <span className="text-sm">{sound}</span>
                       <div className="flex items-center gap-2">
+                        {notificationSettings?.selected_sound_id === sound && (
+                          <CheckCircle className="w-4 h-4 text-orange-600" />
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
