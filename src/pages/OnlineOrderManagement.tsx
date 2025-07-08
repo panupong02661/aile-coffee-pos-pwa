@@ -605,7 +605,20 @@ const OnlineOrderManagement = () => {
               className="flex items-center gap-2"
             >
               <Settings className="w-4 h-4" />
-              ตั้งค่าเสียงแจ้งเตือน
+              <div className="flex flex-col items-start">
+                <span>ตั้งค่าเสียงแจ้งเตือน</span>
+                {notificationSettings && (
+                  <span className="text-xs text-gray-500">
+                    {notificationSettings.sound_enabled ? (
+                      notificationSettings.selected_sound_id ? (
+                        ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id) 
+                          ? `เสียง: ${notificationSettings.selected_sound_id}`
+                          : `เสียง: ${notificationSounds.find(s => s.id === notificationSettings.selected_sound_id)?.name || 'ไม่ทราบ'}`
+                      ) : 'ไม่ได้เลือกเสียง'
+                    ) : 'ปิดเสียง'}
+                  </span>
+                )}
+              </div>
             </Button>
           </div>
 

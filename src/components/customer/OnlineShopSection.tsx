@@ -73,6 +73,185 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const { toast } = useToast();
 
+  // Notification sound function
+  const playOrderSuccessSound = async () => {
+    try {
+      // Load notification settings
+      const { data: settings } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .single();
+
+      const notificationSettings = {
+        sound_enabled: settings?.sound_enabled ?? true,
+        selected_sound_id: settings?.selected_sound_id || undefined,
+        volume: settings?.volume ?? 0.8,
+        duration: settings?.duration ?? 2
+      };
+
+      if (!notificationSettings.sound_enabled) {
+        console.log('🔇 Sound disabled');
+        return;
+      }
+
+      // Load custom sounds
+      const { data: sounds } = await supabase
+        .from('notification_sounds')
+        .select('*')
+        .eq('is_active', true);
+
+      let soundPlayed = false;
+
+      // Check if we have a custom sound selected
+      if (notificationSettings.selected_sound_id && 
+          !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+        const selectedSound = sounds?.find(
+          sound => sound.id === notificationSettings.selected_sound_id
+        );
+        
+        if (selectedSound && selectedSound.file_url) {
+          try {
+            const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
+            
+            const audio = new Audio();
+            audio.volume = 1.0;
+            audio.src = fullUrl;
+            
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
+              
+              audio.oncanplaythrough = async () => {
+                clearTimeout(timeout);
+                try {
+                  await audio.play();
+                  soundPlayed = true;
+                  
+                  setTimeout(() => {
+                    if (audio && !audio.paused) {
+                      audio.pause();
+                      audio.currentTime = 0;
+                    }
+                  }, notificationSettings.duration * 1000);
+                  
+                  resolve();
+                } catch (e) {
+                  reject(e);
+                }
+              };
+              
+              audio.onerror = reject;
+              audio.load();
+            });
+          } catch (error) {
+            console.log('🔊 Custom sound failed:', error);
+          }
+        }
+      }
+      
+      // If custom sound didn't play, try basic sounds or beep fallback
+      if (!soundPlayed) {
+        if (notificationSettings.selected_sound_id && 
+            ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+          await playBasicSuccessSound(notificationSettings.selected_sound_id, notificationSettings);
+        } else {
+          await createSuccessBeepSound(notificationSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error playing success sound:', error);
+    }
+  };
+
+  const playBasicSuccessSound = async (soundName: string, settings: any) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
+      const duration = settings.duration * 1000;
+      const volume = Math.min(settings.volume * 2.0, 1.0);
+      
+      let frequency = 800;
+      
+      switch (soundName) {
+        case 'ระฆัง': frequency = 800; break;
+        case 'กิ่งก่า': frequency = 1000; break;
+        case 'แจ้งเตือน': frequency = 600; break;
+        case 'ปลุก': frequency = 1200; break;
+        case 'กระดิ่ง': frequency = 900; break;
+        case 'ออด': frequency = 400; break;
+      }
+      
+      // Create success sound pattern (positive melody)
+      const frequencies = [frequency, frequency * 1.25, frequency * 1.5];
+      
+      for (let i = 0; i < frequencies.length; i++) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequencies[i], audioContext.currentTime);
+        oscillator.type = 'sine';
+        
+        const startTime = audioContext.currentTime + (i * 0.2);
+        const endTime = startTime + 0.15;
+        
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, endTime);
+        
+        oscillator.start(startTime);
+        oscillator.stop(endTime);
+      }
+    } catch (error) {
+      console.error('Basic success sound failed:', error);
+    }
+  };
+
+  const createSuccessBeepSound = async (settings: any) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
+      const volume = Math.min(settings.volume * 2.0, 1.0);
+      
+      // Create a pleasant success melody
+      const notes = [523, 659, 784]; // C, E, G (major chord)
+      
+      for (let i = 0; i < notes.length; i++) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = notes[i];
+        oscillator.type = 'sine';
+        
+        const startTime = audioContext.currentTime + (i * 0.15);
+        const endTime = startTime + 0.3;
+        
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+        gainNode.gain.setValueAtTime(volume, endTime - 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, endTime);
+        
+        oscillator.start(startTime);
+        oscillator.stop(endTime);
+      }
+    } catch (error) {
+      console.error('Success beep sound failed:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMenuItems();
     fetchCategories();
@@ -411,6 +590,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         title: 'สั่งซื้อสำเร็จ!', 
         description: `หมายเลขออเดอร์: ${orderNumber} รับแต้ม ${pointsEarned} แต้ม` 
       });
+
+      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จ
+      try {
+        await playOrderSuccessSound();
+      } catch (soundError) {
+        console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
+      }
 
       // รีเซ็ตฟอร์ม
       setCartItems([]);
