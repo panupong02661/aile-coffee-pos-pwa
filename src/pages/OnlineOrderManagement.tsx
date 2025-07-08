@@ -38,21 +38,20 @@ import MainSidebar from '@/components/MainSidebar';
 interface OnlineOrder {
   id: string;
   order_number: string;
-  customer_id: string;
-  items: any[];
-  subtotal: number;
-  discount_amount: number;
+  member_id: string;
   total_amount: number;
+  items_count: number;
   payment_method: string;
-  payment_status: string;
-  order_status: string;
-  delivery_type: string;
-  delivery_address?: string;
-  notes?: string;
   created_at: string;
-  updated_at: string;
-  customer_profiles?: {
-    full_name: string;
+  customer_notes?: string;
+  order_items?: Array<{
+    menu_item_name: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }>;
+  members?: {
+    name: string;
     phone: string;
   };
 }
@@ -138,17 +137,24 @@ const OnlineOrderManagement = () => {
   };
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['customer-orders', dateFilter, customStartDate, customEndDate],
+    queryKey: ['online-orders', dateFilter, customStartDate, customEndDate],
     queryFn: async () => {
       let query = supabase
-        .from('customer_orders')
+        .from('orders')
         .select(`
           *,
-          customer_profiles (
-            full_name,
+          members (
+            name,
             phone
+          ),
+          order_items (
+            menu_item_name,
+            quantity,
+            unit_price,
+            total_price
           )
         `)
+        .eq('order_source', 'online')
         .order('created_at', { ascending: false });
 
       const dateRange = getDateRange(dateFilter);
@@ -216,14 +222,17 @@ const OnlineOrderManagement = () => {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('customer_orders')
-        .update({ order_status: newStatus, updated_at: new Date().toISOString() })
+        .from('orders')
+        .update({ 
+          order_status: newStatus, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', orderId);
 
       if (error) throw error;
 
       toast.success('อัปเดตสถานะออเดอร์สำเร็จ');
-      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['online-orders'] });
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('ไม่สามารถอัปเดตสถานะออเดอร์ได้');
@@ -531,45 +540,13 @@ const OnlineOrderManagement = () => {
     'ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-blue-100 text-blue-800';
-      case 'preparing': return 'bg-orange-100 text-orange-800';
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'รอดำเนินการ';
-      case 'confirmed': return 'ยืนยันแล้ว';
-      case 'preparing': return 'กำลังเตรียม';
-      case 'ready': return 'พร้อมรับ';
-      case 'completed': return 'เสร็จสิ้น';
-      case 'cancelled': return 'ยกเลิก';
-      default: return status;
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'รอชำระ';
-      case 'paid': return 'ชำระแล้ว';
-      case 'failed': return 'ชำระไม่สำเร็จ';
-      default: return status;
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash': return 'เงินสด';
+      case 'credit_card': return 'บัตรเครดิต';
+      case 'promptpay': return 'พร้อมเพย์';
+      case 'online': return 'ออนไลน์';
+      default: return method;
     }
   };
 
@@ -713,13 +690,13 @@ const OnlineOrderManagement = () => {
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4" />
                                 <span className="font-medium">ลูกค้า:</span>
-                                <span>{order.customer_profiles?.full_name || 'ไม่ระบุชื่อ'}</span>
+                                <span>{order.members?.name || 'ไม่ระบุชื่อ'}</span>
                               </div>
                               
                               <div className="flex items-center gap-2">
                                 <Phone className="w-4 h-4" />
                                 <span className="font-medium">เบอร์โทร:</span>
-                                <span>{order.customer_profiles?.phone || 'ไม่ระบุ'}</span>
+                                <span>{order.members?.phone || 'ไม่ระบุ'}</span>
                               </div>
                               
                               <div className="flex items-center gap-2">
@@ -731,39 +708,24 @@ const OnlineOrderManagement = () => {
                             
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium">ประเภท:</span>
-                                <span>{order.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
-                              </div>
-                              
-                              {order.delivery_address && (
-                                <div className="flex items-start gap-2">
-                                  <MapPin className="w-4 h-4 mt-0.5" />
-                                  <div>
-                                    <span className="font-medium">ที่อยู่:</span>
-                                    <p className="text-gray-500 mt-1">{order.delivery_address}</p>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="flex items-center gap-2">
                                 <span className="font-medium">รายการ:</span>
-                                <span>{Array.isArray(order.items) ? order.items.length : 0} รายการ</span>
+                                <span>{order.items_count} รายการ</span>
                               </div>
                               
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">การชำระเงิน:</span>
-                                <span>{order.payment_method || 'ไม่ระบุ'}</span>
+                                <span>{getPaymentMethodText(order.payment_method)}</span>
                               </div>
                             </div>
                           </div>
                           
-                          {order.notes && (
+                          {order.customer_notes && (
                             <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                               <div className="flex items-start gap-2">
                                 <FileText className="w-4 h-4 mt-0.5 text-gray-500" />
                                 <div>
                                   <span className="font-medium text-gray-700">หมายเหตุ:</span>
-                                  <p className="text-gray-600 mt-1">{order.notes}</p>
+                                  <p className="text-gray-600 mt-1">{order.customer_notes}</p>
                                 </div>
                               </div>
                             </div>
@@ -771,15 +733,6 @@ const OnlineOrderManagement = () => {
                         </div>
                         
                         <div className="text-right ml-4">
-                          <div className="space-y-2 mb-3">
-                            <Badge className={getStatusColor(order.order_status)}>
-                              {getStatusText(order.order_status)}
-                            </Badge>
-                            <Badge className={getPaymentStatusColor(order.payment_status || 'pending')}>
-                              {getPaymentStatusText(order.payment_status || 'pending')}
-                            </Badge>
-                          </div>
-                          
                           <div className="text-2xl font-bold text-orange-600 mb-3 flex items-center justify-end">
                             <DollarSign className="w-5 h-5 mr-1" />
                             ฿{order.total_amount.toFixed(2)}
@@ -794,46 +747,6 @@ const OnlineOrderManagement = () => {
                             >
                               ดูรายละเอียด
                             </Button>
-                            
-                            {order.order_status === 'pending' && (
-                              <Button
-                                onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                                size="sm"
-                                className="w-full bg-blue-600 hover:bg-blue-700"
-                              >
-                                ยืนยันออเดอร์
-                              </Button>
-                            )}
-                            
-                            {order.order_status === 'confirmed' && (
-                              <Button
-                                onClick={() => updateOrderStatus(order.id, 'preparing')}
-                                size="sm"
-                                className="w-full bg-orange-600 hover:bg-orange-700"
-                              >
-                                เริ่มเตรียม
-                              </Button>
-                            )}
-                            
-                            {order.order_status === 'preparing' && (
-                              <Button
-                                onClick={() => updateOrderStatus(order.id, 'ready')}
-                                size="sm"
-                                className="w-full bg-green-600 hover:bg-green-700"
-                              >
-                                พร้อมแล้ว
-                              </Button>
-                            )}
-                            
-                            {order.order_status === 'ready' && (
-                              <Button
-                                onClick={() => updateOrderStatus(order.id, 'completed')}
-                                size="sm"
-                                className="w-full bg-gray-600 hover:bg-gray-700"
-                              >
-                                เสร็จสิ้น
-                              </Button>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -861,11 +774,11 @@ const OnlineOrderManagement = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      <span>{selectedOrder.customer_profiles?.full_name || 'ไม่ระบุชื่อ'}</span>
+                      <span>{selectedOrder.members?.name || 'ไม่ระบุชื่อ'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      <span>{selectedOrder.customer_profiles?.phone || 'ไม่ระบุ'}</span>
+                      <span>{selectedOrder.members?.phone || 'ไม่ระบุ'}</span>
                     </div>
                   </div>
                 </div>
@@ -874,51 +787,25 @@ const OnlineOrderManagement = () => {
                   <h3 className="font-semibold text-gray-800">ข้อมูลออเดอร์</h3>
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium">สถานะ: </span>
-                      <Badge className={getStatusColor(selectedOrder.order_status)}>
-                        {getStatusText(selectedOrder.order_status)}
-                      </Badge>
-                    </div>
-                    <div>
                       <span className="font-medium">การชำระเงิน: </span>
-                      <Badge className={getPaymentStatusColor(selectedOrder.payment_status || 'pending')}>
-                        {getPaymentStatusText(selectedOrder.payment_status || 'pending')}
-                      </Badge>
-                    </div>
-                    <div>
-                      <span className="font-medium">ประเภท: </span>
-                      <span>{selectedOrder.delivery_type === 'pickup' ? 'รับเอง' : 'ส่งถึงที่'}</span>
+                      <span>{getPaymentMethodText(selectedOrder.payment_method)}</span>
                     </div>
                   </div>
                 </div>
               </div>
               
-              {selectedOrder.delivery_address && (
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">ที่อยู่จัดส่ง</h3>
-                  <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-                    {selectedOrder.delivery_address}
-                  </p>
-                </div>
-              )}
-              
               <div>
                 <h3 className="font-semibold text-gray-800 mb-3">รายการสินค้า</h3>
                 <div className="space-y-3">
-                  {Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 ? (
-                    selectedOrder.items.map((item: any, index: number) => (
+                  {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
+                    selectedOrder.order_items.map((item, index) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="font-medium">{item.name || `รายการที่ ${index + 1}`}</p>
-                          <p className="text-sm text-gray-600">จำนวน: {item.quantity || 1}</p>
-                          {item.addons && item.addons.length > 0 && (
-                            <p className="text-xs text-gray-500">
-                              เพิ่มเติม: {item.addons.map((addon: any) => addon.name).join(', ')}
-                            </p>
-                          )}
+                          <p className="font-medium">{item.menu_item_name}</p>
+                          <p className="text-sm text-gray-600">จำนวน: {item.quantity}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">฿{(item.price || 0).toFixed(2)}</p>
+                          <p className="font-medium">฿{item.total_price.toFixed(2)}</p>
                         </div>
                       </div>
                     ))
@@ -929,29 +816,17 @@ const OnlineOrderManagement = () => {
               </div>
               
               <div className="border-t pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>ยอดรวม:</span>
-                    <span>฿{selectedOrder.subtotal.toFixed(2)}</span>
-                  </div>
-                  {selectedOrder.discount_amount > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>ส่วนลด:</span>
-                      <span>-฿{selectedOrder.discount_amount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>ยอดสุทธิ:</span>
-                    <span>฿{selectedOrder.total_amount.toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between font-bold text-lg">
+                  <span>ยอดสุทธิ:</span>
+                  <span>฿{selectedOrder.total_amount.toFixed(2)}</span>
                 </div>
               </div>
               
-              {selectedOrder.notes && (
+              {selectedOrder.customer_notes && (
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-2">หมายเหตุ</h3>
                   <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-                    {selectedOrder.notes}
+                    {selectedOrder.customer_notes}
                   </p>
                 </div>
               )}
