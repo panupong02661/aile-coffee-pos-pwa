@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -95,7 +94,7 @@ const OnlineOrderManagement = () => {
       if (error) throw error;
       return data as OnlineOrder[];
     },
-    refetchInterval: 5000,
+    refetchInterval: 2000, // Refresh every 2 seconds for real-time updates
   });
 
   const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
@@ -154,14 +153,11 @@ const OnlineOrderManagement = () => {
     try {
       stopAllSounds();
       
-      const audio = new Audio();
-      
-      // Generate tone using Web Audio API for basic sounds
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const duration = (notificationSettings?.duration || 2) * 1000; // Convert to milliseconds
+      const duration = (notificationSettings?.duration || 2) * 1000;
       const volume = notificationSettings?.volume || 0.8;
       
-      let frequency = 800; // Default frequency
+      let frequency = 800;
       
       switch (soundName) {
         case 'ระฆัง':
@@ -186,7 +182,6 @@ const OnlineOrderManagement = () => {
           frequency = 800;
       }
       
-      // Create oscillator
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -208,8 +203,6 @@ const OnlineOrderManagement = () => {
       setTimeout(() => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
       }, duration);
-      
-      console.log(`Playing basic sound: ${soundName} at ${frequency}Hz for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing basic sound:', error);
@@ -233,7 +226,6 @@ const OnlineOrderManagement = () => {
       
       await audio.play();
       
-      // Stop after duration
       setTimeout(() => {
         if (audio && !audio.paused) {
           audio.pause();
@@ -247,53 +239,11 @@ const OnlineOrderManagement = () => {
         setIsPlaying(prev => ({ ...prev, [soundName]: false }));
         setPlayingAudio(null);
       });
-      
-      console.log(`Playing uploaded sound: ${soundName} from ${soundUrl} for ${duration}ms`);
       
     } catch (error) {
       console.error('Error playing uploaded sound:', error);
       toast.error('ไม่สามารถเล่นเสียงได้');
       setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-      setPlayingAudio(null);
-    }
-  };
-
-  const playInitialSound = async () => {
-    try {
-      stopAllSounds();
-      
-      const audio = new Audio('/sounds/default-notification.mp3');
-      const duration = (notificationSettings?.duration || 2) * 1000;
-      const volume = notificationSettings?.volume || 0.8;
-      
-      audio.volume = volume;
-      
-      setIsPlaying(prev => ({ ...prev, 'เสียงเริ่มต้น': true }));
-      setPlayingAudio(audio);
-      
-      await audio.play();
-      
-      // Stop after duration
-      setTimeout(() => {
-        if (audio && !audio.paused) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
-        setIsPlaying(prev => ({ ...prev, 'เสียงเริ่มต้น': false }));
-        setPlayingAudio(null);
-      }, duration);
-      
-      audio.addEventListener('ended', () => {
-        setIsPlaying(prev => ({ ...prev, 'เสียงเริ่มต้น': false }));
-        setPlayingAudio(null);
-      });
-      
-      console.log(`Playing initial sound for ${duration}ms`);
-      
-    } catch (error) {
-      console.error('Error playing initial sound:', error);
-      toast.error('ไม่สามารถเล่นเสียงเริ่มต้นได้');
-      setIsPlaying(prev => ({ ...prev, 'เสียงเริ่มต้น': false }));
       setPlayingAudio(null);
     }
   };
@@ -323,9 +273,22 @@ const OnlineOrderManagement = () => {
 
     setIsUploading(true);
     try {
+      const { data: existingSounds } = await supabase
+        .from('notification_sounds')
+        .select('*')
+        .eq('is_active', true);
+
+      // Deactivate all existing sounds
+      if (existingSounds && existingSounds.length > 0) {
+        await supabase
+          .from('notification_sounds')
+          .update({ is_active: false })
+          .eq('is_active', true);
+      }
+
       const fileExt = uploadedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `notification-sounds/${fileName}`;
+      const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
         .from('notification-sounds')
@@ -333,21 +296,25 @@ const OnlineOrderManagement = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
-        .from('notification-sounds')
-        .getPublicUrl(filePath);
-
-      const { error: dbError } = await supabase
+      const { data: insertedSound, error: dbError } = await supabase
         .from('notification_sounds')
         .insert({
           name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-          file_url: data.publicUrl,
-          is_active: false
-        });
+          file_url: filePath,
+          is_active: true // Set new sound as active immediately
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
 
-      toast.success('อัปโหลดเสียงสำเร็จ');
+      // Update notification settings to use the new sound
+      await updateNotificationSettings({
+        selected_sound_id: insertedSound.id,
+        sound_enabled: true
+      });
+
+      toast.success('อัปโหลดเสียงสำเร็จและตั้งเป็นค่าเริ่มต้น');
       setUploadedFile(null);
       queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
     } catch (error) {
@@ -378,6 +345,10 @@ const OnlineOrderManagement = () => {
       }
 
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+      
+      // Update local state immediately
+      setNotificationSettings(prev => prev ? { ...prev, ...updates } : null);
+      
       toast.success('บันทึกการตั้งค่าสำเร็จ');
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -387,20 +358,19 @@ const OnlineOrderManagement = () => {
 
   const selectBasicSound = async (soundName: string) => {
     try {
+      // Deactivate all uploaded sounds
+      await supabase
+        .from('notification_sounds')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
       const updates = {
-        selected_sound_id: null, // Clear selected sound ID for basic sounds
+        selected_sound_id: soundName, // Use sound name as identifier for basic sounds
         sound_enabled: true
       };
 
       await updateNotificationSettings(updates);
       
-      // Store the basic sound name in local state
-      setNotificationSettings(prev => prev ? {
-        ...prev,
-        selected_sound_id: soundName, // Use sound name as identifier for basic sounds
-        sound_enabled: true
-      } : null);
-
       toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
     } catch (error) {
       console.error('Error selecting basic sound:', error);
@@ -410,11 +380,24 @@ const OnlineOrderManagement = () => {
 
   const selectUploadedSound = async (soundId: string) => {
     try {
+      // Deactivate all sounds first
+      await supabase
+        .from('notification_sounds')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      // Activate the selected sound
+      await supabase
+        .from('notification_sounds')
+        .update({ is_active: true })
+        .eq('id', soundId);
+
       await updateNotificationSettings({
         selected_sound_id: soundId,
         sound_enabled: true
       });
       
+      queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
       toast.success('เลือกเสียงสำเร็จ');
     } catch (error) {
       console.error('Error selecting uploaded sound:', error);
@@ -424,6 +407,21 @@ const OnlineOrderManagement = () => {
 
   const deleteSound = async (soundId: string) => {
     try {
+      // Get the sound data first
+      const { data: soundData } = await supabase
+        .from('notification_sounds')
+        .select('file_url')
+        .eq('id', soundId)
+        .single();
+
+      if (soundData) {
+        // Delete from storage
+        await supabase.storage
+          .from('notification-sounds')
+          .remove([soundData.file_url]);
+      }
+
+      // Delete from database
       const { error } = await supabase
         .from('notification_sounds')
         .delete()
@@ -514,11 +512,12 @@ const OnlineOrderManagement = () => {
                 </Card>
               ) : (
                 orders.map((order) => (
-                  <Card key={order.id} className="hover:shadow-md transition-shadow">
+                  <Card key={order.id} className="hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <ShoppingBag className="w-5 h-5 text-orange-500" />
                             #{order.order_number}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
@@ -536,7 +535,8 @@ const OnlineOrderManagement = () => {
                           <Badge className={getStatusColor(order.order_status)}>
                             {getStatusText(order.order_status)}
                           </Badge>
-                          <div className="text-lg font-semibold text-gray-900 mt-1">
+                          <div className="text-lg font-semibold text-orange-600 mt-1 flex items-center">
+                            <DollarSign className="w-4 h-4 mr-1" />
                             ฿{order.total_amount.toFixed(2)}
                           </div>
                         </div>
@@ -584,7 +584,7 @@ const OnlineOrderManagement = () => {
 
               {/* Volume Control */}
               <div className="space-y-2">
-                <Label>ระดับเสียง</Label>
+                <Label>ระดับเสียง ({Math.round((notificationSettings?.volume || 0.8) * 100)}%)</Label>
                 <div className="flex items-center gap-4">
                   <VolumeX className="w-4 h-4" />
                   <Slider
@@ -601,7 +601,7 @@ const OnlineOrderManagement = () => {
 
               {/* Duration Control */}
               <div className="space-y-2">
-                <Label>ระยะเวลาเล่น (วินาที)</Label>
+                <Label>ระยะเวลาเล่น ({notificationSettings?.duration || 2} วินาที)</Label>
                 <Slider
                   value={[notificationSettings?.duration || 2]}
                   onValueChange={([value]) => updateNotificationSettings({ duration: value })}
@@ -610,9 +610,6 @@ const OnlineOrderManagement = () => {
                   step={1}
                   className="w-full"
                 />
-                <div className="text-sm text-gray-500 text-center">
-                  {notificationSettings?.duration || 2} วินาที
-                </div>
               </div>
 
               {/* Basic Sounds */}
@@ -620,7 +617,9 @@ const OnlineOrderManagement = () => {
                 <Label className="text-base font-medium">เสียงพื้นฐาน</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {basicSounds.map((sound) => (
-                    <div key={sound} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={sound} className={`flex items-center justify-between p-3 border rounded-lg ${
+                      notificationSettings?.selected_sound_id === sound ? 'bg-orange-50 border-orange-300' : ''
+                    }`}>
                       <span className="text-sm">{sound}</span>
                       <div className="flex items-center gap-2">
                         <Button
@@ -640,7 +639,7 @@ const OnlineOrderManagement = () => {
                           onClick={() => selectBasicSound(sound)}
                           variant={notificationSettings?.selected_sound_id === sound ? "default" : "outline"}
                         >
-                          เลือก
+                          {notificationSettings?.selected_sound_id === sound ? 'ใช้งาน' : 'เลือก'}
                         </Button>
                       </div>
                     </div>
@@ -652,41 +651,22 @@ const OnlineOrderManagement = () => {
               <div className="space-y-3">
                 <Label className="text-base font-medium">เสียงที่อัพโหลด</Label>
                 
-                {/* Initial Sound */}
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="text-sm">เสียงเริ่มต้น</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={playInitialSound}
-                      disabled={isPlaying['เสียงเริ่มต้น']}
-                    >
-                      {isPlaying['เสียงเริ่มต้น'] ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => selectUploadedSound('initial')}
-                      variant={notificationSettings?.selected_sound_id === 'initial' ? "default" : "outline"}
-                    >
-                      เลือก
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Custom uploaded sounds */}
                 {notificationSounds.map((sound) => (
-                  <div key={sound.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={sound.id} className={`flex items-center justify-between p-3 border rounded-lg ${
+                    sound.is_active ? 'bg-green-50 border-green-300' : ''
+                  }`}>
                     <span className="text-sm">{sound.name}</span>
                     <div className="flex items-center gap-2">
+                      {sound.is_active && (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => playUploadedSound(sound.file_url, sound.name)}
+                        onClick={() => {
+                          const fullUrl = `${supabase.supabaseUrl}/storage/v1/object/public/notification-sounds/${sound.file_url}`;
+                          playUploadedSound(fullUrl, sound.name);
+                        }}
                         disabled={isPlaying[sound.name]}
                       >
                         {isPlaying[sound.name] ? (
@@ -698,9 +678,9 @@ const OnlineOrderManagement = () => {
                       <Button
                         size="sm"
                         onClick={() => selectUploadedSound(sound.id)}
-                        variant={notificationSettings?.selected_sound_id === sound.id ? "default" : "outline"}
+                        variant={sound.is_active ? "default" : "outline"}
                       >
-                        เลือก
+                        {sound.is_active ? 'ใช้งาน' : 'เลือก'}
                       </Button>
                       <Button
                         size="sm"
@@ -729,7 +709,7 @@ const OnlineOrderManagement = () => {
                     disabled={!uploadedFile || isUploading}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    อัปโหลด
+                    {isUploading ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
                   </Button>
                 </div>
                 {uploadedFile && (
@@ -738,7 +718,7 @@ const OnlineOrderManagement = () => {
                   </div>
                 )}
                 <div className="text-xs text-gray-500">
-                  รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB
+                  รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB • เมื่ออัปโหลดจะตั้งเป็นเสียงเริ่มต้นทันที
                 </div>
               </div>
             </div>

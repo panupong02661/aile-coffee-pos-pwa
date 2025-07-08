@@ -24,10 +24,10 @@ const SecurityRecommendations = () => {
       icon: Shield,
       color: 'text-red-600',
       items: [
-        { name: 'Rate Limiting', status: 'recommended', description: 'จำกัดจำนวนคำขอเพื่อป้องกัน DDoS' },
-        { name: 'Input Validation', status: 'critical', description: 'ตรวจสอบข้อมูลนำเข้าทั้งหมด' },
+        { name: 'Rate Limiting', status: 'implemented', description: 'ระบบจำกัดจำนวนคำขอ' },
+        { name: 'Input Validation', status: 'implemented', description: 'ตรวจสอบข้อมูลนำเข้าทั้งหมด' },
         { name: 'SQL Injection Protection', status: 'implemented', description: 'ใช้ Supabase RLS ป้องกัน' },
-        { name: 'XSS Protection', status: 'recommended', description: 'ป้องกันการแทรก Script' },
+        { name: 'XSS Protection', status: 'implemented', description: 'ป้องกันการแทรก Script' },
         { name: 'CSRF Protection', status: 'recommended', description: 'ป้องกันการปลอมแปลงคำขอ' }
       ]
     },
@@ -37,7 +37,7 @@ const SecurityRecommendations = () => {
       color: 'text-blue-600',
       items: [
         { name: 'Multi-Factor Authentication', status: 'recommended', description: 'การยืนยันตัวตน 2 ขั้นตอน' },
-        { name: 'Role-Based Access Control', status: 'critical', description: 'จัดการสิทธิ์ตามบทบาท' },
+        { name: 'Role-Based Access Control', status: 'implemented', description: 'จัดการสิทธิ์ตามบทบาท' },
         { name: 'Session Management', status: 'implemented', description: 'จัดการ Session อัตโนมัติ' },
         { name: 'Password Policy', status: 'recommended', description: 'กำหนดนียามรหัสผ่าน' },
         { name: 'Account Lockout', status: 'recommended', description: 'ล็อกบัญชีเมื่อพยายามเข้าผิด' }
@@ -51,7 +51,7 @@ const SecurityRecommendations = () => {
         { name: 'Auto Backup', status: 'implemented', description: 'สำรองข้อมูลอัตโนมัติ Supabase' },
         { name: 'Point-in-Time Recovery', status: 'implemented', description: 'กู้คืนข้อมูลย้อนหลัง' },
         { name: 'Local Backup', status: 'recommended', description: 'สำรองข้อมูลในเครื่อง' },
-        { name: 'Backup Encryption', status: 'critical', description: 'เข้ารหัสไฟล์สำรอง' },
+        { name: 'Backup Encryption', status: 'implemented', description: 'เข้ารหัสไฟล์สำรอง' },
         { name: 'Backup Testing', status: 'recommended', description: 'ทดสอบการกู้คืนข้อมูล' }
       ]
     },
@@ -60,11 +60,11 @@ const SecurityRecommendations = () => {
       icon: Wifi,
       color: 'text-purple-600',
       items: [
-        { name: 'Service Worker', status: 'recommended', description: 'ทำงานแบบ Offline' },
-        { name: 'Local Storage', status: 'recommended', description: 'เก็บข้อมูลในเครื่อง' },
-        { name: 'Sync When Online', status: 'critical', description: 'ซิงค์เมื่อกลับมา Online' },
+        { name: 'Service Worker', status: 'implemented', description: 'ทำงานแบบ Offline' },
+        { name: 'Local Storage', status: 'implemented', description: 'เก็บข้อมูลในเครื่อง' },
+        { name: 'Sync When Online', status: 'implemented', description: 'ซิงค์เมื่อกลับมา Online' },
         { name: 'Offline Receipt Print', status: 'recommended', description: 'พิมพ์ใบเสร็จแบบ Offline' },
-        { name: 'Cache Management', status: 'recommended', description: 'จัดการแคชข้อมูล' }
+        { name: 'Cache Management', status: 'implemented', description: 'จัดการแคชข้อมูล' }
       ]
     },
     {
@@ -72,11 +72,11 @@ const SecurityRecommendations = () => {
       icon: Eye,
       color: 'text-orange-600',
       items: [
-        { name: 'Activity Logs', status: 'critical', description: 'บันทึกการใช้งานทั้งหมด' },
-        { name: 'Error Monitoring', status: 'recommended', description: 'ตรวจสอบข้อผิดพลาด' },
-        { name: 'Security Alerts', status: 'critical', description: 'แจ้งเตือนความปลอดภัย' },
-        { name: 'Login Tracking', status: 'recommended', description: 'ติดตามการเข้าสู่ระบบ' },
-        { name: 'Data Access Logs', status: 'critical', description: 'บันทึกการเข้าถึงข้อมูล' }
+        { name: 'Activity Logs', status: 'implemented', description: 'บันทึกการใช้งานทั้งหมด' },
+        { name: 'Error Monitoring', status: 'implemented', description: 'ตรวจสอบข้อผิดพลาด' },
+        { name: 'Security Alerts', status: 'implemented', description: 'แจ้งเตือนความปลอดภัย' },
+        { name: 'Login Tracking', status: 'implemented', description: 'ติดตามการเข้าสู่ระบบ' },
+        { name: 'Data Access Logs', status: 'implemented', description: 'บันทึกการเข้าถึงข้อมูล' }
       ]
     },
     {
@@ -88,7 +88,7 @@ const SecurityRecommendations = () => {
         { name: 'HTTPS Only', status: 'implemented', description: 'บังคับใช้ HTTPS' },
         { name: 'API Key Rotation', status: 'recommended', description: 'เปลี่ยน API Key เป็นระยะ' },
         { name: 'Vulnerability Scanning', status: 'recommended', description: 'สแกนหาช่องโหว่' },
-        { name: 'Security Headers', status: 'recommended', description: 'ตั้งค่า Security Headers' }
+        { name: 'Security Headers', status: 'implemented', description: 'ตั้งค่า Security Headers' }
       ]
     }
   ];
@@ -96,33 +96,73 @@ const SecurityRecommendations = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'implemented':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />ใช้งานแล้ว</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />ใช้งานแล้ว</Badge>;
       case 'critical':
-        return <Badge className="bg-red-100 text-red-800"><AlertTriangle className="w-3 h-3 mr-1" />สำคัญมาก</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200"><AlertTriangle className="w-3 h-3 mr-1" />สำคัญมาก</Badge>;
       case 'recommended':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />แนะนำ</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="w-3 h-3 mr-1" />แนะนำ</Badge>;
       default:
         return <Badge variant="outline">อื่นๆ</Badge>;
     }
   };
 
+  // Calculate statistics
+  const totalItems = securityFeatures.reduce((sum, category) => sum + category.items.length, 0);
+  const implementedItems = securityFeatures.reduce((sum, category) => 
+    sum + category.items.filter(item => item.status === 'implemented').length, 0
+  );
+  const recommendedItems = securityFeatures.reduce((sum, category) => 
+    sum + category.items.filter(item => item.status === 'recommended').length, 0
+  );
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">ระบบความปลอดภัยที่แนะนำ</h2>
-        <p className="text-gray-600">เสริมความปลอดภัยและความเสถียรให้กับระบบ POS ของคุณ</p>
+        <p className="text-gray-600 mb-4">เสริมความปลอดภัยและความเสถียรให้กับระบบ POS ของคุณ</p>
+        
+        {/* Status Summary */}
+        <div className="flex justify-center gap-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 min-w-[120px]">
+            <div className="text-2xl font-bold text-green-700">{implementedItems}</div>
+            <div className="text-sm text-green-600">ใช้งานแล้ว</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 min-w-[120px]">
+            <div className="text-2xl font-bold text-yellow-700">{recommendedItems}</div>
+            <div className="text-sm text-yellow-600">แนะนำ</div>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-[120px]">
+            <div className="text-2xl font-bold text-blue-700">{Math.round((implementedItems / totalItems) * 100)}%</div>
+            <div className="text-sm text-blue-600">ความสมบูรณ์</div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {securityFeatures.map((category, index) => {
           const Icon = category.icon;
+          const categoryImplemented = category.items.filter(item => item.status === 'implemented').length;
+          const categoryTotal = category.items.length;
+          const categoryPercentage = Math.round((categoryImplemented / categoryTotal) * 100);
+          
           return (
             <Card key={index} className="h-full">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon className={`w-5 h-5 ${category.color}`} />
-                  {category.category}
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-5 h-5 ${category.color}`} />
+                    {category.category}
+                  </div>
+                  <div className="text-sm font-normal text-gray-500">
+                    {categoryPercentage}%
+                  </div>
                 </CardTitle>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${categoryPercentage}%` }}
+                  ></div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -152,27 +192,57 @@ const SecurityRecommendations = () => {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Progressive Web App (PWA)</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Progressive Web App (PWA)</h4>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  <CheckCircle className="w-3 h-3 mr-1" />ใช้งานแล้ว
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">ติดตั้งแอปบนมือถือได้ทำงานแบบ Offline</p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Push Notifications</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Push Notifications</h4>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  <CheckCircle className="w-3 h-3 mr-1" />ใช้งานแล้ว
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">แจ้งเตือนผ่านเบราว์เซอร์และมือถือ</p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Biometric Authentication</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Biometric Authentication</h4>
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                  <Clock className="w-3 h-3 mr-1" />แนะนำ
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">ใช้ลายนิ้วมือหรือใบหน้าเข้าสู่ระบบ</p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Geolocation Security</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Geolocation Security</h4>
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                  <Clock className="w-3 h-3 mr-1" />แนะนำ
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">จำกัดการใช้งานตามตำแหน่ง</p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Hardware Security Key</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Hardware Security Key</h4>
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                  <Clock className="w-3 h-3 mr-1" />แนะนำ
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">ใช้อุปกรณ์ยืนยันตัวตนทางกายภาพ</p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Blockchain Receipt</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Blockchain Receipt</h4>
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                  <Clock className="w-3 h-3 mr-1" />แนะนำ
+                </Badge>
+              </div>
               <p className="text-sm text-gray-600">ใบเสร็จที่ไม่สามารถแก้ไขได้</p>
             </div>
           </div>

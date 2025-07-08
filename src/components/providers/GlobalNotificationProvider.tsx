@@ -4,16 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Bell } from 'lucide-react';
+import { ShoppingBag, Bell, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface OnlineOrder {
   id: string;
   order_number: string;
   total_amount: number;
-  items_count: number;
-  members?: {
-    name: string;
+  items: any[];
+  customer_profiles?: {
+    full_name: string;
     phone: string;
   };
 }
@@ -22,6 +22,7 @@ interface NotificationSettings {
   sound_enabled: boolean;
   selected_sound_id?: string;
   volume: number;
+  duration: number;
 }
 
 interface NotificationSound {
@@ -36,7 +37,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     sound_enabled: true,
-    volume: 1.0
+    volume: 0.8,
+    duration: 2
   });
   const [notificationSounds, setNotificationSounds] = useState<NotificationSound[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -63,27 +65,25 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     console.log('📡 Setting up realtime subscription...');
     
     const orderChannel = supabase
-      .channel('online-orders-notifications')
+      .channel('customer-orders-notifications')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'orders',
-          filter: 'order_source=eq.online'
+          table: 'customer_orders'
         },
         async (payload) => {
-          console.log('🔔 New online order detected:', payload);
-          console.log('🔔 Order details:', payload.new);
-          await handleNewOrder(payload.new.id);
+          console.log('🔔 New customer order detected:', payload);
+          await handleNewOrder(payload.new);
         }
       )
       .subscribe((status) => {
-        console.log('📡 Order subscription status:', status);
+        console.log('📡 Customer order subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to order notifications');
+          console.log('✅ Successfully subscribed to customer order notifications');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to order notifications');
+          console.error('❌ Error subscribing to customer order notifications');
         }
       });
 
@@ -104,8 +104,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           id: orderData.orderId,
           order_number: orderData.orderNumber,
           total_amount: orderData.totalAmount,
-          items_count: orderData.itemsCount,
-          members: orderData.memberInfo
+          items: orderData.items || [],
+          customer_profiles: orderData.customerInfo
         });
         setShowOrderAlert(true);
         
@@ -160,7 +160,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setNotificationSettings({
           sound_enabled: settings.sound_enabled ?? true,
           selected_sound_id: settings.selected_sound_id || undefined,
-          volume: settings.volume ?? 1.0
+          volume: settings.volume ?? 0.8,
+          duration: settings.duration ?? 2
         });
       }
 
@@ -179,39 +180,39 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const handleNewOrder = async (orderId: string) => {
+  const handleNewOrder = async (orderData: any) => {
     try {
-      console.log('🔔 Processing new order notification for ID:', orderId);
+      console.log('🔔 Processing new customer order notification:', orderData);
       
-      // Small delay to ensure data is committed
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Fetch complete order data with member info
-      const { data: orderData, error } = await supabase
-        .from('orders')
+      // Fetch complete order data with customer info
+      const { data: completeOrder, error } = await supabase
+        .from('customer_orders')
         .select(`
           *,
-          members (name, phone)
+          customer_profiles (
+            full_name,
+            phone
+          )
         `)
-        .eq('id', orderId)
+        .eq('id', orderData.id)
         .single();
 
       if (error) {
-        console.error('❌ Error fetching order details:', error);
+        console.error('❌ Error fetching complete order details:', error);
         return;
       }
 
-      if (orderData) {
-        console.log('📦 Order data fetched:', orderData);
+      if (completeOrder) {
+        console.log('📦 Complete order data fetched:', completeOrder);
         console.log('🔔 Showing notification and playing sound...');
         
         // Show notification for new order
-        setNewOrder(orderData);
+        setNewOrder(completeOrder);
         setShowOrderAlert(true);
         
         // Show toast notification
         toast.success('มีออเดอร์ออนไลน์ใหม่!', {
-          description: `ออเดอร์ #${orderData.order_number} - ฿${orderData.total_amount}`,
+          description: `ออเดอร์ #${completeOrder.order_number} - ฿${completeOrder.total_amount}`,
           duration: 15000,
           action: {
             label: 'ดูรายละเอียด',
@@ -222,15 +223,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
 
-        // Play notification sound - Add user interaction check
+        // Play notification sound
         console.log('🔊 About to call playNotificationSound');
         
-        // For better browser compatibility, try to play immediately
         try {
           await playNotificationSound();
         } catch (soundError) {
           console.log('🔊 Sound play error:', soundError);
-          // Still create beep as fallback
           createBeepSound();
         }
         
@@ -240,17 +239,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             type: 'broadcast',
             event: 'new-order-notification',
             payload: {
-              orderId: orderData.id,
-              orderNumber: orderData.order_number,
-              totalAmount: orderData.total_amount,
-              itemsCount: orderData.items_count,
-              memberInfo: orderData.members
+              orderId: completeOrder.id,
+              orderNumber: completeOrder.order_number,
+              totalAmount: completeOrder.total_amount,
+              items: completeOrder.items,
+              customerInfo: completeOrder.customer_profiles
             }
           });
         }
       }
     } catch (error) {
-      console.error('❌ Error processing new order notification:', error);
+      console.error('❌ Error processing new customer order notification:', error);
     }
   };
 
@@ -260,6 +259,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     console.log('🔊 Volume:', notificationSettings.volume);
     console.log('🔊 Selected sound ID:', notificationSettings.selected_sound_id);
     console.log('🔊 Available sounds:', notificationSounds);
+    console.log('🔊 Duration:', notificationSettings.duration);
 
     if (!notificationSettings.sound_enabled) {
       console.log('🔇 Sound disabled, skipping');
@@ -273,11 +273,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       audioRef.current = null;
     }
 
-    // Try to play custom sound first, then fallback to beep
     let soundPlayed = false;
     
     // Check if we have a custom sound selected
-    if (notificationSettings.selected_sound_id && notificationSounds.length > 0) {
+    if (notificationSettings.selected_sound_id && !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
       const selectedSound = notificationSounds.find(
         sound => sound.id === notificationSettings.selected_sound_id
       );
@@ -286,102 +285,119 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('🔊 Attempting to play custom sound:', selectedSound.name);
         
         try {
-          // Get proper public URL for uploaded sound - use full URL construction
-          const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
+          const fullUrl = `${supabase.supabaseUrl}/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
           console.log('🔊 Custom sound URL:', fullUrl);
           
           const audio = new Audio();
           audioRef.current = audio;
           audio.volume = Math.min(notificationSettings.volume, 1.0);
-          audio.crossOrigin = 'anonymous';
+          audio.src = fullUrl;
           
-          // Try direct URL approach
-          try {
-            audio.src = fullUrl;
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              console.log('🔊 Custom sound timeout');
+              reject(new Error('Timeout'));
+            }, 5000);
             
-            // Simple approach - direct play with error handling
-            await new Promise<void>((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                console.log('🔊 Custom sound timeout');
-                reject(new Error('Timeout'));
-              }, 5000);
-              
-              audio.onloadeddata = async () => {
-                clearTimeout(timeout);
-                console.log('🔊 Custom sound loaded, playing...');
-                try {
-                  await audio.play();
-                  console.log('✅ Custom sound played successfully');
-                  soundPlayed = true;
-                  resolve();
-                } catch (playError) {
-                  console.log('🔊 Custom sound play failed:', playError);
-                  reject(playError);
-                }
-              };
-              
-              audio.onerror = (error) => {
-                clearTimeout(timeout);
-                console.log('🔊 Custom sound error:', error);
-                reject(error);
-              };
-              
-              audio.load();
-            });
-          } catch (urlError) {
-            console.log('🔊 Custom sound URL error:', urlError);
-          }
+            audio.oncanplaythrough = async () => {
+              clearTimeout(timeout);
+              console.log('🔊 Custom sound ready, playing...');
+              try {
+                await audio.play();
+                console.log('✅ Custom sound played successfully');
+                soundPlayed = true;
+                
+                // Stop after duration
+                setTimeout(() => {
+                  if (audio && !audio.paused) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                  }
+                }, notificationSettings.duration * 1000);
+                
+                resolve();
+              } catch (playError) {
+                console.log('🔊 Custom sound play failed:', playError);
+                reject(playError);
+              }
+            };
+            
+            audio.onerror = (error) => {
+              clearTimeout(timeout);
+              console.log('🔊 Custom sound error:', error);
+              reject(error);
+            };
+            
+            audio.load();
+          });
         } catch (error) {
           console.log('🔊 Custom sound failed:', error);
         }
       }
     }
     
-    // If custom sound didn't play, try default sound
+    // If custom sound didn't play, try basic sounds or beep fallback
     if (!soundPlayed) {
-      console.log('🔊 Trying default sound...');
-      try {
-        const audio = new Audio();
-        audioRef.current = audio;
-        audio.volume = Math.min(notificationSettings.volume, 1.0);
-        audio.src = '/sounds/default-notification.mp3';
-        
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            console.log('🔊 Default sound timeout');
-            reject(new Error('Timeout'));
-          }, 2000);
-          
-          audio.oncanplaythrough = async () => {
-            clearTimeout(timeout);
-            console.log('🔊 Default sound ready, playing...');
-            try {
-              await audio.play();
-              console.log('✅ Default sound played successfully');
-              soundPlayed = true;
-              resolve();
-            } catch (playError) {
-              console.log('🔊 Default sound play failed:', playError);
-              reject(playError);
-            }
-          };
-          
-          audio.onerror = (error) => {
-            clearTimeout(timeout);
-            console.log('🔊 Default sound error:', error);
-            reject(error);
-          };
-          
-          audio.load();
-        });
-      } catch (error) {
-        console.log('🔊 Default sound failed:', error);
+      // Check if it's a basic sound
+      if (notificationSettings.selected_sound_id && ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด'].includes(notificationSettings.selected_sound_id)) {
+        console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
+        playBasicSound(notificationSettings.selected_sound_id);
+        soundPlayed = true;
+      } else {
+        console.log('🔊 Using beep fallback');
+        createBeepSound();
       }
     }
-    
-    // If neither sound worked, use beep fallback
-    if (!soundPlayed) {
-      console.log('🔊 All sounds failed, using beep fallback');
+  };
+
+  const playBasicSound = (soundName: string) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const duration = notificationSettings.duration * 1000;
+      const volume = notificationSettings.volume;
+      
+      let frequency = 800;
+      
+      switch (soundName) {
+        case 'ระฆัง':
+          frequency = 800;
+          break;
+        case 'กิ่งก่า':
+          frequency = 1000;
+          break;
+        case 'แจ้งเตือน':
+          frequency = 600;
+          break;
+        case 'ปลุก':
+          frequency = 1200;
+          break;
+        case 'กระดิ่ง':
+          frequency = 900;
+          break;
+        case 'ออด':
+          frequency = 400;
+          break;
+      }
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume * 0.3, audioContext.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+      
+      console.log(`✅ Basic sound played: ${soundName}`);
+    } catch (error) {
+      console.error('❌ Basic sound failed:', error);
       createBeepSound();
     }
   };
@@ -399,26 +415,24 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       oscillator.type = 'sine';
       
       const volume = notificationSettings.volume * 0.3;
+      const duration = notificationSettings.duration;
       const currentTime = audioContext.currentTime;
       
-      // Create triple beep pattern
-      gainNode.gain.setValueAtTime(0, currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.05);
-      gainNode.gain.setValueAtTime(volume, currentTime + 0.15);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.2);
+      // Create beep pattern based on duration
+      const beepCount = Math.max(1, Math.floor(duration / 0.5));
       
-      gainNode.gain.setValueAtTime(0, currentTime + 0.3);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.35);
-      gainNode.gain.setValueAtTime(volume, currentTime + 0.45);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.5);
-      
-      gainNode.gain.setValueAtTime(0, currentTime + 0.6);
-      gainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.65);
-      gainNode.gain.setValueAtTime(volume, currentTime + 0.75);
-      gainNode.gain.linearRampToValueAtTime(0, currentTime + 0.8);
+      for (let i = 0; i < beepCount; i++) {
+        const startTime = currentTime + (i * 0.5);
+        const endTime = startTime + 0.2;
+        
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.05);
+        gainNode.gain.setValueAtTime(volume, endTime - 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, endTime);
+      }
       
       oscillator.start(currentTime);
-      oscillator.stop(currentTime + 1);
+      oscillator.stop(currentTime + duration);
       
       console.log('✅ Beep sound played');
     } catch (error) {
@@ -450,50 +464,60 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       {/* Order Alert Dialog */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
-        <DialogContent className="sm:max-w-md border-2 border-orange-300 shadow-2xl">
+        <DialogContent className="sm:max-w-md border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600 text-xl font-bold">
-              <ShoppingBag className="h-6 w-6 animate-bounce" />
-              🔔 ออเดอร์ออนไลน์ใหม่!
+            <DialogTitle className="flex items-center justify-between text-orange-600 text-xl font-bold">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-6 w-6 animate-bounce" />
+                🔔 ออเดอร์ออนไลน์ใหม่!
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDismiss}
+                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </DialogTitle>
           </DialogHeader>
           
           {newOrder && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-4 rounded-lg border-2 border-orange-200 animate-pulse shadow-inner">
-                <p className="font-bold text-xl text-orange-700">
+              <div className="bg-gradient-to-r from-orange-100 to-yellow-100 p-6 rounded-xl border-2 border-orange-200 animate-pulse shadow-inner">
+                <p className="font-bold text-2xl text-orange-700 mb-2">
                   📋 ออเดอร์ #{newOrder.order_number}
                 </p>
-                <p className="text-gray-700 font-medium">
-                  📦 จำนวน: {newOrder.items_count} รายการ
+                <p className="text-gray-700 font-medium text-lg">
+                  📦 จำนวน: {newOrder.items?.length || 0} รายการ
                 </p>
-                <p className="text-2xl font-bold text-orange-600 mt-2">
+                <p className="text-3xl font-bold text-orange-600 mt-3">
                   💰 ฿{newOrder.total_amount.toFixed(2)}
                 </p>
-                {newOrder.members && (
-                  <div className="mt-3 pt-3 border-t border-orange-200">
-                    <p className="text-sm text-gray-700 font-medium">
-                      👤 ลูกค้า: {newOrder.members.name}
+                {newOrder.customer_profiles && (
+                  <div className="mt-4 pt-4 border-t border-orange-200">
+                    <p className="text-base text-gray-700 font-medium">
+                      👤 ลูกค้า: {newOrder.customer_profiles.full_name}
                     </p>
-                    <p className="text-sm text-gray-700">
-                      📱 เบอร์: {newOrder.members.phone}
+                    <p className="text-base text-gray-700">
+                      📱 เบอร์: {newOrder.customer_profiles.phone}
                     </p>
                   </div>
                 )}
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button 
                   onClick={handleViewOrder} 
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 >
-                  <Bell className="h-4 w-4 mr-2" />
-                  ดูรายละเอียด
+                  <Bell className="h-5 w-5 mr-2" />
+                  ดูรายละเอียดออเดอร์
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={handleDismiss}
-                  className="border-2 border-gray-300 hover:bg-gray-100 font-medium"
+                  className="border-2 border-gray-300 hover:bg-gray-100 font-medium py-4 px-6"
                 >
                   ปิด
                 </Button>
