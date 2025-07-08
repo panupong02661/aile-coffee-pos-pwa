@@ -65,25 +65,28 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     console.log('📡 Setting up realtime subscription...');
     
     const orderChannel = supabase
-      .channel('customer-orders-notifications')
+      .channel('online-orders-notifications')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'customer_orders'
+          table: 'orders'
         },
         async (payload) => {
-          console.log('🔔 New customer order detected:', payload);
-          await handleNewOrder(payload.new);
+          console.log('🔔 New order detected:', payload);
+          // Only handle online orders
+          if (payload.new?.order_source === 'online') {
+            await handleNewOrder(payload.new);
+          }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Customer order subscription status:', status);
+        console.log('📡 Online order subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to customer order notifications');
+          console.log('✅ Successfully subscribed to online order notifications');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to customer order notifications');
+          console.error('❌ Error subscribing to online order notifications');
         }
       });
 
@@ -182,15 +185,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const handleNewOrder = async (orderData: any) => {
     try {
-      console.log('🔔 Processing new customer order notification:', orderData);
+      console.log('🔔 Processing new online order notification:', orderData);
       
-      // Fetch complete order data with customer info
+      // Fetch complete order data with member info
       const { data: completeOrder, error } = await supabase
-        .from('customer_orders')
+        .from('orders')
         .select(`
           *,
-          customer_profiles (
-            full_name,
+          members (
+            name,
             phone
           )
         `)
@@ -206,16 +209,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('📦 Complete order data fetched:', completeOrder);
         console.log('🔔 Showing notification and playing sound...');
         
-        // Convert items from Json to array
-        const items = Array.isArray(completeOrder.items) ? completeOrder.items : [];
-        
         // Show notification for new order
         const orderForNotification: OnlineOrder = {
           id: completeOrder.id,
           order_number: completeOrder.order_number,
           total_amount: completeOrder.total_amount,
-          items: items,
-          customer_profiles: completeOrder.customer_profiles
+          items: [], // Order items will be fetched separately if needed
+          customer_profiles: completeOrder.members ? {
+            full_name: completeOrder.members.name,
+            phone: completeOrder.members.phone
+          } : undefined
         };
         
         setNewOrder(orderForNotification);
@@ -253,14 +256,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               orderId: completeOrder.id,
               orderNumber: completeOrder.order_number,
               totalAmount: completeOrder.total_amount,
-              items: items,
-              customerInfo: completeOrder.customer_profiles
+              items: [],
+              customerInfo: completeOrder.members ? {
+                full_name: completeOrder.members.name,
+                phone: completeOrder.members.phone
+              } : undefined
             }
           });
         }
       }
     } catch (error) {
-      console.error('❌ Error processing new customer order notification:', error);
+      console.error('❌ Error processing new online order notification:', error);
     }
   };
 
