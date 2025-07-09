@@ -381,6 +381,57 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
+  // ฟังก์ชันเล่นเสียงตีดๆสำหรับการยืนยันออเดอร์เป็นเวลา 10 วินาที
+  const playOrderSuccessBeep = async () => {
+    try {
+      console.log('🔊 Playing order success beep for 10 seconds...');
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
+      const totalDuration = 10; // 10 วินาที
+      const beepFrequency = 800; // ความถี่เสียงตีด
+      const beepInterval = 0.5; // ระยะห่างระหว่างเสียงตีด 500ms
+      const beepDuration = 0.15; // ความยาวของแต่ละเสียงตีด 150ms
+      const volume = 0.8; // ความดัง
+      
+      let currentTime = audioContext.currentTime;
+      const endTime = currentTime + totalDuration;
+      
+      console.log(`🔊 Playing ตีดๆๆๆ for ${totalDuration} seconds`);
+      
+      // สร้างเสียงตีดๆต่อเนื่องเป็นเวลา 10 วินาที
+      while (currentTime < endTime) {
+        const beepOscillator = audioContext.createOscillator();
+        const beepGainNode = audioContext.createGain();
+        
+        beepOscillator.connect(beepGainNode);
+        beepGainNode.connect(audioContext.destination);
+        
+        beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
+        beepOscillator.type = 'square'; // Square wave สำหรับเสียงตีดที่ชัด
+        
+        // ตั้งค่าการเพิ่มและลดเสียงแบบกะทันหัน
+        beepGainNode.gain.setValueAtTime(0, currentTime);
+        beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.01);
+        beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.01);
+        beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
+        
+        beepOscillator.start(currentTime);
+        beepOscillator.stop(currentTime + beepDuration);
+        
+        currentTime += beepInterval;
+      }
+      
+      console.log(`✅ Order success beep played for ${totalDuration} seconds`);
+    } catch (error) {
+      console.error('Order success beep failed:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMenuItems();
     fetchCategories();
@@ -720,9 +771,9 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         description: `หมายเลขออเดอร์: ${orderNumber} รับแต้ม ${pointsEarned} แต้ม` 
       });
 
-      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จเป็นเวลา 10 วินาที
+      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จ - เสียงตีดๆเป็นเวลา 10 วินาที
       try {
-        await playOrderSuccessSound(10);
+        await playOrderSuccessBeep();
       } catch (soundError) {
         console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
       }
