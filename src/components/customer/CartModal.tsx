@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Clock, FileText, QrCode, Upload, X } from 'lucide-react';
+import { Plus, Minus, Trash2, Clock, FileText, Upload, X } from 'lucide-react';
 import QRCodePromptPay from '@/components/QRCodePromptPay';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,12 +36,27 @@ const CartModal = ({
 }: CartModalProps) => {
   const [pickupTime, setPickupTime] = useState('');
   const [notes, setNotes] = useState('');
-  const [showQRCode, setShowQRCode] = useState(false);
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
+  const [defaultPhoneNumber, setDefaultPhoneNumber] = useState('');
   const { toast } = useToast();
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const total = subtotal;
+
+  // Get saved phone number from localStorage (from QR Code PromptPay page)
+  useEffect(() => {
+    const savedPhoneNumbers = localStorage.getItem('promptpay-phone-numbers');
+    if (savedPhoneNumbers) {
+      try {
+        const phoneNumbers = JSON.parse(savedPhoneNumbers);
+        if (phoneNumbers.length > 0) {
+          setDefaultPhoneNumber(phoneNumbers[0]); // Use the first saved phone number
+        }
+      } catch (error) {
+        console.error('Error parsing saved phone numbers:', error);
+      }
+    }
+  }, []);
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -250,27 +265,31 @@ const CartModal = ({
             </div>
           </div>
 
-          {/* QR Code Section */}
+          {/* QR Code Section - Always show QR Code */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-lg">การชำระเงิน</h3>
-              <Button
-                variant="outline"
-                onClick={() => setShowQRCode(!showQRCode)}
-                className="flex items-center space-x-2"
-              >
-                <QrCode className="w-4 h-4" />
-                <span>{showQRCode ? 'ซ่อน QR Code' : 'แสดง QR Code'}</span>
-              </Button>
-            </div>
-
-            {showQRCode && (
-              <Card>
-                <CardContent className="p-4">
-                  <QRCodePromptPay amount={total} />
-                </CardContent>
-              </Card>
-            )}
+            <h3 className="font-semibold text-lg">การชำระเงิน</h3>
+            <Card>
+              <CardContent className="p-4">
+                <QRCodePromptPay 
+                  amount={total} 
+                  defaultPhoneNumber={defaultPhoneNumber}
+                  compact={true}
+                />
+                {defaultPhoneNumber && (
+                  <div className="mt-4 text-center space-y-1">
+                    <p className="text-sm text-gray-600">
+                      <strong>เบอร์:</strong> {defaultPhoneNumber}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <strong>จำนวน:</strong> ฿{total.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      แสกน QR Code ด้วยแอป Banking หรือ PromptPay
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Payment Slip Upload */}
