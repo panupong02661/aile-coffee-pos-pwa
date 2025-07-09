@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -72,16 +73,19 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'qr' | 'points'>('qr');
+  const [pointsToUse, setPointsToUse] = useState('');
+  const [membershipSettings, setMembershipSettings] = useState<any>(null);
   
   const [gridColumns, setGridColumns] = useState(5);
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   
   const { toast } = useToast();
 
-  // Function to play gentle beep notification sound for 5 seconds
-  const playOrderSuccessBeep = async () => {
+  // Function to play notification bell for 7 seconds
+  const playOrderSuccessNotification = async () => {
     try {
-      console.log('🔊 Playing order success beep for 5 seconds...');
+      console.log('🔔 Playing order confirmation notification for 7 seconds...');
       
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
@@ -89,51 +93,58 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         await audioContext.resume();
       }
       
-      const totalDuration = 5; // 5 seconds
-      const beepFrequency = 600; // Gentle frequency
-      const beepInterval = 0.7; // Interval between beeps
-      const beepDuration = 0.12; // Duration of each beep
-      
-      // Gentle volume
-      const volume = 0.3;
+      const totalDuration = 7; // 7 seconds
+      const bellInterval = 0.8; // Interval between bell sounds
+      const volume = 0.4; // Volume level
       
       let currentTime = audioContext.currentTime;
       const endTime = currentTime + totalDuration;
       
-      console.log(`🔊 Playing gentle beeps for ${totalDuration} seconds`);
+      console.log(`🔔 Playing notification bell for ${totalDuration} seconds`);
       
-      // Create continuous gentle beeps for 5 seconds
+      // Create continuous bell sounds for 7 seconds
       while (currentTime < endTime) {
-        const beepOscillator = audioContext.createOscillator();
-        const beepGainNode = audioContext.createGain();
+        // Create pleasant bell sound with 3 harmonious notes
+        const bellFrequencies = [
+          { freq: 523.25, delay: 0.0, duration: 0.6 },   // C5
+          { freq: 659.25, delay: 0.15, duration: 0.5 },  // E5  
+          { freq: 783.99, delay: 0.3, duration: 0.4 }    // G5
+        ];
         
-        // Use low-pass filter for softer sound
-        const lowPassFilter = audioContext.createBiquadFilter();
-        lowPassFilter.type = 'lowpass';
-        lowPassFilter.frequency.value = 1200;
+        bellFrequencies.forEach((note) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          // Add low-pass filter for softer sound
+          const lowPassFilter = audioContext.createBiquadFilter();
+          lowPassFilter.type = 'lowpass';
+          lowPassFilter.frequency.value = 2000;
+          
+          oscillator.connect(lowPassFilter);
+          lowPassFilter.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = note.freq;
+          oscillator.type = 'sine';
+          
+          const noteStartTime = currentTime + note.delay;
+          const noteEndTime = noteStartTime + note.duration;
+          
+          // Create smooth bell sound envelope
+          gainNode.gain.setValueAtTime(0, noteStartTime);
+          gainNode.gain.linearRampToValueAtTime(volume, noteStartTime + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, noteEndTime);
+          
+          oscillator.start(noteStartTime);
+          oscillator.stop(noteEndTime);
+        });
         
-        beepOscillator.connect(lowPassFilter);
-        lowPassFilter.connect(beepGainNode);
-        beepGainNode.connect(audioContext.destination);
-        
-        beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
-        beepOscillator.type = 'sine'; // Sine wave for gentle sound
-        
-        // Smooth envelope for gentle sound
-        beepGainNode.gain.setValueAtTime(0, currentTime);
-        beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.02);
-        beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.02);
-        beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
-        
-        beepOscillator.start(currentTime);
-        beepOscillator.stop(currentTime + beepDuration);
-        
-        currentTime += beepInterval;
+        currentTime += bellInterval;
       }
       
-      console.log(`✅ Gentle order success beep played for ${totalDuration} seconds`);
+      console.log(`✅ Order confirmation notification played for ${totalDuration} seconds`);
     } catch (error) {
-      console.error('Order success beep failed:', error);
+      console.error('Notification sound failed:', error);
     }
   };
 
@@ -216,6 +227,33 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
+  const fetchMembershipSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('membership_settings')
+        .select('*')
+        .order('tier');
+
+      if (error) {
+        console.warn('Failed to load membership settings, using defaults:', error);
+        setMembershipSettings([
+          { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+          { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+          { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+        ]);
+      } else {
+        setMembershipSettings(data);
+      }
+    } catch (error) {
+      console.warn('Error loading membership settings, using defaults:', error);
+      setMembershipSettings([
+        { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+        { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+        { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+      ]);
+    }
+  };
+
   // Initialize data loading
   useEffect(() => {
     const initializeData = async () => {
@@ -226,7 +264,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         await Promise.all([
           fetchMenuItems(),
           fetchCategories(),
-          fetchAddons()
+          fetchAddons(),
+          fetchMembershipSettings()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -352,9 +391,66 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     return cartItems.reduce((sum, item) => sum + item.total_price, 0);
   };
 
+  // Points calculation functions
+  const getCurrentTierSettings = () => {
+    if (!currentUser || !membershipSettings) return null;
+    return membershipSettings.find((setting: any) => setting.tier === currentUser.tier);
+  };
+
+  const calculatePointsValue = (points: number) => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return (points / tierSettings.points_to_redeem) * tierSettings.redeem_value;
+  };
+
+  const calculateRequiredPoints = (amount: number) => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return Math.ceil((amount / tierSettings.redeem_value) * tierSettings.points_to_redeem);
+  };
+
+  const getMinimumPoints = () => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return tierSettings.points_to_redeem;
+  };
+
+  const getMaximumPoints = () => {
+    const tierSettings = getCurrentTierSettings();
+    if (!currentUser || !tierSettings) return 0;
+    const total = getTotalAmount();
+    return Math.min(
+      currentUser.points,
+      calculateRequiredPoints(total)
+    );
+  };
+
+  const getTierDisplayName = (tier: string) => {
+    switch (tier) {
+      case 'silver': return 'เงิน';
+      case 'gold': return 'ทอง';
+      case 'platinum': return 'แพลตินัม';
+      default: return tier;
+    }
+  };
+
   const generateQRCode = async () => {
     const total = getTotalAmount();
-    const qrData = `promptpay://0123456789?amount=${total}`;
+    let finalAmount = total;
+    
+    // Calculate final amount after points redemption
+    if (paymentMethod === 'points' && pointsToUse) {
+      const pointsValue = calculatePointsValue(parseInt(pointsToUse));
+      finalAmount = Math.max(0, total - pointsValue);
+    }
+    
+    if (finalAmount === 0) {
+      // If fully paid with points, skip QR generation
+      setShowPayment(true);
+      return;
+    }
+    
+    const qrData = `promptpay://0123456789?amount=${finalAmount}`;
     
     try {
       const url = await QRCode.toDataURL(qrData);
@@ -414,7 +510,43 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       return;
     }
 
-    if (!receiptFile) {
+    // Validate points usage
+    if (paymentMethod === 'points') {
+      const pointsValue = parseInt(pointsToUse || '0');
+      const minimumPoints = getMinimumPoints();
+      const maximumPoints = getMaximumPoints();
+
+      if (pointsValue < minimumPoints) {
+        toast({
+          title: 'แต้มไม่เพียงพอ',
+          description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (pointsValue > maximumPoints) {
+        toast({
+          title: 'แต้มเกินจำนวนที่มี',
+          description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+
+    const total = getTotalAmount();
+    let finalAmount = total;
+    let pointsUsed = 0;
+    
+    if (paymentMethod === 'points' && pointsToUse) {
+      pointsUsed = parseInt(pointsToUse);
+      const pointsValue = calculatePointsValue(pointsUsed);
+      finalAmount = Math.max(0, total - pointsValue);
+    }
+
+    // For QR payment, require receipt upload if there's remaining amount
+    if (paymentMethod === 'qr' && finalAmount > 0 && !receiptFile) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณาแนบสลีปการชำระเงิน', variant: 'destructive' });
       return;
     }
@@ -422,22 +554,27 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      const receiptUrl = await uploadReceipt(receiptFile);
-      if (!receiptUrl) {
-        throw new Error('ไม่สามารถอัปโหลดสลีปได้');
+      // Play notification sound for 7 seconds
+      await playOrderSuccessNotification();
+
+      let receiptUrl = null;
+      if (receiptFile) {
+        receiptUrl = await uploadReceipt(receiptFile);
+        if (!receiptUrl) {
+          throw new Error('ไม่สามารถอัปโหลดสลีปได้');
+        }
       }
 
       const orderNumber = generateOrderNumber();
-      const totalAmount = getTotalAmount();
       
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber,
           member_id: currentUser.id,
-          total_amount: totalAmount,
+          total_amount: finalAmount,
           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          payment_method: 'online',
+          payment_method: paymentMethod === 'points' ? 'points' : 'online',
           order_source: 'online',
           receipt_image_url: receiptUrl,
           pickup_time: pickupTime,
@@ -448,6 +585,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       if (orderError) throw orderError;
 
+      // Save order items
       for (const item of cartItems) {
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
@@ -483,36 +621,57 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         }
       }
 
-      const pointsEarned = Math.floor(totalAmount);
-      await supabase
-        .from('members')
-        .update({
-          points: currentUser.points + pointsEarned,
-          total_spent: currentUser.total_spent + totalAmount
-        })
-        .eq('id', currentUser.id);
+      // Handle points and member updates
+      if (paymentMethod === 'points' && pointsUsed > 0) {
+        // Deduct points
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points - pointsUsed,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
 
-      await supabase
-        .from('point_transactions')
-        .insert({
-          member_id: currentUser.id,
-          points_change: pointsEarned,
-          transaction_type: 'earned',
-          description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
-          order_id: order.id
-        });
+        // Log point transaction
+        await supabase
+          .from('point_transactions')
+          .insert({
+            member_id: currentUser.id,
+            points_change: -pointsUsed,
+            transaction_type: 'redeem',
+            description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
+            order_id: order.id
+          });
+      } else {
+        // Earn points from purchase
+        const tierSettings = getCurrentTierSettings();
+        const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
+        
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points + pointsEarned,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
+
+        if (pointsEarned > 0) {
+          await supabase
+            .from('point_transactions')
+            .insert({
+              member_id: currentUser.id,
+              points_change: pointsEarned,
+              transaction_type: 'earned',
+              description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
+              order_id: order.id
+            });
+        }
+      }
 
       toast({ 
         title: 'สั่งซื้อสำเร็จ!', 
-        description: `หมายเลขออเดอร์: ${orderNumber} รับแต้ม ${pointsEarned} แต้ม` 
+        description: `หมายเลขออเดอร์: ${orderNumber}` 
       });
-
-      // Play gentle notification sound for 5 seconds when order is successful
-      try {
-        await playOrderSuccessBeep();
-      } catch (soundError) {
-        console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
-      }
 
       setCartItems([]);
       setPickupTime('');
@@ -520,6 +679,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setReceiptFile(null);
       setShowPayment(false);
       setQrCodeUrl('');
+      setPaymentMethod('qr');
+      setPointsToUse('');
       
       setTimeout(() => {
         toast({ 
@@ -612,6 +773,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
+      {/* Menu Items Grid */}
       {filteredMenuItems.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
@@ -664,6 +826,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </div>
       )}
 
+      {/* Cart */}
       {cartItems.length > 0 && (
         <Card>
           <CardHeader>
@@ -712,6 +875,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </Card>
       )}
 
+      {/* Order Details */}
       {cartItems.length > 0 && (
         <Card>
           <CardHeader>
@@ -742,9 +906,94 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               />
             </div>
 
+            {/* Payment Method Selection */}
+            <div>
+              <Label className="text-base font-medium">วิธีการชำระเงิน</Label>
+              <RadioGroup 
+                value={paymentMethod} 
+                onValueChange={(value) => setPaymentMethod(value as 'qr' | 'points')}
+                className="mt-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="qr" id="qr" />
+                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer">
+                    <QrCode className="w-4 h-4" />
+                    QR Code
+                  </Label>
+                </div>
+                
+                {currentUser && (
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="points" id="points" />
+                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer">
+                      <Gift className="w-4 h-4" />
+                      ใช้แต้มแลก
+                    </Label>
+                  </div>
+                )}
+              </RadioGroup>
+            </div>
+
+            {/* Points Payment Details */}
+            {paymentMethod === 'points' && currentUser && (
+              <div className="space-y-3">
+                <div className="p-3 bg-purple-50 rounded-lg border">
+                  <div className="text-sm text-purple-700 space-y-1">
+                    <div className="font-medium text-purple-800">
+                      สมาชิกระดับ{getTierDisplayName(currentUser.tier)}
+                    </div>
+                    <div>แต้มที่มี: {currentUser.points?.toLocaleString() || 0} แต้ม</div>
+                    {getCurrentTierSettings() && (
+                      <>
+                        <div className="font-medium">
+                          อัตราแลกแต้ม: {getCurrentTierSettings().points_to_redeem} แต้ม = ฿{getCurrentTierSettings().redeem_value}
+                        </div>
+                        <div>ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม</div>
+                        <div>สามารถใช้ได้สูงสุด: {getMaximumPoints().toLocaleString()} แต้ม</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="pointsInput">จำนวนแต้มที่ต้องการใช้</Label>
+                  <Input
+                    id="pointsInput"
+                    type="number"
+                    value={pointsToUse}
+                    onChange={(e) => setPointsToUse(e.target.value)}
+                    min={getMinimumPoints()}
+                    max={getMaximumPoints()}
+                    placeholder={`ขั้นต่ำ ${getMinimumPoints()} แต้ม`}
+                  />
+                  {pointsToUse && (
+                    <div className="mt-2 text-sm space-y-1">
+                      <div className="text-purple-700 font-medium">
+                        แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{calculatePointsValue(parseInt(pointsToUse)).toLocaleString()}
+                      </div>
+                      <div className="text-orange-700 font-medium">
+                        ยอดคงเหลือ: ฿{Math.max(0, getTotalAmount() - calculatePointsValue(parseInt(pointsToUse))).toLocaleString()}
+                      </div>
+                      <div className="text-gray-600">
+                        แต้มคงเหลือ: {(currentUser.points - parseInt(pointsToUse)).toLocaleString()} แต้ม
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setPointsToUse(getMaximumPoints().toString())}
+                  className="w-full"
+                >
+                  ใช้แต้มสูงสุด ({getMaximumPoints().toLocaleString()} แต้ม)
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-3">
               <Button 
-                onClick={async () => await playOrderSuccessBeep()}
+                onClick={async () => await playOrderSuccessNotification()}
                 variant="outline"
                 className="w-full"
               >
@@ -757,48 +1006,73 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                 disabled={!pickupTime}
               >
                 <QrCode className="w-4 h-4 mr-2" />
-                สร้าง QR Code ชำระเงิน
+                {paymentMethod === 'qr' ? 'สร้าง QR Code ชำระเงิน' : 'ดำเนินการชำระเงิน'}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Payment Section */}
       {showPayment && (
         <Card>
           <CardHeader>
             <CardTitle>ชำระเงิน</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-lg font-bold mb-4">ยอดชำระ: ฿{getTotalAmount()}</p>
-              {qrCodeUrl && (
-                <div className="flex justify-center mb-4">
-                  <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+            {paymentMethod === 'qr' && (
+              <>
+                <div className="text-center">
+                  <p className="text-lg font-bold mb-4">
+                    ยอดชำระ: ฿{pointsToUse ? 
+                      Math.max(0, getTotalAmount() - calculatePointsValue(parseInt(pointsToUse))).toLocaleString() : 
+                      getTotalAmount().toLocaleString()
+                    }
+                  </p>
+                  {qrCodeUrl && (
+                    <div className="flex justify-center mb-4">
+                      <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
-              <Input
-                id="receipt"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              {receiptFile && (
-                <p className="text-sm text-green-600 mt-2">
-                  <Upload className="w-4 h-4 inline mr-1" />
-                  {receiptFile.name}
-                </p>
-              )}
-            </div>
+                
+                <div>
+                  <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
+                  <Input
+                    id="receipt"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  {receiptFile && (
+                    <p className="text-sm text-green-600 mt-2">
+                      <Upload className="w-4 h-4 inline mr-1" />
+                      {receiptFile.name}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {paymentMethod === 'points' && (
+              <div className="text-center">
+                <div className="p-4 bg-green-50 rounded-lg border">
+                  <div className="text-green-800 space-y-2">
+                    <div className="text-lg font-bold">ชำระด้วยแต้มสำเร็จ!</div>
+                    <div>ใช้แต้ม: {pointsToUse} แต้ม</div>
+                    <div>มูลค่า: ฿{calculatePointsValue(parseInt(pointsToUse || '0')).toLocaleString()}</div>
+                    {getTotalAmount() - calculatePointsValue(parseInt(pointsToUse || '0')) > 0 && (
+                      <div>ยอดคงเหลือ: ฿{(getTotalAmount() - calculatePointsValue(parseInt(pointsToUse || '0'))).toLocaleString()}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button 
               onClick={submitOrder}
               className="w-full"
-              disabled={!receiptFile || isProcessing}
+              disabled={isProcessing || (paymentMethod === 'qr' && qrCodeUrl && !receiptFile)}
             >
               {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
             </Button>
@@ -806,6 +1080,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </Card>
       )}
 
+      {/* Display Settings Modal */}
       {showDisplaySettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
