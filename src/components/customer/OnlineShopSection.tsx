@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -73,6 +73,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [activeAudioContext, setActiveAudioContext] = useState<AudioContext | null>(null);
   const [activeOscillators, setActiveOscillators] = useState<OscillatorNode[]>([]);
+  
+  // เพิ่มการจัดการการแสดงผล
+  const [gridColumns, setGridColumns] = useState(5);
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  
   const { toast } = useToast();
 
   // Notification sound function - ใช้ฟังก์ชันเดียวกันกับหน้าตั้งค่าเสียง
@@ -883,9 +888,20 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
-            สั่งสินค้าออนไลน์
+          <CardTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              สั่งสินค้าออนไลน์
+            </div>
+            <Button
+              onClick={() => setShowDisplaySettings(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              ตั้งค่าการแสดงผล
+            </Button>
           </CardTitle>
         </CardHeader>
       </Card>
@@ -909,38 +925,37 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Menu Items Grid - 5 items per row with smaller size */}
-      <div className="grid grid-cols-5 gap-1.5">
+      {/* Menu Items Grid - จำนวนคอลัมน์ตามการตั้งค่า */}
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
         {filteredMenuItems.map(item => (
-          <Card key={item.id} className="hover:shadow-md transition-shadow">
+          <Card 
+            key={item.id} 
+            className="hover:shadow-md transition-shadow cursor-pointer" 
+            onClick={() => handleAddToCart(item)}
+          >
             <CardContent className="p-1.5">
-              <div className="space-y-1.5">
-                {item.image_url && (
-                  <div className="aspect-square w-full overflow-hidden rounded-md">
+              <div className="space-y-1.5 h-28 flex flex-col">
+                {item.image_url ? (
+                  <div className="aspect-square w-full overflow-hidden rounded-md flex-shrink-0">
                     <img 
                       src={item.image_url} 
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
+                ) : (
+                  <div className="aspect-square w-full bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl">🍽️</span>
+                  </div>
                 )}
                 
-                <div className="space-y-0.5">
-                  <h3 className="font-medium text-xs leading-tight line-clamp-2">{item.name}</h3>
+                <div className="space-y-0.5 flex-1 flex flex-col">
+                  <h3 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{item.name}</h3>
                   {item.description && (
                     <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
                   )}
                   <p className="text-xs font-bold text-green-600">฿{item.price}</p>
                 </div>
-                
-                <Button 
-                  onClick={() => handleAddToCart(item)}
-                  className="w-full text-xs py-0.5 h-6"
-                  size="sm"
-                >
-                  <Plus className="w-2.5 h-2.5 mr-0.5" />
-                  เพิ่ม
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1090,6 +1105,62 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Display Settings Modal */}
+      {showDisplaySettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <Settings className="h-5 w-5 mr-2" />
+                ตั้งค่าการแสดงผล
+              </h3>
+              <button
+                onClick={() => setShowDisplaySettings(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  จำนวนคอลัมน์ ({gridColumns} คอลัมน์)
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="8"
+                  value={gridColumns}
+                  onChange={(e) => setGridColumns(parseInt(e.target.value))}
+                  className="w-full h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #f97316 0%, #f97316 ${((gridColumns - 1) / 7) * 100}%, #fed7aa ${((gridColumns - 1) / 7) * 100}%, #fed7aa 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowDisplaySettings(false)}
+                className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Addon Modal */}
