@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -312,7 +311,7 @@ const Cart = ({
           category: item.menu_item.category_id || 'other'
         }))}
         currentDiscount={billDiscount}
-        currentDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
+        currentDiscountType={billDiscountType === 'percent' ? 'percent' : 'amount'}
         currentTotal={discountedTotal}
         onHoldBill={onClearCart}
         onRestoreBill={(bill) => handleRestoreCart({
