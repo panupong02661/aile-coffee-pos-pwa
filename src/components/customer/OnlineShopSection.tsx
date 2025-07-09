@@ -74,7 +74,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const { toast } = useToast();
 
   // Notification sound function - ใช้ฟังก์ชันเดียวกันกับหน้าตั้งค่าเสียง
-  const playOrderSuccessSound = async () => {
+  const playOrderSuccessSound = async (overrideDuration?: number) => {
     try {
       console.log('🔊 Playing order success sound...');
       
@@ -177,10 +177,22 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         if (notificationSettings.selected_sound_id && 
             ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
           console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
-          await playBasicSuccessSound(notificationSettings.selected_sound_id, notificationSettings);
+          
+          // Use override duration if provided, otherwise use settings duration
+          const soundSettings = overrideDuration 
+            ? { ...notificationSettings, duration: overrideDuration }
+            : notificationSettings;
+          
+          await playBasicSuccessSound(notificationSettings.selected_sound_id, soundSettings);
         } else {
           console.log('🔊 Using default beep sound');
-          await createSuccessBeepSound(notificationSettings);
+          
+          // Use override duration if provided, otherwise use settings duration
+          const soundSettings = overrideDuration 
+            ? { ...notificationSettings, duration: overrideDuration }
+            : notificationSettings;
+          
+          await createSuccessBeepSound(soundSettings);
         }
       }
     } catch (error) {
@@ -708,9 +720,9 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         description: `หมายเลขออเดอร์: ${orderNumber} รับแต้ม ${pointsEarned} แต้ม` 
       });
 
-      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จ
+      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จเป็นเวลา 10 วินาที
       try {
-        await playOrderSuccessSound();
+        await playOrderSuccessSound(10);
       } catch (soundError) {
         console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
       }
