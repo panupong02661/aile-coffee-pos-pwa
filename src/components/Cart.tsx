@@ -33,7 +33,7 @@ interface CartProps {
   billDiscountType: 'amount' | 'percent';
   onUpdateBillDiscount: (discount: number) => void;
   onUpdateBillDiscountType: (type: 'amount' | 'percent') => void;
-  onRestoreCart: (cartData: any) => void;
+  onRestoreCart: (cartData: { items: CartItem[], discount: number, discountType: 'amount' | 'percent' }) => void;
   selectedMember: Member | null;
   onCodeApply: (giftData: any) => void;
   appliedGiftCode: any;
@@ -139,6 +139,10 @@ const Cart: React.FC<CartProps> = ({
     // Call parent handler
     console.log('🔄 Cart: Calling parent payment complete handler...');
     onPaymentComplete();
+  };
+
+  const handleRestoreCart = (cartData: { items: CartItem[], discount: number, discountType: 'amount' | 'percent' }) => {
+    onRestoreCart(cartData);
   };
 
   return (
@@ -290,10 +294,21 @@ const Cart: React.FC<CartProps> = ({
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        cartItems={cartItems}
+        cartItems={cartItems.map(item => ({
+          id: item.id,
+          name: item.menu_item.name,
+          price: item.menu_item.price,
+          quantity: item.quantity,
+          discount: item.item_discount,
+          category: 'other' as const,
+          image: item.menu_item.image,
+          calculated_cost: item.menu_item.calculated_cost,
+          is_free: item.item_discount === item.menu_item.price,
+          free_item_name: item.item_discount === item.menu_item.price ? item.menu_item.name : undefined
+        }))}
         subtotal={subtotal}
         billDiscount={billDiscount}
-        billDiscountType={billDiscountType}
+        billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
         selectedMember={selectedMember}
         onPaymentComplete={handlePaymentComplete}
         appliedGiftCode={appliedGiftCode}
@@ -303,6 +318,13 @@ const Cart: React.FC<CartProps> = ({
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
         onApplyDiscount={handleUpdateItemDiscount}
+        onClearDiscount={() => {
+          if (selectedItem) {
+            handleClearDiscount(selectedItem.id);
+            setIsDiscountModalOpen(false);
+            setSelectedItem(null);
+          }
+        }}
         currentDiscount={selectedItem?.item_discount || 0}
         currentType="amount"
       />
@@ -310,7 +332,7 @@ const Cart: React.FC<CartProps> = ({
       <HoldBillModal
         isOpen={isHoldBillModalOpen}
         onClose={() => setIsHoldBillModalOpen(false)}
-        onRestore={onRestoreCart}
+        onRestore={handleRestoreCart}
       />
       
       <CodeModal
