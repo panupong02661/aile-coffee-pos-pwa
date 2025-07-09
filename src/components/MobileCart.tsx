@@ -1,26 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Minus, Receipt, Users, Gift, ShoppingCart } from 'lucide-react';
-import PaymentModal from '@/components/PaymentModal';
-import DiscountModal from '@/components/DiscountModal';
-import HoldBillModal from '@/components/HoldBillModal';
-import CodeModal from '@/components/CodeModal';
-import { useOrderNotifications } from '@/hooks/useOrderNotifications';
+import { Trash2, Plus, Minus, Percent, DollarSign, X } from 'lucide-react';
 import { CartItem } from '@/types';
-
-interface Member {
-  id: string;
-  phone: string;
-  name: string;
-  email?: string;
-  tier: 'silver' | 'gold' | 'platinum';
-  points: number;
-  total_spent: number;
-}
+import PaymentModal from './PaymentModal';
+import DiscountModal from './DiscountModal';
+import ItemDiscountModal from './ItemDiscountModal';
+import HoldBillModal from './HoldBillModal';
+import CodeModal from './CodeModal';
 
 interface MobileCartProps {
   isOpen: boolean;
@@ -28,20 +17,20 @@ interface MobileCartProps {
   cartItems: CartItem[];
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   onRemoveItem: (itemId: string) => void;
-  onUpdateDiscount: (itemId: string, discount: number) => void;
+  onUpdateDiscount: (itemId: string, discount: number, discountType: 'amount' | 'percent') => void;
   onClearCart: () => void;
   billDiscount: number;
   billDiscountType: 'amount' | 'percent';
   onUpdateBillDiscount: (discount: number) => void;
-  onUpdateBillDiscountType: (discountType: 'amount' | 'percent') => void;
+  onUpdateBillDiscountType: (type: 'amount' | 'percent') => void;
   onRestoreCart: (cartData: { items: CartItem[], discount: number, discountType: 'amount' | 'percent' }) => void;
-  selectedMember?: Member | null;
-  onCodeApply: (giftData: any) => void;
+  selectedMember?: any;
+  onCodeApply?: (giftData: any) => void;
   appliedGiftCode?: any;
-  onPaymentComplete: () => void;
+  onPaymentComplete?: () => void;
 }
 
-const MobileCart: React.FC<MobileCartProps> = ({
+const MobileCart = ({
   isOpen,
   onClose,
   cartItems,
@@ -58,83 +47,51 @@ const MobileCart: React.FC<MobileCartProps> = ({
   onCodeApply,
   appliedGiftCode,
   onPaymentComplete
-}) => {
+}: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CartItem | null>(null);
 
-  // Add notification sound hook
-  const { playBellSound } = useOrderNotifications();
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => total + item.total_price, 0);
+  };
 
-  const subtotal = cartItems.reduce((sum, item) => {
-    return sum + item.total_price;
-  }, 0);
-
-  const calculateDiscountedTotal = () => {
-    let discountedTotal = subtotal;
-
-    if (billDiscountType === 'amount') {
-      discountedTotal -= billDiscount;
-    } else if (billDiscountType === 'percent') {
-      discountedTotal -= (subtotal * billDiscount) / 100;
+  const calculateBillDiscountAmount = () => {
+    const subtotal = calculateSubtotal();
+    if (billDiscountType === 'percent') {
+      return subtotal * (billDiscount / 100);
     }
-
-    return Math.max(0, discountedTotal);
+    return billDiscount;
   };
 
-  const discountedTotal = calculateDiscountedTotal();
-
-  const handleIncrement = (itemId: string) => {
-    const item = cartItems.find(item => item.id === itemId);
-    if (item) {
-      onUpdateQuantity(itemId, item.quantity + 1);
-    }
-  };
-
-  const handleDecrement = (itemId: string) => {
-    const item = cartItems.find(item => item.id === itemId);
-    if (item && item.quantity > 1) {
-      onUpdateQuantity(itemId, item.quantity - 1);
-    }
-  };
-
-  const handleDiscountClick = (item: CartItem) => {
-    setSelectedItem(item);
-    setIsDiscountModalOpen(true);
-  };
+  const discountedTotal = Math.max(0, calculateSubtotal() - calculateBillDiscountAmount());
 
   const handleUpdateItemDiscount = (discount: number) => {
     if (selectedItem) {
-      onUpdateDiscount(selectedItem.id, discount);
-      setSelectedItem(null);
+      onUpdateDiscount(selectedItem.id, discount, 'amount');
       setIsDiscountModalOpen(false);
+      setSelectedItem(null);
     }
   };
 
   const handleClearItemDiscount = () => {
     if (selectedItem) {
-      onUpdateDiscount(selectedItem.id, 0);
-      setSelectedItem(null);
+      onUpdateDiscount(selectedItem.id, 0, 'amount');
       setIsDiscountModalOpen(false);
+      setSelectedItem(null);
     }
   };
 
-  const handlePaymentComplete = async () => {
-    console.log('🔔 MobileCart: Payment completed, playing notification...');
-    
-    // Play notification sound
-    try {
-      await playBellSound();
-      console.log('🎵 MobileCart: Bell sound played successfully');
-    } catch (error) {
-      console.log('⚠️ MobileCart: Failed to play bell sound:', error);
-    }
-    
-    // Call parent handler
-    console.log('🔄 MobileCart: Calling parent payment complete handler...');
-    onPaymentComplete();
+  const handleItemDiscountClick = (item: CartItem) => {
+    setSelectedItem(item);
+    setIsItemDiscountModalOpen(true);
+  };
+
+  const handleBillDiscountClick = () => {
+    setIsDiscountModalOpen(true);
   };
 
   const handleRestoreCart = (cartData: { items: CartItem[], discount: number, discountType: 'amount' | 'percent' }) => {
@@ -142,176 +99,253 @@ const MobileCart: React.FC<MobileCartProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-        <SheetHeader className="p-4">
-          <SheetTitle>
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            ตะกร้าสินค้า
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {cartItems.length === 0 ? (
-            <div className="text-center text-gray-500">ไม่มีสินค้าในตะกร้า</div>
-          ) : (
-            <ul>
-              {cartItems.map(item => (
-                <li key={item.id} className="mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold">{item.menu_item.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {item.selected_addons && item.selected_addons.length > 0 && (
-                          <>
-                            <Badge variant="secondary">
-                              {item.selected_addons.length} Addons
-                            </Badge>
-                            <Separator orientation="vertical" className="mx-1 h-4" />
-                          </>
-                        )}
-                        {item.menu_item.price.toLocaleString()} บาท
-                      </div>
-                      {item.item_discount ? (
-                        <div className="text-sm text-red-500">
-                          ส่วนลด {item.item_discount.toLocaleString()} บาท
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex items-center">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDecrement(item.id)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="mx-2">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleIncrement(item.id)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDiscountClick(item)}
-                    >
-                      ส่วนลด
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500"
-                      onClick={() => onRemoveItem(item.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      ลบ
-                    </Button>
-                  </div>
-                  <Separator className="my-2" />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="p-4">
-          <div className="flex justify-between mb-2">
-            <div className="text-lg font-semibold">ราคารวม</div>
-            <div className="text-lg">{subtotal.toLocaleString()} บาท</div>
-          </div>
-
-          {billDiscount > 0 && (
-            <div className="flex justify-between mb-2">
-              <div className="text-lg font-semibold">ส่วนลดบิล</div>
-              <div className="text-lg">
-                {billDiscountType === 'amount'
-                  ? billDiscount.toLocaleString() + ' บาท'
-                  : billDiscount.toLocaleString() + '%'}
-              </div>
+    <>
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full p-0">
+          <SheetHeader className="p-4 border-b border-coffee-200">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-lg font-semibold text-coffee-800">
+                ตะกร้าสินค้า ({cartItems.length} รายการ)
+              </SheetTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="p-1 h-auto"
+              >
+                <X className="w-5 h-5" />
+              </Button>
             </div>
+          </SheetHeader>
+
+          {cartItems.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+              <div className="text-6xl mb-4">🛒</div>
+              <h3 className="text-lg font-semibold text-coffee-800 mb-2">ตะกร้าสินค้าว่าง</h3>
+              <p className="text-coffee-600 mb-6">เลือกสินค้าเพื่อเริ่มต้นการขาย</p>
+              
+              <Button
+                onClick={() => setIsHoldBillModalOpen(true)}
+                variant="outline"
+                className="w-full"
+              >
+                ดูบิลที่พักไว้
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="bg-cream-50 rounded-lg p-3 border border-coffee-100">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-coffee-800 text-sm leading-tight">
+                          {item.menu_item.name}
+                        </h4>
+                        {item.selected_addons && item.selected_addons.length > 0 && (
+                          <p className="text-coffee-600 text-xs mt-1">
+                            + {item.selected_addons.map(addon => addon.name).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveItem(item.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-auto min-w-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 p-0"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="font-medium text-coffee-800 w-8 text-center">
+                          {item.quantity}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 p-0"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        {item.item_discount > 0 && (
+                          <span className="text-red-500 text-xs font-medium">
+                            -{item.item_discount}฿
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleItemDiscountClick(item)}
+                          className="text-coffee-600 hover:text-coffee-800 p-1 h-auto min-w-0"
+                        >
+                          <Percent className="w-4 h-4" />
+                        </Button>
+                        <span className="font-semibold text-coffee-800 text-sm min-w-12 text-right">
+                          ฿{item.total_price.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t border-coffee-200 space-y-3">
+                {appliedGiftCode && (
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-800 font-medium text-sm">
+                        🎁 ใช้โค้ด: {appliedGiftCode.gift_name}
+                      </span>
+                      <span className="text-green-600 font-semibold">
+                        -{appliedGiftCode.gift_value}฿
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-coffee-700">
+                    <span>รวม</span>
+                    <span>฿{calculateSubtotal().toFixed(2)}</span>
+                  </div>
+                  
+                  {billDiscount > 0 && (
+                    <div className="flex justify-between text-red-500">
+                      <span>ส่วนลด</span>
+                      <span>-฿{calculateBillDiscountAmount().toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  <div className="flex justify-between text-lg font-bold text-coffee-800">
+                    <span>ยอดรวมสุทธิ</span>
+                    <span>฿{discountedTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    onClick={() => setIsCodeModalOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    🎁 โค้ด
+                  </Button>
+                  
+                  <Button
+                    onClick={handleBillDiscountClick}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    <DollarSign className="w-3 h-3 mr-1" />
+                    ส่วนลด
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() => setIsHoldBillModalOpen(true)}
+                    variant="outline"
+                  >
+                    พักบิล
+                  </Button>
+                  
+                  <Button
+                    onClick={onClearCart}
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    ล้างบิล
+                  </Button>
+                </div>
+
+                <Button
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="w-full bg-coffee-600 hover:bg-coffee-700 text-white font-semibold py-3"
+                  disabled={cartItems.length === 0}
+                >
+                  ชำระเงิน ฿{discountedTotal.toFixed(2)}
+                </Button>
+              </div>
+            </>
           )}
 
-          <div className="flex justify-between mb-4">
-            <div className="text-xl font-bold">ราคาสุทธิ</div>
-            <div className="text-xl font-bold">{discountedTotal.toLocaleString()} บาท</div>
-          </div>
+          <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
+            total={discountedTotal}
+            cartItems={cartItems}
+            billDiscount={billDiscount}
+            billDiscountType={billDiscountType}
+            onClearCart={onClearCart}
+            selectedMember={selectedMember}
+            appliedGiftCode={appliedGiftCode}
+            onPaymentComplete={onPaymentComplete}
+          />
 
-          <Button className="w-full mb-2" onClick={() => setIsPaymentModalOpen(true)}>
-            <Receipt className="mr-2 h-4 w-4" />
-            ชำระเงิน
-          </Button>
-          <Button variant="outline" className="w-full mb-2" onClick={() => setIsCodeModalOpen(true)}>
-            <Gift className="mr-2 h-4 w-4" />
-            ใช้รหัสส่วนลด
-          </Button>
-          <Button variant="secondary" className="w-full" onClick={onClearCart}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            ล้างตะกร้า
-          </Button>
-        </div>
-        
-        <PaymentModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => setIsPaymentModalOpen(false)}
-          cartItems={cartItems.map(item => ({
-            id: item.id,
-            name: item.menu_item.name,
-            price: item.menu_item.price,
-            quantity: item.quantity,
-            discount: item.item_discount,
-            category: 'other' as const,
-            image: item.menu_item.image,
-            calculated_cost: item.menu_item.calculated_cost,
-            is_free: item.item_discount === item.menu_item.price,
-            free_item_name: item.item_discount === item.menu_item.price ? item.menu_item.name : undefined
-          }))}
-          subtotal={subtotal}
-          billDiscount={billDiscount}
-          billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
-          selectedMember={selectedMember}
-          onPaymentComplete={handlePaymentComplete}
-          appliedGiftCode={appliedGiftCode}
-        />
-        
-        <DiscountModal
-          isOpen={isDiscountModalOpen}
-          onClose={() => setIsDiscountModalOpen(false)}
-          onApplyDiscount={handleUpdateItemDiscount}
-          currentDiscount={selectedItem?.item_discount || 0}
-          currentType="amount"
-        />
+          <DiscountModal
+            isOpen={isDiscountModalOpen}
+            onClose={() => setIsDiscountModalOpen(false)}
+            onApplyDiscount={handleUpdateItemDiscount}
+            currentDiscount={selectedItem?.item_discount || 0}
+            currentType="amount"
+          />
 
-        <HoldBillModal
-          isOpen={isHoldBillModalOpen}
-          onClose={() => setIsHoldBillModalOpen(false)}
-          currentCart={cartItems}
-          currentDiscount={billDiscount}
-          currentDiscountType={billDiscountType}
-          currentTotal={discountedTotal}
-          onHoldBill={onClearCart}
-          onRestoreBill={(bill) => handleRestoreCart({
-            items: bill.items,
-            discount: bill.discount,
-            discountType: bill.discountType
-          })}
-        />
+          <ItemDiscountModal
+            isOpen={isItemDiscountModalOpen}
+            onClose={() => setIsItemDiscountModalOpen(false)}
+            item={selectedItem}
+            onApplyDiscount={(discount, type) => {
+              if (selectedItem) {
+                onUpdateDiscount(selectedItem.id, discount, type);
+                setIsItemDiscountModalOpen(false);
+                setSelectedItem(null);
+              }
+            }}
+          />
 
-        <CodeModal
-          isOpen={isCodeModalOpen}
-          onClose={() => setIsCodeModalOpen(false)}
-          onApplyCode={onCodeApply}
-        />
-      </SheetContent>
-    </Sheet>
+          <HoldBillModal
+            isOpen={isHoldBillModalOpen}
+            onClose={() => setIsHoldBillModalOpen(false)}
+            currentCart={cartItems}
+            currentDiscount={billDiscount}
+            currentDiscountType={billDiscountType}
+            currentTotal={discountedTotal}
+            onHoldBill={onClearCart}
+            onRestoreBill={(bill) => handleRestoreCart({
+              items: bill.items,
+              discount: bill.discount,
+              discountType: bill.discountType
+            })}
+          />
+
+          <CodeModal
+            isOpen={isCodeModalOpen}
+            onClose={() => setIsCodeModalOpen(false)}
+            onApplyCode={onCodeApply}
+            selectedMember={selectedMember}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
 
