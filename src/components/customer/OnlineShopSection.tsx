@@ -209,51 +209,41 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         case 'กระดิ่ง': frequency = 900; break;
         case 'ออด': frequency = 400; break;
         case 'ตีดๆๆๆ': 
-          // Create pleasant "beep beep beep" pattern for "ตีดๆๆๆ"
-          const beepMelody = [523.25, 659.25, 783.99]; // C5, E5, G5 - major chord progression
+          // Create continuous "ตีดๆๆๆ" pattern for the specified duration (3-30 seconds)
+          const totalDuration = Math.max(3, Math.min(30, settings.duration)); // Ensure 3-30 seconds
+          const beepFrequency = 800; // Simple beep frequency
+          const beepInterval = 0.5; // 500ms between beeps
+          const beepDuration = 0.15; // 150ms per beep
           
-          for (let i = 0; i < beepMelody.length; i++) {
-            const startTime = audioContext.currentTime + (i * 0.25);
-            const endTime = startTime + 0.2;
-            
-            // Main beep oscillator
+          let currentTime = audioContext.currentTime;
+          const endTime = currentTime + totalDuration;
+          
+          console.log(`🔊 Playing ตีดๆๆๆ for ${totalDuration} seconds`);
+          
+          // Create continuous beeps for the duration
+          while (currentTime < endTime) {
             const beepOscillator = audioContext.createOscillator();
             const beepGainNode = audioContext.createGain();
             
             beepOscillator.connect(beepGainNode);
             beepGainNode.connect(audioContext.destination);
             
-            beepOscillator.frequency.setValueAtTime(beepMelody[i], startTime);
-            beepOscillator.type = 'sine';
+            beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
+            beepOscillator.type = 'square'; // Square wave for classic beep sound
             
-            // Smooth envelope for pleasant sound
-            beepGainNode.gain.setValueAtTime(0, startTime);
-            beepGainNode.gain.linearRampToValueAtTime(volume * 0.8, startTime + 0.02);
-            beepGainNode.gain.setValueAtTime(volume * 0.8, endTime - 0.05);
-            beepGainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+            // Quick attack and decay for sharp beep
+            beepGainNode.gain.setValueAtTime(0, currentTime);
+            beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.01);
+            beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.01);
+            beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
             
-            beepOscillator.start(startTime);
-            beepOscillator.stop(endTime);
+            beepOscillator.start(currentTime);
+            beepOscillator.stop(currentTime + beepDuration);
             
-            // Add harmonic for richer sound
-            const harmonicOscillator = audioContext.createOscillator();
-            const harmonicGain = audioContext.createGain();
-            
-            harmonicOscillator.connect(harmonicGain);
-            harmonicGain.connect(audioContext.destination);
-            
-            harmonicOscillator.frequency.setValueAtTime(beepMelody[i] * 2, startTime); // Octave higher
-            harmonicOscillator.type = 'triangle';
-            
-            harmonicGain.gain.setValueAtTime(0, startTime);
-            harmonicGain.gain.linearRampToValueAtTime(volume * 0.3, startTime + 0.02);
-            harmonicGain.gain.exponentialRampToValueAtTime(0.01, endTime);
-            
-            harmonicOscillator.start(startTime);
-            harmonicOscillator.stop(endTime);
+            currentTime += beepInterval;
           }
           
-          console.log(`✅ Enhanced beep melody played: ${soundName}`);
+          console.log(`✅ ตีดๆๆๆ sound played for ${totalDuration} seconds`);
           return; // Exit early for beep pattern
         default:
           frequency = 800;
