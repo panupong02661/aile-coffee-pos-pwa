@@ -13,6 +13,8 @@ const RestaurantOrderingSystem = () => {
   const [selectedSound, setSelectedSound] = useState('bell');
   const [customSound, setCustomSound] = useState(null);
   const [volume, setVolume] = useState(0.8);
+  const [gridColumns, setGridColumns] = useState(4);
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const audioRef = useRef(null);
   
   // ใช้ real-time order notifications
@@ -268,31 +270,34 @@ const RestaurantOrderingSystem = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Menu Section - ปรับขนาดให้เล็กลง 50% */}
           <div className="lg:col-span-2">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">เมนูอาหาร</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-800">เมนูอาหาร</h2>
+              <button
+                onClick={() => setShowDisplaySettings(true)}
+                className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="text-sm">ตั้งค่าการแสดงผล</span>
+              </button>
+            </div>
             
             {categories.map(category => (
               <div key={category} className="mb-8">
                 <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b-2 border-orange-200 pb-2">
                   {category}
                 </h3>
-                {/* ปรับให้เป็น grid 3-4 คอลัมน์และขนาดเล็กลง 2x3 นิ้ว */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                   {menuItems.filter(item => item.category === category).map(item => (
-                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => addToCart(item)}>
                       <div className="p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-2xl">{item.image}</div>
+                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                            {item.image || '🍽️'}
+                          </div>
                           <span className="text-lg font-bold text-orange-600">฿{item.price}</span>
                         </div>
                         <h4 className="text-sm font-semibold text-gray-800 mb-1 truncate">{item.name}</h4>
                         <p className="text-gray-600 text-xs mb-2 line-clamp-2 h-8">{item.description}</p>
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="w-full bg-orange-500 text-white py-1.5 px-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1 text-sm"
-                        >
-                          <Plus className="h-3 w-3" />
-                          <span>เพิ่ม</span>
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -383,6 +388,72 @@ const RestaurantOrderingSystem = () => {
           </div>
         </div>
       </div>
+
+      {/* Display Settings Modal */}
+      {showDisplaySettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <Settings className="h-5 w-5 mr-2" />
+                ตั้งค่าการแสดงผล
+              </h3>
+              <button
+                onClick={() => setShowDisplaySettings(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  จำนวนคอลัมน์ ({gridColumns} คอลัมน์)
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="8"
+                  value={gridColumns}
+                  onChange={(e) => setGridColumns(parseInt(e.target.value))}
+                  className="w-full h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #f97316 0%, #f97316 ${((gridColumns - 1) / 7) * 100}%, #fed7aa ${((gridColumns - 1) / 7) * 100}%, #fed7aa 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">ขนาดรายการ</label>
+                <select
+                  value="กลาง"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="กลาง">กลาง</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => setShowDisplaySettings(false)}
+                className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
