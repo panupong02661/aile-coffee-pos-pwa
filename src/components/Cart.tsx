@@ -318,7 +318,6 @@ const Cart = ({
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
         onApplyCode={onCodeApply}
-        selectedMember={selectedMember}
       />
     </Card>
   );

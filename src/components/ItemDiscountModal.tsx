@@ -3,26 +3,23 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CartItem } from '@/types';
 
 interface ItemDiscountModalProps {
   isOpen: boolean;
   onClose: () => void;
+  item: CartItem | null;
   onApplyDiscount: (discount: number, type: 'percent' | 'amount') => void;
-  currentDiscount: number;
-  currentType: 'percent' | 'amount';
-  itemName: string;
 }
 
 const ItemDiscountModal = ({
   isOpen,
   onClose,
-  onApplyDiscount,
-  currentDiscount,
-  currentType,
-  itemName
+  item,
+  onApplyDiscount
 }: ItemDiscountModalProps) => {
-  const [discount, setDiscount] = useState(currentDiscount);
-  const [discountType, setDiscountType] = useState<'percent' | 'amount'>(currentType);
+  const [discount, setDiscount] = useState(item?.item_discount || 0);
+  const [discountType, setDiscountType] = useState<'percent' | 'amount'>(item?.item_discount_type || 'amount');
 
   const handleApply = () => {
     onApplyDiscount(discount, discountType);
@@ -34,11 +31,13 @@ const ItemDiscountModal = ({
     onClose();
   };
 
+  if (!item) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>ส่วนลดรายการ: {itemName}</DialogTitle>
+          <DialogTitle>ส่วนลดรายการ: {item.menu_item.name}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">

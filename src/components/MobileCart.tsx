@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -72,14 +71,6 @@ const MobileCart = ({
   const handleUpdateItemDiscount = (discount: number) => {
     if (selectedItem) {
       onUpdateDiscount(selectedItem.id, discount, 'amount');
-      setIsDiscountModalOpen(false);
-      setSelectedItem(null);
-    }
-  };
-
-  const handleClearItemDiscount = () => {
-    if (selectedItem) {
-      onUpdateDiscount(selectedItem.id, 0, 'amount');
       setIsDiscountModalOpen(false);
       setSelectedItem(null);
     }
@@ -341,7 +332,6 @@ const MobileCart = ({
             isOpen={isCodeModalOpen}
             onClose={() => setIsCodeModalOpen(false)}
             onApplyCode={onCodeApply}
-            selectedMember={selectedMember}
           />
         </SheetContent>
       </Sheet>
