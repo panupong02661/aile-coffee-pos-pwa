@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -395,10 +396,10 @@ const POS = () => {
                     onUpdateDiscount={updateDiscount}
                     onClearCart={handleClearCart}
                     billDiscount={billDiscount}
-                    billDiscountType={billDiscountType}
+                    billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
                     onUpdateBillDiscount={setBillDiscount}
-                    onUpdateBillDiscountType={setBillDiscountType}
-                    onRestoreCart={restoreCart}
+                    onUpdateBillDiscountType={(type) => setBillDiscountType(type === 'percentage' ? 'percent' : 'amount')}
+                    onRestoreCart={(items, discount, discountType) => restoreCart(items, discount, discountType)}
                     selectedMember={selectedMember}
                     onCodeApply={handleCodeApply}
                     appliedGiftCode={appliedGiftCode}
@@ -440,10 +441,10 @@ const POS = () => {
           onUpdateDiscount={updateDiscount}
           onClearCart={handleClearCart}
           billDiscount={billDiscount}
-          billDiscountType={billDiscountType}
+          billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
           onUpdateBillDiscount={setBillDiscount}
-          onUpdateBillDiscountType={setBillDiscountType}
-          onRestoreCart={restoreCart}
+          onUpdateBillDiscountType={(discountType) => setBillDiscountType(discountType === 'percentage' ? 'percent' : 'amount')}
+          onRestoreCart={(items, discount, discountType) => restoreCart(items, discount, discountType)}
           selectedMember={selectedMember}
           onCodeApply={handleCodeApply}
           appliedGiftCode={appliedGiftCode}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -9,23 +10,7 @@ import DiscountModal from '@/components/DiscountModal';
 import HoldBillModal from '@/components/HoldBillModal';
 import CodeModal from '@/components/CodeModal';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  discount?: number;
-  calculated_cost?: number;
-  category: 'food' | 'beverage' | 'other';
-  addons?: {
-    id: string;
-    name: string;
-    price: number;
-    quantity?: number;
-  }[];
-}
+import { CartItem } from '@/types';
 
 interface Member {
   id: string;
@@ -84,9 +69,7 @@ const MobileCart: React.FC<MobileCartProps> = ({
   const { playBellSound } = useOrderNotifications();
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = item.price * item.quantity;
-    const itemDiscount = item.discount || 0;
-    return sum + itemPrice - itemDiscount;
+    return sum + item.total_price;
   }, 0);
 
   const calculateDiscountedTotal = () => {
@@ -173,21 +156,21 @@ const MobileCart: React.FC<MobileCartProps> = ({
                 <li key={item.id} className="mb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-semibold">{item.name}</div>
+                      <div className="font-semibold">{item.menu_item.name}</div>
                       <div className="text-sm text-gray-500">
-                        {item.addons && item.addons.length > 0 && (
+                        {item.selected_addons && item.selected_addons.length > 0 && (
                           <>
                             <Badge variant="secondary">
-                              {item.addons.length} Addons
+                              {item.selected_addons.length} Addons
                             </Badge>
                             <Separator orientation="vertical" className="mx-1 h-4" />
                           </>
                         )}
-                        {item.price.toLocaleString()} บาท
+                        {item.menu_item.price.toLocaleString()} บาท
                       </div>
-                      {item.discount ? (
+                      {item.item_discount ? (
                         <div className="text-sm text-red-500">
-                          ส่วนลด {item.discount.toLocaleString()} บาท
+                          ส่วนลด {item.item_discount.toLocaleString()} บาท
                         </div>
                       ) : null}
                     </div>
@@ -288,20 +271,20 @@ const MobileCart: React.FC<MobileCartProps> = ({
           isOpen={isDiscountModalOpen}
           onClose={() => setIsDiscountModalOpen(false)}
           onApplyDiscount={handleUpdateItemDiscount}
-          currentDiscount={selectedItem?.discount || 0}
+          currentDiscount={selectedItem?.item_discount || 0}
           currentType="amount"
         />
 
         <HoldBillModal
           isOpen={isHoldBillModalOpen}
           onClose={() => setIsHoldBillModalOpen(false)}
-          onRestoreCart={onRestoreCart}
+          onRestore={onRestoreCart}
         />
 
         <CodeModal
           isOpen={isCodeModalOpen}
           onClose={() => setIsCodeModalOpen(false)}
-          onCodeApply={onCodeApply}
+          onApplyCode={onCodeApply}
         />
       </SheetContent>
     </Sheet>

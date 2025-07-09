@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,21 +11,7 @@ import DiscountModal from '@/components/DiscountModal';
 import HoldBillModal from '@/components/HoldBillModal';
 import CodeModal from '@/components/CodeModal';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  discount: number;
-  category: 'food' | 'beverage' | 'other';
-  image?: string;
-  is_available: boolean;
-  description?: string;
-  calculated_cost: number;
-  addons?: CartItem[];
-  gift_name?: string;
-}
+import { CartItem } from '@/types';
 
 interface Member {
   id: string;
@@ -79,8 +66,8 @@ const Cart: React.FC<CartProps> = ({
   const { playBellSound } = useOrderNotifications();
 
   const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = item.gift_name ? 0 : item.price;
-    return sum + (itemPrice * item.quantity) * (1 - (item.discount / 100));
+    const itemPrice = item.total_price || (item.menu_item.price * item.quantity);
+    return sum + itemPrice;
   }, 0);
 
   const calculateDiscountedTotal = () => {
@@ -177,29 +164,20 @@ const Cart: React.FC<CartProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center">
                       <div className="text-sm font-medium text-gray-900 truncate">
-                        {item.gift_name ? (
-                          <>
-                            <Gift className="mr-1 h-4 w-4 inline-block align-middle" />
-                            {item.gift_name} (ของแถม)
-                          </>
-                        ) : (
-                          item.name
-                        )}
+                        {item.menu_item.name}
                       </div>
-                      {item.discount > 0 && !item.gift_name && (
+                      {item.item_discount > 0 && (
                         <Badge variant="secondary" className="ml-2">
-                          -{item.discount}%
+                          -{item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
                         </Badge>
                       )}
                     </div>
-                    {!item.gift_name && (
-                      <div className="text-sm text-gray-500">
-                        {item.quantity} x ฿{item.price.toFixed(2)}
-                      </div>
-                    )}
-                    {item.addons && item.addons.length > 0 && (
+                    <div className="text-sm text-gray-500">
+                      {item.quantity} x ฿{item.menu_item.price.toFixed(2)}
+                    </div>
+                    {item.selected_addons && item.selected_addons.length > 0 && (
                       <div className="text-xs text-gray-500 mt-1">
-                        {item.addons.map(addon => (
+                        {item.selected_addons.map(addon => (
                           <div key={addon.id} className="flex items-center justify-between">
                             <span>+ {addon.name}</span>
                             <span>฿{addon.price.toFixed(2)}</span>
@@ -208,57 +186,53 @@ const Cart: React.FC<CartProps> = ({
                       </div>
                     )}
                   </div>
-                  {!item.gift_name && (
-                    <div className="flex items-center">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="mr-2"
-                        onClick={() => handleDecreaseQuantity(item.id)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="ml-2"
-                        onClick={() => handleIncreaseQuantity(item.id)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="ml-2"
-                        onClick={() => onRemoveItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="mr-2"
+                      onClick={() => handleDecreaseQuantity(item.id)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm">{item.quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="ml-2"
+                      onClick={() => handleIncreaseQuantity(item.id)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="ml-2"
+                      onClick={() => onRemoveItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                {!item.gift_name && (
-                  <div className="flex justify-end mt-2">
+                <div className="flex justify-end mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenDiscountModal(item)}
+                  >
+                    {item.item_discount > 0 ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'}
+                  </Button>
+                  {item.item_discount > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleOpenDiscountModal(item)}
+                      className="ml-2"
+                      onClick={() => handleClearDiscount(item.id)}
                     >
-                      {item.discount > 0 ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'}
+                      ล้างส่วนลด
                     </Button>
-                    {item.discount > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => handleClearDiscount(item.id)}
-                      >
-                        ล้างส่วนลด
-                      </Button>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
                 <Separator className="my-2" />
               </li>
             ))}
@@ -333,18 +307,18 @@ const Cart: React.FC<CartProps> = ({
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
         onApplyDiscount={handleUpdateItemDiscount}
-        currentDiscount={selectedItem?.discount || 0}
+        currentDiscount={selectedItem?.item_discount || 0}
         currentType="amount"
       />
       <HoldBillModal
         isOpen={isHoldBillModalOpen}
         onClose={() => setIsHoldBillModalOpen(false)}
-        onRestoreCart={handleRestore}
+        onRestore={handleRestore}
       />
       <CodeModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
-        onCodeApply={onCodeApply}
+        onApplyCode={onCodeApply}
       />
     </Card>
   );
