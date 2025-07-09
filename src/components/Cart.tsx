@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +10,16 @@ import DiscountModal from './DiscountModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import HoldBillModal from './HoldBillModal';
 import CodeModal from './CodeModal';
+
+// Define the interface that HoldBillModal expects
+interface HoldBillCartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  discount: number;
+  category: string;
+}
 
 interface CartProps {
   cartItems: CartItem[];
@@ -305,7 +316,7 @@ const Cart = ({
           quantity: item.quantity,
           discount: item.item_discount,
           category: item.menu_item.category_id || 'other'
-        }))}
+        }) as HoldBillCartItem)}
         currentDiscount={billDiscount}
         currentDiscountType={billDiscountType}
         currentTotal={discountedTotal}
