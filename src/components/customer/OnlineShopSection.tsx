@@ -884,228 +884,252 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              สั่งสินค้าออนไลน์
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gray-800">ร้านกาแฟออนไลน์</h1>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => setShowDisplaySettings(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                ตั้งค่าการแสดงผล
+              </Button>
+              {cartItems.length > 0 && (
+                <Button 
+                  className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2"
+                  onClick={() => setShowPayment(true)}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  ตะกร้า {cartItems.length}
+                </Button>
+              )}
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Category Filter */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
             <Button
-              onClick={() => setShowDisplaySettings(true)}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
+              variant={selectedCategory === 'all' ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory('all')}
+              className={`rounded-full px-6 py-2 ${
+                selectedCategory === 'all' 
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <Settings className="w-4 h-4" />
-              ตั้งค่าการแสดงผล
+              ทั้งหมด
             </Button>
-          </CardTitle>
-        </CardHeader>
-      </Card>
+            {categories.map(category => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`rounded-full px-6 py-2 ${
+                  selectedCategory === category.id 
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
+        </div>
 
-      {/* Category Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="เลือกหมวดหมู่" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทั้งหมด</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+        {/* Menu Items Grid */}
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
+          {filteredMenuItems.map(item => {
+            const cartItem = cartItems.find(ci => ci.menu_item.id === item.id);
+            const quantity = cartItem ? cartItem.quantity : 0;
+            
+            return (
+              <Card key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Product Image */}
+                    <div className="aspect-square w-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                      {item.image_url ? (
+                        <img 
+                          src={item.image_url} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full flex items-center justify-center">
+                          <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-amber-800 rounded-full"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Product Info */}
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-gray-800 text-sm leading-tight">
+                        {item.name}
+                      </h3>
+                      <p className="text-orange-600 font-bold text-lg">
+                        ฿{item.price}
+                      </p>
+                    </div>
+                    
+                    {/* Add to Cart Button or Quantity Controls */}
+                    {quantity === 0 ? (
+                      <Button
+                        onClick={() => handleAddToCart(item)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        เพิ่มลงตะกร้า
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(cartItem!.id, quantity - 1)}
+                          className="w-8 h-8 p-0 rounded-full bg-white border-gray-300"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="font-medium text-gray-800 min-w-8 text-center">{quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(cartItem!.id, quantity + 1)}
+                          className="w-8 h-8 p-0 rounded-full bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-      {/* Menu Items Grid - จำนวนคอลัมน์ตามการตั้งค่า */}
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
-        {filteredMenuItems.map(item => (
-          <Card 
-            key={item.id} 
-            className="hover:shadow-md transition-shadow cursor-pointer" 
-            onClick={() => handleAddToCart(item)}
-          >
-            <CardContent className="p-1.5">
-              <div className="space-y-1.5 h-28 flex flex-col">
-                {item.image_url ? (
-                  <div className="aspect-square w-full overflow-hidden rounded-md flex-shrink-0">
-                    <img 
-                      src={item.image_url} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square w-full bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🍽️</span>
-                  </div>
-                )}
-                
-                <div className="space-y-0.5 flex-1 flex flex-col">
-                  <h3 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
-                  )}
-                  <p className="text-xs font-bold text-green-600">฿{item.price}</p>
+        {/* Order Details - Show only when cart has items */}
+        {cartItems.length > 0 && !showPayment && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                รายละเอียดการสั่งซื้อ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="pickupTime">เวลาที่ต้องการรับสินค้า</Label>
+                <Input
+                  id="pickupTime"
+                  type="datetime-local"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  min={getMinPickupTime()}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="notes">หมายเหตุ (ถ้ามี)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="เช่น ไม่ใส่น้ำตาล, เพิ่มน้ำแข็ง..."
+                  value={customerNotes}
+                  onChange={(e) => setCustomerNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-lg font-bold pt-4 border-t">
+                  <span>ยอดรวม:</span>
+                  <span className="text-orange-600">฿{getTotalAmount()}</span>
                 </div>
+
+                <Button 
+                  onClick={async () => await playOrderSuccessSound(3)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  🔊 ทดสอบเสียงแจ้งเตือน
+                </Button>
+
+                <Button 
+                  onClick={generateQRCode}
+                  className="w-full bg-orange-500 hover:bg-orange-600"
+                  disabled={!pickupTime}
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  ดำเนินการชำระเงิน
+                </Button>
               </div>
             </CardContent>
           </Card>
-        ))}
+        )}
+
+        {/* Payment Section */}
+        {showPayment && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>ชำระเงิน</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-lg font-bold mb-4">ยอดชำระ: ฿{getTotalAmount()}</p>
+                {qrCodeUrl && (
+                  <div className="flex justify-center mb-4">
+                    <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
+                <Input
+                  id="receipt"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                {receiptFile && (
+                  <p className="text-sm text-green-600 mt-2">
+                    <Upload className="w-4 h-4 inline mr-1" />
+                    {receiptFile.name}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowPayment(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  ย้อนกลับ
+                </Button>
+                <Button 
+                  onClick={submitOrder}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  disabled={!receiptFile || isProcessing}
+                >
+                  {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {/* Cart */}
-      {cartItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>ตะกร้าสินค้า ({cartItems.length} รายการ)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cartItems.map(item => (
-              <div key={item.id} className="flex justify-between items-center p-3 border rounded">
-                <div className="flex-1">
-                  <h4 className="font-medium">{item.menu_item.name}</h4>
-                  <p className="text-sm text-gray-600">฿{item.menu_item.price} x {item.quantity}</p>
-                  {item.selected_addons && item.selected_addons.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      Add-ons: {item.selected_addons.map(addon => `${addon.name} (+฿${addon.price})`).join(', ')}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="w-8 text-center">{item.quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                  <span className="ml-4 font-bold">฿{item.total_price}</span>
-                </div>
-              </div>
-            ))}
-            
-            <div className="border-t pt-4">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>ยอดรวม:</span>
-                <span className="text-green-600">฿{getTotalAmount()}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Order Details */}
-      {cartItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              รายละเอียดการสั่งซื้อ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="pickupTime">เวลาที่ต้องการรับสินค้า</Label>
-              <Input
-                id="pickupTime"
-                type="datetime-local"
-                value={pickupTime}
-                onChange={(e) => setPickupTime(e.target.value)}
-                min={getMinPickupTime()}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="notes">หมายเหตุ (ถ้ามี)</Label>
-              <Textarea
-                id="notes"
-                placeholder="เช่น ไม่ใส่น้ำตาล, เพิ่มน้ำแข็ง..."
-                value={customerNotes}
-                onChange={(e) => setCustomerNotes(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Button 
-                onClick={async () => await playOrderSuccessSound(3)}
-                variant="outline"
-                className="w-full"
-              >
-                🔊 ทดสอบเสียงแจ้งเตือน
-              </Button>
-
-              <Button 
-                onClick={generateQRCode}
-                className="w-full"
-                disabled={!pickupTime}
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                สร้าง QR Code ชำระเงิน
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Payment Section */}
-      {showPayment && (
-        <Card>
-          <CardHeader>
-            <CardTitle>ชำระเงิน</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-lg font-bold mb-4">ยอดชำระ: ฿{getTotalAmount()}</p>
-              {qrCodeUrl && (
-                <div className="flex justify-center mb-4">
-                  <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
-                </div>
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
-              <Input
-                id="receipt"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              {receiptFile && (
-                <p className="text-sm text-green-600 mt-2">
-                  <Upload className="w-4 h-4 inline mr-1" />
-                  {receiptFile.name}
-                </p>
-              )}
-            </div>
-
-            <Button 
-              onClick={submitOrder}
-              className="w-full"
-              disabled={!receiptFile || isProcessing}
-            >
-              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Display Settings Modal */}
       {showDisplaySettings && (
@@ -1175,6 +1199,21 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         addons={availableAddons}
         onAddToCart={handleAddonModalAddToCart}
       />
+
+      {/* Fixed Cart Button for Mobile */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-20">
+          <Button
+            onClick={() => setShowPayment(true)}
+            className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg relative"
+          >
+            <ShoppingCart className="w-6 h-6" />
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+              {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+            </span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
