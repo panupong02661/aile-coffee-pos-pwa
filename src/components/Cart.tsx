@@ -318,13 +318,6 @@ const Cart: React.FC<CartProps> = ({
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
         onApplyDiscount={handleUpdateItemDiscount}
-        onClearDiscount={() => {
-          if (selectedItem) {
-            handleClearDiscount(selectedItem.id);
-            setIsDiscountModalOpen(false);
-            setSelectedItem(null);
-          }
-        }}
         currentDiscount={selectedItem?.item_discount || 0}
         currentType="amount"
       />
@@ -332,7 +325,16 @@ const Cart: React.FC<CartProps> = ({
       <HoldBillModal
         isOpen={isHoldBillModalOpen}
         onClose={() => setIsHoldBillModalOpen(false)}
-        onRestore={handleRestoreCart}
+        currentCart={cartItems}
+        currentDiscount={billDiscount}
+        currentDiscountType={billDiscountType}
+        currentTotal={discountedTotal}
+        onHoldBill={onClearCart}
+        onRestoreBill={(bill) => handleRestoreCart({
+          items: bill.items,
+          discount: bill.discount,
+          discountType: bill.discountType
+        })}
       />
       
       <CodeModal

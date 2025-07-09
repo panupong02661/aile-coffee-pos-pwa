@@ -286,7 +286,6 @@ const MobileCart: React.FC<MobileCartProps> = ({
           isOpen={isDiscountModalOpen}
           onClose={() => setIsDiscountModalOpen(false)}
           onApplyDiscount={handleUpdateItemDiscount}
-          onClearDiscount={handleClearItemDiscount}
           currentDiscount={selectedItem?.item_discount || 0}
           currentType="amount"
         />
@@ -294,7 +293,16 @@ const MobileCart: React.FC<MobileCartProps> = ({
         <HoldBillModal
           isOpen={isHoldBillModalOpen}
           onClose={() => setIsHoldBillModalOpen(false)}
-          onRestore={handleRestoreCart}
+          currentCart={cartItems}
+          currentDiscount={billDiscount}
+          currentDiscountType={billDiscountType}
+          currentTotal={discountedTotal}
+          onHoldBill={onClearCart}
+          onRestoreBill={(bill) => handleRestoreCart({
+            items: bill.items,
+            discount: bill.discount,
+            discountType: bill.discountType
+          })}
         />
 
         <CodeModal
