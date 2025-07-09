@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
@@ -132,14 +132,32 @@ const Index = () => {
     setSelectedMember(null);
   };
 
-  // Add audio initialization on user interaction for iPad
+  // Enhanced audio initialization for iPad with multiple triggers
   const handleUserInteraction = async () => {
-    await initializeAudio();
-    console.log('🎵 Audio ready for iPad notifications');
+    try {
+      await initializeAudio();
+      console.log('🎵 Audio ready for iPad notifications after interaction');
+    } catch (error) {
+      console.log('⚠️ Audio initialization failed:', error);
+    }
   };
 
+  // Add effect to initialize audio on component mount
+  useEffect(() => {
+    // Try to initialize audio immediately (may not work on iOS without interaction)
+    const tryInitialize = async () => {
+      try {
+        await initializeAudio();
+      } catch (error) {
+        console.log('Initial audio setup will wait for user interaction');
+      }
+    };
+    
+    tryInitialize();
+  }, []);
+
   const handleMenuItemClick = (menuItem: any) => {
-    // Initialize audio on first interaction (iPad requirement)
+    // Initialize audio on any interaction (iPad requirement)
     handleUserInteraction();
     
     console.log('Menu item clicked:', menuItem);
@@ -274,7 +292,9 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden" onClick={handleUserInteraction}>
+    <div className="h-screen bg-cream-50 flex overflow-hidden" 
+         onClick={handleUserInteraction}
+         onTouchStart={handleUserInteraction}>
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -310,12 +330,15 @@ const Index = () => {
             {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
           </Button>
 
-          {/* iPad Audio Test Button */}
+          {/* Enhanced iPad Audio Test Button */}
           <Button
-            onClick={playBellSound}
+            onClick={async () => {
+              await handleUserInteraction();
+              playBellSound();
+            }}
             size="sm"
             variant="outline"
-            className="mt-2 ml-2"
+            className="mt-2 ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
           >
             🔔 ทดสอบเสียง iPad
           </Button>
