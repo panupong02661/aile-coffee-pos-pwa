@@ -396,10 +396,10 @@ const POS = () => {
                     onUpdateDiscount={updateDiscount}
                     onClearCart={handleClearCart}
                     billDiscount={billDiscount}
-                    billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
+                    billDiscountType={billDiscountType}
                     onUpdateBillDiscount={setBillDiscount}
-                    onUpdateBillDiscountType={(type) => setBillDiscountType(type === 'percentage' ? 'percent' : 'amount')}
-                    onRestoreCart={(items, discount, discountType) => restoreCart(items, discount, discountType)}
+                    onUpdateBillDiscountType={setBillDiscountType}
+                    onRestoreCart={restoreCart}
                     selectedMember={selectedMember}
                     onCodeApply={handleCodeApply}
                     appliedGiftCode={appliedGiftCode}
@@ -441,10 +441,10 @@ const POS = () => {
           onUpdateDiscount={updateDiscount}
           onClearCart={handleClearCart}
           billDiscount={billDiscount}
-          billDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
+          billDiscountType={billDiscountType}
           onUpdateBillDiscount={setBillDiscount}
-          onUpdateBillDiscountType={(discountType) => setBillDiscountType(discountType === 'percentage' ? 'percent' : 'amount')}
-          onRestoreCart={(items, discount, discountType) => restoreCart(items, discount, discountType)}
+          onUpdateBillDiscountType={setBillDiscountType}
+          onRestoreCart={restoreCart}
           selectedMember={selectedMember}
           onCodeApply={handleCodeApply}
           appliedGiftCode={appliedGiftCode}

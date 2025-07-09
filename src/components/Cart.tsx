@@ -30,9 +30,9 @@ interface CartProps {
   onUpdateDiscount: (itemId: string, discount: number) => void;
   onClearCart: () => void;
   billDiscount: number;
-  billDiscountType: 'amount' | 'percentage';
+  billDiscountType: 'amount' | 'percent';
   onUpdateBillDiscount: (discount: number) => void;
-  onUpdateBillDiscountType: (type: 'amount' | 'percentage') => void;
+  onUpdateBillDiscountType: (type: 'amount' | 'percent') => void;
   onRestoreCart: (cartData: any) => void;
   selectedMember: Member | null;
   onCodeApply: (giftData: any) => void;
@@ -74,7 +74,7 @@ const Cart: React.FC<CartProps> = ({
     let discountedTotal = subtotal;
     if (billDiscountType === 'amount') {
       discountedTotal -= billDiscount;
-    } else if (billDiscountType === 'percentage') {
+    } else if (billDiscountType === 'percent') {
       discountedTotal *= (1 - (billDiscount / 100));
     }
     return Math.max(0, discountedTotal);
@@ -117,12 +117,8 @@ const Cart: React.FC<CartProps> = ({
     onUpdateBillDiscount(discount);
   };
 
-  const handleApplyBillDiscountType = (type: 'amount' | 'percentage') => {
+  const handleApplyBillDiscountType = (type: 'amount' | 'percent') => {
     onUpdateBillDiscountType(type);
-  };
-
-  const handleRestore = (cartData: any) => {
-    onRestoreCart(cartData);
   };
 
   const handleCodeApplyModal = () => {
@@ -252,7 +248,7 @@ const Cart: React.FC<CartProps> = ({
               size="sm"
               className="mr-2"
               onClick={() => {
-                handleApplyBillDiscountType(billDiscountType === 'amount' ? 'percentage' : 'amount');
+                handleApplyBillDiscountType(billDiscountType === 'amount' ? 'percent' : 'amount');
               }}
             >
               {billDiscountType === 'amount' ? '฿' : '%'}
@@ -310,11 +306,13 @@ const Cart: React.FC<CartProps> = ({
         currentDiscount={selectedItem?.item_discount || 0}
         currentType="amount"
       />
+      
       <HoldBillModal
         isOpen={isHoldBillModalOpen}
         onClose={() => setIsHoldBillModalOpen(false)}
-        onRestore={handleRestore}
+        onRestore={onRestoreCart}
       />
+      
       <CodeModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}

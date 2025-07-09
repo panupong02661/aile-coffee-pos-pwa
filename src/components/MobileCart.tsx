@@ -31,9 +31,9 @@ interface MobileCartProps {
   onUpdateDiscount: (itemId: string, discount: number) => void;
   onClearCart: () => void;
   billDiscount: number;
-  billDiscountType: 'amount' | 'percentage';
+  billDiscountType: 'amount' | 'percent';
   onUpdateBillDiscount: (discount: number) => void;
-  onUpdateBillDiscountType: (discountType: 'amount' | 'percentage') => void;
+  onUpdateBillDiscountType: (discountType: 'amount' | 'percent') => void;
   onRestoreCart: (cartData: any) => void;
   selectedMember?: Member | null;
   onCodeApply: (giftData: any) => void;
@@ -77,7 +77,7 @@ const MobileCart: React.FC<MobileCartProps> = ({
 
     if (billDiscountType === 'amount') {
       discountedTotal -= billDiscount;
-    } else if (billDiscountType === 'percentage') {
+    } else if (billDiscountType === 'percent') {
       discountedTotal -= (subtotal * billDiscount) / 100;
     }
 
