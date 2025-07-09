@@ -288,16 +288,16 @@ const RestaurantOrderingSystem = () => {
                 </h3>
                 <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                   {menuItems.filter(item => item.category === category).map(item => (
-                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => addToCart(item)}>
-                      <div className="p-3">
+                    <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-32 flex flex-col" onClick={() => addToCart(item)}>
+                      <div className="p-3 flex-1 flex flex-col">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
                             {item.image || '🍽️'}
                           </div>
-                          <span className="text-lg font-bold text-orange-600">฿{item.price}</span>
+                          <span className="text-sm font-bold text-orange-600">฿{item.price}</span>
                         </div>
-                        <h4 className="text-sm font-semibold text-gray-800 mb-1 truncate">{item.name}</h4>
-                        <p className="text-gray-600 text-xs mb-2 line-clamp-2 h-8">{item.description}</p>
+                        <h4 className="text-xs font-semibold text-gray-800 mb-1 line-clamp-2 flex-1">{item.name}</h4>
+                        <p className="text-gray-600 text-xs line-clamp-1">{item.description}</p>
                       </div>
                     </div>
                   ))}
