@@ -36,7 +36,7 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   const [cropperImageSrc, setCropperImageSrc] = useState('');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [gridColumns, setGridColumns] = useState(4);
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [itemSize, setItemSize] = useState('medium');
   const [categoryMenuCounts, setCategoryMenuCounts] = useState<{ [key: string]: number }>({});
   
   const { 

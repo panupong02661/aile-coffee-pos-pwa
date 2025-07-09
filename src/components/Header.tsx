@@ -1,30 +1,16 @@
 
-import { useState } from 'react';
+import { Settings, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Menu, 
-  User, 
-  Search, 
-  Settings,
-  Grid3X3,
-  LayoutGrid
-} from 'lucide-react';
+import { useState } from 'react';
+import DisplaySettingsModal from './DisplaySettingsModal';
+import CategoryFilter from './CategoryFilter';
+import { Category } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  sort_order: number;
-  is_active: boolean;
-}
-
 interface HeaderProps {
-  onToggleSidebar: () => void;
+  onSettingsClick?: () => void;
   onMemberClick?: () => void;
+  onToggleSidebar?: () => void;
   categories?: Category[];
   selectedCategory?: string;
   onCategorySelect?: (categoryId: string) => void;
@@ -32,129 +18,144 @@ interface HeaderProps {
   setGridColumns?: (columns: number) => void;
   itemSize?: 'small' | 'medium' | 'large';
   setItemSize?: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'pos' | 'menu' | 'dashboard' | 'qr-promptpay' | 'other';
-  onDisplaySettingsClick?: () => void;
+  page?: 'dashboard' | 'pos' | 'qr-promptpay' | 'online-orders' | 'other';
 }
 
 const Header = ({ 
-  onToggleSidebar, 
+  onSettingsClick, 
   onMemberClick, 
-  categories = [], 
-  selectedCategory = '1', 
-  onCategorySelect,
+  onToggleSidebar,
+  categories = [],
+  selectedCategory = '',
+  onCategorySelect = () => {},
   gridColumns = 4,
-  setGridColumns,
+  setGridColumns = () => {},
   itemSize = 'medium',
-  setItemSize,
-  page = 'other',
-  onDisplaySettingsClick
+  setItemSize = () => {},
+  page = 'other'
 }: HeaderProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const filteredCategories = categories.filter(category => 
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getPageTitle = () => {
-    switch (page) {
-      case 'pos':
-        return 'ระบบขายหน้าร้าน (POS)';
-      case 'menu':
-        return 'จัดการเมนู';
-      case 'dashboard':
-        return 'แดชบอร์ด';
-      case 'qr-promptpay':
-        return 'QR Code PromptPay';
-      default:
-        return 'ระบบจัดการ';
-    }
-  };
-
   return (
-    <div className="bg-white border-b border-coffee-200 shadow-sm">
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onToggleSidebar}
-            className="border-coffee-300 text-coffee-700 hover:bg-coffee-50"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
-          <h1 className="text-xl font-bold text-coffee-800">
-            {getPageTitle()}
-          </h1>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          {/* Display Settings Button for POS page */}
-          {page === 'pos' && onDisplaySettingsClick && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDisplaySettingsClick}
-              className="border-coffee-300 text-coffee-700 hover:bg-coffee-50"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              ตั้งค่าการแสดงผล
-            </Button>
-          )}
-
-          {onMemberClick && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onMemberClick}
-              className="border-coffee-300 text-coffee-700 hover:bg-coffee-50"
-            >
-              <User className="h-4 w-4 mr-2" />
-              เลือกสมาชิก
-            </Button>
-          )}
-        </div>
+    <>
+      <div className={`bg-coffee-600 text-white rounded-lg shadow-lg ${
+        isMobile ? 'p-2' : 'p-3'
+      } mb-4`}>
+        {/* Mobile Layout - 2 rows */}
+        {isMobile ? (
+          <>
+            {/* First row - Menu button and action buttons */}
+            <div className="flex justify-between items-center mb-2">
+              {/* Always show hamburger menu button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleSidebar}
+                className="text-white hover:bg-coffee-500 p-2"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              
+              {page === 'pos' && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={onMemberClick}
+                    className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                  >
+                    <User className="w-4 h-4 mr-1" />
+                    สมาชิก
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsDisplaySettingsOpen(true)}
+                    className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {/* Second row - Category filter */}
+            {page === 'pos' && (
+              <CategoryFilter
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategorySelect={onCategorySelect}
+                variant="header"
+              />
+            )}
+          </>
+        ) : (
+          /* Desktop/Tablet Layout - 1 row */
+          <div className="flex justify-between items-center">
+            {/* Left side - Menu button and category filter */}
+            <div className="flex items-center space-x-4 flex-1">
+              {/* Always show hamburger menu button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleSidebar}
+                className="text-white hover:bg-coffee-500 p-2"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              
+              {page === 'pos' && (
+                <div className="flex-1">
+                  <CategoryFilter
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    onCategorySelect={onCategorySelect}
+                    variant="header"
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Right side - Action buttons */}
+            {page === 'pos' && (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onMemberClick}
+                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  สมาชิก
+                </Button>
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsDisplaySettingsOpen(true)}
+                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Categories Section for POS */}
-      {page === 'pos' && categories.length > 0 && (
-        <div className="border-t border-coffee-100 px-4 py-3">
-          {!isMobile && (
-            <div className="mb-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-coffee-400 h-4 w-4" />
-                <Input
-                  placeholder="ค้นหาหมวดหมู่..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-coffee-200 focus:border-coffee-400"
-                />
-              </div>
-            </div>
-          )}
-          
-          <ScrollArea className="w-full">
-            <div className="flex space-x-2 pb-2">
-              {filteredCategories.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  className={`cursor-pointer whitespace-nowrap px-3 py-2 text-sm transition-colors ${
-                    selectedCategory === category.id 
-                      ? 'bg-coffee-600 text-white hover:bg-coffee-700' 
-                      : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
-                  }`}
-                  onClick={() => onCategorySelect?.(category.id)}
-                >
-                  {category.name}
-                </Badge>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
+      {page === 'pos' && (
+        <DisplaySettingsModal
+          isOpen={isDisplaySettingsOpen}
+          onClose={() => setIsDisplaySettingsOpen(false)}
+          gridColumns={gridColumns}
+          setGridColumns={setGridColumns}
+          itemSize={itemSize}
+          setItemSize={setItemSize}
+        />
       )}
-    </div>
+    </>
   );
 };
 

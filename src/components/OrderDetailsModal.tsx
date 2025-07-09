@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, Package, DollarSign, Printer, Image as ImageIcon } from 'lucide-react';
+import { Receipt, Package, DollarSign, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OrderItem {
@@ -26,7 +26,6 @@ interface OrderDetails {
   created_at: string;
   payment_method: string;
   items: OrderItem[];
-  receipt_image_url?: string;
 }
 
 interface OrderDetailsModalProps {
@@ -39,7 +38,6 @@ interface OrderDetailsModalProps {
 const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetailsModalProps) => {
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showReceiptImage, setShowReceiptImage] = useState(false);
   const { toast } = useToast();
 
   const fetchOrderDetails = async () => {
@@ -107,8 +105,7 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
         items_count: order.items_count,
         created_at: order.created_at,
         payment_method: order.payment_method,
-        items: transformedItems,
-        receipt_image_url: order.receipt_image_url
+        items: transformedItems
       };
 
       console.log('Order details loaded:', orderDetailsData);
@@ -214,167 +211,122 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, orderNumber }: OrderDetai
   }, [isOpen, orderId]);
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Receipt className="w-5 h-5" />
-              รายละเอียดออเดอร์ {orderNumber}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto space-y-4">
-            {loading ? (
-              <div className="text-center py-8 text-gray-500">กำลังโหลดรายละเอียดออเดอร์...</div>
-            ) : orderDetails ? (
-              <>
-                {/* Order Summary */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{orderDetails.order_number}</CardTitle>
-                      <Badge className={getPaymentMethodColor(orderDetails.payment_method)}>
-                        {getPaymentMethodName(orderDetails.payment_method)}
-                      </Badge>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="w-5 h-5" />
+            รายละเอียดออเดอร์ {orderNumber}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">กำลังโหลดรายละเอียดออเดอร์...</div>
+          ) : orderDetails ? (
+            <>
+              {/* Order Summary */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{orderDetails.order_number}</CardTitle>
+                    <Badge className={getPaymentMethodColor(orderDetails.payment_method)}>
+                      {getPaymentMethodName(orderDetails.payment_method)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">วันที่</p>
+                      <p className="font-medium">
+                        {new Date(orderDetails.created_at).toLocaleDateString('th-TH')}
+                      </p>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600">วันที่</p>
-                        <p className="font-medium">
-                          {new Date(orderDetails.created_at).toLocaleDateString('th-TH')}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">เวลา</p>
-                        <p className="font-medium">
-                          {new Date(orderDetails.created_at).toLocaleTimeString('th-TH', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-gray-600">เวลา</p>
+                      <p className="font-medium">
+                        {new Date(orderDetails.created_at).toLocaleTimeString('th-TH', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Receipt Image */}
-                {orderDetails.receipt_image_url && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5" />
-                        สลีปการชำระเงิน
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <img
-                          src={orderDetails.receipt_image_url}
-                          alt="สลีปการชำระเงิน"
-                          className="w-full max-w-xs mx-auto rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => setShowReceiptImage(true)}
-                        />
-                        <p className="text-sm text-gray-600 text-center">
-                          คลิกเพื่อดูขนาดเต็ม
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Order Items */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Package className="w-5 w-5" />
-                      รายการสินค้า
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {orderDetails.items.map((item, index) => (
-                      <div key={item.id}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.name}</h4>
-                            {item.addons && item.addons.length > 0 && (
-                              <p className="text-sm text-gray-600">
-                                + {item.addons.join(', ')}
-                              </p>
-                            )}
+              {/* Order Items */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    รายการสินค้า
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {orderDetails.items.map((item, index) => (
+                    <div key={item.id}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.name}</h4>
+                          {item.addons && item.addons.length > 0 && (
                             <p className="text-sm text-gray-600">
-                              ฿{item.unit_price.toLocaleString()} x {item.quantity}
+                              + {item.addons.join(', ')}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">฿{item.total_price.toLocaleString()}</p>
-                          </div>
+                          )}
+                          <p className="text-sm text-gray-600">
+                            ฿{item.unit_price.toLocaleString()} x {item.quantity}
+                          </p>
                         </div>
-                        {index < orderDetails.items.length - 1 && (
-                          <Separator className="mt-3" />
-                        )}
+                        <div className="text-right">
+                          <p className="font-medium">฿{item.total_price.toLocaleString()}</p>
+                        </div>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Total */}
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-center text-lg font-semibold">
-                      <span className="flex items-center gap-2">
-                        <DollarSign className="w-5 h-5" />
-                        ยอดรวมทั้งหมด
-                      </span>
-                      <span>฿{orderDetails.total_amount.toLocaleString()}</span>
+                      {index < orderDetails.items.length - 1 && (
+                        <Separator className="mt-3" />
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                ไม่พบรายละเอียดออเดอร์
-              </div>
-            )}
-          </div>
-          
-          <div className="pt-4 border-t flex gap-2">
-            {orderDetails && (
-              <Button
-                onClick={handlePrintReceipt}
-                className="flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
-              >
-                <Printer className="w-4 h-4" />
-                พิมพ์ใบเสร็จ
-              </Button>
-            )}
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              ปิด
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+                  ))}
+                </CardContent>
+              </Card>
 
-      {/* Receipt Image Modal */}
-      {showReceiptImage && orderDetails?.receipt_image_url && (
-        <Dialog open={showReceiptImage} onOpenChange={setShowReceiptImage}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>สลีปการชำระเงิน - {orderDetails.order_number}</DialogTitle>
-            </DialogHeader>
-            <div className="flex justify-center">
-              <img
-                src={orderDetails.receipt_image_url}
-                alt="สลีปการชำระเงิน"
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
-              />
+              {/* Total */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5" />
+                      ยอดรวมทั้งหมด
+                    </span>
+                    <span>฿{orderDetails.total_amount.toLocaleString()}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              ไม่พบรายละเอียดออเดอร์
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+          )}
+        </div>
+        
+        <div className="pt-4 border-t flex gap-2">
+          {orderDetails && (
+            <Button
+              onClick={handlePrintReceipt}
+              className="flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
+            >
+              <Printer className="w-4 h-4" />
+              พิมพ์ใบเสร็จ
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            ปิด
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

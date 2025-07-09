@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, X } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 interface DisplaySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   gridColumns: number;
   setGridColumns: (columns: number) => void;
-  itemSize: 'small' | 'medium' | 'large';
-  setItemSize: (size: 'small' | 'medium' | 'large') => void;
+  itemSize: string;
+  setItemSize: (size: string) => void;
 }
 
 const DisplaySettingsModal = ({ 
@@ -27,20 +27,10 @@ const DisplaySettingsModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              ตั้งค่าการแสดงผล
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            ตั้งค่าการแสดงผล
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -50,27 +40,23 @@ const DisplaySettingsModal = ({
             <Slider
               value={[gridColumns]}
               onValueChange={([value]) => setGridColumns(value)}
-              min={1}
-              max={8}
+              min={3}
+              max={6}
               step={1}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-500">
-              <span>1</span>
-              <span>2</span>
               <span>3</span>
               <span>4</span>
               <span>5</span>
               <span>6</span>
-              <span>7</span>
-              <span>8</span>
             </div>
           </div>
 
           {/* Item Size Setting */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">ขนาดรายการ</Label>
-            <Select value={itemSize} onValueChange={(value: 'small' | 'medium' | 'large') => setItemSize(value)}>
+            <Select value={itemSize} onValueChange={setItemSize}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -84,7 +70,7 @@ const DisplaySettingsModal = ({
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button onClick={onClose} className="bg-amber-600 hover:bg-amber-700">
+          <Button onClick={onClose}>
             ปิด
           </Button>
         </div>
