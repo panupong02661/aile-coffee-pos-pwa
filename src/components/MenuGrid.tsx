@@ -48,25 +48,25 @@ const MenuGrid = ({
   const getSizeClasses = () => {
     if (isMobile) {
       return {
-        small: 'h-32',  // ลดความสูงสำหรับ 3 คอลัมน์
-        medium: 'h-36',
-        large: 'h-40'
+        small: 'h-40',   // เพิ่มความสูงให้มากกว่าความกว้าง
+        medium: 'h-48',
+        large: 'h-56'
       };
     }
     
-    // Desktop sizing
+    // Desktop sizing - ปรับให้สูงกว่าเดิม
     if (gridColumns >= 5) {
       return {
-        small: 'h-24',
-        medium: 'h-28',
-        large: 'h-32'
+        small: 'h-36',
+        medium: 'h-44',
+        large: 'h-52'
       };
     }
     
     return {
-      small: 'h-32',
-      medium: 'h-40',
-      large: 'h-48'
+      small: 'h-44',    // เพิ่มความสูงให้มากกว่าความกว้าง
+      medium: 'h-56',
+      large: 'h-64'
     };
   };
 
@@ -84,18 +84,18 @@ const MenuGrid = ({
             }`}
             onClick={() => handleItemClick(item)}
           >
-            <CardContent className={`${isMobile ? 'p-2' : 'p-3'}`}>
+            <CardContent className={`${isMobile ? 'p-2' : 'p-3'} h-full`}>
               <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                 {item.image && (
                   <img 
                     src={item.image} 
                     alt={item.name}
-                    className="w-full h-2/3 object-cover rounded-md mb-1"
+                    className="w-full h-3/5 object-cover rounded-md mb-2"
                     loading="lazy"
                   />
                 )}
                 <div className="flex-1 flex flex-col justify-between">
-                  <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
+                  <h3 className={`font-medium text-coffee-800 line-clamp-2 mb-2 ${
                     isMobile ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     {item.name}

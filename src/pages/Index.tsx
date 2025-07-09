@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -9,6 +8,7 @@ import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
 import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
+import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -44,6 +44,7 @@ const Index = () => {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
+  const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -108,6 +109,17 @@ const Index = () => {
   const filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
+
+  // Handler functions for grid settings
+  const handleGridColumnsChange = (columns: number) => {
+    setGridColumns(columns);
+    localStorage.setItem('pos-grid-columns', columns.toString());
+  };
+
+  const handleItemSizeChange = (size: 'small' | 'medium' | 'large') => {
+    setItemSize(size);
+    localStorage.setItem('pos-item-size', size);
+  };
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -282,10 +294,11 @@ const Index = () => {
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
             gridColumns={gridColumns}
-            setGridColumns={setGridColumns}
+            setGridColumns={handleGridColumnsChange}
             itemSize={itemSize}
-            setItemSize={setItemSize}
+            setItemSize={handleItemSizeChange}
             page="pos"
+            onDisplaySettingsClick={() => setIsDisplaySettingsOpen(true)}
           />
           
           {/* Debug toggle button */}
@@ -417,6 +430,16 @@ const Index = () => {
           onAddToCart={handleAddToCartWithAddons}
         />
       )}
+
+      {/* Display Settings Modal */}
+      <DisplaySettingsModal
+        isOpen={isDisplaySettingsOpen}
+        onClose={() => setIsDisplaySettingsOpen(false)}
+        gridColumns={gridColumns}
+        setGridColumns={handleGridColumnsChange}
+        itemSize={itemSize}
+        setItemSize={handleItemSizeChange}
+      />
 
       {/* Debug Code Checker */}
       {showDebug && <DebugCodeChecker />}
