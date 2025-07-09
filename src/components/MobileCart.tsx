@@ -86,10 +86,6 @@ const MobileCart = ({
     setIsDiscountModalOpen(true);
   };
 
-  const handleRestoreCart = (cartData: { items: CartItem[], discount: number, discountType: 'amount' | 'percent' }) => {
-    onRestoreCart(cartData);
-  };
-
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
@@ -326,11 +322,11 @@ const MobileCart = ({
               category: item.menu_item.category_id || 'other'
             }))}
             currentDiscount={billDiscount}
-            currentDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
+            currentDiscountType={billDiscountType === 'percent' ? 'percent' : 'amount'}
             currentTotal={discountedTotal}
             onHoldBill={onClearCart}
-            onRestoreBill={(bill) => handleRestoreCart({
-              items: bill.items.map(item => ({
+            onRestoreBill={(bill) => {
+              const restoredItems: CartItem[] = bill.items.map(item => ({
                 id: item.id,
                 menu_item: {
                   id: item.id,
@@ -347,10 +343,14 @@ const MobileCart = ({
                 item_discount: item.discount,
                 item_discount_type: 'amount',
                 total_price: item.price
-              })),
-              discount: bill.discount,
-              discountType: bill.discountType === 'percentage' ? 'percent' : 'amount'
-            })}
+              }));
+              
+              onRestoreCart({
+                items: restoredItems,
+                discount: bill.discount,
+                discountType: bill.discountType === 'percent' ? 'percent' : 'amount'
+              });
+            }}
           />
 
           <CodeModal
