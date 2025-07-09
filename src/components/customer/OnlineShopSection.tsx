@@ -209,34 +209,51 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         case 'กระดิ่ง': frequency = 900; break;
         case 'ออด': frequency = 400; break;
         case 'ตีดๆๆๆ': 
-          // Create beep pattern for "ตีดๆๆๆ"
-          const beepCount = 3;
-          const beepDuration = 150;
-          const beepInterval = 200;
+          // Create pleasant "beep beep beep" pattern for "ตีดๆๆๆ"
+          const beepMelody = [523.25, 659.25, 783.99]; // C5, E5, G5 - major chord progression
           
-          for (let i = 0; i < beepCount; i++) {
-            const startTime = audioContext.currentTime + (i * beepInterval / 1000);
-            const endTime = startTime + (beepDuration / 1000);
+          for (let i = 0; i < beepMelody.length; i++) {
+            const startTime = audioContext.currentTime + (i * 0.25);
+            const endTime = startTime + 0.2;
             
+            // Main beep oscillator
             const beepOscillator = audioContext.createOscillator();
             const beepGainNode = audioContext.createGain();
             
             beepOscillator.connect(beepGainNode);
             beepGainNode.connect(audioContext.destination);
             
-            beepOscillator.frequency.setValueAtTime(800, startTime);
+            beepOscillator.frequency.setValueAtTime(beepMelody[i], startTime);
             beepOscillator.type = 'sine';
             
+            // Smooth envelope for pleasant sound
             beepGainNode.gain.setValueAtTime(0, startTime);
-            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
-            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
+            beepGainNode.gain.linearRampToValueAtTime(volume * 0.8, startTime + 0.02);
+            beepGainNode.gain.setValueAtTime(volume * 0.8, endTime - 0.05);
+            beepGainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
             
             beepOscillator.start(startTime);
             beepOscillator.stop(endTime);
+            
+            // Add harmonic for richer sound
+            const harmonicOscillator = audioContext.createOscillator();
+            const harmonicGain = audioContext.createGain();
+            
+            harmonicOscillator.connect(harmonicGain);
+            harmonicGain.connect(audioContext.destination);
+            
+            harmonicOscillator.frequency.setValueAtTime(beepMelody[i] * 2, startTime); // Octave higher
+            harmonicOscillator.type = 'triangle';
+            
+            harmonicGain.gain.setValueAtTime(0, startTime);
+            harmonicGain.gain.linearRampToValueAtTime(volume * 0.3, startTime + 0.02);
+            harmonicGain.gain.exponentialRampToValueAtTime(0.01, endTime);
+            
+            harmonicOscillator.start(startTime);
+            harmonicOscillator.stop(endTime);
           }
           
-          console.log(`✅ Basic sound played: ${soundName}`);
+          console.log(`✅ Enhanced beep melody played: ${soundName}`);
           return; // Exit early for beep pattern
         default:
           frequency = 800;
@@ -708,13 +725,21 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
       }
 
-      // รีเซ็ตฟอร์ม
+      // รีเซ็ตฟอร์มและซ่อนหน้าการชำระเงิน
       setCartItems([]);
       setPickupTime('');
       setCustomerNotes('');
       setReceiptFile(null);
       setShowPayment(false);
       setQrCodeUrl('');
+      
+      // แสดงข้อความสำเร็จเพิ่มเติม
+      setTimeout(() => {
+        toast({ 
+          title: '✅ ขอบคุณครับ!', 
+          description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
+        });
+      }, 1000);
 
     } catch (error: any) {
       console.error('Order submission error:', error);
