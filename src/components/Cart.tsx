@@ -307,7 +307,7 @@ const Cart = ({
           category: item.menu_item.category_id || 'other'
         }))}
         currentDiscount={billDiscount}
-        currentDiscountType={billDiscountType === 'percent' ? 'percent' : 'amount'}
+        currentDiscountType={billDiscountType}
         currentTotal={discountedTotal}
         onHoldBill={onClearCart}
         onRestoreBill={(bill) => {
@@ -333,7 +333,7 @@ const Cart = ({
           onRestoreCart({
             items: restoredItems,
             discount: bill.discount,
-            discountType: bill.discountType === 'percent' ? 'percent' : 'amount'
+            discountType: bill.discountType
           });
         }}
       />
