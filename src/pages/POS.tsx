@@ -96,6 +96,17 @@ const POS = () => {
     localStorage.setItem('pos-item-size', itemSize);
   }, [itemSize]);
 
+  // Handler functions for grid settings
+  const handleGridColumnsChange = (columns: number) => {
+    setGridColumns(columns);
+    localStorage.setItem('pos-grid-columns', columns.toString());
+  };
+
+  const handleItemSizeChange = (size: 'small' | 'medium' | 'large') => {
+    setItemSize(size);
+    localStorage.setItem('pos-item-size', size);
+  };
+
   // Convert database categories to the format expected by components
   const convertedCategories = [
     { 
