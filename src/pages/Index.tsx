@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -11,6 +10,7 @@ import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,9 @@ interface Member {
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
+  
+  // Initialize order notifications for iPad compatibility
+  const { playBellSound, initializeAudio } = useOrderNotifications();
   
   // โหลดการตั้งค่าจาก localStorage
   const [gridColumns, setGridColumns] = useState(() => {
@@ -129,7 +132,16 @@ const Index = () => {
     setSelectedMember(null);
   };
 
+  // Add audio initialization on user interaction for iPad
+  const handleUserInteraction = async () => {
+    await initializeAudio();
+    console.log('🎵 Audio ready for iPad notifications');
+  };
+
   const handleMenuItemClick = (menuItem: any) => {
+    // Initialize audio on first interaction (iPad requirement)
+    handleUserInteraction();
+    
     console.log('Menu item clicked:', menuItem);
     
     // Get addon groups for this specific menu item
@@ -262,7 +274,7 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden">
+    <div className="h-screen bg-cream-50 flex overflow-hidden" onClick={handleUserInteraction}>
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -296,6 +308,16 @@ const Index = () => {
             className="mt-2"
           >
             {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
+          </Button>
+
+          {/* iPad Audio Test Button */}
+          <Button
+            onClick={playBellSound}
+            size="sm"
+            variant="outline"
+            className="mt-2 ml-2"
+          >
+            🔔 ทดสอบเสียง iPad
           </Button>
         </div>
         
