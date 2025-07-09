@@ -21,6 +21,13 @@ interface HoldBillCartItem {
   category: string;
 }
 
+// Define interface for held bill data
+interface HeldBillData {
+  items: HoldBillCartItem[];
+  discount: number;
+  discountType: 'amount' | 'percent';
+}
+
 interface CartProps {
   cartItems: CartItem[];
   onUpdateQuantity: (itemId: string, quantity: number) => void;
@@ -316,29 +323,29 @@ const Cart = ({
           quantity: item.quantity,
           discount: item.item_discount,
           category: item.menu_item.category_id || 'other'
-        }) as HoldBillCartItem)}
+        }))}
         currentDiscount={billDiscount}
         currentDiscountType={billDiscountType}
         currentTotal={discountedTotal}
         onHoldBill={onClearCart}
-        onRestoreBill={(bill) => {
-          const restoredItems: CartItem[] = bill.items.map(item => ({
-            id: item.id,
+        onRestoreBill={(bill: HeldBillData) => {
+          const restoredItems: CartItem[] = bill.items.map(holdBillItem => ({
+            id: holdBillItem.id,
             menu_item: {
-              id: item.id,
-              name: item.name,
-              price: item.price / item.quantity,
-              category_id: item.category,
+              id: holdBillItem.id,
+              name: holdBillItem.name,
+              price: holdBillItem.price / holdBillItem.quantity,
+              category_id: holdBillItem.category,
               image: '',
               is_available: true,
               description: '',
               calculated_cost: 0
             },
-            quantity: item.quantity,
+            quantity: holdBillItem.quantity,
             selected_addons: [],
-            item_discount: item.discount,
+            item_discount: holdBillItem.discount,
             item_discount_type: 'amount',
-            total_price: item.price
+            total_price: holdBillItem.price
           }));
           
           onRestoreCart({
