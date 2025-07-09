@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,9 +30,9 @@ interface HeaderProps {
   onCategorySelect?: (categoryId: string) => void;
   gridColumns?: number;
   setGridColumns?: (columns: number) => void;
-  itemSize?: string;
-  setItemSize?: (size: string) => void;
-  page?: 'pos' | 'menu' | 'other';
+  itemSize?: 'small' | 'medium' | 'large';
+  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'pos' | 'menu' | 'dashboard' | 'qr-promptpay' | 'other';
   onDisplaySettingsClick?: () => void;
 }
 
@@ -55,6 +56,21 @@ const Header = ({
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getPageTitle = () => {
+    switch (page) {
+      case 'pos':
+        return 'ระบบขายหน้าร้าน (POS)';
+      case 'menu':
+        return 'จัดการเมนู';
+      case 'dashboard':
+        return 'แดชบอร์ด';
+      case 'qr-promptpay':
+        return 'QR Code PromptPay';
+      default:
+        return 'ระบบจัดการ';
+    }
+  };
+
   return (
     <div className="bg-white border-b border-coffee-200 shadow-sm">
       <div className="flex items-center justify-between p-4">
@@ -69,8 +85,7 @@ const Header = ({
           </Button>
           
           <h1 className="text-xl font-bold text-coffee-800">
-            {page === 'pos' ? 'ระบบขายหน้าร้าน (POS)' : 
-             page === 'menu' ? 'จัดการเมนู' : 'ระบบจัดการ'}
+            {getPageTitle()}
           </h1>
         </div>
 

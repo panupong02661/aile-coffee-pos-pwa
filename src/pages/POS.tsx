@@ -303,9 +303,9 @@ const POS = () => {
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
             gridColumns={gridColumns}
-            setGridColumns={setGridColumns}
+            setGridColumns={handleGridColumnsChange}
             itemSize={itemSize}
-            setItemSize={setItemSize}
+            setItemSize={handleItemSizeChange}
             page="pos"
           />
           
