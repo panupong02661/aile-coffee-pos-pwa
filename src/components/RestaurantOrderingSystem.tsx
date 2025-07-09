@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, Bell, Settings, User, Store, Plus, Minus, Clock, CheckCircle, X, Volume2, VolumeX } from 'lucide-react';
 import * as Tone from 'tone';
+import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 
 const RestaurantOrderingSystem = () => {
   const [currentView, setCurrentView] = useState('customer'); // 'customer' or 'restaurant'
@@ -13,6 +14,9 @@ const RestaurantOrderingSystem = () => {
   const [customSound, setCustomSound] = useState(null);
   const [volume, setVolume] = useState(0.8);
   const audioRef = useRef(null);
+  
+  // ใช้ real-time order notifications
+  useOrderNotifications();
 
   // Menu items - ปรับลดขนาดลง 50%
   const menuItems = [
