@@ -71,8 +71,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
-  const [activeAudioContext, setActiveAudioContext] = useState<AudioContext | null>(null);
-  const [activeOscillators, setActiveOscillators] = useState<OscillatorNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [gridColumns, setGridColumns] = useState(5);
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
@@ -139,56 +138,106 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   };
 
   const fetchMenuItems = async () => {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('is_available', true)
-      .order('name');
-    
-    if (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดเมนูได้', variant: 'destructive' });
-      return;
+    try {
+      console.log('🔄 Fetching menu items...');
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('is_available', true)
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching menu items:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดเมนูได้', variant: 'destructive' });
+        return;
+      }
+      
+      console.log('✅ Menu items fetched:', data?.length || 0);
+      setMenuItems(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching menu items:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการโหลดเมนู', variant: 'destructive' });
     }
-    setMenuItems(data || []);
   };
 
   const fetchCategories = async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order');
-    
-    if (!error) {
+    try {
+      console.log('🔄 Fetching categories...');
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+      
+      console.log('✅ Categories fetched:', data?.length || 0);
       setCategories(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching categories:', error);
     }
   };
 
   const fetchAddons = async () => {
-    const { data, error } = await supabase
-      .from('addons')
-      .select(`
-        id,
-        name,
-        price,
-        addon_group_id,
-        sort_order,
-        is_active,
-        created_at,
-        updated_at,
-        addon_groups!addons_addon_group_id_fkey (
+    try {
+      console.log('🔄 Fetching addons...');
+      const { data, error } = await supabase
+        .from('addons')
+        .select(`
           id,
           name,
-          allow_multiple,
-          is_required
-        )
-      `)
-      .eq('is_active', true);
-    
-    if (!error) {
+          price,
+          addon_group_id,
+          sort_order,
+          is_active,
+          created_at,
+          updated_at,
+          addon_groups!addons_addon_group_id_fkey (
+            id,
+            name,
+            allow_multiple,
+            is_required
+          )
+        `)
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error('Error fetching addons:', error);
+        return;
+      }
+      
+      console.log('✅ Addons fetched:', data?.length || 0);
       setAddons(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching addons:', error);
     }
   };
+
+  // Initialize data loading
+  useEffect(() => {
+    const initializeData = async () => {
+      console.log('🚀 Initializing online shop data...');
+      setIsLoading(true);
+      
+      try {
+        await Promise.all([
+          fetchMenuItems(),
+          fetchCategories(),
+          fetchAddons()
+        ]);
+      } catch (error) {
+        console.error('Error during initialization:', error);
+      } finally {
+        setIsLoading(false);
+        console.log('✅ Online shop data initialization complete');
+      }
+    };
+
+    initializeData();
+  }, []);
 
   const getRelevantAddons = async (menuItem: MenuItem) => {
     console.log('Getting addons for menu item:', menuItem);
@@ -501,6 +550,28 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     return now.toISOString().slice(0, 16);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              สั่งสินค้าออนไลน์
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+              <p className="mt-2 text-gray-600">กำลังโหลดเมนู...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -541,41 +612,57 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
-        {filteredMenuItems.map(item => (
-          <Card 
-            key={item.id} 
-            className="hover:shadow-md transition-shadow cursor-pointer" 
-            onClick={() => handleAddToCart(item)}
-          >
-            <CardContent className="p-1.5">
-              <div className="space-y-1.5 h-28 flex flex-col">
-                {item.image_url ? (
-                  <div className="aspect-square w-full overflow-hidden rounded-md flex-shrink-0">
-                    <img 
-                      src={item.image_url} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square w-full bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🍽️</span>
-                  </div>
-                )}
-                
-                <div className="space-y-0.5 flex-1 flex flex-col">
-                  <h3 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
+      {filteredMenuItems.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-gray-500">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">ไม่พบเมนูที่ต้องการ</p>
+              <p className="text-sm">
+                {selectedCategory === 'all' 
+                  ? 'ขณะนี้ยังไม่มีเมนูที่พร้อมให้บริการ' 
+                  : 'ไม่มีเมนูในหมวดหมู่ที่เลือก'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
+          {filteredMenuItems.map(item => (
+            <Card 
+              key={item.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer" 
+              onClick={() => handleAddToCart(item)}
+            >
+              <CardContent className="p-1.5">
+                <div className="space-y-1.5 h-28 flex flex-col">
+                  {item.image_url ? (
+                    <div className="aspect-square w-full overflow-hidden rounded-md flex-shrink-0">
+                      <img 
+                        src={item.image_url} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-square w-full bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
                   )}
-                  <p className="text-xs font-bold text-green-600">฿{item.price}</p>
+                  
+                  <div className="space-y-0.5 flex-1 flex flex-col">
+                    <h3 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{item.name}</h3>
+                    {item.description && (
+                      <p className="text-xs text-gray-600 line-clamp-1">{item.description}</p>
+                    )}
+                    <p className="text-xs font-bold text-green-600">฿{item.price}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {cartItems.length > 0 && (
         <Card>
