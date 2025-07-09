@@ -59,6 +59,72 @@ const PaymentModal = ({
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
   const banknotes = [20, 50, 100, 500, 1000];
 
+  // ฟังก์ชันเล่นเสียงกระดิ่งเป็นเวลา 7 วินาที
+  const playPaymentSuccessBell = async () => {
+    try {
+      console.log('🔔 Playing payment success bell for 7 seconds...');
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
+      const totalDuration = 7; // 7 วินาที
+      const bellInterval = 0.8; // ช่วงระหว่างเสียงกระดิ่ง
+      const volume = 0.4; // ความดังพอดี
+      
+      let currentTime = audioContext.currentTime;
+      const endTime = currentTime + totalDuration;
+      
+      console.log(`🔔 Playing bell sound for ${totalDuration} seconds`);
+      
+      // สร้างเสียงกระดิ่งต่อเนื่องเป็นเวลา 7 วินาที
+      while (currentTime < endTime) {
+        // สร้างเสียงกระดิ่งที่ไพเราะ - 3 โน้ต
+        const bellFrequencies = [
+          { freq: 523.25, delay: 0.0, duration: 0.6 },   // C5
+          { freq: 659.25, delay: 0.15, duration: 0.5 },  // E5  
+          { freq: 783.99, delay: 0.3, duration: 0.4 }    // G5
+        ];
+        
+        bellFrequencies.forEach((note) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          // เพิ่มเอฟเฟค reverb ให้เสียงไพเราะ
+          const lowPassFilter = audioContext.createBiquadFilter();
+          lowPassFilter.type = 'lowpass';
+          lowPassFilter.frequency.value = 2000;
+          
+          oscillator.connect(lowPassFilter);
+          lowPassFilter.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = note.freq;
+          oscillator.type = 'sine';
+          
+          const noteStartTime = currentTime + note.delay;
+          const noteEndTime = noteStartTime + note.duration;
+          
+          // สร้างเสน่ห์ของเสียงกระดิ่ง
+          gainNode.gain.setValueAtTime(0, noteStartTime);
+          gainNode.gain.linearRampToValueAtTime(volume, noteStartTime + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, noteEndTime);
+          
+          oscillator.start(noteStartTime);
+          oscillator.stop(noteEndTime);
+        });
+        
+        currentTime += bellInterval;
+      }
+      
+      console.log(`✅ Payment success bell played for ${totalDuration} seconds`);
+    } catch (error) {
+      console.error('Payment success bell failed:', error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadMembershipSettings();
@@ -352,23 +418,10 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order processing completed successfully`);
       
-      // Show success message
-      toast({
-        title: "ชำระเงินสำเร็จ",
-        description: `ออเดอร์ ${orderNumber} ถูกบันทึกเรียบร้อยแล้ว`,
-      });
-
       return order;
 
     } catch (error) {
       console.error(`[PaymentModal] Save order failed:`, error);
-      
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : 'ไม่สามารถบันทึกออเดอร์ได้',
-        variant: "destructive"
-      });
-      
       throw error;
     }
   };
@@ -391,8 +444,6 @@ const PaymentModal = ({
         });
         return;
       }
-
-      // ลบการตรวจสอบยอดเงินต้องมากกว่า 0 เพราะอนุญาตให้ชำระ 0 บาทได้
 
       // Validate payment method specific requirements
       if (paymentMethod === 'cash') {
@@ -447,29 +498,43 @@ const PaymentModal = ({
         }
       }
 
-      // ทำ payment ทันทีก่อน - ไม่รอการบันทึกฐานข้อมูล
+      // เล่นเสียงกระดิ่งทันทีเมื่อเริ่มประมวลผล
+      try {
+        await playPaymentSuccessBell();
+      } catch (soundError) {
+        console.log('เสียงกระดิ่งเล่นไม่ได้:', soundError);
+      }
+
+      // ทำ payment ทันทีโดยไม่รอการบันทึกฐานข้อมูล
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       
       // แสดงข้อความสำเร็จทันที
       toast({
-        title: "ชำระเงินสำเร็จ",
-        description: `ยอดชำระ ฿${total.toLocaleString()}`,
+        title: "✅ ชำระเงินสำเร็จ",
+        description: `ยอดชำระ ฿${total.toLocaleString()} - ระบบกำลังบันทึกข้อมูล`,
       });
       
       // ปิด modal ทันที
       onClose();
 
-      // บันทึกข้อมูลในฐานข้อมูลในพื้นหลัง (ไม่ await)
-      saveOrderToDatabase(paymentMethod).catch(error => {
-        console.error('Background save error:', error);
-        // แสดงข้อความแจ้งเตือนถ้าบันทึกไม่สำเร็จ แต่ไม่บล็อก UI
-        toast({
-          title: "คำเตือน",
-          description: "การชำระเงินสำเร็จแล้ว แต่อาจมีปัญหาในการบันทึกข้อมูล",
-          variant: "destructive"
+      // บันทึกข้อมูลในฐานข้อมูลในพื้นหลังโดยไม่รอ
+      setTimeout(() => {
+        saveOrderToDatabase(paymentMethod).then(() => {
+          console.log('Background database save completed successfully');
+          toast({
+            title: "บันทึกข้อมูลสำเร็จ",
+            description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
+          });
+        }).catch(error => {
+          console.error('Background save error:', error);
+          toast({
+            title: "คำเตือน",
+            description: "การชำระเงินสำเร็จแล้ว แต่อาจมีปัญหาในการบันทึกข้อมูล",
+            variant: "destructive"
+          });
         });
-      });
+      }, 100); // เริ่มบันทึกหลังจาก UI อัปเดตแล้ว
       
     } catch (error) {
       console.error(`[PaymentModal] Payment process failed:`, error);
