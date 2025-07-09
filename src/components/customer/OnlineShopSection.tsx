@@ -74,351 +74,15 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [activeAudioContext, setActiveAudioContext] = useState<AudioContext | null>(null);
   const [activeOscillators, setActiveOscillators] = useState<OscillatorNode[]>([]);
   
-  // เพิ่มการจัดการการแสดงผล
   const [gridColumns, setGridColumns] = useState(5);
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   
   const { toast } = useToast();
 
-  // Notification sound function - ใช้ฟังก์ชันเดียวกันกับหน้าตั้งค่าเสียง
-  const playOrderSuccessSound = async (overrideDuration?: number) => {
-    try {
-      console.log('🔊 Playing order success sound...');
-      
-      // Load notification settings
-      const { data: settings } = await supabase
-        .from('notification_settings')
-        .select('*')
-        .single();
-
-      const notificationSettings = {
-        sound_enabled: settings?.sound_enabled ?? true,
-        selected_sound_id: settings?.selected_sound_id || undefined,
-        volume: settings?.volume ?? 0.8,
-        duration: settings?.duration ?? 2
-      };
-
-      console.log('🔊 Loaded settings:', notificationSettings);
-
-      if (!notificationSettings.sound_enabled) {
-        console.log('🔇 Sound disabled');
-        return;
-      }
-
-      // Load custom sounds
-      const { data: sounds } = await supabase
-        .from('notification_sounds')
-        .select('*')
-        .order('created_at');
-
-      console.log('🔊 Loaded sounds:', sounds);
-
-      let soundPlayed = false;
-
-      // Check if we have a custom sound selected (UUID format)
-      if (notificationSettings.selected_sound_id && 
-          !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
-        
-        console.log('🔊 Looking for custom sound with ID:', notificationSettings.selected_sound_id);
-        
-        const selectedSound = sounds?.find(
-          sound => sound.id === notificationSettings.selected_sound_id
-        );
-        
-        console.log('🔊 Found custom sound:', selectedSound);
-        
-        if (selectedSound && selectedSound.file_url) {
-          console.log('🔊 Playing custom sound:', selectedSound.name);
-          
-          try {
-            const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
-            console.log('🔊 Custom sound URL:', fullUrl);
-            
-            const audio = new Audio();
-            audio.volume = Math.min(notificationSettings.volume * 1.5, 1.0);
-            audio.src = fullUrl;
-            audio.preload = 'auto';
-            
-            await new Promise<void>((resolve, reject) => {
-              const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
-              
-              audio.oncanplaythrough = async () => {
-                clearTimeout(timeout);
-                try {
-                  await audio.play();
-                  console.log('✅ Custom sound played successfully');
-                  soundPlayed = true;
-                  
-                  setTimeout(() => {
-                    if (audio && !audio.paused) {
-                      audio.pause();
-                      audio.currentTime = 0;
-                    }
-                  }, notificationSettings.duration * 1000);
-                  
-                  resolve();
-                } catch (e) {
-                  console.log('🔊 Audio play failed:', e);
-                  reject(e);
-                }
-              };
-              
-              audio.onerror = (error) => {
-                console.log('🔊 Audio error:', error);
-                clearTimeout(timeout);
-                reject(error);
-              };
-              
-              audio.load();
-            });
-          } catch (error) {
-            console.log('🔊 Custom sound failed:', error);
-          }
-        } else {
-          console.log('🔊 Selected custom sound not found or has no file_url');
-        }
-      }
-      
-      // If custom sound didn't play, try basic sounds
-      if (!soundPlayed) {
-        if (notificationSettings.selected_sound_id && 
-            ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
-          console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
-          
-          // Use override duration if provided, otherwise use settings duration
-          const soundSettings = overrideDuration 
-            ? { ...notificationSettings, duration: overrideDuration }
-            : notificationSettings;
-          
-          await playBasicSuccessSound(notificationSettings.selected_sound_id, soundSettings);
-        } else {
-          console.log('🔊 Using default beep sound');
-          
-          // Use override duration if provided, otherwise use settings duration
-          const soundSettings = overrideDuration 
-            ? { ...notificationSettings, duration: overrideDuration }
-            : notificationSettings;
-          
-          await createSuccessBeepSound(soundSettings);
-        }
-      }
-    } catch (error) {
-      console.error('Error playing success sound:', error);
-    }
-  };
-
-  const playBasicSuccessSound = async (soundName: string, settings: any) => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-      
-      const duration = settings.duration * 1000;
-      const volume = Math.min(settings.volume * 2.0, 1.0);
-      
-      let frequency = 800;
-      
-      switch (soundName) {
-        case 'ระฆัง': frequency = 800; break;
-        case 'กิ่งก่า': frequency = 1000; break;
-        case 'แจ้งเตือน': frequency = 600; break;
-        case 'ปลุก': frequency = 1200; break;
-        case 'กระดิ่ง': frequency = 900; break;
-        case 'ออด': frequency = 400; break;
-        case 'ตีดๆๆๆ': 
-          // Create continuous "ตีดๆๆๆ" pattern for the specified duration (3-30 seconds)
-          const totalDuration = Math.max(3, Math.min(30, settings.duration)); // Ensure 3-30 seconds
-          const beepFrequency = 800; // Simple beep frequency
-          const beepInterval = 0.5; // 500ms between beeps
-          const beepDuration = 0.15; // 150ms per beep
-          
-          let currentTime = audioContext.currentTime;
-          const endTime = currentTime + totalDuration;
-          
-          console.log(`🔊 Playing ตีดๆๆๆ for ${totalDuration} seconds`);
-          
-          // Create continuous beeps for the duration
-          while (currentTime < endTime) {
-            const beepOscillator = audioContext.createOscillator();
-            const beepGainNode = audioContext.createGain();
-            
-            beepOscillator.connect(beepGainNode);
-            beepGainNode.connect(audioContext.destination);
-            
-            beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
-            beepOscillator.type = 'square'; // Square wave for classic beep sound
-            
-            // Quick attack and decay for sharp beep
-            beepGainNode.gain.setValueAtTime(0, currentTime);
-            beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.01);
-            beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.01);
-            beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
-            
-            beepOscillator.start(currentTime);
-            beepOscillator.stop(currentTime + beepDuration);
-            
-            currentTime += beepInterval;
-          }
-          
-          console.log(`✅ ตีดๆๆๆ sound played for ${totalDuration} seconds`);
-          return; // Exit early for beep pattern
-        default:
-          frequency = 800;
-      }
-      
-      // Create enhanced sound with musical qualities for order success
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-      
-      console.log(`✅ Basic sound played: ${soundName}`);
-    } catch (error) {
-      console.error('Basic success sound failed:', error);
-    }
-  };
-
-  const createSuccessBeepSound = async (settings: any) => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-      
-      const volume = Math.min(settings.volume * 2.0, 1.0);
-      const duration = settings.duration;
-      const currentTime = audioContext.currentTime;
-      
-      // Create beautiful success melody using musical notes
-      // Using a pleasant chord progression: C4 -> E4 -> G4 -> C5
-      const successMelody = [
-        { freq: 261.63, time: 0.0, duration: 0.3 },     // C4
-        { freq: 329.63, time: 0.2, duration: 0.3 },     // E4
-        { freq: 392.00, time: 0.4, duration: 0.3 },     // G4
-        { freq: 523.25, time: 0.6, duration: 0.6 }      // C5 (hold longer)
-      ];
-      
-      successMelody.forEach((note, index) => {
-        if (note.time < duration) {
-          // Main note
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.value = note.freq;
-          oscillator.type = 'sine'; // Smooth sine wave for pleasant sound
-          
-          const startTime = currentTime + note.time;
-          const endTime = startTime + Math.min(note.duration, duration - note.time);
-          
-          // Smooth envelope for pleasant sound
-          gainNode.gain.setValueAtTime(0, startTime);
-          gainNode.gain.linearRampToValueAtTime(volume * 0.6, startTime + 0.02);
-          gainNode.gain.setValueAtTime(volume * 0.6, endTime - 0.1);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
-          
-          oscillator.start(startTime);
-          oscillator.stop(endTime);
-          
-          // Add harmonic for richer sound
-          if (index === successMelody.length - 1) { // Only on the final note
-            const harmonicOscillator = audioContext.createOscillator();
-            const harmonicGain = audioContext.createGain();
-            
-            harmonicOscillator.connect(harmonicGain);
-            harmonicGain.connect(audioContext.destination);
-            
-            harmonicOscillator.frequency.value = note.freq * 2; // Octave higher
-            harmonicOscillator.type = 'triangle';
-            
-            harmonicGain.gain.setValueAtTime(0, startTime);
-            harmonicGain.gain.linearRampToValueAtTime(volume * 0.3, startTime + 0.1);
-            harmonicGain.gain.exponentialRampToValueAtTime(0.01, endTime);
-            
-            harmonicOscillator.start(startTime + 0.1);
-            harmonicOscillator.stop(endTime);
-          }
-        }
-      });
-      
-      console.log('✅ Success melody played');
-    } catch (error) {
-      console.error('Success melody failed:', error);
-      // Fallback to simple beeps if melody fails
-      try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-        
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(settings.volume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 1);
-      } catch (fallbackError) {
-        console.error('Fallback beep also failed:', fallbackError);
-      }
-    }
-  };
-
-  // ฟังก์ชันหยุดเสียงแจ้งเตือนทั้งหมด
-  const stopAllNotificationSounds = () => {
-    try {
-      if (activeAudioContext) {
-        activeAudioContext.close();
-        setActiveAudioContext(null);
-      }
-      
-      activeOscillators.forEach(oscillator => {
-        try {
-          oscillator.stop();
-          oscillator.disconnect();
-        } catch (e) {
-          // Oscillator might already be stopped
-        }
-      });
-      setActiveOscillators([]);
-      
-      console.log('🔇 All notification sounds stopped');
-    } catch (error) {
-      console.error('Error stopping sounds:', error);
-    }
-  };
-
-  // ฟังก์ชันเล่นเสียงตีดๆสำหรับการยืนยันออเดอร์เป็นเวลา 10 วินาที
+  // Function to play gentle beep notification sound for 5 seconds
   const playOrderSuccessBeep = async () => {
     try {
-      console.log('🔊 Playing order success beep for 10 seconds...');
-      
-      // หยุดเสียงเก่าก่อน
-      stopAllNotificationSounds();
+      console.log('🔊 Playing order success beep for 5 seconds...');
       
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
@@ -426,84 +90,53 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         await audioContext.resume();
       }
       
-      setActiveAudioContext(audioContext);
+      const totalDuration = 5; // 5 seconds
+      const beepFrequency = 600; // Gentle frequency
+      const beepInterval = 0.7; // Interval between beeps
+      const beepDuration = 0.12; // Duration of each beep
       
-      const totalDuration = 10; // 10 วินาที
-      const beepFrequency = 600; // ลดความถี่ให้นุ่มนวลขึ้น
-      const beepInterval = 0.7; // เพิ่มระยะห่างระหว่างเสียงตีด
-      const beepDuration = 0.12; // ลดความยาวของแต่ละเสียงตีด
-      
-      // ใช้ volume จากอุปกรณ์โดยไม่กำหนดค่าแน่นอน
-      const deviceVolume = 0.3; // เริ่มที่ระดับเบา
+      // Gentle volume
+      const volume = 0.3;
       
       let currentTime = audioContext.currentTime;
       const endTime = currentTime + totalDuration;
-      const oscillators: OscillatorNode[] = [];
       
-      console.log(`🔊 Playing ตีดๆๆๆ for ${totalDuration} seconds`);
+      console.log(`🔊 Playing gentle beeps for ${totalDuration} seconds`);
       
-      // สร้างเสียงตีดๆต่อเนื่องเป็นเวลา 10 วินาที
+      // Create continuous gentle beeps for 5 seconds
       while (currentTime < endTime) {
         const beepOscillator = audioContext.createOscillator();
         const beepGainNode = audioContext.createGain();
         
-        // ใช้ low-pass filter เพื่อทำให้เสียงนุ่มนวล
+        // Use low-pass filter for softer sound
         const lowPassFilter = audioContext.createBiquadFilter();
         lowPassFilter.type = 'lowpass';
-        lowPassFilter.frequency.value = 1200; // ตัดความถี่สูงออก
+        lowPassFilter.frequency.value = 1200;
         
         beepOscillator.connect(lowPassFilter);
         lowPassFilter.connect(beepGainNode);
         beepGainNode.connect(audioContext.destination);
         
         beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
-        beepOscillator.type = 'sine'; // ใช้ sine wave แทน square wave เพื่อเสียงที่นุ่มนวล
+        beepOscillator.type = 'sine'; // Sine wave for gentle sound
         
-        // ตั้งค่าการเพิ่มและลดเสียงแบบนุ่มนวล
+        // Smooth envelope for gentle sound
         beepGainNode.gain.setValueAtTime(0, currentTime);
-        beepGainNode.gain.linearRampToValueAtTime(deviceVolume, currentTime + 0.02);
-        beepGainNode.gain.setValueAtTime(deviceVolume, currentTime + beepDuration - 0.02);
+        beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.02);
+        beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.02);
         beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
         
         beepOscillator.start(currentTime);
         beepOscillator.stop(currentTime + beepDuration);
         
-        oscillators.push(beepOscillator);
         currentTime += beepInterval;
       }
       
-      setActiveOscillators(oscillators);
-      
-      // หยุดเสียงอัตโนมัติหลัง 10 วินาที
-      setTimeout(() => {
-        stopAllNotificationSounds();
-      }, totalDuration * 1000);
-      
-      console.log(`✅ Order success beep played for ${totalDuration} seconds`);
+      console.log(`✅ Gentle order success beep played for ${totalDuration} seconds`);
     } catch (error) {
       console.error('Order success beep failed:', error);
     }
   };
-
-  useEffect(() => {
-    fetchMenuItems();
-    fetchCategories();
-    fetchAddons();
-  }, []);
-
-  // หยุดเสียงเมื่อออกจากหน้า
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      stopAllNotificationSounds();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      stopAllNotificationSounds(); // หยุดเสียงเมื่อ component unmount
-    };
-  }, [activeAudioContext, activeOscillators]);
 
   const fetchMenuItems = async () => {
     const { data, error } = await supabase
@@ -557,12 +190,10 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
-  // ฟังก์ชันดึง addon ที่เกี่ยวข้องกับเมนูและหมวดหมู่
   const getRelevantAddons = async (menuItem: MenuItem) => {
     console.log('Getting addons for menu item:', menuItem);
     
     try {
-      // ดึง addon groups ที่เกี่ยวข้องกับเมนูนี้โดยตรง
       const { data: menuAddonGroups, error: menuError } = await supabase
         .from('menu_addon_groups')
         .select('addon_group_id')
@@ -572,7 +203,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         console.error('Error fetching menu addon groups:', menuError);
       }
 
-      // ดึง addon groups ที่เกี่ยวข้องกับหมวดหมู่
       const { data: categoryAddonGroups, error: categoryError } = await supabase
         .from('category_addon_groups')
         .select('addon_group_id')
@@ -582,7 +212,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         console.error('Error fetching category addon groups:', categoryError);
       }
 
-      // รวม addon group IDs ทั้งหมด
       const allAddonGroupIds = new Set([
         ...(menuAddonGroups || []).map(ag => ag.addon_group_id),
         ...(categoryAddonGroups || []).map(ag => ag.addon_group_id)
@@ -590,7 +219,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       console.log('All addon group IDs:', Array.from(allAddonGroupIds));
 
-      // กรอง addons ที่เกี่ยวข้อง
       const relevantAddons = addons.filter(addon => 
         addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
       );
@@ -637,7 +265,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const handleAddToCart = async (menuItem: MenuItem) => {
     console.log('Adding to cart:', menuItem);
     
-    // ตรวจสอบ addon ที่เกี่ยวข้องกับเมนูนี้
     const relevantAddons = await getRelevantAddons(menuItem);
     
     if (relevantAddons.length > 0) {
@@ -746,13 +373,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // อัปโหลดสลีป
       const receiptUrl = await uploadReceipt(receiptFile);
       if (!receiptUrl) {
         throw new Error('ไม่สามารถอัปโหลดสลีปได้');
       }
 
-      // สร้างออเดอร์
       const orderNumber = generateOrderNumber();
       const totalAmount = getTotalAmount();
       
@@ -774,9 +399,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       if (orderError) throw orderError;
 
-      // เพิ่มรายการสินค้าและ add-ons
       for (const item of cartItems) {
-        // เพิ่มรายการสินค้าหลัก
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
           .insert({
@@ -792,7 +415,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
         if (itemError) throw itemError;
 
-        // เพิ่ม add-ons ถ้ามี
         if (item.selected_addons && item.selected_addons.length > 0) {
           const addonItems = item.selected_addons.map(addon => ({
             order_id: order.id,
@@ -812,7 +434,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         }
       }
 
-      // อัปเดตแต้มสำหรับสมาชิก
       const pointsEarned = Math.floor(totalAmount);
       await supabase
         .from('members')
@@ -822,7 +443,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         })
         .eq('id', currentUser.id);
 
-      // บันทึกการเปลี่ยนแปลงแต้ม
       await supabase
         .from('point_transactions')
         .insert({
@@ -838,14 +458,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         description: `หมายเลขออเดอร์: ${orderNumber} รับแต้ม ${pointsEarned} แต้ม` 
       });
 
-      // เล่นเสียงแจ้งเตือนการส่งออเดอร์สำเร็จ - เสียงตีดๆเป็นเวลา 10 วินาที
+      // Play gentle notification sound for 5 seconds when order is successful
       try {
         await playOrderSuccessBeep();
       } catch (soundError) {
         console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
       }
 
-      // รีเซ็ตฟอร์มและซ่อนหน้าการชำระเงิน
       setCartItems([]);
       setPickupTime('');
       setCustomerNotes('');
@@ -853,7 +472,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setShowPayment(false);
       setQrCodeUrl('');
       
-      // แสดงข้อความสำเร็จเพิ่มเติม
       setTimeout(() => {
         toast({ 
           title: '✅ ขอบคุณครับ!', 
@@ -885,7 +503,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 justify-between">
@@ -906,7 +523,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardHeader>
       </Card>
 
-      {/* Category Filter */}
       <Card>
         <CardContent className="p-4">
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -925,7 +541,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </CardContent>
       </Card>
 
-      {/* Menu Items Grid - จำนวนคอลัมน์ตามการตั้งค่า */}
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
         {filteredMenuItems.map(item => (
           <Card 
@@ -962,7 +577,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         ))}
       </div>
 
-      {/* Cart */}
       {cartItems.length > 0 && (
         <Card>
           <CardHeader>
@@ -1011,7 +625,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </Card>
       )}
 
-      {/* Order Details */}
       {cartItems.length > 0 && (
         <Card>
           <CardHeader>
@@ -1044,7 +657,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             <div className="space-y-3">
               <Button 
-                onClick={async () => await playOrderSuccessSound(3)}
+                onClick={async () => await playOrderSuccessBeep()}
                 variant="outline"
                 className="w-full"
               >
@@ -1064,7 +677,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </Card>
       )}
 
-      {/* Payment Section */}
       {showPayment && (
         <Card>
           <CardHeader>
@@ -1107,7 +719,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </Card>
       )}
 
-      {/* Display Settings Modal */}
       {showDisplaySettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
@@ -1163,7 +774,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </div>
       )}
 
-      {/* Addon Modal */}
       <AddonModal
         isOpen={showAddonModal}
         onClose={() => {
