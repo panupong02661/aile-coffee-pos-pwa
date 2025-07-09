@@ -71,6 +71,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
+  const [activeAudioContext, setActiveAudioContext] = useState<AudioContext | null>(null);
+  const [activeOscillators, setActiveOscillators] = useState<OscillatorNode[]>([]);
   const { toast } = useToast();
 
   // Notification sound function - ใช้ฟังก์ชันเดียวกันกับหน้าตั้งค่าเสียง
@@ -381,10 +383,37 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
+  // ฟังก์ชันหยุดเสียงแจ้งเตือนทั้งหมด
+  const stopAllNotificationSounds = () => {
+    try {
+      if (activeAudioContext) {
+        activeAudioContext.close();
+        setActiveAudioContext(null);
+      }
+      
+      activeOscillators.forEach(oscillator => {
+        try {
+          oscillator.stop();
+          oscillator.disconnect();
+        } catch (e) {
+          // Oscillator might already be stopped
+        }
+      });
+      setActiveOscillators([]);
+      
+      console.log('🔇 All notification sounds stopped');
+    } catch (error) {
+      console.error('Error stopping sounds:', error);
+    }
+  };
+
   // ฟังก์ชันเล่นเสียงตีดๆสำหรับการยืนยันออเดอร์เป็นเวลา 10 วินาที
   const playOrderSuccessBeep = async () => {
     try {
       console.log('🔊 Playing order success beep for 10 seconds...');
+      
+      // หยุดเสียงเก่าก่อน
+      stopAllNotificationSounds();
       
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
@@ -392,14 +421,19 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         await audioContext.resume();
       }
       
+      setActiveAudioContext(audioContext);
+      
       const totalDuration = 10; // 10 วินาที
-      const beepFrequency = 800; // ความถี่เสียงตีด
-      const beepInterval = 0.5; // ระยะห่างระหว่างเสียงตีด 500ms
-      const beepDuration = 0.15; // ความยาวของแต่ละเสียงตีด 150ms
-      const volume = 0.8; // ความดัง
+      const beepFrequency = 600; // ลดความถี่ให้นุ่มนวลขึ้น
+      const beepInterval = 0.7; // เพิ่มระยะห่างระหว่างเสียงตีด
+      const beepDuration = 0.12; // ลดความยาวของแต่ละเสียงตีด
+      
+      // ใช้ volume จากอุปกรณ์โดยไม่กำหนดค่าแน่นอน
+      const deviceVolume = 0.3; // เริ่มที่ระดับเบา
       
       let currentTime = audioContext.currentTime;
       const endTime = currentTime + totalDuration;
+      const oscillators: OscillatorNode[] = [];
       
       console.log(`🔊 Playing ตีดๆๆๆ for ${totalDuration} seconds`);
       
@@ -408,23 +442,37 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         const beepOscillator = audioContext.createOscillator();
         const beepGainNode = audioContext.createGain();
         
-        beepOscillator.connect(beepGainNode);
+        // ใช้ low-pass filter เพื่อทำให้เสียงนุ่มนวล
+        const lowPassFilter = audioContext.createBiquadFilter();
+        lowPassFilter.type = 'lowpass';
+        lowPassFilter.frequency.value = 1200; // ตัดความถี่สูงออก
+        
+        beepOscillator.connect(lowPassFilter);
+        lowPassFilter.connect(beepGainNode);
         beepGainNode.connect(audioContext.destination);
         
         beepOscillator.frequency.setValueAtTime(beepFrequency, currentTime);
-        beepOscillator.type = 'square'; // Square wave สำหรับเสียงตีดที่ชัด
+        beepOscillator.type = 'sine'; // ใช้ sine wave แทน square wave เพื่อเสียงที่นุ่มนวล
         
-        // ตั้งค่าการเพิ่มและลดเสียงแบบกะทันหัน
+        // ตั้งค่าการเพิ่มและลดเสียงแบบนุ่มนวล
         beepGainNode.gain.setValueAtTime(0, currentTime);
-        beepGainNode.gain.linearRampToValueAtTime(volume, currentTime + 0.01);
-        beepGainNode.gain.setValueAtTime(volume, currentTime + beepDuration - 0.01);
+        beepGainNode.gain.linearRampToValueAtTime(deviceVolume, currentTime + 0.02);
+        beepGainNode.gain.setValueAtTime(deviceVolume, currentTime + beepDuration - 0.02);
         beepGainNode.gain.linearRampToValueAtTime(0, currentTime + beepDuration);
         
         beepOscillator.start(currentTime);
         beepOscillator.stop(currentTime + beepDuration);
         
+        oscillators.push(beepOscillator);
         currentTime += beepInterval;
       }
+      
+      setActiveOscillators(oscillators);
+      
+      // หยุดเสียงอัตโนมัติหลัง 10 วินาที
+      setTimeout(() => {
+        stopAllNotificationSounds();
+      }, totalDuration * 1000);
       
       console.log(`✅ Order success beep played for ${totalDuration} seconds`);
     } catch (error) {
@@ -437,6 +485,20 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     fetchCategories();
     fetchAddons();
   }, []);
+
+  // หยุดเสียงเมื่อออกจากหน้า
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      stopAllNotificationSounds();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      stopAllNotificationSounds(); // หยุดเสียงเมื่อ component unmount
+    };
+  }, [activeAudioContext, activeOscillators]);
 
   const fetchMenuItems = async () => {
     const { data, error } = await supabase
