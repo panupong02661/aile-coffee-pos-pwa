@@ -5,266 +5,241 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useOrderNotifications = () => {
   const { toast } = useToast();
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio context for iOS compatibility
+  // Initialize audio with user interaction for iOS compatibility
   const initializeAudio = async () => {
-    if (isAudioInitializedRef.current) return;
+    if (isAudioInitializedRef.current || audioRef.current) return;
     
     try {
-      console.log('🎵 Initializing audio for iOS/iPad compatibility...');
+      console.log('🎵 Initializing notification audio for iPad...');
       
-      // Try to create HTML5 audio element first (more reliable on iOS)
-      try {
-        const audio = new Audio();
-        // Create a short sine wave audio data URL for iOS
-        const audioData = 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4AAAC4uLi4uLi4uLi4uLi4';
-        audio.src = audioData;
-        audio.volume = 0.1;
-        audio.muted = true;
-        await audio.play();
-        audio.pause();
-        audio.muted = false;
-        audioElementRef.current = audio;
-        console.log('✅ HTML5 Audio initialized for iPad');
-      } catch (audioError) {
-        console.log('⚠️ HTML5 Audio failed, trying Web Audio API...');
-      }
-
-      // Initialize Web Audio API as backup
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      // Create audio element
+      const audio = new Audio();
       
-      if (!AudioContextClass) {
-        console.warn('⚠️ AudioContext not supported');
-        return;
-      }
-
-      const audioContext = new AudioContextClass();
+      // Try to use an existing notification sound first
+      audio.src = '/sounds/default-notification.mp3';
+      audio.preload = 'auto';
+      audio.volume = 0.8;
       
-      // Resume context if suspended (required for iOS)
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-        console.log('✅ Audio context resumed for iOS');
+      // For iOS - need to play and immediately pause to initialize
+      audio.muted = true;
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise.then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+          console.log('✅ Audio initialized successfully');
+        }).catch(error => {
+          console.log('⚠️ Audio initialization with file failed, creating tone...', error);
+          // Fallback: create a simple tone
+          createNotificationTone();
+        });
       }
       
-      audioContextRef.current = audioContext;
+      audioRef.current = audio;
       isAudioInitializedRef.current = true;
       
-      // Test audio capability with a silent tone
-      const testOscillator = audioContext.createOscillator();
-      const testGain = audioContext.createGain();
-      testGain.gain.setValueAtTime(0, audioContext.currentTime);
-      testOscillator.connect(testGain);
-      testGain.connect(audioContext.destination);
-      testOscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      testOscillator.start();
-      testOscillator.stop(audioContext.currentTime + 0.001);
-      
-      console.log('✅ Web Audio API initialized successfully for iPad/iOS');
     } catch (error) {
-      console.error('❌ Failed to initialize audio:', error);
+      console.error('❌ Audio initialization failed:', error);
+      // Final fallback
+      createNotificationTone();
     }
   };
 
-  // Enhanced bell sound function for iOS/iPad compatibility
+  // Create notification tone as fallback
+  const createNotificationTone = () => {
+    try {
+      // Create a simple notification tone using data URL
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const sampleRate = 22050;
+      const duration = 1;
+      const samples = sampleRate * duration;
+      
+      // Create buffer for bell sound
+      const buffer = audioContext.createBuffer(1, samples, sampleRate);
+      const channelData = buffer.getChannelData(0);
+      
+      // Generate bell-like sound
+      for (let i = 0; i < samples; i++) {
+        const t = i / sampleRate;
+        const frequency1 = 800;
+        const frequency2 = 1000;
+        const envelope = Math.exp(-t * 3);
+        
+        channelData[i] = envelope * (
+          Math.sin(2 * Math.PI * frequency1 * t) * 0.5 +
+          Math.sin(2 * Math.PI * frequency2 * t) * 0.3
+        );
+      }
+      
+      // Convert to WAV
+      const wavData = audioBufferToWav(buffer);
+      const blob = new Blob([wavData], { type: 'audio/wav' });
+      const audioUrl = URL.createObjectURL(blob);
+      
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.7;
+      audioRef.current = audio;
+      
+      console.log('✅ Fallback tone created');
+      
+    } catch (error) {
+      console.error('❌ Fallback tone creation failed:', error);
+    }
+  };
+
+  // Convert AudioBuffer to WAV
+  const audioBufferToWav = (buffer: AudioBuffer) => {
+    const length = buffer.length;
+    const arrayBuffer = new ArrayBuffer(44 + length * 2);
+    const view = new DataView(arrayBuffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, buffer.sampleRate, true);
+    view.setUint32(28, buffer.sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length * 2, true);
+    
+    // Convert float samples to 16-bit PCM
+    const channelData = buffer.getChannelData(0);
+    let offset = 44;
+    for (let i = 0; i < length; i++) {
+      const sample = Math.max(-1, Math.min(1, channelData[i]));
+      view.setInt16(offset, sample * 0x7FFF, true);
+      offset += 2;
+    }
+    
+    return arrayBuffer;
+  };
+
+  // Play notification sound
   const playBellSound = async () => {
     try {
-      console.log('🔔 Playing bell notification for new order (iPad compatible)...');
+      console.log('🔔 Playing notification sound...');
       
-      // Force initialize audio if not already done
-      if (!isAudioInitializedRef.current) {
+      if (!audioRef.current) {
+        console.log('⚠️ Audio not initialized, initializing now...');
         await initializeAudio();
       }
       
-      // Try HTML5 Audio first (most reliable on iOS)
-      if (audioElementRef.current) {
-        try {
-          console.log('🎵 Using HTML5 Audio for iPad notification...');
-          
-          // Create bell sound sequence using multiple audio elements
-          const bellSequence = [
-            { freq: 800, delay: 0, duration: 800 },
-            { freq: 1000, delay: 300, duration: 600 },
-            { freq: 1200, delay: 600, duration: 400 },
-            { freq: 800, delay: 1200, duration: 600 },
-            { freq: 1000, delay: 1500, duration: 400 }
-          ];
-          
-          // Play sequence of tones
-          bellSequence.forEach((note, index) => {
+      if (audioRef.current) {
+        // Reset audio to beginning
+        audioRef.current.currentTime = 0;
+        audioRef.current.volume = 0.8;
+        
+        // Play the sound
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise.then(() => {
+            console.log('✅ Notification sound playing');
+            
+            // Stop after 7 seconds
             setTimeout(() => {
-              try {
-                const audio = new Audio();
-                // Generate simple beep tone
-                const sampleRate = 44100;
-                const duration = note.duration / 1000;
-                const samples = sampleRate * duration;
-                const buffer = new ArrayBuffer(44 + samples * 2);
-                const view = new DataView(buffer);
-                
-                // WAV header
-                const writeString = (offset: number, string: string) => {
-                  for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                  }
-                };
-                
-                writeString(0, 'RIFF');
-                view.setUint32(4, 36 + samples * 2, true);
-                writeString(8, 'WAVE');
-                writeString(12, 'fmt ');
-                view.setUint32(16, 16, true);
-                view.setUint16(20, 1, true);
-                view.setUint16(22, 1, true);
-                view.setUint32(24, sampleRate, true);
-                view.setUint32(28, sampleRate * 2, true);
-                view.setUint16(32, 2, true);
-                view.setUint16(34, 16, true);
-                writeString(36, 'data');
-                view.setUint32(40, samples * 2, true);
-                
-                // Generate sine wave
-                for (let i = 0; i < samples; i++) {
-                  const sample = Math.sin(2 * Math.PI * note.freq * i / sampleRate) * 0.3;
-                  view.setInt16(44 + i * 2, sample * 32767, true);
-                }
-                
-                const blob = new Blob([buffer], { type: 'audio/wav' });
-                audio.src = URL.createObjectURL(blob);
-                audio.volume = 0.7;
-                audio.play().catch(e => console.log('Audio play failed:', e));
-                
-                // Clean up
-                setTimeout(() => {
-                  URL.revokeObjectURL(audio.src);
-                }, note.duration + 100);
-                
-              } catch (e) {
-                console.log('Individual tone failed:', e);
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                console.log('🔇 Notification sound stopped after 7 seconds');
               }
-            }, note.delay);
+            }, 7000);
+            
+          }).catch(error => {
+            console.error('❌ Failed to play notification sound:', error);
+            // Try to play system beep as final fallback
+            playSystemBeep();
           });
-          
-          console.log('✅ Bell sound sequence started on iPad');
-          return;
-          
-        } catch (htmlAudioError) {
-          console.log('⚠️ HTML5 Audio sequence failed:', htmlAudioError);
         }
+      } else {
+        console.error('❌ No audio available, playing system beep');
+        playSystemBeep();
       }
-      
-      // Fallback to Web Audio API
-      if (!audioContextRef.current) {
-        console.warn('⚠️ No audio context available');
-        // Final fallback - simple alert
-        setTimeout(() => {
-          console.log('🔔 Audio fallback: Using visual notification only');
-        }, 100);
-        return;
-      }
-      
-      const audioContext = audioContextRef.current;
-      
-      // Resume context if suspended (iOS requirement)
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-        console.log('🔄 Audio context resumed');
-      }
-      
-      // Create bell sounds optimized for iPad speakers
-      const bellFrequencies = [
-        { freq: 800, time: 0.0, duration: 0.8, volume: 0.4 },
-        { freq: 1000, time: 0.3, duration: 0.6, volume: 0.35 },
-        { freq: 1200, time: 0.6, duration: 0.4, volume: 0.3 },
-        { freq: 800, time: 1.2, duration: 0.6, volume: 0.25 },
-        { freq: 1000, time: 1.5, duration: 0.4, volume: 0.2 }
-      ];
-      
-      const oscillators: OscillatorNode[] = [];
-      
-      bellFrequencies.forEach((note, index) => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        // Use sine wave for cleaner sound on iPad
-        oscillator.type = 'sine';
-        oscillator.frequency.value = note.freq;
-        
-        // Connect audio nodes
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        const startTime = audioContext.currentTime + note.time;
-        const endTime = startTime + note.duration;
-        
-        // Create smooth envelope
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(note.volume, startTime + 0.02);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, endTime);
-        
-        oscillator.start(startTime);
-        oscillator.stop(endTime);
-        
-        oscillators.push(oscillator);
-      });
-      
-      oscillatorsRef.current = oscillators;
-      
-      // Auto-stop after 7 seconds
-      setTimeout(() => {
-        stopBellSound();
-      }, 7000);
-      
-      console.log('✅ Web Audio API bell sound played on iPad');
       
     } catch (error) {
-      console.error('❌ All audio methods failed on iPad:', error);
+      console.error('❌ Notification sound error:', error);
+      playSystemBeep();
     }
   };
 
-  // Stop bell sound function
+  // System beep fallback
+  const playSystemBeep = () => {
+    try {
+      // Create multiple quick beeps
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          console.log(`🔊 System beep ${i + 1}`);
+          // This will at least create a visual feedback
+          document.title = `🔔 New Order! ${i + 1}/5`;
+          
+          // Try to trigger any available system sound
+          const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = context.createOscillator();
+          const gainNode = context.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(context.destination);
+          
+          oscillator.frequency.value = 800 + (i * 200);
+          gainNode.gain.setValueAtTime(0.1, context.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+          
+          oscillator.start(context.currentTime);
+          oscillator.stop(context.currentTime + 0.3);
+          
+        }, i * 800);
+      }
+      
+      // Reset title after beeps
+      setTimeout(() => {
+        document.title = document.title.replace(/🔔 New Order! \d\/5/, '');
+      }, 5000);
+      
+    } catch (error) {
+      console.error('❌ System beep failed:', error);
+    }
+  };
+
+  // Stop notification sound
   const stopBellSound = () => {
     try {
-      // Stop Web Audio API oscillators
-      oscillatorsRef.current.forEach(oscillator => {
-        try {
-          oscillator.stop();
-          oscillator.disconnect();
-        } catch (e) {
-          // Oscillator might already be stopped
-        }
-      });
-      oscillatorsRef.current = [];
-      
-      // Close and recreate audio context to ensure clean state
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-        isAudioInitializedRef.current = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        console.log('🔇 Notification sound stopped manually');
       }
-      
-      console.log('🔇 Bell sound stopped');
     } catch (error) {
-      console.error('Error stopping bell sound:', error);
+      console.error('Error stopping notification sound:', error);
     }
   };
 
-  // Enhanced user interaction listeners for iOS
+  // Initialize audio on user interaction
   useEffect(() => {
-    const handleUserInteraction = async (event: Event) => {
-      console.log('👆 User interaction detected:', event.type);
-      
+    const handleUserInteraction = async () => {
       if (!isAudioInitializedRef.current) {
         await initializeAudio();
-        console.log('🎵 Audio initialized after user interaction');
       }
     };
 
-    // Listen for multiple types of user interactions
-    const events = ['touchstart', 'touchend', 'click', 'keydown', 'scroll'];
+    // Listen for any user interaction to initialize audio
+    const events = ['touchstart', 'touchend', 'click', 'keydown'];
     
     events.forEach(eventType => {
       document.addEventListener(eventType, handleUserInteraction, { 
@@ -273,23 +248,19 @@ export const useOrderNotifications = () => {
       });
     });
 
-    // Also listen on window for broader coverage
-    window.addEventListener('focus', handleUserInteraction, { once: true });
-
     return () => {
       events.forEach(eventType => {
         document.removeEventListener(eventType, handleUserInteraction);
       });
-      window.removeEventListener('focus', handleUserInteraction);
     };
   }, []);
 
-  // Real-time order notifications
+  // Listen for new online orders
   useEffect(() => {
-    console.log('👂 Setting up real-time order notifications for iPad...');
+    console.log('👂 Setting up real-time order notifications...');
     
     const channel = supabase
-      .channel('new-orders-ipad-enhanced')
+      .channel('new-orders-notifications')
       .on(
         'postgres_changes',
         {
@@ -298,32 +269,33 @@ export const useOrderNotifications = () => {
           table: 'customer_orders'
         },
         (payload) => {
-          console.log('🔔 New online order received on iPad:', payload.new);
+          console.log('🔔 New online order received:', payload.new);
           
           const order = payload.new as any;
           
           // Play notification sound immediately
           playBellSound();
           
-          // Show enhanced toast notification
+          // Show toast notification
           toast({
             title: '🔔 มีออเดอร์ออนไลน์ใหม่!',
             description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
             duration: 8000,
           });
           
-          // Additional visual feedback
-          document.title = `🔔 ออเดอร์ใหม่! - ${document.title.replace(/🔔 ออเดอร์ใหม่! - /, '')}`;
+          // Update page title for additional visual feedback
+          const originalTitle = document.title;
+          document.title = `🔔 ออเดอร์ใหม่! - ${originalTitle}`;
           setTimeout(() => {
-            document.title = document.title.replace(/🔔 ออเดอร์ใหม่! - /, '');
+            document.title = originalTitle;
           }, 10000);
           
-          console.log('📱 iPad notification sequence complete');
+          console.log('📱 Notification sequence complete');
         }
       )
       .subscribe();
 
-    console.log('✅ Real-time notifications active on iPad');
+    console.log('✅ Real-time notifications active');
 
     return () => {
       console.log('🔄 Cleaning up order notifications...');

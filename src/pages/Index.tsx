@@ -132,29 +132,14 @@ const Index = () => {
     setSelectedMember(null);
   };
 
-  // Enhanced audio initialization for iPad with multiple triggers
   const handleUserInteraction = async () => {
     try {
       await initializeAudio();
-      console.log('🎵 Audio ready for iPad notifications after interaction');
+      console.log('🎵 Audio ready for notifications');
     } catch (error) {
       console.log('⚠️ Audio initialization failed:', error);
     }
   };
-
-  // Add effect to initialize audio on component mount
-  useEffect(() => {
-    // Try to initialize audio immediately (may not work on iOS without interaction)
-    const tryInitialize = async () => {
-      try {
-        await initializeAudio();
-      } catch (error) {
-        console.log('Initial audio setup will wait for user interaction');
-      }
-    };
-    
-    tryInitialize();
-  }, []);
 
   const handleMenuItemClick = (menuItem: any) => {
     // Initialize audio on any interaction (iPad requirement)
@@ -292,9 +277,11 @@ const Index = () => {
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden" 
-         onClick={handleUserInteraction}
-         onTouchStart={handleUserInteraction}>
+    <div 
+      className="h-screen bg-cream-50 flex overflow-hidden" 
+      onClick={handleUserInteraction}
+      onTouchStart={handleUserInteraction}
+    >
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -334,13 +321,13 @@ const Index = () => {
           <Button
             onClick={async () => {
               await handleUserInteraction();
-              playBellSound();
+              await playBellSound();
             }}
             size="sm"
             variant="outline"
             className="mt-2 ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
           >
-            🔔 ทดสอบเสียง iPad
+            🔔 ทดสอบเสียงแจ้งเตือน iPad
           </Button>
         </div>
         
