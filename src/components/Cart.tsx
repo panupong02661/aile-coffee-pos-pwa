@@ -1,47 +1,61 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode } from 'lucide-react';
-import { CartItem, PaymentMethod } from '@/types';
-import PaymentModal from './PaymentModal';
-import DiscountModal from './DiscountModal';
-import HoldBillModal from './HoldBillModal';
-import ItemDiscountModal from './ItemDiscountModal';
-import CodeModal from './CodeModal';
-import { useToast } from '@/hooks/use-toast';
-import { usePromotions } from '@/hooks/usePromotions';
-import { calculatePromotionDiscount } from '@/utils/promotionUtils';
+import { Trash2, Plus, Minus, ShoppingCart, Receipt, Users, Gift } from 'lucide-react';
+import PaymentModal from '@/components/PaymentModal';
+import DiscountModal from '@/components/DiscountModal'; 
+import HoldBillModal from '@/components/HoldBillModal';
+import CodeModal from '@/components/CodeModal';
+import { useOrderNotifications } from '@/hooks/useOrderNotifications';
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  discount: number;
+  category: 'food' | 'drink' | 'other';
+  image?: string;
+  is_available: boolean;
+  description?: string;
+  calculated_cost: number;
+  addons?: CartItem[];
+  gift_name?: string;
+}
+
+interface Member {
+  id: string;
+  phone: string;
+  name: string;
+  email?: string;
+  tier: 'silver' | 'gold' | 'platinum';
+  points: number;
+  total_spent: number;
+}
 
 interface CartProps {
   cartItems: CartItem[];
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   onRemoveItem: (itemId: string) => void;
-  onUpdateDiscount: (itemId: string, discount: number, discountType: 'percent' | 'amount') => void;
+  onUpdateDiscount: (itemId: string, discount: number) => void;
   onClearCart: () => void;
   billDiscount: number;
-  billDiscountType: 'percent' | 'amount';
+  billDiscountType: 'amount' | 'percentage';
   onUpdateBillDiscount: (discount: number) => void;
-  onUpdateBillDiscountType: (type: 'percent' | 'amount') => void;
-  onRestoreCart: (items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
-  onCodeApply?: (giftData: any) => void;
-  appliedGiftCode?: any;
-  onPaymentComplete?: () => void;
-  selectedMember?: {
-    id: string;
-    phone: string;
-    name: string;
-    email?: string;
-    tier: 'silver' | 'gold' | 'platinum';
-    points: number;
-    total_spent: number;
-  } | null;
+  onUpdateBillDiscountType: (type: 'amount' | 'percentage') => void;
+  onRestoreCart: (cartData: any) => void;
+  selectedMember: Member | null;
+  onCodeApply: (giftData: any) => void;
+  appliedGiftCode: any;
+  onPaymentComplete: () => void;
 }
 
-const Cart = ({ 
-  cartItems, 
-  onUpdateQuantity, 
-  onRemoveItem, 
+const Cart: React.FC<CartProps> = ({
+  cartItems,
+  onUpdateQuantity,
+  onRemoveItem,
   onUpdateDiscount,
   onClearCart,
   billDiscount,
@@ -49,346 +63,287 @@ const Cart = ({
   onUpdateBillDiscount,
   onUpdateBillDiscountType,
   onRestoreCart,
+  selectedMember,
   onCodeApply,
   appliedGiftCode,
-  onPaymentComplete,
-  selectedMember
-}: CartProps) => {
+  onPaymentComplete
+}) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
-  const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
-  const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
-  const { toast } = useToast();
-
-  // เพิ่ม usePromotions hook
-  const { data: promotions = [] } = usePromotions();
-
-  // ใช้ useEffect เพื่อใช้โปรโมชั่นอัตโนมัติเมื่อมีการเปลี่ยนแปลงตะกร้า
-  useEffect(() => {
-    console.log('🔄 Cart items or promotions changed');
-    console.log('Cart items count:', cartItems.length);
-    console.log('Promotions count:', promotions.length);
-    
-    if (promotions.length > 0 && cartItems.length > 0) {
-      cartItems.forEach((item, index) => {
-        console.log(`\n--- Processing item ${index + 1}: ${item.menu_item.name} ---`);
-        const promotionResult = calculatePromotionDiscount(item, promotions);
-        console.log('Promotion result for', item.menu_item.name, ':', promotionResult);
-        
-        // ใช้โปรโมชั่นเฉพาะเมื่อมีส่วนลดและยังไม่ได้ใช้หรือส่วนลดเปลี่ยนแปลง
-        if (promotionResult.discount > 0) {
-          const currentDiscount = item.item_discount || 0;
-          console.log('Current item discount:', currentDiscount);
-          console.log('New promotion discount:', promotionResult.discount);
-          
-          if (Math.abs(promotionResult.discount - currentDiscount) > 0.01) { // ใช้ threshold เล็กน้อยสำหรับการเปรียบเทียบ float
-            console.log('🎯 Applying promotion to', item.menu_item.name);
-            onUpdateDiscount(item.id, promotionResult.discount, promotionResult.discountType);
-            toast({
-              title: 'ใช้โปรโมชั่น',
-              description: `ใช้โปรโมชั่น "${promotionResult.promotionName}" กับ ${item.menu_item.name}`,
-            });
-          } else {
-            console.log('ℹ️ Promotion already applied to', item.menu_item.name);
-          }
-        } else {
-          // ลบส่วนลดถ้าไม่มีสิทธิ์แล้ว
-          if (item.item_discount > 0) {
-            console.log('🗑️ Removing promotion from', item.menu_item.name);
-            onUpdateDiscount(item.id, 0, 'amount');
-          }
-        }
-      });
-    } else {
-      console.log('ℹ️ No promotions or cart items to process');
-    }
-  }, [cartItems, promotions, onUpdateDiscount, toast]);
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+  const [selectedItem, setSelectedItem] = useState<CartItem | null>(null);
   
-  const calculateBillDiscount = () => {
-    if (billDiscountType === 'percent') {
-      return Math.min(subtotal * billDiscount / 100, subtotal);
+  // Add notification sound hook
+  const { playBellSound } = useOrderNotifications();
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    const itemPrice = item.gift_name ? 0 : item.price;
+    return sum + (itemPrice * item.quantity) * (1 - (item.discount / 100));
+  }, 0);
+
+  const calculateDiscountedTotal = () => {
+    let discountedTotal = subtotal;
+    if (billDiscountType === 'amount') {
+      discountedTotal -= billDiscount;
+    } else if (billDiscountType === 'percentage') {
+      discountedTotal *= (1 - (billDiscount / 100));
     }
-    return Math.min(billDiscount, subtotal);
+    return Math.max(0, discountedTotal);
   };
 
-  const billDiscountAmount = calculateBillDiscount();
-  const total = Math.max(0, subtotal - billDiscountAmount);
+  const discountedTotal = calculateDiscountedTotal();
 
-  const hasItemDiscounts = cartItems.some(item => item.item_discount > 0);
-
-  const handlePayment = (paymentMethod: PaymentMethod, cashReceived?: number) => {
-    console.log('Payment processed:', { paymentMethod, total, cashReceived });
-    
-    // Mark gift code as used when payment is completed
-    if (onPaymentComplete) {
-      onPaymentComplete();
+  const handleIncreaseQuantity = (itemId: string) => {
+    const item = cartItems.find(item => item.id === itemId);
+    if (item) {
+      onUpdateQuantity(itemId, item.quantity + 1);
     }
-    
-    onClearCart();
-    setIsPaymentModalOpen(false);
-    onUpdateBillDiscount(0);
   };
 
-  const handleApplyDiscount = (discount: number, type: 'percent' | 'amount') => {
+  const handleDecreaseQuantity = (itemId: string) => {
+    const item = cartItems.find(item => item.id === itemId);
+    if (item && item.quantity > 1) {
+      onUpdateQuantity(itemId, item.quantity - 1);
+    }
+  };
+
+  const handleOpenDiscountModal = (item: CartItem) => {
+    setSelectedItem(item);
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleUpdateItemDiscount = (discount: number) => {
+    if (selectedItem) {
+      onUpdateDiscount(selectedItem.id, discount);
+      setIsDiscountModalOpen(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleClearDiscount = (itemId: string) => {
+    onUpdateDiscount(itemId, 0);
+  };
+
+  const handleApplyBillDiscount = (discount: number) => {
     onUpdateBillDiscount(discount);
+  };
+
+  const handleApplyBillDiscountType = (type: 'amount' | 'percentage') => {
     onUpdateBillDiscountType(type);
   };
 
-  const handleHoldBill = () => {
-    onClearCart();
-    onUpdateBillDiscount(0);
+  const handleRestore = (cartData: any) => {
+    onRestoreCart(cartData);
   };
 
-  const handleRestoreBill = (bill: any) => {
-    onRestoreCart(bill.items, bill.discount, bill.discountType);
+  const handleCodeApplyModal = () => {
+    setIsCodeModalOpen(true);
   };
 
-  const handleItemDiscountClick = (item: CartItem) => {
-    setSelectedItemForDiscount(item);
-    setIsItemDiscountModalOpen(true);
-  };
-
-  const handleApplyItemDiscount = (discount: number, type: 'percent' | 'amount') => {
-    if (selectedItemForDiscount) {
-      onUpdateDiscount(selectedItemForDiscount.id, discount, type);
+  const handlePaymentComplete = async () => {
+    console.log('🔔 Cart: Payment completed, playing notification...');
+    
+    // Play notification sound
+    try {
+      await playBellSound();
+      console.log('🎵 Cart: Bell sound played successfully');
+    } catch (error) {
+      console.log('⚠️ Cart: Failed to play bell sound:', error);
     }
+    
+    // Call parent handler
+    console.log('🔄 Cart: Calling parent payment complete handler...');
+    onPaymentComplete();
   };
 
   return (
-    <>
-      <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
-        <CardHeader className="pb-3 flex-shrink-0">
-          <CardTitle className="text-coffee-800">ตะกร้าสินค้า</CardTitle>
-        </CardHeader>
-        
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
-          {/* Payment Summary Section - Always show */}
-          <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50 flex-shrink-0">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>ยอดรวมย่อย:</span>
-                <span>฿{subtotal}</span>
-              </div>
-
-              {hasItemDiscounts && (
-                <div className="flex justify-between text-sm text-orange-600">
-                  <span>ส่วนลดรายการ:</span>
-                  <span>-฿{cartItems.reduce((sum, item) => {
-                    const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
-                    const totalBasePrice = basePrice * item.quantity;
-                    return sum + (totalBasePrice - item.total_price);
-                  }, 0)}</span>
-                </div>
-              )}
-
-              {billDiscountAmount > 0 && (
-                <div className="flex justify-between text-sm text-red-600">
-                  <span>ส่วนลดท้ายบิล ({billDiscountType === 'percent' ? billDiscount + '%' : '฿' + billDiscount}):</span>
-                  <span>-฿{billDiscountAmount}</span>
-                </div>
-              )}
-
-              <Separator />
-              
-              <div className="flex justify-between font-bold text-lg">
-                <span>ยอดชำระสุทธิ:</span>
-                <span className="text-coffee-600">฿{total}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2 mt-4">
-              <Button 
-                className="w-full bg-coffee-600 hover:bg-coffee-700 h-8"
-                onClick={() => setIsPaymentModalOpen(true)}
-                disabled={cartItems.length === 0}
-                size="sm"
-              >
-                ชำระ
-              </Button>
-              
-              <div className="grid grid-cols-4 gap-1">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsDiscountModalOpen(true)}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-8 p-1"
-                  size="sm"
-                >
-                  <Percent className="w-3 h-3" />
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsHoldBillModalOpen(true)}
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8 p-1"
-                  size="sm"
-                >
-                  <Clock className="w-3 h-3" />
-                </Button>
-
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsCodeModalOpen(true)}
-                  className="border-green-300 text-green-700 hover:bg-green-50 h-8 p-1"
-                  size="sm"
-                >
-                  <QrCode className="w-3 h-3" />
-                </Button>
-
-                <Button 
-                  variant="outline" 
-                  onClick={onClearCart}
-                  className="h-8 p-1"
-                  size="sm"
-                >
-                  เคลียร์
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Cart Items Section - Independent scrollbar */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin' }}>
-              {cartItems.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  ไม่มีสินค้าในตะกร้า
-                </div>
-              ) : (
-                cartItems.map((item) => (
-                  <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm text-coffee-800">
-                          {item.menu_item.name}
-                        </h4>
-                        {item.selected_addons.length > 0 && (
-                          <div className="text-xs text-coffee-600 mt-1">
-                            {item.selected_addons.map(addon => addon.name).join(', ')}
-                          </div>
-                        )}
-                        {item.item_discount > 0 && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            ส่วนลด: {item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
-                          </div>
+    <Card className="h-full flex flex-col bg-white border-coffee-200">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">
+          <ShoppingCart className="mr-2 h-4 w-4 inline-block align-middle" />
+          รายการ
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="overflow-y-auto flex-1 p-4">
+        {cartItems.length === 0 ? (
+          <div className="text-center text-gray-500">ไม่มีสินค้าในรายการ</div>
+        ) : (
+          <ul>
+            {cartItems.map((item) => (
+              <li key={item.id} className="mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {item.gift_name ? (
+                          <>
+                            <Gift className="mr-1 h-4 w-4 inline-block align-middle" />
+                            {item.gift_name} (ของแถม)
+                          </>
+                        ) : (
+                          item.name
                         )}
                       </div>
+                      {item.discount > 0 && !item.gift_name && (
+                        <Badge variant="secondary" className="ml-2">
+                          -{item.discount}%
+                        </Badge>
+                      )}
+                    </div>
+                    {!item.gift_name && (
+                      <div className="text-sm text-gray-500">
+                        {item.quantity} x ฿{item.price.toFixed(2)}
+                      </div>
+                    )}
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {item.addons.map(addon => (
+                          <div key={addon.id} className="flex items-center justify-between">
+                            <span>+ {addon.name}</span>
+                            <span>฿{addon.price.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!item.gift_name && (
+                    <div className="flex items-center">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="mr-2"
+                        onClick={() => handleDecreaseQuantity(item.id)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleIncreaseQuantity(item.id)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => onRemoveItem(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {!item.gift_name && (
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenDiscountModal(item)}
+                    >
+                      {item.discount > 0 ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'}
+                    </Button>
+                    {item.discount > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                        className="ml-2"
+                        onClick={() => handleClearDiscount(item.id)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        ล้างส่วนลด
                       </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                          className="w-8 h-8 p-0"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 p-0"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleItemDiscountClick(item)}
-                          className={`ml-2 w-8 h-8 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
-                          title={item.item_discount > 0 
-                            ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
-                            : 'ส่วนลด'
-                          }
-                        >
-                          <Tag className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-coffee-600">
-                          ฿{item.total_price}
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                )}
+                <Separator className="my-2" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-lg font-semibold">รวมทั้งหมด:</div>
+          <div className="text-lg font-semibold">฿{subtotal.toFixed(2)}</div>
+        </div>
+        <div className="flex justify-between items-center mb-2">
+          <div>ส่วนลดบิล:</div>
+          <div className="flex items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="mr-2"
+              onClick={() => {
+                handleApplyBillDiscountType(billDiscountType === 'amount' ? 'percentage' : 'amount');
+              }}
+            >
+              {billDiscountType === 'amount' ? '฿' : '%'}
+            </Button>
+            <Input
+              type="number"
+              className="w-24 text-right"
+              value={billDiscount.toString()}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value)) {
+                  handleApplyBillDiscount(value);
+                }
+              }}
+            />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Modals */}
+        </div>
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-xl font-bold">ยอดสุทธิ:</div>
+          <div className="text-xl font-bold">฿{discountedTotal.toFixed(2)}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Button onClick={() => setIsHoldBillModalOpen(true)} variant="secondary">พักบิล</Button>
+          <Button onClick={handleCodeApplyModal} variant="secondary">
+            <Gift className="mr-2 h-4 w-4" />
+            ใส่รหัสส่วนลด
+          </Button>
+          <Button onClick={onClearCart} variant="destructive">
+            <Trash2 className="mr-2 h-4 w-4" />
+            ล้างรายการ
+          </Button>
+          <Button onClick={() => setIsPaymentModalOpen(true)}>
+            <Receipt className="mr-2 h-4 w-4" />
+            ชำระเงิน
+          </Button>
+        </div>
+      </div>
+      
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        total={total}
-        onPayment={handlePayment}
         cartItems={cartItems}
+        subtotal={subtotal}
         billDiscount={billDiscount}
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
+        onPaymentComplete={handlePaymentComplete}
+        appliedGiftCode={appliedGiftCode}
       />
-
+      
       <DiscountModal
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
-        onApplyDiscount={handleApplyDiscount}
-        currentDiscount={billDiscount}
-        currentType={billDiscountType}
+        onUpdateDiscount={handleUpdateItemDiscount}
       />
-
       <HoldBillModal
         isOpen={isHoldBillModalOpen}
         onClose={() => setIsHoldBillModalOpen(false)}
-        currentCart={cartItems}
-        currentDiscount={billDiscount}
-        currentDiscountType={billDiscountType}
-        currentTotal={total}
-        onHoldBill={handleHoldBill}
-        onRestoreBill={handleRestoreBill}
+        onRestoreCart={handleRestore}
       />
-
-      {selectedItemForDiscount && (
-        <ItemDiscountModal
-          isOpen={isItemDiscountModalOpen}
-          onClose={() => {
-            setIsItemDiscountModalOpen(false);
-            setSelectedItemForDiscount(null);
-          }}
-          onApplyDiscount={handleApplyItemDiscount}
-          currentDiscount={selectedItemForDiscount.item_discount}
-          currentType={selectedItemForDiscount.item_discount_type}
-          itemName={selectedItemForDiscount.menu_item.name}
-        />
-      )}
-
       <CodeModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
-        onApplyCode={(giftData) => {
-          if (onCodeApply) {
-            onCodeApply(giftData);
-          }
-        }}
+        onCodeApply={onCodeApply}
       />
-    </>
+    </Card>
   );
 };
 
