@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -11,21 +10,13 @@ import ItemDiscountModal from './ItemDiscountModal';
 import HoldBillModal from './HoldBillModal';
 import CodeModal from './CodeModal';
 
-// Define the interface that HoldBillModal expects
-interface HoldBillCartItem {
+interface HeldBill {
   id: string;
-  name: string;
-  price: number;
-  quantity: number;
+  items: CartItem[];
+  total: number;
   discount: number;
-  category: string;
-}
-
-// Define interface for held bill data
-interface HeldBillData {
-  items: HoldBillCartItem[];
-  discount: number;
-  discountType: 'amount' | 'percent';
+  discountType: 'percent' | 'amount';
+  timestamp: Date;
 }
 
 interface MobileCartProps {
@@ -330,40 +321,14 @@ const MobileCart = ({
           <HoldBillModal
             isOpen={isHoldBillModalOpen}
             onClose={() => setIsHoldBillModalOpen(false)}
-            currentCart={cartItems.map(item => ({
-              id: item.id,
-              name: item.menu_item.name,
-              price: item.total_price,
-              quantity: item.quantity,
-              discount: item.item_discount,
-              category: item.menu_item.category_id || 'other'
-            }))}
+            currentCart={cartItems}
             currentDiscount={billDiscount}
             currentDiscountType={billDiscountType}
             currentTotal={discountedTotal}
             onHoldBill={onClearCart}
-            onRestoreBill={(bill: HeldBillData) => {
-              const restoredItems: CartItem[] = bill.items.map(holdBillItem => ({
-                id: holdBillItem.id,
-                menu_item: {
-                  id: holdBillItem.id,
-                  name: holdBillItem.name,
-                  price: holdBillItem.price / holdBillItem.quantity,
-                  category_id: holdBillItem.category,
-                  image: '',
-                  is_available: true,
-                  description: '',
-                  calculated_cost: 0
-                },
-                quantity: holdBillItem.quantity,
-                selected_addons: [],
-                item_discount: holdBillItem.discount,
-                item_discount_type: 'amount',
-                total_price: holdBillItem.price
-              }));
-              
+            onRestoreBill={(bill: HeldBill) => {
               onRestoreCart({
-                items: restoredItems,
+                items: bill.items,
                 discount: bill.discount,
                 discountType: bill.discountType
               });
