@@ -10,6 +10,7 @@ import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,9 @@ interface Member {
 const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
+  
+  // Initialize order notifications for iPad compatibility
+  const { playBellSound, initializeAudio } = useOrderNotifications();
   
   // โหลดการตั้งค่าจาก localStorage
   const [gridColumns, setGridColumns] = useState(() => {
@@ -242,7 +246,20 @@ const POS = () => {
     setAppliedGiftCode(null); // Clear applied gift code when cart is cleared
   };
 
+  const handleUserInteraction = async () => {
+    try {
+      await initializeAudio();
+      console.log('🎵 Audio ready for notifications');
+    } catch (error) {
+      console.log('⚠️ Audio initialization failed:', error);
+    }
+  };
+
   const handlePaymentComplete = async () => {
+    // เล่นเสียงแจ้งเตือนเมื่อยืนยันการสั่งซื้อ
+    console.log('🔔 Playing notification sound for order confirmation...');
+    await playBellSound();
+    
     // อัปเดตสถานะโค้ดเป็น "ใช้แล้ว" เมื่อชำระเงินสำเร็จแล้วเท่านั้น
     if (appliedGiftCode) {
       try {
@@ -283,7 +300,11 @@ const POS = () => {
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden">
+    <div 
+      className="h-screen bg-cream-50 flex overflow-hidden" 
+      onClick={handleUserInteraction}
+      onTouchStart={handleUserInteraction}
+    >
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -317,6 +338,19 @@ const POS = () => {
             className="mt-2"
           >
             {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
+          </Button>
+
+          {/* Enhanced iPad Audio Test Button */}
+          <Button
+            onClick={async () => {
+              await handleUserInteraction();
+              await playBellSound();
+            }}
+            size="sm"
+            variant="outline"
+            className="mt-2 ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
+          >
+            🔔 ทดสอบเสียงแจ้งเตือน iPad
           </Button>
         </div>
         

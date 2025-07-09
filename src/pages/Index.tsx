@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -237,6 +238,10 @@ const Index = () => {
   };
 
   const handlePaymentComplete = async () => {
+    // เล่นเสียงแจ้งเตือนเมื่อยืนยันการสั่งซื้อ
+    console.log('🔔 Playing notification sound for order confirmation...');
+    await playBellSound();
+    
     // อัปเดตสถานะโค้ดเป็น "ใช้แล้ว" เมื่อชำระเงินสำเร็จแล้วเท่านั้น
     if (appliedGiftCode) {
       try {
