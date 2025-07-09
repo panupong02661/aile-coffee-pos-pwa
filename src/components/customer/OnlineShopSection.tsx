@@ -1027,14 +1027,24 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               />
             </div>
 
-            <Button 
-              onClick={generateQRCode}
-              className="w-full"
-              disabled={!pickupTime}
-            >
-              <QrCode className="w-4 h-4 mr-2" />
-              สร้าง QR Code ชำระเงิน
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={async () => await playOrderSuccessSound(3)}
+                variant="outline"
+                className="w-full"
+              >
+                🔊 ทดสอบเสียงแจ้งเตือน
+              </Button>
+
+              <Button 
+                onClick={generateQRCode}
+                className="w-full"
+                disabled={!pickupTime}
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                สร้าง QR Code ชำระเงิน
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
