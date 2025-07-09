@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -316,15 +317,39 @@ const MobileCart = ({
           <HoldBillModal
             isOpen={isHoldBillModalOpen}
             onClose={() => setIsHoldBillModalOpen(false)}
-            currentCart={cartItems}
+            currentCart={cartItems.map(item => ({
+              id: item.id,
+              name: item.menu_item.name,
+              price: item.total_price,
+              quantity: item.quantity,
+              discount: item.item_discount,
+              category: item.menu_item.category_id || 'other'
+            }))}
             currentDiscount={billDiscount}
-            currentDiscountType={billDiscountType}
+            currentDiscountType={billDiscountType === 'percent' ? 'percentage' : 'amount'}
             currentTotal={discountedTotal}
             onHoldBill={onClearCart}
             onRestoreBill={(bill) => handleRestoreCart({
-              items: bill.items,
+              items: bill.items.map(item => ({
+                id: item.id,
+                menu_item: {
+                  id: item.id,
+                  name: item.name,
+                  price: item.price / item.quantity,
+                  category_id: item.category,
+                  image: '',
+                  is_available: true,
+                  description: '',
+                  calculated_cost: 0
+                },
+                quantity: item.quantity,
+                selected_addons: [],
+                item_discount: item.discount,
+                item_discount_type: 'amount',
+                total_price: item.price
+              })),
               discount: bill.discount,
-              discountType: bill.discountType
+              discountType: bill.discountType === 'percentage' ? 'percent' : 'amount'
             })}
           />
 
