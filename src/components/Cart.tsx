@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { Trash2, Plus, Minus, ShoppingCart, Receipt, Users, Gift } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
 import DiscountModal from '@/components/DiscountModal'; 
@@ -16,7 +17,7 @@ interface CartItem {
   price: number;
   quantity: number;
   discount: number;
-  category: 'food' | 'drink' | 'other';
+  category: 'food' | 'beverage' | 'other';
   image?: string;
   is_available: boolean;
   description?: string;
@@ -331,7 +332,9 @@ const Cart: React.FC<CartProps> = ({
       <DiscountModal
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
-        onUpdateDiscount={handleUpdateItemDiscount}
+        onApplyDiscount={handleUpdateItemDiscount}
+        currentDiscount={selectedItem?.discount || 0}
+        currentType="amount"
       />
       <HoldBillModal
         isOpen={isHoldBillModalOpen}

@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Minus, Receipt, Users, Gift } from 'lucide-react';
+import { Trash2, Plus, Minus, Receipt, Users, Gift, ShoppingCart } from 'lucide-react';
 import PaymentModal from '@/components/PaymentModal';
 import DiscountModal from '@/components/DiscountModal';
 import HoldBillModal from '@/components/HoldBillModal';
@@ -18,6 +18,7 @@ interface CartItem {
   image?: string;
   discount?: number;
   calculated_cost?: number;
+  category: 'food' | 'beverage' | 'other';
   addons?: {
     id: string;
     name: string;
@@ -286,18 +287,14 @@ const MobileCart: React.FC<MobileCartProps> = ({
         <DiscountModal
           isOpen={isDiscountModalOpen}
           onClose={() => setIsDiscountModalOpen(false)}
-          onUpdateDiscount={handleUpdateItemDiscount}
-          onClearDiscount={handleClearItemDiscount}
+          onApplyDiscount={handleUpdateItemDiscount}
+          currentDiscount={selectedItem?.discount || 0}
+          currentType="amount"
         />
 
         <HoldBillModal
           isOpen={isHoldBillModalOpen}
           onClose={() => setIsHoldBillModalOpen(false)}
-          cartItems={cartItems}
-          billDiscount={billDiscount}
-          billDiscountType={billDiscountType}
-          selectedMember={selectedMember}
-          onClearCart={onClearCart}
           onRestoreCart={onRestoreCart}
         />
 

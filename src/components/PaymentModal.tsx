@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -185,7 +186,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <div className="grid gap-2">
             <Label htmlFor="payment-method">ช่องทางการชำระเงิน</Label>
-            <RadioGroup defaultValue={paymentMethod} onValueChange={setPaymentMethod} className="flex space-x-2">
+            <RadioGroup 
+              defaultValue={paymentMethod} 
+              onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit')} 
+              className="flex space-x-2"
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="cash" id="cash" />
                 <Label htmlFor="cash">เงินสด</Label>
