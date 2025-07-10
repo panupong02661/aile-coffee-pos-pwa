@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Gift, Tag, ShoppingBag, Phone, UserCheck, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { 
   convertThaiDateToISO, 
   formatDateToThai, 
@@ -90,7 +89,6 @@ const CustomerMobileApp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const { toast } = useToast();
-  const { playBellSound } = useOrderNotifications();
 
   // Check for saved login on component mount
   useEffect(() => {
@@ -262,13 +260,6 @@ const CustomerMobileApp = () => {
       if (error) {
         toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโค้ดได้', variant: 'destructive' });
         return;
-      }
-
-      // เล่นเสียงแจ้งเตือนเมื่อสร้างโค้ดสำเร็จ
-      try {
-        await playBellSound();
-      } catch (soundError) {
-        console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
       }
 
       // แสดงโค้ดให้ผู้ใช้
@@ -734,23 +725,13 @@ const CustomerMobileApp = () => {
                                 </p>
                               )}
 
-                              {/* Action Button - เล่นเสียงเมื่อกด */}
+                              {/* Action Button */}
                               <Button 
                                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                                onClick={async () => {
-                                  // เล่นเสียงแจ้งเตือนทันทีเมื่อกดปุ่ม
-                                  try {
-                                    await playBellSound();
-                                  } catch (soundError) {
-                                    console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
-                                  }
-                                  
-                                  // ดำเนินการต่อ
-                                  handleUseGift(gift);
-                                }}
+                                onClick={() => handleUseGift(gift)}
                                 disabled={gift.expires_at && new Date(gift.expires_at) < new Date()}
                               >
-                                ดำเนินการชำระเงิน
+                                คัดลอกโค้ด
                               </Button>
 
                               {gift.message && (
@@ -781,17 +762,7 @@ const CustomerMobileApp = () => {
         )}
 
         {activeTab === 'shop' && (
-          <ShopSection 
-            currentUser={currentUser}
-            onPaymentButtonClick={async () => {
-              // เล่นเสียงแจ้งเตือนเมื่อกดปุ่มชำระเงินในหน้าช็อป
-              try {
-                await playBellSound();
-              } catch (soundError) {
-                console.log('เสียงแจ้งเตือนเล่นไม่ได้:', soundError);
-              }
-            }}
-          />
+          <ShopSection currentUser={currentUser} />
         )}
       </div>
     </div>
