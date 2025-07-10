@@ -78,7 +78,7 @@ export const useCart = () => {
     setCartItems(prev => prev.filter(item => item.id !== itemId));
   };
 
-  const updateDiscount = (itemId: string, discount: number, discountType: 'percent' | 'amount' = 'amount') => {
+  const updateDiscount = (itemId: string, discount: number, discountType: 'percent' | 'amount') => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
         const basePrice = item.menu_item.price + 

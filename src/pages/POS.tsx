@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -290,10 +289,6 @@ const POS = () => {
     }
   };
 
-  const handleRestoreCart = (cartData: { items: any[], discount: number, discountType: 'amount' | 'percent' }) => {
-    restoreCart(cartData.items, cartData.discount, cartData.discountType);
-  };
-
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (loading) {
@@ -403,7 +398,7 @@ const POS = () => {
                     billDiscountType={billDiscountType}
                     onUpdateBillDiscount={setBillDiscount}
                     onUpdateBillDiscountType={setBillDiscountType}
-                    onRestoreCart={handleRestoreCart}
+                    onRestoreCart={restoreCart}
                     selectedMember={selectedMember}
                     onCodeApply={handleCodeApply}
                     appliedGiftCode={appliedGiftCode}
@@ -448,7 +443,7 @@ const POS = () => {
           billDiscountType={billDiscountType}
           onUpdateBillDiscount={setBillDiscount}
           onUpdateBillDiscountType={setBillDiscountType}
-          onRestoreCart={handleRestoreCart}
+          onRestoreCart={restoreCart}
           selectedMember={selectedMember}
           onCodeApply={handleCodeApply}
           appliedGiftCode={appliedGiftCode}
