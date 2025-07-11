@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -76,7 +75,7 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
           };
         }
         acc[name].total_quantity += item.quantity;
-        acc[name].total_spent += parseFloat(item.total_price);
+        acc[name].total_spent += Number(item.total_price);
         return acc;
       }, {});
 
@@ -105,7 +104,7 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const totalDiscount = data.reduce((sum, order) => sum + (parseFloat(order.bill_discount) || 0), 0);
+        const totalDiscount = data.reduce((sum, order) => sum + (Number(order.bill_discount) || 0), 0);
         const avgDiscount = totalDiscount / data.length;
 
         setDiscountStats({
@@ -140,7 +139,7 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
       if (pointsError) throw pointsError;
 
       const totalOrders = orderData?.length || 0;
-      const totalSpent = orderData?.reduce((sum, order) => sum + parseFloat(order.total_amount), 0) || 0;
+      const totalSpent = orderData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       
       const pointsEarned = pointsData?.filter(t => t.transaction_type === 'earned')
         .reduce((sum, t) => sum + t.points_change, 0) || 0;
