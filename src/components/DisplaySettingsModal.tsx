@@ -40,16 +40,19 @@ const DisplaySettingsModal = ({
             <Slider
               value={[gridColumns]}
               onValueChange={([value]) => setGridColumns(value)}
-              min={3}
-              max={6}
+              min={1}
+              max={4}
               step={1}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-500">
+              <span>1</span>
+              <span>2</span>
               <span>3</span>
               <span>4</span>
-              <span>5</span>
-              <span>6</span>
+            </div>
+            <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
+              <strong>แนะนำ:</strong> 2 คอลัมน์สำหรับมือถือ, 3-4 คอลัมน์สำหรับแท็บเล็ต
             </div>
           </div>
 
@@ -66,6 +69,29 @@ const DisplaySettingsModal = ({
                 <SelectItem value="large">ใหญ่</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">ตัวเลือกด่วน</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => setGridColumns(2)}
+                variant={gridColumns === 2 ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                📱 มือถือ (2 คอลัมน์)
+              </Button>
+              <Button
+                onClick={() => setGridColumns(3)}
+                variant={gridColumns === 3 ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                📋 แท็บเล็ต (3 คอลัมน์)
+              </Button>
+            </div>
           </div>
         </div>
 
