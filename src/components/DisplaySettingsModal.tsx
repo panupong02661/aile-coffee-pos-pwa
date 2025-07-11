@@ -11,8 +11,8 @@ interface DisplaySettingsModalProps {
   onClose: () => void;
   gridColumns: number;
   setGridColumns: (columns: number) => void;
-  itemSize: string;
-  setItemSize: (size: string) => void;
+  itemSize: 'small' | 'medium' | 'large';
+  setItemSize: (size: 'small' | 'medium' | 'large') => void;
 }
 
 const DisplaySettingsModal = ({ 
@@ -59,7 +59,10 @@ const DisplaySettingsModal = ({
           {/* Item Size Setting */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">ขนาดรายการ</Label>
-            <Select value={itemSize} onValueChange={setItemSize}>
+            <Select 
+              value={itemSize} 
+              onValueChange={(value: 'small' | 'medium' | 'large') => setItemSize(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
