@@ -17,6 +17,8 @@ import NavigationGrid from '@/components/customer/NavigationGrid';
 import CustomerGoals from '@/components/customer/CustomerGoals';
 import MemberCard from '@/components/customer/MemberCard';
 import LoginForm from '@/components/customer/LoginForm';
+import ConnectionDiagnostic from '@/components/customer/ConnectionDiagnostic';
+import { generateDateSearchVariants, generatePhoneVariants } from '@/utils/dateUtils';
 
 interface CustomerProfile {
   id: string;
@@ -52,27 +54,23 @@ const CustomerMobileApp: React.FC = () => {
   const [registerForm, setRegisterForm] = useState({ name: '', phone: '', birth_date: '', gender: '' });
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  // Test database connection
-  const testDatabaseConnection = async () => {
+  // Enhanced database connection test
+  const testDatabaseConnection = async (): Promise<boolean> => {
     try {
       console.log('Testing database connection...');
       setConnectionStatus('checking');
       
-      // Simple test query
+      // Test basic connection with a simple query
       const { data, error } = await supabase
         .from('members')
-        .select('count')
+        .select('id')
         .limit(1);
       
       if (error) {
         console.error('Database connection test failed:', error);
         setConnectionStatus('error');
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: `ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ${error.message}`,
-          variant: 'destructive',
-        });
         return false;
       } else {
         console.log('Database connection successful');
@@ -82,43 +80,8 @@ const CustomerMobileApp: React.FC = () => {
     } catch (error: any) {
       console.error('Database connection error:', error);
       setConnectionStatus('error');
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
-        variant: 'destructive',
-      });
       return false;
     }
-  };
-
-  // Utility function to normalize date formats for comparison
-  const normalizeBirthDate = (inputDate: string): string[] => {
-    console.log('Normalizing birth date:', inputDate);
-    
-    // Remove all spaces and special characters
-    const cleaned = inputDate.replace(/[^0-9]/g, '');
-    console.log('Cleaned date:', cleaned);
-    
-    if (cleaned.length === 8) {
-      const day = cleaned.substring(0, 2);
-      const month = cleaned.substring(2, 4);
-      const year = cleaned.substring(4, 8);
-      
-      // Generate multiple possible formats
-      const formats = [
-        `${day}/${month}/${year}`,     // 22/10/2535
-        `${day}-${month}-${year}`,     // 22-10-2535
-        `${year}-${month}-${day}`,     // 2535-10-22
-        `${month}/${day}/${year}`,     // 10/22/2535
-        `${day}.${month}.${year}`,     // 22.10.2535
-      ];
-      
-      console.log('Generated formats:', formats);
-      return formats;
-    }
-    
-    // Return original if can't parse
-    return [inputDate];
   };
 
   // Load rewards from database
@@ -154,22 +117,18 @@ const CustomerMobileApp: React.FC = () => {
   };
 
   useEffect(() => {
-    // Check database connection and initialize app
     const initializeApp = async () => {
       setIsLoading(true);
       
-      // Test database connection first
       const isConnected = await testDatabaseConnection();
       
       if (isConnected) {
-        // Check if user is already authenticated
         const savedUser = localStorage.getItem('customerAuth');
         if (savedUser) {
           try {
             const userData = JSON.parse(savedUser);
             setCurrentUser(userData);
             setIsAuthenticated(true);
-            // Load actual data from database
             await loadCustomerData(userData.phone);
           } catch (error) {
             console.error('Error parsing saved user data:', error);
@@ -177,7 +136,6 @@ const CustomerMobileApp: React.FC = () => {
           }
         }
         
-        // Load rewards
         await loadRewards();
       }
       
@@ -198,11 +156,6 @@ const CustomerMobileApp: React.FC = () => {
 
       if (error) {
         console.error('Error loading customer data:', error);
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถโหลดข้อมูลลูกค้าได้',
-          variant: 'destructive',
-        });
         return;
       }
 
@@ -225,11 +178,6 @@ const CustomerMobileApp: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading customer data:', error);
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถโหลดข้อมูลลูกค้าได้',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -237,119 +185,109 @@ const CustomerMobileApp: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Test connection before login attempt
       const isConnected = await testDatabaseConnection();
       if (!isConnected) {
         setIsLoading(false);
         return;
       }
       
-      if (loginForm.phone && loginForm.birth_date) {
-        console.log('Attempting login with:', { phone: loginForm.phone, birth_date: loginForm.birth_date });
-        
-        // Get all possible date formats for comparison
-        const possibleDates = normalizeBirthDate(loginForm.birth_date);
-        console.log('Checking against date formats:', possibleDates);
-        
-        // First try exact match
-        let { data, error } = await supabase
-          .from('members')
-          .select('*')
-          .eq('phone', loginForm.phone)
-          .eq('birth_date', loginForm.birth_date)
-          .maybeSingle();
-
-        // If no exact match, try with normalized formats
-        if (!data && !error) {
-          console.log('No exact match, trying normalized formats...');
-          
-          // Get all members with matching phone
-          const { data: phoneMatches, error: phoneError } = await supabase
-            .from('members')
-            .select('*')
-            .eq('phone', loginForm.phone);
-
-          if (phoneError) {
-            console.error('Phone search error:', phoneError);
-            throw phoneError;
-          }
-
-          console.log('Phone matches found:', phoneMatches);
-          
-          if (phoneMatches && phoneMatches.length > 0) {
-            // Check each phone match against all possible date formats
-            for (const member of phoneMatches) {
-              console.log('Checking member birth_date:', member.birth_date);
-              
-              // Check if stored birth_date matches any of our possible formats
-              if (member.birth_date && possibleDates.includes(member.birth_date)) {
-                console.log('Date format match found!');
-                data = member;
-                break;
-              }
-              
-              // Also check if our input matches the stored format
-              const storedDateFormats = normalizeBirthDate(member.birth_date || '');
-              if (storedDateFormats.some(format => possibleDates.includes(format))) {
-                console.log('Reverse date format match found!');
-                data = member;
-                break;
-              }
-            }
-          }
-        }
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Database error:', error);
-          toast({
-            title: 'เกิดข้อผิดพลาด',
-            description: `ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ${error.message}`,
-            variant: 'destructive',
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        if (!data) {
-          console.log('No member found with provided credentials');
-          toast({
-            title: 'ข้อมูลไม่ถูกต้อง',
-            description: 'ไม่พบข้อมูลสมาชิกหรือเบอร์โทรและวันเกิดไม่ตรงกัน กรุณาตรวจสอบข้อมูลอีกครั้ง',
-            variant: 'destructive',
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('Login successful for member:', data);
-
-        const customerProfile: CustomerProfile = {
-          id: data.id,
-          name: data.name,
-          phone: data.phone,
-          email: data.email || '',
-          tier: data.tier,
-          points: data.points,
-          total_spent: data.total_spent,
-          birth_date: data.birth_date,
-          gender: data.gender
-        };
-        
-        setCurrentUser(customerProfile);
-        setIsAuthenticated(true);
-        localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
-        
-        toast({
-          title: 'เข้าสู่ระบบสำเร็จ!',
-          description: `ยินดีต้อนรับ ${data.name}`,
-        });
-      } else {
+      if (!loginForm.phone || !loginForm.birth_date) {
         toast({
           title: 'ข้อมูลไม่ครบถ้วน',
           description: 'กรุณากรอกเบอร์โทรและวันเดือนปีเกิด',
           variant: 'destructive',
         });
+        setIsLoading(false);
+        return;
       }
+
+      console.log('Attempting login with:', { phone: loginForm.phone, birth_date: loginForm.birth_date });
+      
+      // Generate search variants for phone and date
+      const phoneVariants = generatePhoneVariants(loginForm.phone);
+      const dateVariants = generateDateSearchVariants(loginForm.birth_date);
+      
+      console.log('Phone variants:', phoneVariants);
+      console.log('Date variants:', dateVariants);
+      
+      let foundMember = null;
+      
+      // Search through phone variants
+      for (const phoneVariant of phoneVariants) {
+        const { data: phoneMatches, error: phoneError } = await supabase
+          .from('members')
+          .select('*')
+          .eq('phone', phoneVariant);
+
+        if (phoneError) {
+          console.error('Phone search error:', phoneError);
+          continue;
+        }
+
+        if (phoneMatches && phoneMatches.length > 0) {
+          console.log(`Phone matches found for ${phoneVariant}:`, phoneMatches);
+          
+          // Check each phone match against date variants
+          for (const member of phoneMatches) {
+            if (member.birth_date) {
+              // Generate variants for stored birth_date
+              const storedDateVariants = generateDateSearchVariants(member.birth_date);
+              
+              // Check if any input date variant matches any stored date variant
+              const hasDateMatch = dateVariants.some(inputDate => 
+                storedDateVariants.some(storedDate => {
+                  // Compare normalized dates (remove spaces, convert to same format)
+                  const normalizedInput = inputDate.replace(/[\s-]/g, '');
+                  const normalizedStored = storedDate.replace(/[\s-]/g, '');
+                  return normalizedInput === normalizedStored;
+                })
+              );
+              
+              if (hasDateMatch) {
+                console.log('Date match found!');
+                foundMember = member;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (foundMember) break;
+      }
+
+      if (!foundMember) {
+        console.log('No member found with provided credentials');
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: 'ไม่พบข้อมูลสมาชิกหรือเบอร์โทรและวันเกิดไม่ตรงกัน กรุณาตรวจสอบข้อมูลอีกครั้ง',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Login successful for member:', foundMember);
+
+      const customerProfile: CustomerProfile = {
+        id: foundMember.id,
+        name: foundMember.name,
+        phone: foundMember.phone,
+        email: foundMember.email || '',
+        tier: foundMember.tier,
+        points: foundMember.points,
+        total_spent: foundMember.total_spent,
+        birth_date: foundMember.birth_date,
+        gender: foundMember.gender
+      };
+      
+      setCurrentUser(customerProfile);
+      setIsAuthenticated(true);
+      localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
+      
+      toast({
+        title: 'เข้าสู่ระบบสำเร็จ!',
+        description: `ยินดีต้อนรับ ${foundMember.name}`,
+      });
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -591,7 +529,7 @@ const CustomerMobileApp: React.FC = () => {
     });
   };
 
-  // Show connection error if can't connect to database
+  // Show connection error with diagnostic option
   if (connectionStatus === 'error') {
     return (
       <Shell>
@@ -604,14 +542,37 @@ const CustomerMobileApp: React.FC = () => {
               กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ<br/>
               หรือลองใหม่อีกครั้งในอีกสักครู่
             </p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
-            >
-              ลองใหม่อีกครั้ง
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full"
+              >
+                ลองใหม่อีกครั้ง
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setShowDiagnostic(true)} 
+                className="w-full"
+              >
+                ตรวจสอบระบบ
+              </Button>
+            </div>
           </div>
         </Card>
+        
+        {showDiagnostic && (
+          <div className="mt-6">
+            <ConnectionDiagnostic />
+            <div className="text-center mt-4">
+              <Button 
+                variant="ghost"
+                onClick={() => setShowDiagnostic(false)}
+              >
+                ปิด
+              </Button>
+            </div>
+          </div>
+        )}
       </Shell>
     );
   }
