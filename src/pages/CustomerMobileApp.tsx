@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -52,6 +51,36 @@ const CustomerMobileApp: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', phone: '', birth_date: '', gender: '' });
   const [rewards, setRewards] = useState<Reward[]>([]);
+
+  // Utility function to normalize date formats for comparison
+  const normalizeBirthDate = (inputDate: string): string[] => {
+    console.log('Normalizing birth date:', inputDate);
+    
+    // Remove all spaces and special characters
+    const cleaned = inputDate.replace(/[^0-9]/g, '');
+    console.log('Cleaned date:', cleaned);
+    
+    if (cleaned.length === 8) {
+      const day = cleaned.substring(0, 2);
+      const month = cleaned.substring(2, 4);
+      const year = cleaned.substring(4, 8);
+      
+      // Generate multiple possible formats
+      const formats = [
+        `${day}/${month}/${year}`,     // 22/10/2535
+        `${day}-${month}-${year}`,     // 22-10-2535
+        `${year}-${month}-${day}`,     // 2535-10-22
+        `${month}/${day}/${year}`,     // 10/22/2535
+        `${day}.${month}.${year}`,     // 22.10.2535
+      ];
+      
+      console.log('Generated formats:', formats);
+      return formats;
+    }
+    
+    // Return original if can't parse
+    return [inputDate];
+  };
 
   // Load rewards from database
   const loadRewards = async () => {
@@ -130,23 +159,83 @@ const CustomerMobileApp: React.FC = () => {
       setIsLoading(true);
       
       if (loginForm.phone && loginForm.birth_date) {
-        // Check if customer exists in database
-        const { data, error } = await supabase
+        console.log('Attempting login with:', { phone: loginForm.phone, birth_date: loginForm.birth_date });
+        
+        // Get all possible date formats for comparison
+        const possibleDates = normalizeBirthDate(loginForm.birth_date);
+        console.log('Checking against date formats:', possibleDates);
+        
+        // First try exact match
+        let { data, error } = await supabase
           .from('members')
           .select('*')
           .eq('phone', loginForm.phone)
           .eq('birth_date', loginForm.birth_date)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
+        // If no exact match, try with normalized formats
+        if (!data && !error) {
+          console.log('No exact match, trying normalized formats...');
+          
+          // Get all members with matching phone
+          const { data: phoneMatches, error: phoneError } = await supabase
+            .from('members')
+            .select('*')
+            .eq('phone', loginForm.phone);
+
+          if (phoneError) {
+            console.error('Phone search error:', phoneError);
+            throw phoneError;
+          }
+
+          console.log('Phone matches found:', phoneMatches);
+          
+          if (phoneMatches && phoneMatches.length > 0) {
+            // Check each phone match against all possible date formats
+            for (const member of phoneMatches) {
+              console.log('Checking member birth_date:', member.birth_date);
+              
+              // Check if stored birth_date matches any of our possible formats
+              if (member.birth_date && possibleDates.includes(member.birth_date)) {
+                console.log('Date format match found!');
+                data = member;
+                break;
+              }
+              
+              // Also check if our input matches the stored format
+              const storedDateFormats = normalizeBirthDate(member.birth_date || '');
+              if (storedDateFormats.some(format => possibleDates.includes(format))) {
+                console.log('Reverse date format match found!');
+                data = member;
+                break;
+              }
+            }
+          }
+        }
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Database error:', error);
           toast({
-            title: 'ข้อมูลไม่ถูกต้อง',
-            description: 'ไม่พบข้อมูลสมาชิกหรือเบอร์โทรและวันเกิดไม่ตรงกัน',
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้',
             variant: 'destructive',
           });
           setIsLoading(false);
           return;
         }
+
+        if (!data) {
+          console.log('No member found with provided credentials');
+          toast({
+            title: 'ข้อมูลไม่ถูกต้อง',
+            description: 'ไม่พบข้อมูลสมาชิกหรือเบอร์โทรและวันเกิดไม่ตรงกัน กรุณาตรวจสอบข้อมูลอีกครั้ง',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Login successful for member:', data);
 
         const customerProfile: CustomerProfile = {
           id: data.id,
