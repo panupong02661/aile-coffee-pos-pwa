@@ -1,577 +1,1522 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Minus, Plus, ShoppingCart, Clock, MapPin } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import QRCode from 'qrcode';
+import AddonModal from '@/components/AddonModal';
+import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 
 interface MenuItem {
   id: string;
   name: string;
+  description?: string;
   price: number;
-  image: string;
-  description: string;
-  quantity?: number;
+  image_url?: string;
+  category_id: string;
+  is_available: boolean;
 }
 
-interface CartItem extends MenuItem {
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface DatabaseAddon {
+  id: string;
+  name: string;
+  price: number;
+  addon_group_id?: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  addon_groups?: {
+    id: string;
+    name: string;
+    is_required: boolean;
+    allow_multiple: boolean;
+  };
+}
+
+interface CartItem {
+  id: string;
+  menu_item: MenuItem;
   quantity: number;
+  total_price: number;
+  selected_addons?: DatabaseAddon[];
 }
 
 interface OnlineShopSectionProps {
-  currentUser?: any;
+  currentUser: any;
 }
 
 const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
-  const [menu, setMenu] = useState<MenuItem[]>([
-    {
-      id: '1',
-      name: 'Espresso',
-      price: 3.50,
-      image: '/espresso.jpg',
-      description: 'Classic espresso shot'
-    },
-    {
-      id: '2',
-      name: 'Latte',
-      price: 4.50,
-      image: '/latte.jpg',
-      description: 'Latte with steamed milk'
-    },
-    {
-      id: '3',
-      name: 'Cappuccino',
-      price: 4.50,
-      image: '/cappuccino.jpg',
-      description: 'Cappuccino with foamed milk'
-    },
-    {
-      id: '4',
-      name: 'Mocha',
-      price: 5.00,
-      image: '/mocha.jpg',
-      description: 'Mocha with chocolate and milk'
-    },
-    {
-      id: '5',
-      name: 'Iced Coffee',
-      price: 4.00,
-      image: '/icedcoffee.jpg',
-      description: 'Iced coffee with milk'
-    },
-    {
-      id: '6',
-      name: 'Americano',
-      price: 3.00,
-      image: '/americano.jpg',
-      description: 'Americano with hot water'
-    },
-    {
-      id: '7',
-      name: 'Cold Brew',
-      price: 4.50,
-      image: '/coldbrew.jpg',
-      description: 'Cold brew coffee'
-    },
-    {
-      id: '8',
-      name: 'Macchiato',
-      price: 4.00,
-      image: '/macchiato.jpg',
-      description: 'Macchiato with milk foam'
-    },
-    {
-      id: '9',
-      name: 'Espresso',
-      price: 3.50,
-      image: '/espresso.jpg',
-      description: 'Classic espresso shot'
-    },
-    {
-      id: '10',
-      name: 'Latte',
-      price: 4.50,
-      image: '/latte.jpg',
-      description: 'Latte with steamed milk'
-    },
-    {
-      id: '11',
-      name: 'Cappuccino',
-      price: 4.50,
-      image: '/cappuccino.jpg',
-      description: 'Cappuccino with foamed milk'
-    },
-    {
-      id: '12',
-      name: 'Mocha',
-      price: 5.00,
-      image: '/mocha.jpg',
-      description: 'Mocha with chocolate and milk'
-    },
-  ]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [notes, setNotes] = useState('');
-  const [deliveryType, setDeliveryType] = useState('pickup');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [pickupTime, setPickupTime] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [showPayment, setShowPayment] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [addons, setAddons] = useState<DatabaseAddon[]>([]);
+  const [showAddonModal, setShowAddonModal] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+  const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'qr' | 'points'>('qr');
+  const [pointsToUse, setPointsToUse] = useState('');
+  const [membershipSettings, setMembershipSettings] = useState<any>(null);
+  
+  const [gridColumns, setGridColumns] = useState(2);
+  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  
   const { toast } = useToast();
 
-  // iOS Alert Modal Function
-  const showIOSAlert = (message: string) => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isIOS) {
-      // Create custom alert modal for iOS
-      const modal = document.createElement('div');
-      modal.innerHTML = `
-        <div style="
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.5);
-          z-index: 9999;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        ">
-          <div style="
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            max-width: 300px;
-            margin: 20px;
-          ">
-            <p style="margin: 0; font-size: 16px; color: #333;">${message}</p>
-            <button onclick="this.parentElement.parentElement.remove()" style="
-              margin-top: 15px;
-              padding: 8px 16px;
-              background: #007AFF;
-              color: white;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-            ">ตกลง</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        if (document.body.contains(modal)) {
-          modal.remove();
-        }
-      }, 3000);
-    } else {
-      alert(message);
-    }
-  };
-
-  // Enhanced iOS-compatible notification function
+  // Enhanced iOS-compatible notification sound for 7 seconds
   const playOrderSuccessNotification = async () => {
     try {
+      console.log('🔔 Playing iOS-compatible order confirmation notification for 7 seconds...');
+      
+      // Check if this is iOS and use native iOS notification APIs
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-      console.log('🔔 Playing order notification, iOS:', isIOS);
       
       if (isIOS) {
-        // iOS-specific audio handling
+        console.log('🍎 Using iOS-specific notification methods...');
+        
+        // Method 1: iOS Service Worker notification
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            if (registration.active) {
+              registration.active.postMessage({
+                type: 'PLAY_IOS_NOTIFICATION',
+                payload: {
+                  orderNumber: 'CONFIRM',
+                  totalAmount: getTotalAmount(),
+                  isOrderConfirmation: true
+                }
+              });
+            }
+          } catch (error) {
+            console.log('🍎 Service Worker notification failed:', error);
+          }
+        }
+
+        // Method 2: iOS Web Audio with Wake Lock
         try {
+          // Request wake lock to prevent iOS from sleeping
+          let wakeLock: any = null;
+          if ('wakeLock' in navigator) {
+            wakeLock = await (navigator as any).wakeLock.request('screen');
+            console.log('🍎 iOS wake lock acquired');
+          }
+
           const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
           const audioContext = new AudioContext();
           
-          // Resume audio context (required for iOS)
           if (audioContext.state === 'suspended') {
             await audioContext.resume();
           }
+
+          // Create aggressive 7-second iOS notification pattern
+          const duration = 7;
+          const beepPattern = [];
           
-          // Create multiple beeps for iOS
-          const frequencies = [800, 1000, 1200];
-          const beepCount = 5;
+          // Generate 14 beeps over 7 seconds for iOS attention
+          for (let i = 0; i < 14; i++) {
+            beepPattern.push({
+              startTime: i * 0.5,
+              frequencies: [800, 1000, 1200],
+              duration: 0.3
+            });
+          }
+
+          beepPattern.forEach(({ startTime, frequencies, duration }) => {
+            frequencies.forEach((freq, index) => {
+              const oscillator = audioContext.createOscillator();
+              const gainNode = audioContext.createGain();
+              const compressor = audioContext.createDynamicsCompressor();
+              
+              oscillator.connect(gainNode);
+              gainNode.connect(compressor);
+              compressor.connect(audioContext.destination);
+              
+              oscillator.frequency.value = freq;
+              oscillator.type = 'sine';
+              
+              const actualStartTime = audioContext.currentTime + startTime;
+              const actualEndTime = actualStartTime + duration;
+              
+              const volume = 0.8 / (index + 1);
+              gainNode.gain.setValueAtTime(0, actualStartTime);
+              gainNode.gain.linearRampToValueAtTime(volume, actualStartTime + 0.01);
+              gainNode.gain.exponentialRampToValueAtTime(0.01, actualEndTime);
+              
+              oscillator.start(actualStartTime);
+              oscillator.stop(actualEndTime);
+            });
+          });
+
+          // Release wake lock after 8 seconds
+          setTimeout(() => {
+            if (wakeLock) {
+              wakeLock.release();
+              console.log('🍎 iOS wake lock released');
+            }
+          }, 8000);
+
+          console.log('🍎 iOS Web Audio notification pattern started');
+
+        } catch (error) {
+          console.log('🍎 iOS Web Audio failed:', error);
+        }
+
+        // Method 3: iOS Visual and Haptic Feedback
+        try {
+          // iOS Haptic Feedback using navigator.vibrate()
+          if ('vibrate' in navigator) {
+            // Continuous vibration pattern for 7 seconds
+            const vibrationPattern = [];
+            for (let i = 0; i < 7; i++) {
+              vibrationPattern.push(200, 300); // vibrate 200ms, pause 300ms
+            }
+            navigator.vibrate(vibrationPattern);
+            console.log('🍎 iOS vibration pattern triggered');
+          }
+
+          // iOS Visual Feedback - Aggressive screen flashing
+          let flashCount = 0;
+          const maxFlashes = 14; // Flash for 7 seconds
           
-          for (let i = 0; i < beepCount; i++) {
-            setTimeout(() => {
-              frequencies.forEach((freq, index) => {
+          const flashScreen = () => {
+            if (flashCount < maxFlashes) {
+              const colors = ['#ff0000', '#ff6b6b', '#ffffff', '#ffa500'];
+              document.body.style.backgroundColor = colors[flashCount % colors.length];
+              
+              setTimeout(() => {
+                document.body.style.backgroundColor = '';
+                flashCount++;
+                if (flashCount < maxFlashes) {
+                  setTimeout(flashScreen, 500);
+                }
+              }, 500);
+            }
+          };
+          
+          flashScreen();
+
+          // iOS Title Notification
+          const originalTitle = document.title;
+          let titleCount = 0;
+          
+          const updateTitle = () => {
+            if (titleCount < 7) {
+              document.title = `🔔 ยืนยันออเดอร์แล้ว! (${titleCount + 1}/7)`;
+              titleCount++;
+              setTimeout(updateTitle, 1000);
+            } else {
+              document.title = originalTitle;
+            }
+          };
+          
+          updateTitle();
+
+          console.log('🍎 iOS visual and haptic feedback completed');
+
+        } catch (error) {
+          console.log('🍎 iOS visual/haptic feedback failed:', error);
+        }
+
+        // Method 4: iOS System Notification (if permission granted)
+        try {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification('🔔 ออเดอร์ยืนยันแล้ว!', {
+              body: `ออเดอร์ของคุณได้รับการยืนยันเรียบร้อยแล้ว จำนวน ฿${getTotalAmount()}`,
+              icon: '/favicon.ico',
+              requireInteraction: true,
+              silent: false
+            });
+
+            // Use navigator.vibrate() separately from Notification
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+
+            // Auto-close after 7 seconds
+            setTimeout(() => notification.close(), 7000);
+            
+            console.log('🍎 iOS system notification shown');
+          }
+        } catch (error) {
+          console.log('🍎 iOS system notification failed:', error);
+        }
+
+        console.log('🍎 All iOS notification methods completed');
+
+      } else {
+        // Original non-iOS notification methods
+        console.log('💻 Using non-iOS notification methods...');
+        
+        // Multiple approaches for maximum compatibility
+        const approaches = [
+          // Approach 1: AudioContext with enhanced compatibility
+          async () => {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) throw new Error('AudioContext not supported');
+            
+            const audioContext = new AudioContext();
+            
+            // Requires user interaction to resume AudioContext
+            if (audioContext.state === 'suspended') {
+              await audioContext.resume();
+            }
+            
+            const totalDuration = 7; // 7 seconds
+            const bellInterval = 0.7; // Faster interval for better notification
+            const volume = 0.8; // High volume
+            
+            let currentTime = audioContext.currentTime;
+            const endTime = currentTime + totalDuration;
+            
+            console.log(`🔔 AudioContext: Playing notification bell for ${totalDuration} seconds`);
+            
+            // Create continuous bell sounds
+            while (currentTime < endTime) {
+              // Enhanced bell sound with multiple harmonics
+              const frequencies = [
+                { freq: 523.25, delay: 0.0, duration: 0.5, volume: volume },      // C5
+                { freq: 659.25, delay: 0.1, duration: 0.4, volume: volume * 0.8 }, // E5  
+                { freq: 783.99, delay: 0.2, duration: 0.3, volume: volume * 0.6 }, // G5
+                { freq: 1046.50, delay: 0.3, duration: 0.2, volume: volume * 0.4 } // C6
+              ];
+              
+              frequencies.forEach((note) => {
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
+                const compressor = audioContext.createDynamicsCompressor();
                 
+                // Enhanced audio chain
                 oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                gainNode.connect(compressor);
+                compressor.connect(audioContext.destination);
                 
-                oscillator.frequency.value = freq;
-                gainNode.gain.value = 0.2 / (index + 1); // Decreasing volume for harmonics
+                oscillator.frequency.value = note.freq;
+                oscillator.type = 'sine';
                 
-                oscillator.start();
-                setTimeout(() => {
-                  try {
-                    oscillator.stop();
-                  } catch (e) {
-                    // Oscillator already stopped
-                  }
-                }, 300);
+                const noteStartTime = currentTime + note.delay;
+                const noteEndTime = noteStartTime + note.duration;
+                
+                // Optimized envelope
+                gainNode.gain.setValueAtTime(0, noteStartTime);
+                gainNode.gain.linearRampToValueAtTime(note.volume, noteStartTime + 0.02);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, noteEndTime);
+                
+                oscillator.start(noteStartTime);
+                oscillator.stop(noteEndTime);
               });
-            }, i * 600);
-          }
-          
-          console.log('✅ iOS Web Audio API notification started');
-        } catch (audioError) {
-          console.log('⚠️ iOS Web Audio API failed:', audioError);
-        }
-        
-        // iOS Visual feedback instead of vibration
-        const originalTransform = document.body.style.transform;
-        document.body.style.transition = 'transform 0.05s ease-in-out';
-        
-        const shakeSequence = [2, -2, 1, -1, 0];
-        shakeSequence.forEach((offset, index) => {
-          setTimeout(() => {
-            document.body.style.transform = `translateX(${offset}px)`;
-            if (index === shakeSequence.length - 1) {
-              setTimeout(() => {
-                document.body.style.transform = originalTransform;
-                document.body.style.transition = '';
-              }, 50);
+              
+              currentTime += bellInterval;
             }
-          }, index * 50);
-        });
-        
-      } else {
-        // Non-iOS devices - use original methods
-        try {
-          // Web Audio API for other devices
-          const AudioContext = window.AudioContext || (window as any as any).webkitAudioContext;
-          if (AudioContext) {
+            
+            console.log('✅ AudioContext notification completed');
+          },
+          
+          // Approach 2: HTML5 Audio with specific handling
+          async () => {
+            console.log('🔔 Trying HTML5 Audio approach...');
+            
+            // Create notification tone data URL for compatibility
+            const createNotificationDataURL = () => {
+              const sampleRate = 22050;
+              const duration = 1;
+              const samples = sampleRate * duration;
+              
+              // Create buffer for enhanced bell sound
+              const buffer = new ArrayBuffer(44 + samples * 2);
+              const view = new DataView(buffer);
+              
+              // WAV header for compatibility
+              const writeString = (offset: number, string: string) => {
+                for (let i = 0; i < string.length; i++) {
+                  view.setUint8(offset + i, string.charCodeAt(i));
+                }
+              };
+              
+              writeString(0, 'RIFF');
+              view.setUint32(4, 36 + samples * 2, true);
+              writeString(8, 'WAVE');
+              writeString(12, 'fmt ');
+              view.setUint32(16, 16, true);
+              view.setUint16(20, 1, true);
+              view.setUint16(22, 1, true);
+              view.setUint32(24, sampleRate, true);
+              view.setUint32(28, sampleRate * 2, true);
+              view.setUint16(32, 2, true);
+              view.setUint16(34, 16, true);
+              writeString(36, 'data');
+              view.setUint32(40, samples * 2, true);
+              
+              // Generate enhanced bell sound
+              let offset = 44;
+              for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const frequency1 = 800;
+                const frequency2 = 1000;
+                const frequency3 = 1200;
+                const envelope = Math.exp(-t * 2);
+                
+                const sample = envelope * (
+                  Math.sin(2 * Math.PI * frequency1 * t) * 0.4 +
+                  Math.sin(2 * Math.PI * frequency2 * t) * 0.3 +
+                  Math.sin(2 * Math.PI * frequency3 * t) * 0.2
+                );
+                
+                const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+                view.setInt16(offset, intSample, true);
+                offset += 2;
+              }
+              
+              const blob = new Blob([buffer], { type: 'audio/wav' });
+              return URL.createObjectURL(blob);
+            };
+            
+            const audioUrl = createNotificationDataURL();
+            const audio = new Audio(audioUrl);
+            audio.volume = 0.9;
+            audio.preload = 'auto';
+            
+            // Specific audio setup
+            audio.setAttribute('playsinline', 'true');
+            audio.setAttribute('webkit-playsinline', 'true');
+            
+            let playCount = 0;
+            const maxPlays = 10; // Play 10 times over 7 seconds
+            
+            const playNext = async () => {
+              if (playCount < maxPlays) {
+                try {
+                  audio.currentTime = 0;
+                  await audio.play();
+                  playCount++;
+                  setTimeout(playNext, 700); // 0.7 second intervals
+                } catch (error) {
+                  console.log('🔔 HTML5 Audio play error:', error);
+                }
+              } else {
+                URL.revokeObjectURL(audioUrl);
+                console.log('✅ HTML5 Audio notification sequence completed');
+              }
+            };
+            
+            await playNext();
+          },
+          
+          // Approach 3: Enhanced Web Audio API with Tone.js compatibility
+          async () => {
+            console.log('🔔 Trying enhanced Web Audio...');
+            
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
             const audioContext = new AudioContext();
             
             if (audioContext.state === 'suspended') {
               await audioContext.resume();
             }
             
-            // Create notification sound
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            gainNode.gain.value = 0.3;
-            
-            oscillator.start();
-            setTimeout(() => {
-              try {
-                oscillator.stop();
-              } catch (e) {
-                // Oscillator already stopped
+            // Create a more aggressive notification pattern
+            const createNotificationPattern = () => {
+              const duration = 7; // 7 seconds total
+              const beepCount = 14; // More frequent beeps
+              const beepDuration = 0.3;
+              const beepInterval = 0.5;
+              
+              for (let i = 0; i < beepCount; i++) {
+                const startTime = audioContext.currentTime + (i * beepInterval);
+                const endTime = startTime + beepDuration;
+                
+                // Create multiple oscillators for richer sound
+                [800, 1000, 1200].forEach((freq, index) => {
+                  const oscillator = audioContext.createOscillator();
+                  const gainNode = audioContext.createGain();
+                  const filter = audioContext.createBiquadFilter();
+                  
+                  // Optimized audio chain
+                  oscillator.connect(filter);
+                  filter.connect(gainNode);
+                  gainNode.connect(audioContext.destination);
+                  
+                  oscillator.frequency.value = freq;
+                  oscillator.type = 'sine';
+                  
+                  // Low-pass filter for smoother sound
+                  filter.type = 'lowpass';
+                  filter.frequency.value = 2000;
+                  
+                  const vol = 0.6 / (index + 1); // Decreasing volume for harmonics
+                  gainNode.gain.setValueAtTime(0, startTime);
+                  gainNode.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+                  gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+                  
+                  oscillator.start(startTime);
+                  oscillator.stop(endTime);
+                });
               }
-            }, 500);
+            };
+            
+            createNotificationPattern();
+            console.log('✅ Enhanced Web Audio notification started');
           }
-          
-          // Vibration for non-iOS devices
-          if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200, 100, 200]);
+        ];
+        
+        // Try approaches in sequence for maximum compatibility
+        for (let i = 0; i < approaches.length; i++) {
+          try {
+            await approaches[i]();
+            console.log(`✅ Notification approach ${i + 1} succeeded`);
+            break; // Exit after first successful approach
+          } catch (error) {
+            console.log(`⚠️ Notification approach ${i + 1} failed:`, error);
+            if (i === approaches.length - 1) {
+              // Final fallback
+              console.log('🔔 Using final fallback notification...');
+              
+              // Create multiple quick visual + title notifications
+              for (let j = 0; j < 7; j++) {
+                setTimeout(() => {
+                  document.title = `🔔 ออเดอร์ใหม่! (${j + 1}/7)`;
+                  
+                  // Try to trigger system vibration if available
+                  if ('vibrate' in navigator) {
+                    navigator.vibrate([200, 100, 200]);
+                  }
+                  
+                  console.log(`🔔 Fallback notification ${j + 1}/7`);
+                }, j * 1000);
+              }
+              
+              // Reset title after notifications
+              setTimeout(() => {
+                document.title = document.title.replace(/🔔 ออเดอร์ใหม่! \(\d\/7\)/, '');
+              }, 8000);
+            }
           }
-          
-          console.log('✅ Non-iOS notification methods executed');
-        } catch (error) {
-          console.log('⚠️ Non-iOS notification failed:', error);
         }
       }
       
-      // Universal visual feedback
-      const originalBg = document.body.style.backgroundColor;
-      const flashColors = ['#4CAF50', '#ffffff'];
-      
-      flashColors.forEach((color, index) => {
-        setTimeout(() => {
-          document.body.style.backgroundColor = color;
-          if (index === flashColors.length - 1) {
-            setTimeout(() => {
-              document.body.style.backgroundColor = originalBg;
-            }, 200);
-          }
-        }, index * 200);
-      });
-      
     } catch (error) {
       console.error('❌ All notification methods failed:', error);
-      // Ultimate fallback - simple visual feedback
-      const originalBg = document.body.style.backgroundColor;
-      document.body.style.backgroundColor = '#4CAF50';
+      
+      // Ultimate fallback - visual feedback
+      document.body.style.backgroundColor = '#ff6b6b';
       setTimeout(() => {
-        document.body.style.backgroundColor = originalBg;
+        document.body.style.backgroundColor = '';
       }, 200);
     }
   };
 
-  useEffect(() => {
-    // Load cart data from local storage on component mount
-    const storedCart = localStorage.getItem('cart');
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
+  // Enhanced global notification trigger for all platforms (except customer page)
+  const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
+    try {
+      console.log('📡 Triggering enhanced global order notification...');
+      
+      // Insert into customer_orders table for useOrderNotifications hook
+      const { error: customerOrderError } = await supabase
+        .from('customer_orders')
+        .insert({
+          customer_id: currentUser.id,
+          order_number: orderNumber,
+          total_amount: totalAmount,
+          items: cartItems.map(item => ({
+            name: item.menu_item.name,
+            quantity: item.quantity,
+            price: item.menu_item.price,
+            addons: item.selected_addons?.map(addon => ({
+              name: addon.name,
+              price: addon.price
+            })) || []
+          })),
+          subtotal: totalAmount,
+          payment_method: paymentMethod,
+          order_status: 'confirmed',
+          delivery_type: 'pickup',
+          notes: customerNotes
+        });
+
+      if (customerOrderError) {
+        console.error('Failed to trigger customer_orders notification:', customerOrderError);
+      } else {
+        console.log('✅ customer_orders notification triggered successfully');
+      }
+
+      // Also insert into orders table for GlobalNotificationProvider
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber + '-TRIGGER',
+          member_id: currentUser.id,
+          total_amount: totalAmount,
+          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          payment_method: paymentMethod === 'points' ? 'points' : 'online',
+          order_source: 'online',
+          pickup_time: pickupTime,
+          customer_notes: customerNotes
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Failed to trigger orders notification:', orderError);
+      } else {
+        console.log('✅ orders notification triggered successfully');
+      }
+
+      // Additional broadcast to notification channel for immediate cross-device sync
+      const channel = supabase.channel('immediate-order-notification');
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'new-order-immediate',
+        payload: {
+          orderId: orderNumber,
+          orderNumber: orderNumber,
+          totalAmount: totalAmount,
+          items: cartItems.map(item => ({
+            name: item.menu_item.name,
+            quantity: item.quantity,
+            price: item.menu_item.price
+          })),
+          customerInfo: currentUser ? {
+            full_name: currentUser.name,
+            phone: currentUser.phone
+          } : undefined,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Enhanced global notification triggered successfully');
+    } catch (error) {
+      console.error('Error triggering enhanced global notification:', error);
     }
+  };
+
+  const fetchMenuItems = async () => {
+    try {
+      console.log('🔄 Fetching menu items...');
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('is_available', true)
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching menu items:', error);
+        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดเมนูได้', variant: 'destructive' });
+        return;
+      }
+      
+      console.log('✅ Menu items fetched:', data?.length || 0);
+      setMenuItems(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching menu items:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการโหลดเมนู', variant: 'destructive' });
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      console.log('🔄 Fetching categories...');
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+      
+      console.log('✅ Categories fetched:', data?.length || 0);
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching categories:', error);
+    }
+  };
+
+  const fetchAddons = async () => {
+    try {
+      console.log('🔄 Fetching addons...');
+      const { data, error } = await supabase
+        .from('addons')
+        .select(`
+          id,
+          name,
+          price,
+          addon_group_id,
+          sort_order,
+          is_active,
+          created_at,
+          updated_at,
+          addon_groups!addons_addon_group_id_fkey (
+            id,
+            name,
+            allow_multiple,
+            is_required
+          )
+        `)
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error('Error fetching addons:', error);
+        return;
+      }
+      
+      console.log('✅ Addons fetched:', data?.length || 0);
+      setAddons(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching addons:', error);
+    }
+  };
+
+  const fetchMembershipSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('membership_settings')
+        .select('*')
+        .order('tier');
+
+      if (error) {
+        console.warn('Failed to load membership settings, using defaults:', error);
+        setMembershipSettings([
+          { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+          { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+          { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+        ]);
+      } else {
+        setMembershipSettings(data);
+      }
+    } catch (error) {
+      console.warn('Error loading membership settings, using defaults:', error);
+      setMembershipSettings([
+        { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
+        { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
+        { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+      ]);
+    }
+  };
+
+  // Initialize data loading
+  useEffect(() => {
+    const initializeData = async () => {
+      console.log('🚀 Initializing online shop data...');
+      setIsLoading(true);
+      
+      try {
+        await Promise.all([
+          fetchMenuItems(),
+          fetchCategories(),
+          fetchAddons(),
+          fetchMembershipSettings()
+        ]);
+      } catch (error) {
+        console.error('Error during initialization:', error);
+      } finally {
+        setIsLoading(false);
+        console.log('✅ Online shop data initialization complete');
+      }
+    };
+
+    initializeData();
   }, []);
 
-  useEffect(() => {
-    // Save cart data to local storage whenever the cart changes
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+  const getRelevantAddons = async (menuItem: MenuItem) => {
+    console.log('Getting addons for menu item:', menuItem);
+    
+    try {
+      const { data: menuAddonGroups, error: menuError } = await supabase
+        .from('menu_addon_groups')
+        .select('addon_group_id')
+        .eq('menu_item_id', menuItem.id);
 
-  const addToCart = (item: MenuItem) => {
-    const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id);
+      if (menuError) {
+        console.error('Error fetching menu addon groups:', menuError);
+      }
 
-    if (existingItemIndex !== -1) {
-      // If item already exists in cart, update the quantity
-      const updatedCart = [...cart];
-      updatedCart[existingItemIndex].quantity! += 1;
-      setCart(updatedCart);
-    } else {
-      // If item doesn't exist in cart, add it with quantity 1
-      setCart([...cart, { ...item, quantity: 1 }]);
+      const { data: categoryAddonGroups, error: categoryError } = await supabase
+        .from('category_addon_groups')
+        .select('addon_group_id')
+        .eq('category_id', menuItem.category_id);
+
+      if (categoryError) {
+        console.error('Error fetching category addon groups:', categoryError);
+      }
+
+      const allAddonGroupIds = new Set([
+        ...(menuAddonGroups || []).map(ag => ag.addon_group_id),
+        ...(categoryAddonGroups || []).map(ag => ag.addon_group_id)
+      ]);
+
+      console.log('All addon group IDs:', Array.from(allAddonGroupIds));
+
+      const relevantAddons = addons.filter(addon => 
+        addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
+      );
+
+      console.log('Relevant addons:', relevantAddons);
+      return relevantAddons;
+    } catch (error) {
+      console.error('Error getting relevant addons:', error);
+      return [];
     }
   };
 
-  const incrementQuantity = (itemId: string) => {
-    const updatedCart = cart.map(item =>
-      item.id === itemId ? { ...item, quantity: item.quantity! + 1 } : item
+  const addToCart = (menuItem: MenuItem, selectedAddons: DatabaseAddon[] = []) => {
+    const existingItem = cartItems.find(item => 
+      item.menu_item.id === menuItem.id &&
+      JSON.stringify(item.selected_addons) === JSON.stringify(selectedAddons)
     );
-    setCart(updatedCart);
+    
+    const addonPrice = selectedAddons.reduce((sum, addon) => sum + Number(addon.price), 0);
+    const itemTotalPrice = menuItem.price + addonPrice;
+    
+    if (existingItem) {
+      setCartItems(cartItems.map(item => 
+        item.id === existingItem.id
+          ? { 
+              ...item, 
+              quantity: item.quantity + 1, 
+              total_price: (item.quantity + 1) * (menuItem.price + addonPrice)
+            }
+          : item
+      ));
+    } else {
+      const newItem: CartItem = {
+        id: Math.random().toString(36),
+        menu_item: menuItem,
+        quantity: 1,
+        total_price: itemTotalPrice,
+        selected_addons: selectedAddons
+      };
+      setCartItems([...cartItems, newItem]);
+    }
   };
 
-  const decrementQuantity = (itemId: string) => {
-    const updatedCart = cart.map(item =>
-      item.id === itemId && item.quantity! > 1 ? { ...item, quantity: item.quantity! - 1 } : item
-    );
-    setCart(updatedCart);
+  const handleAddToCart = async (menuItem: MenuItem) => {
+    console.log('Adding to cart:', menuItem);
+    
+    const relevantAddons = await getRelevantAddons(menuItem);
+    
+    if (relevantAddons.length > 0) {
+      setSelectedMenuItem(menuItem);
+      setAvailableAddons(relevantAddons);
+      setShowAddonModal(true);
+    } else {
+      addToCart(menuItem);
+    }
   };
 
-  const removeFromCart = (itemId: string) => {
-    const updatedCart = cart.filter(item => item.id !== itemId);
-    setCart(updatedCart);
+  const handleAddonModalAddToCart = (menuItem: MenuItem, selectedAddons: DatabaseAddon[]) => {
+    addToCart(menuItem, selectedAddons);
+    setShowAddonModal(false);
+    setSelectedMenuItem(null);
+    setAvailableAddons([]);
+  };
+
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      setCartItems(cartItems.filter(item => item.id !== itemId));
+    } else {
+      setCartItems(cartItems.map(item => 
+        item.id === itemId 
+          ? { 
+              ...item, 
+              quantity: newQuantity, 
+              total_price: newQuantity * (item.menu_item.price + (item.selected_addons?.reduce((sum, addon) => sum + Number(addon.price), 0) || 0))
+            }
+          : item
+      ));
+    }
+  };
+
+  const getTotalAmount = () => {
+    return cartItems.reduce((sum, item) => sum + item.total_price, 0);
+  };
+
+  const getCurrentTierSettings = () => {
+    if (!currentUser || !membershipSettings) return null;
+    return membershipSettings.find((setting: any) => setting.tier === currentUser.tier);
+  };
+
+  const calculatePointsValue = (points: number) => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return (points / tierSettings.points_to_redeem) * tierSettings.redeem_value;
+  };
+
+  const calculateRequiredPoints = (amount: number) => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return Math.ceil((amount / tierSettings.redeem_value) * tierSettings.points_to_redeem);
+  };
+
+  const getMinimumPoints = () => {
+    const tierSettings = getCurrentTierSettings();
+    if (!tierSettings) return 0;
+    return tierSettings.points_to_redeem;
+  };
+
+  const getMaximumPoints = () => {
+    const tierSettings = getCurrentTierSettings();
+    if (!currentUser || !tierSettings) return 0;
+    const total = getTotalAmount();
+    return Math.min(
+      currentUser.points,
+      calculateRequiredPoints(total)
+    );
+  };
+
+  const getTierDisplayName = (tier: string) => {
+    switch (tier) {
+      case 'silver': return 'เงิน';
+      case 'gold': return 'ทอง';
+      case 'platinum': return 'แพลตินัม';
+      default: return tier;
+    }
+  };
+
+  const generateQRCode = async () => {
+    const total = getTotalAmount();
+    let finalAmount = total;
+    
+    // Calculate final amount after points redemption
+    if (paymentMethod === 'points' && pointsToUse) {
+      const pointsValue = calculatePointsValue(parseInt(pointsToUse));
+      finalAmount = Math.max(0, total - pointsValue);
+    }
+    
+    if (finalAmount === 0) {
+      // If fully paid with points, skip QR generation
+      setShowPayment(true);
+      return;
+    }
+    
+    const qrData = `promptpay://0123456789?amount=${finalAmount}`;
+    
+    try {
+      const url = await QRCode.toDataURL(qrData);
+      setQrCodeUrl(url);
+      setShowPayment(true);
+    } catch (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้าง QR Code ได้', variant: 'destructive' });
+    }
+  };
+
+  const uploadReceipt = async (file: File): Promise<string | null> => {
+    const fileName = `receipt_${Date.now()}_${file.name}`;
+    
+    const { data, error } = await supabase.storage
+      .from('receipts')
+      .upload(fileName, file);
+    
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+    
+    const { data: urlData } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setReceiptFile(file);
+    }
+  };
+
+  const generateOrderNumber = () => {
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = now.getTime().toString().slice(-4);
+    return `ONL-${dateStr}-${timeStr}`;
   };
 
   const submitOrder = async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    // Show iOS-compatible alert
-    if (isIOS) {
-      showIOSAlert('🔔 กำลังดำเนินการสั่งซื้อ... กรุณารอสักครู่');
-    } else {
-      alert('🔔 กำลังดำเนินการสั่งซื้อ... กรุณารอสักครู่');
+    if (!currentUser) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเข้าสู่ระบบก่อน', variant: 'destructive' });
+      return;
     }
+
+    if (cartItems.length === 0) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกสินค้า', variant: 'destructive' });
+      return;
+    }
+
+    if (!pickupTime) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกเวลารับสินค้า', variant: 'destructive' });
+      return;
+    }
+
+    // Validate points usage
+    if (paymentMethod === 'points') {
+      const pointsValue = parseInt(pointsToUse || '0');
+      const minimumPoints = getMinimumPoints();
+      const maximumPoints = getMaximumPoints();
+
+      if (pointsValue < minimumPoints) {
+        toast({
+          title: 'แต้มไม่เพียงพอ',
+          description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (pointsValue > maximumPoints) {
+        toast({
+          title: 'แต้มเกินจำนวนที่มี',
+          description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+
+    const total = getTotalAmount();
+    let finalAmount = total;
+    let pointsUsed = 0;
     
+    if (paymentMethod === 'points' && pointsToUse) {
+      pointsUsed = parseInt(pointsToUse);
+      const pointsValue = calculatePointsValue(pointsUsed);
+      finalAmount = Math.max(0, total - pointsValue);
+    }
+
+    // For QR payment, require receipt upload if there's remaining amount
+    if (paymentMethod === 'qr' && finalAmount > 0 && !receiptFile) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาแนบสลีปการชำระเงิน', variant: 'destructive' });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
-      // Play notification sound immediately (must be within user interaction)
-      console.log('🔔 Playing immediate notification sound...');
+      // Play notification sound IMMEDIATELY for iOS compatibility
+      console.log('🔔 Playing immediate iOS notification sound...');
       await playOrderSuccessNotification();
 
-      if (!currentUser?.id) {
-        throw new Error('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');
+      let receiptUrl = null;
+      if (receiptFile) {
+        receiptUrl = await uploadReceipt(receiptFile);
+        if (!receiptUrl) {
+          throw new Error('ไม่สามารถอัปโหลดสลีปได้');
+        }
       }
 
-      if (cart.length === 0) {
-        throw new Error('กรุณาเลือกสินค้าก่อนสั่งซื้อ');
-      }
-
-      // Generate order number
-      const orderNumber = `ON${Date.now().toString().slice(-8)}`;
+      const orderNumber = generateOrderNumber();
       
-      // Calculate totals
-      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity!), 0);
-      const total = subtotal; // No additional charges for now
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          member_id: currentUser.id,
+          total_amount: finalAmount,
+          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          payment_method: paymentMethod === 'points' ? 'points' : 'online',
+          order_source: 'online',
+          receipt_image_url: receiptUrl,
+          pickup_time: pickupTime,
+          customer_notes: customerNotes
+        })
+        .select()
+        .single();
 
-      // Prepare order data
-      const orderData = {
-        customer_id: currentUser.id,
-        items: JSON.stringify(cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          total: item.price * item.quantity!
-        }))),
-        subtotal: subtotal,
-        total_amount: total,
-        delivery_type: deliveryType,
-        delivery_address: deliveryType === 'delivery' ? deliveryAddress : '',
-        notes: notes,
-        order_number: orderNumber,
-        order_status: 'pending',
-        payment_method: 'pending',
-        payment_status: 'pending'
-      };
+      if (orderError) throw orderError;
 
-      console.log('📝 Submitting order:', orderData);
+      // Save order items
+      for (const item of cartItems) {
+        const { data: orderItem, error: itemError } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: order.id,
+            menu_item_id: item.menu_item.id,
+            menu_item_name: item.menu_item.name,
+            quantity: item.quantity,
+            unit_price: item.menu_item.price,
+            total_price: item.quantity * item.menu_item.price
+          })
+          .select()
+          .single();
 
-      // Insert order into database
-      const { data, error } = await supabase
-        .from('customer_orders')
-        .insert([orderData])
-        .select();
+        if (itemError) throw itemError;
 
-      if (error) {
-        console.error('❌ Database error:', error);
-        throw error;
+        if (item.selected_addons && item.selected_addons.length > 0) {
+          const addonItems = item.selected_addons.map(addon => ({
+            order_id: order.id,
+            order_item_id: orderItem.id,
+            addon_id: addon.id,
+            addon_name: addon.name,
+            quantity: item.quantity,
+            unit_price: Number(addon.price),
+            total_price: item.quantity * Number(addon.price)
+          }));
+
+          const { error: addonError } = await supabase
+            .from('order_addons')
+            .insert(addonItems);
+
+          if (addonError) throw addonError;
+        }
       }
 
-      console.log('✅ Order submitted successfully:', data);
+      // Handle points and member updates
+      if (paymentMethod === 'points' && pointsUsed > 0) {
+        // Deduct points
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points - pointsUsed,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
 
-      // Show success notifications
+        // Log point transaction
+        await supabase
+          .from('point_transactions')
+          .insert({
+            member_id: currentUser.id,
+            points_change: -pointsUsed,
+            transaction_type: 'redeem',
+            description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
+            order_id: order.id
+          });
+      } else {
+        // Earn points from purchase
+        const tierSettings = getCurrentTierSettings();
+        const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
+        
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points + pointsEarned,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
+
+        if (pointsEarned > 0) {
+          await supabase
+            .from('point_transactions')
+            .insert({
+              member_id: currentUser.id,
+              points_change: pointsEarned,
+              transaction_type: 'earned',
+              description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
+              order_id: order.id
+            });
+        }
+      }
+
+      // Trigger enhanced global notification AFTER order is saved
+      await triggerGlobalOrderNotification(orderNumber, finalAmount);
+
       toast({ 
         title: 'สั่งซื้อสำเร็จ!', 
-        description: `หมายเลขออเดอร์: ${orderNumber}`,
-        duration: 5000
+        description: `หมายเลขออเดอร์: ${orderNumber}` 
       });
 
-      // Additional success notification after delay
+      setCartItems([]);
+      setPickupTime('');
+      setCustomerNotes('');
+      setReceiptFile(null);
+      setShowPayment(false);
+      setQrCodeUrl('');
+      setPaymentMethod('qr');
+      setPointsToUse('');
+      
       setTimeout(() => {
         toast({ 
           title: '✅ ขอบคุณครับ!', 
-          description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด',
-          duration: 10000
+          description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
         });
       }, 1000);
 
-      // Clear the cart after successful order
-      setCart([]);
-      setNotes('');
-      
-      // Show iOS-compatible success alert
-      setTimeout(() => {
-        if (isIOS) {
-          showIOSAlert(`✅ สั่งซื้อสำเร็จ! หมายเลขออเดอร์: ${orderNumber}`);
-        } else {
-          alert(`✅ สั่งซื้อสำเร็จ! หมายเลขออเดอร์: ${orderNumber}`);
-        }
-      }, 1500);
-
-    } catch (error) {
-      console.error('❌ Order submission failed:', error);
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: error instanceof Error ? error.message : 'กรุณาลองใหม่อีกครั้ง',
-        variant: 'destructive',
-        duration: 5000
+    } catch (error: any) {
+      console.error('Order submission error:', error);
+      toast({ 
+        title: 'ข้อผิดพลาด', 
+        description: error.message || 'ไม่สามารถสั่งซื้อได้', 
+        variant: 'destructive' 
       });
-
-      // Show iOS-compatible error alert
-      const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
-      if (isIOS) {
-        showIOSAlert(`❌ ${errorMessage}`);
-      } else {
-        alert(`❌ ${errorMessage}`);
-      }
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const filteredMenuItems = selectedCategory === 'all' 
+    ? menuItems 
+    : menuItems.filter(item => item.category_id === selectedCategory);
+
+  const getMinPickupTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30);
+    return now.toISOString().slice(0, 16);
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              สั่งสินค้าออนไลน์
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+              <p className="mt-2 text-gray-600">กำลังโหลดเมนู...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Online Shop</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {menu.map(item => (
-              <div key={item.id} className="border rounded-lg p-4">
-                <img src={item.image} alt={item.name} className="w-full h-40 object-cover rounded-md mb-2" />
-                <h3 className="text-lg font-semibold">{item.name}</h3>
-                <p className="text-gray-600">{item.description}</p>
-                <p className="text-xl font-bold text-coffee-700 mt-2">฿{item.price.toFixed(2)}</p>
-                <Button onClick={() => addToCart(item)} className="w-full mt-4">
-                  <ShoppingCart className="mr-2" size={16} />
-                  Add to Cart
-                </Button>
-              </div>
-            ))}
-          </div>
-          <Separator className="my-6" />
-          <CardTitle>Your Cart</CardTitle>
-          {cart.length === 0 ? (
-            <p>Your cart is empty.</p>
-          ) : (
-            <div className="space-y-4">
-              {cart.map(item => (
-                <div key={item.id} className="flex items-center justify-between border-b pb-4">
-                  <div className="flex items-center">
-                    <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-md mr-4" />
-                    <div>
-                      <h3 className="text-lg font-semibold">{item.name}</h3>
-                      <p className="text-gray-600">฿{(item.price * item.quantity!).toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="icon" onClick={() => decrementQuantity(item.id)}>
-                      <Minus size={16} />
-                    </Button>
-                    <span>{item.quantity}</span>
-                    <Button variant="outline" size="icon" onClick={() => incrementQuantity(item.id)}>
-                      <Plus size={16} />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => removeFromCart(item.id)}>
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="text-xl font-bold">
-                Subtotal: ฿{cart.reduce((sum, item) => sum + (item.price * item.quantity!), 0).toFixed(2)}
-              </div>
+          <CardTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              สั่งสินค้าออนไลน์
             </div>
-          )}
-          <Separator className="my-6" />
-          <div>
-            <CardTitle>Delivery Options</CardTitle>
-            <RadioGroup defaultValue="pickup" className="flex flex-col space-y-2" onValueChange={setDeliveryType}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="pickup" id="pickup" />
-                <Label htmlFor="pickup">Pickup</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="delivery" id="delivery" />
-                <Label htmlFor="delivery">Delivery</Label>
-              </div>
-            </RadioGroup>
-            {deliveryType === 'delivery' && (
-              <div className="mt-4">
-                <Label htmlFor="address">Delivery Address</Label>
-                <Input type="text" id="address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} />
-              </div>
-            )}
-          </div>
-          <Separator className="my-6" />
-          <div>
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea id="notes" placeholder="Any special requests?" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-          <Button className="w-full mt-6" disabled={isProcessing} onClick={submitOrder}>
-            {isProcessing ? (
-              <>
-                <Clock className="mr-2 animate-spin" size={16} />
-                Processing...
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="mr-2" size={16} />
-                Submit Order
-              </>
-            )}
-          </Button>
+            <Button
+              onClick={() => setShowDisplaySettings(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              ตั้งค่าการแสดงผล
+            </Button>
+          </CardTitle>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="เลือกหมวดหมู่" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ทั้งหมด</SelectItem>
+              {categories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
+
+      {/* Menu Items Grid with improved layout */}
+      {filteredMenuItems.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-gray-500">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">ไม่พบเมนูที่ต้องการ</p>
+              <p className="text-sm">
+                {selectedCategory === 'all' 
+                  ? 'ขณะนี้ยังไม่มีเมนูที่พร้อมให้บริการ' 
+                  : 'ไม่มีเมนูในหมวดหมู่ที่เลือก'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div 
+          className="grid gap-4" 
+          style={{ 
+            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` 
+          }}
+        >
+          {filteredMenuItems.map(item => (
+            <Card 
+              key={item.id} 
+              className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-orange-300" 
+              onClick={() => handleAddToCart(item)}
+            >
+              <CardContent className="p-3">
+                <div className="space-y-3">
+                  {/* Image Section */}
+                  <div className="w-full aspect-square overflow-hidden rounded-lg bg-gray-100">
+                    {item.image_url ? (
+                      <img 
+                        src={item.image_url} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-4xl">🍽️</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Text Section */}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 min-h-[2.5rem]">
+                      {item.name}
+                    </h3>
+                    
+                    {item.description && (
+                      <p className="text-xs text-gray-600 line-clamp-2 min-h-[2rem]">
+                        {item.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-lg font-bold text-orange-600">
+                        ฿{item.price.toLocaleString()}
+                      </p>
+                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                        <Plus className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Cart */}
+      {cartItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>ตะกร้าสินค้า ({cartItems.length} รายการ)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {cartItems.map(item => (
+              <div key={item.id} className="flex justify-between items-center p-3 border rounded">
+                <div className="flex-1">
+                  <h4 className="font-medium">{item.menu_item.name}</h4>
+                  <p className="text-sm text-gray-600">฿{item.menu_item.price} x {item.quantity}</p>
+                  {item.selected_addons && item.selected_addons.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Add-ons: {item.selected_addons.map(addon => `${addon.name} (+฿${addon.price})`).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span className="w-8 text-center">{item.quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                  <span className="ml-4 font-bold">฿{item.total_price}</span>
+                </div>
+              </div>
+            ))}
+            
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center text-lg font-bold">
+                <span>ยอดรวม:</span>
+                <span className="text-green-600">฿{getTotalAmount()}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Order Details */}
+      {cartItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              รายละเอียดการสั่งซื้อ
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="pickupTime">เวลาที่ต้องการรับสินค้า</Label>
+              <Input
+                id="pickupTime"
+                type="datetime-local"
+                value={pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
+                min={getMinPickupTime()}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">หมายเหตุ (ถ้ามี)</Label>
+              <Textarea
+                id="notes"
+                placeholder="เช่น ไม่ใส่น้ำตาล, เพิ่มน้ำแข็ง..."
+                value={customerNotes}
+                onChange={(e) => setCustomerNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Payment Method Selection */}
+            <div>
+              <Label className="text-base font-medium">วิธีการชำระเงิน</Label>
+              <RadioGroup 
+                value={paymentMethod} 
+                onValueChange={(value) => setPaymentMethod(value as 'qr' | 'points')}
+                className="mt-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="qr" id="qr" />
+                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer">
+                    <QrCode className="w-4 h-4" />
+                    QR Code
+                  </Label>
+                </div>
+                
+                {currentUser && (
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="points" id="points" />
+                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer">
+                      <Gift className="w-4 h-4" />
+                      ใช้แต้มแลก
+                    </Label>
+                  </div>
+                )}
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                onClick={async () => {
+                  console.log('🔔 Testing iOS notification sound...');
+                  await playOrderSuccessNotification();
+                }}
+                variant="outline"
+                className="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium"
+              >
+                🔊 ทดสอบเสียงแจ้งเตือน iOS (7 วินาที)
+              </Button>
+
+              <Button 
+                onClick={generateQRCode}
+                className="w-full"
+                disabled={!pickupTime}
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                {paymentMethod === 'qr' ? 'สร้าง QR Code ชำระเงิน' : 'ดำเนินการชำระเงิน'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment Section */}
+      {showPayment && (
+        <Card>
+          <CardHeader>
+            <CardTitle>ชำระเงิน</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {paymentMethod === 'qr' && (
+              <>
+                <div className="text-center">
+                  <p className="text-lg font-bold mb-4">
+                    ยอดชำระ: ฿{pointsToUse ? 
+                      Math.max(0, getTotalAmount() - calculatePointsValue(parseInt(pointsToUse))).toLocaleString() : 
+                      getTotalAmount().toLocaleString()
+                    }
+                  </p>
+                  {qrCodeUrl && (
+                    <div className="flex justify-center mb-4">
+                      <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
+                  <Input
+                    id="receipt"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  {receiptFile && (
+                    <p className="text-sm text-green-600 mt-2">
+                      <Upload className="w-4 h-4 inline mr-1" />
+                      {receiptFile.name}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            <Button 
+              onClick={submitOrder}
+              className="w-full"
+              disabled={isProcessing || (paymentMethod === 'qr' && qrCodeUrl && !receiptFile)}
+            >
+              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Display Settings Modal */}
+      <DisplaySettingsModal
+        isOpen={showDisplaySettings}
+        onClose={() => setShowDisplaySettings(false)}
+        gridColumns={gridColumns}
+        setGridColumns={setGridColumns}
+        itemSize={itemSize}
+        setItemSize={setItemSize}
+      />
+
+      <AddonModal
+        isOpen={showAddonModal}
+        onClose={() => {
+          setShowAddonModal(false);
+          setSelectedMenuItem(null);
+          setAvailableAddons([]);
+        }}
+        menuItem={selectedMenuItem}
+        addons={availableAddons}
+        onAddToCart={handleAddonModalAddToCart}
+      />
     </div>
   );
 };
