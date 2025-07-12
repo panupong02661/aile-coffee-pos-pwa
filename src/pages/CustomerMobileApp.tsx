@@ -51,6 +51,45 @@ const CustomerMobileApp: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', phone: '', birth_date: '', gender: '' });
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+
+  // Test database connection
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('Testing database connection...');
+      setConnectionStatus('checking');
+      
+      // Simple test query
+      const { data, error } = await supabase
+        .from('members')
+        .select('count')
+        .limit(1);
+      
+      if (error) {
+        console.error('Database connection test failed:', error);
+        setConnectionStatus('error');
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: `ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ${error.message}`,
+          variant: 'destructive',
+        });
+        return false;
+      } else {
+        console.log('Database connection successful');
+        setConnectionStatus('connected');
+        return true;
+      }
+    } catch (error: any) {
+      console.error('Database connection error:', error);
+      setConnectionStatus('error');
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
 
   // Utility function to normalize date formats for comparison
   const normalizeBirthDate = (inputDate: string): string[] => {
@@ -85,6 +124,7 @@ const CustomerMobileApp: React.FC = () => {
   // Load rewards from database
   const loadRewards = async () => {
     try {
+      console.log('Loading rewards...');
       const { data, error } = await supabase
         .from('rewards')
         .select('*')
@@ -93,35 +133,63 @@ const CustomerMobileApp: React.FC = () => {
 
       if (error) {
         console.error('Error loading rewards:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดรางวัลได้',
+          variant: 'destructive',
+        });
         return;
       }
 
+      console.log('Rewards loaded successfully:', data?.length || 0, 'items');
       setRewards(data || []);
     } catch (error) {
       console.error('Error loading rewards:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดรางวัลได้',
+        variant: 'destructive',
+      });
     }
   };
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const checkAuth = () => {
-      const savedUser = localStorage.getItem('customerAuth');
-      if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        setCurrentUser(userData);
-        setIsAuthenticated(true);
-        // Load actual data from database
-        loadCustomerData(userData.phone);
+    // Check database connection and initialize app
+    const initializeApp = async () => {
+      setIsLoading(true);
+      
+      // Test database connection first
+      const isConnected = await testDatabaseConnection();
+      
+      if (isConnected) {
+        // Check if user is already authenticated
+        const savedUser = localStorage.getItem('customerAuth');
+        if (savedUser) {
+          try {
+            const userData = JSON.parse(savedUser);
+            setCurrentUser(userData);
+            setIsAuthenticated(true);
+            // Load actual data from database
+            await loadCustomerData(userData.phone);
+          } catch (error) {
+            console.error('Error parsing saved user data:', error);
+            localStorage.removeItem('customerAuth');
+          }
+        }
+        
+        // Load rewards
+        await loadRewards();
       }
+      
       setIsLoading(false);
     };
 
-    checkAuth();
-    loadRewards();
+    initializeApp();
   }, []);
 
   const loadCustomerData = async (phone: string) => {
     try {
+      console.log('Loading customer data for phone:', phone);
       const { data, error } = await supabase
         .from('members')
         .select('*')
@@ -130,6 +198,11 @@ const CustomerMobileApp: React.FC = () => {
 
       if (error) {
         console.error('Error loading customer data:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดข้อมูลลูกค้าได้',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -146,17 +219,30 @@ const CustomerMobileApp: React.FC = () => {
           gender: data.gender
         };
         
+        console.log('Customer data loaded successfully:', customerProfile);
         setCurrentUser(customerProfile);
         localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
       }
     } catch (error) {
       console.error('Error loading customer data:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดข้อมูลลูกค้าได้',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleLogin = async () => {
     try {
       setIsLoading(true);
+      
+      // Test connection before login attempt
+      const isConnected = await testDatabaseConnection();
+      if (!isConnected) {
+        setIsLoading(false);
+        return;
+      }
       
       if (loginForm.phone && loginForm.birth_date) {
         console.log('Attempting login with:', { phone: loginForm.phone, birth_date: loginForm.birth_date });
@@ -217,7 +303,7 @@ const CustomerMobileApp: React.FC = () => {
           console.error('Database error:', error);
           toast({
             title: 'เกิดข้อผิดพลาด',
-            description: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้',
+            description: `ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ${error.message}`,
             variant: 'destructive',
           });
           setIsLoading(false);
@@ -268,7 +354,7 @@ const CustomerMobileApp: React.FC = () => {
       console.error('Login error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถเข้าสู่ระบบได้',
+        description: 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง',
         variant: 'destructive',
       });
     } finally {
@@ -279,6 +365,13 @@ const CustomerMobileApp: React.FC = () => {
   const handleRegister = async () => {
     try {
       setIsLoading(true);
+      
+      // Test connection before registration
+      const isConnected = await testDatabaseConnection();
+      if (!isConnected) {
+        setIsLoading(false);
+        return;
+      }
       
       if (registerForm.name && registerForm.phone && registerForm.birth_date) {
         // Check if phone already exists
@@ -498,6 +591,31 @@ const CustomerMobileApp: React.FC = () => {
     });
   };
 
+  // Show connection error if can't connect to database
+  if (connectionStatus === 'error') {
+    return (
+      <Shell>
+        <Card className="p-6 text-center max-w-md mx-auto mt-8">
+          <div className="space-y-4">
+            <div className="text-red-500 text-xl font-bold">
+              ไม่สามารถเชื่อมต่อฐานข้อมูลได้
+            </div>
+            <p className="text-gray-600">
+              กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ<br/>
+              หรือลองใหม่อีกครั้งในอีกสักครู่
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full"
+            >
+              ลองใหม่อีกครั้ง
+            </Button>
+          </div>
+        </Card>
+      </Shell>
+    );
+  }
+
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
@@ -597,6 +715,9 @@ const CustomerMobileApp: React.FC = () => {
       <Shell>
         <Card className="p-4 text-center">
           <p>กำลังโหลด...</p>
+          {connectionStatus === 'checking' && (
+            <p className="text-sm text-gray-500 mt-2">กำลังตรวจสอบการเชื่อมต่อฐานข้อมูล...</p>
+          )}
         </Card>
       </Shell>
     );
