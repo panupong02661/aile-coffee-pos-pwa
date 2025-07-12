@@ -8,6 +8,13 @@ export const useOrderNotifications = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const isIOSRef = useRef(false);
+
+  // Detect iOS
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    isIOSRef.current = /ipad|iphone|ipod/.test(userAgent) && !(window as any).MSStream;
+  }, []);
 
   // Enhanced iOS-compatible audio initialization
   const initializeAudio = async () => {
@@ -120,105 +127,74 @@ export const useOrderNotifications = () => {
   // Enhanced iOS-compatible notification sound
   const playBellSound = async () => {
     try {
-      console.log('🔔 Playing enhanced iOS notification sound for 7 seconds...');
+      console.log('🔔 Playing enhanced iOS notification sound...');
       
       // Method 1: Enhanced AudioContext approach for iOS
-      if (audioContextRef.current) {
+      if (audioContextRef.current && isIOSRef.current) {
         const audioContext = audioContextRef.current;
         
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
         
-        const playAudioContextNotification = () => {
-          const duration = 7; // 7 seconds
-          const beepPattern = [
-            { freq: 800, start: 0, duration: 0.4 },
-            { freq: 1000, start: 0.7, duration: 0.4 },
-            { freq: 1200, start: 1.4, duration: 0.4 },
-            { freq: 800, start: 2.1, duration: 0.4 },
-            { freq: 1000, start: 2.8, duration: 0.4 },
-            { freq: 1200, start: 3.5, duration: 0.4 },
-            { freq: 800, start: 4.2, duration: 0.4 },
-            { freq: 1000, start: 4.9, duration: 0.4 },
-            { freq: 1200, start: 5.6, duration: 0.4 },
-            { freq: 800, start: 6.3, duration: 0.4 }
-          ];
-          
-          beepPattern.forEach(({ freq, start, duration: beepDuration }) => {
-            const startTime = audioContext.currentTime + start;
-            const endTime = startTime + beepDuration;
-            
-            // Create multiple oscillators for richer sound
-            [1, 1.5, 2].forEach((multiplier, index) => {
-              const oscillator = audioContext.createOscillator();
-              const gainNode = audioContext.createGain();
-              const compressor = audioContext.createDynamicsCompressor();
-              
-              oscillator.connect(gainNode);
-              gainNode.connect(compressor);
-              compressor.connect(audioContext.destination);
-              
-              oscillator.frequency.value = freq * multiplier;
-              oscillator.type = 'sine';
-              
-              const volume = 0.4 / (index + 1);
-              gainNode.gain.setValueAtTime(0, startTime);
-              gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-              gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
-              
-              oscillator.start(startTime);
-              oscillator.stop(endTime);
-            });
-          });
-          
-          console.log('✅ AudioContext iOS notification pattern started');
-        };
+        // สร้างเสียง beep ด้วย Web Audio API สำหรับ iOS
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
         
-        playAudioContextNotification();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800; // ความถี่เสียง
+        gainNode.gain.value = 0.3; // ความดัง
+        
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+        }, 500); // เล่น 0.5 วินาที
+        
+        console.log('✅ iOS AudioContext notification played');
       }
       
-      // Method 2: HTML5 Audio with loop for iOS
-      if (audioRef.current) {
-        let playCount = 0;
-        const maxPlays = 7; // Play 7 times over 7 seconds
-        
-        const playNext = async () => {
-          if (playCount < maxPlays && audioRef.current) {
-            try {
-              audioRef.current.currentTime = 0;
-              audioRef.current.volume = 1.0;
-              
-              const playPromise = audioRef.current.play();
-              if (playPromise !== undefined) {
-                await playPromise;
-                console.log(`🔔 iOS HTML5 Audio play ${playCount + 1}/${maxPlays}`);
-              }
-              
-              playCount++;
-              setTimeout(playNext, 1000); // 1 second intervals
-              
-            } catch (error) {
-              console.log(`⚠️ iOS HTML5 Audio play ${playCount + 1} failed:`, error);
-            }
+      // Method 2: HTML5 Audio fallback for non-iOS
+      if (audioRef.current && !isIOSRef.current) {
+        try {
+          audioRef.current.currentTime = 0;
+          audioRef.current.volume = 1.0;
+          
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            console.log('🔔 HTML5 Audio notification played');
           }
-        };
-        
-        await playNext();
+        } catch (error) {
+          console.log('⚠️ HTML5 Audio play failed:', error);
+        }
       }
       
       // Method 3: iOS System Integration attempts
       try {
-        // Try iOS vibration if available
-        if ('vibrate' in navigator) {
-          const vibrationPattern = [200, 100, 200, 100, 200, 100, 200];
+        // Try vibration for non-iOS devices only
+        if ('vibrate' in navigator && !isIOSRef.current) {
+          const vibrationPattern = [200, 100, 200, 100, 200];
           navigator.vibrate(vibrationPattern);
-          console.log('✅ iOS vibration triggered');
+          console.log('✅ Device vibration triggered');
         }
         
-        // Visual feedback for iOS
+        // Visual feedback for iOS (แทนการสั่น)
+        if (isIOSRef.current) {
+          // แสดง animation แทนการสั่น
+          document.body.style.transform = 'translateX(2px)';
+          setTimeout(() => {
+            document.body.style.transform = 'translateX(-2px)';
+          }, 50);
+          setTimeout(() => {
+            document.body.style.transform = 'translateX(0)';
+          }, 100);
+        }
+        
+        // Visual feedback - flash screen
         let flashCount = 0;
-        const maxFlashes = 14; // Flash for 7 seconds
+        const maxFlashes = 6;
         
         const flashScreen = () => {
           if (flashCount < maxFlashes) {
@@ -235,13 +211,13 @@ export const useOrderNotifications = () => {
         
         flashScreen();
         
-        // Title notification for iOS
+        // Title notification
         const originalTitle = document.title;
         let titleCount = 0;
         
         const updateTitle = () => {
-          if (titleCount < 7) {
-            document.title = `🔔 ออเดอร์ใหม่! (${titleCount + 1}/7)`;
+          if (titleCount < 3) {
+            document.title = `🔔 ออเดอร์ใหม่! (${titleCount + 1}/3)`;
             titleCount++;
             setTimeout(updateTitle, 1000);
           } else {
@@ -252,16 +228,19 @@ export const useOrderNotifications = () => {
         updateTitle();
         
       } catch (error) {
-        console.log('⚠️ iOS system integration failed:', error);
+        console.log('⚠️ System integration failed:', error);
       }
       
-      console.log('✅ Enhanced iOS notification sequence completed');
+      console.log('✅ Enhanced notification sequence completed');
       
     } catch (error) {
-      console.error('❌ iOS notification failed:', error);
+      console.error('❌ Notification failed:', error);
       
-      // Ultimate fallback for iOS
-      alert('🔔 ออเดอร์ใหม่เข้ามาแล้ว!');
+      // Ultimate fallback - visual feedback
+      document.body.style.backgroundColor = '#4CAF50';
+      setTimeout(() => {
+        document.body.style.backgroundColor = '';
+      }, 200);
     }
   };
 
@@ -271,7 +250,7 @@ export const useOrderNotifications = () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
-        console.log('🔇 iOS notification sound stopped');
+        console.log('🔇 Notification sound stopped');
       }
       
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -279,7 +258,7 @@ export const useOrderNotifications = () => {
         console.log('🔇 AudioContext notifications stopped');
       }
     } catch (error) {
-      console.error('Error stopping iOS notification sound:', error);
+      console.error('Error stopping notification sound:', error);
     }
   };
 
@@ -327,7 +306,7 @@ export const useOrderNotifications = () => {
           
           const order = payload.new as any;
           
-          // Play enhanced iOS notification sound immediately
+          // Play enhanced notification sound immediately
           playBellSound();
           
           // Show toast notification
@@ -337,7 +316,7 @@ export const useOrderNotifications = () => {
             duration: 10000,
           });
           
-          console.log('📱 Enhanced iOS notification sequence complete');
+          console.log('📱 Enhanced notification sequence complete');
         }
       )
       .on(
@@ -353,7 +332,7 @@ export const useOrderNotifications = () => {
           
           const order = payload.new as any;
           
-          // Play enhanced iOS notification sound immediately
+          // Play enhanced notification sound immediately
           playBellSound();
           
           // Show toast notification
@@ -363,7 +342,7 @@ export const useOrderNotifications = () => {
             duration: 10000,
           });
           
-          console.log('📱 Enhanced iOS notification sequence complete');
+          console.log('📱 Enhanced notification sequence complete');
         }
       )
       .subscribe();

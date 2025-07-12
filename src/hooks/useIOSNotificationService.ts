@@ -163,6 +163,61 @@ export const useIOSNotificationService = () => {
     }, 5000); // Every 5 seconds
   };
 
+  // iOS Custom Alert Modal
+  const showIOSAlert = (message: string) => {
+    if (!isIOSRef.current) {
+      alert(message);
+      return;
+    }
+
+    // สร้าง custom alert modal สำหรับ iOS
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      ">
+        <div style="
+          background: white;
+          padding: 20px;
+          border-radius: 10px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+          max-width: 300px;
+          margin: 20px;
+        ">
+          <p style="margin: 0; font-size: 16px; color: #333;">${message}</p>
+          <button onclick="this.parentElement.parentElement.remove()" style="
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+          ">ตกลง</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Auto remove หลัง 3 วินาที
+    setTimeout(() => {
+      if (modal.parentElement) {
+        modal.remove();
+      }
+    }, 3000);
+  };
+
   // Handle iOS background notifications
   const handleIOSBackgroundNotification = async (payload: any) => {
     try {
@@ -180,8 +235,8 @@ export const useIOSNotificationService = () => {
           silent: false
         });
 
-        // Use navigator.vibrate() separately from Notification
-        if ('vibrate' in navigator) {
+        // Use navigator.vibrate() for non-iOS devices only
+        if ('vibrate' in navigator && !isIOSRef.current) {
           navigator.vibrate([200, 100, 200, 100, 200]);
         }
 
@@ -214,39 +269,29 @@ export const useIOSNotificationService = () => {
         await audioContext.resume();
       }
 
-      // Create aggressive iOS notification sound
-      const duration = 7; // 7 seconds for iOS
-      const volume = 1.0; // Maximum volume
+      // สร้างเสียง beep ด้วย Web Audio API สำหรับ iOS
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
       
-      // Multiple overlapping beeps for iOS attention
-      for (let i = 0; i < 10; i++) {
-        const startTime = audioContext.currentTime + (i * 0.7);
-        const endTime = startTime + 0.5;
-        
-        // Create multiple frequencies for rich iOS sound
-        [800, 1000, 1200].forEach((frequency, index) => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.value = frequency;
-          oscillator.type = 'sine';
-          
-          const nodeVolume = volume / (index + 1);
-          gainNode.gain.setValueAtTime(0, startTime);
-          gainNode.gain.linearRampToValueAtTime(nodeVolume, startTime + 0.01);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
-          
-          oscillator.start(startTime);
-          oscillator.stop(endTime);
-        });
-      }
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // ความถี่เสียง
+      gainNode.gain.value = 0.3; // ความดัง
+      
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+      }, 500); // เล่น 0.5 วินาที
 
       console.log('🍎 iOS notification sound played');
     } catch (error) {
       console.error('🍎 iOS notification sound error:', error);
+      // Fallback - visual feedback
+      document.body.style.backgroundColor = '#4CAF50';
+      setTimeout(() => {
+        document.body.style.backgroundColor = '';
+      }, 200);
     }
   };
 
@@ -281,6 +326,26 @@ export const useIOSNotificationService = () => {
     flash();
   };
 
+  // iOS Visual Shake Animation (แทนการสั่น)
+  const playIOSShakeAnimation = () => {
+    if (!isIOSRef.current) return;
+
+    // แสดง animation แทนการสั่น
+    document.body.style.transform = 'translateX(2px)';
+    setTimeout(() => {
+      document.body.style.transform = 'translateX(-2px)';
+    }, 50);
+    setTimeout(() => {
+      document.body.style.transform = 'translateX(2px)';
+    }, 100);
+    setTimeout(() => {
+      document.body.style.transform = 'translateX(-2px)';
+    }, 150);
+    setTimeout(() => {
+      document.body.style.transform = 'translateX(0)';
+    }, 200);
+  };
+
   // Check for missed notifications when iOS app becomes active
   const checkForMissedNotifications = async () => {
     try {
@@ -299,6 +364,9 @@ export const useIOSNotificationService = () => {
     try {
       console.log('🍎 Triggering iOS notification:', payload);
 
+      // Show iOS-compatible alert
+      showIOSAlert('🔔 ออเดอร์ใหม่เข้ามาแล้ว!');
+
       // Send to service worker for background handling
       if (serviceWorkerRef.current) {
         serviceWorkerRef.current.postMessage({
@@ -307,8 +375,10 @@ export const useIOSNotificationService = () => {
         });
       }
 
-      // Also handle directly for immediate response
-      await handleIOSBackgroundNotification(payload);
+      // Play sound and visual feedback
+      await playIOSNotificationSound();
+      playIOSShakeAnimation();
+      flashIOSScreen();
 
     } catch (error) {
       console.error('🍎 iOS notification trigger error:', error);
@@ -319,6 +389,8 @@ export const useIOSNotificationService = () => {
     isIOS: isIOSRef.current,
     triggerIOSNotification,
     playIOSNotificationSound,
-    checkForMissedNotifications
+    checkForMissedNotifications,
+    showIOSAlert,
+    playIOSShakeAnimation
   };
 };
