@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +21,10 @@ interface CartItem extends MenuItem {
 }
 
 interface OnlineShopSectionProps {
-  customer: {
+  currentUser?: {
     id: string;
     name: string;
   };
-  menuItems: MenuItem[];
 }
 
 const mockMenuItems: MenuItem[] = [
@@ -36,7 +36,7 @@ const mockMenuItems: MenuItem[] = [
   { id: '6', name: 'Americano', price: 35 },
 ];
 
-const OnlineShopSection = ({ customer }: OnlineShopSectionProps) => {
+const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const { toast } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
@@ -266,9 +266,10 @@ const OnlineShopSection = ({ customer }: OnlineShopSectionProps) => {
       // Play notification sound and show popup immediately when button is clicked
       await playOrderSuccessNotification();
 
+      // Convert cart items to JSON format for database
       const orderData = {
-        customer_id: customer.id,
-        items: cart,
+        customer_id: currentUser?.id || 'guest',
+        items: JSON.parse(JSON.stringify(cart)), // Convert to JSON
         subtotal: getSubtotal(),
         total_amount: getTotalAmount(),
         delivery_type: deliveryType,
@@ -282,7 +283,7 @@ const OnlineShopSection = ({ customer }: OnlineShopSectionProps) => {
 
       const { data, error } = await supabase
         .from('customer_orders')
-        .insert([orderData])
+        .insert(orderData)
         .select()
         .single();
 
