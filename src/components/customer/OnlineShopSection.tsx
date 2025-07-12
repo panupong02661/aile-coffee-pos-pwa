@@ -84,79 +84,273 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   
   const { toast } = useToast();
 
-  // Function to play notification bell for 7 seconds - enhanced version
+  // Enhanced iOS-compatible notification sound for 7 seconds
   const playOrderSuccessNotification = async () => {
     try {
-      console.log('🔔 Playing order confirmation notification for 7 seconds...');
+      console.log('🔔 Playing iOS-compatible order confirmation notification for 7 seconds...');
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Multiple approaches for maximum iOS compatibility
+      const approaches = [
+        // Approach 1: AudioContext with enhanced iOS compatibility
+        async () => {
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          if (!AudioContext) throw new Error('AudioContext not supported');
+          
+          const audioContext = new AudioContext();
+          
+          // iOS requires user interaction to resume AudioContext
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          
+          const totalDuration = 7; // 7 seconds
+          const bellInterval = 0.7; // Faster interval for better notification
+          const volume = 0.8; // High volume
+          
+          let currentTime = audioContext.currentTime;
+          const endTime = currentTime + totalDuration;
+          
+          console.log(`🔔 iOS AudioContext: Playing notification bell for ${totalDuration} seconds`);
+          
+          // Create continuous bell sounds
+          while (currentTime < endTime) {
+            // Enhanced bell sound with multiple harmonics for iOS
+            const frequencies = [
+              { freq: 523.25, delay: 0.0, duration: 0.5, volume: volume },      // C5
+              { freq: 659.25, delay: 0.1, duration: 0.4, volume: volume * 0.8 }, // E5  
+              { freq: 783.99, delay: 0.2, duration: 0.3, volume: volume * 0.6 }, // G5
+              { freq: 1046.50, delay: 0.3, duration: 0.2, volume: volume * 0.4 } // C6
+            ];
+            
+            frequencies.forEach((note) => {
+              const oscillator = audioContext.createOscillator();
+              const gainNode = audioContext.createGain();
+              const compressor = audioContext.createDynamicsCompressor();
+              
+              // Enhanced audio chain for iOS
+              oscillator.connect(gainNode);
+              gainNode.connect(compressor);
+              compressor.connect(audioContext.destination);
+              
+              oscillator.frequency.value = note.freq;
+              oscillator.type = 'sine';
+              
+              const noteStartTime = currentTime + note.delay;
+              const noteEndTime = noteStartTime + note.duration;
+              
+              // iOS-optimized envelope
+              gainNode.gain.setValueAtTime(0, noteStartTime);
+              gainNode.gain.linearRampToValueAtTime(note.volume, noteStartTime + 0.02);
+              gainNode.gain.exponentialRampToValueAtTime(0.01, noteEndTime);
+              
+              oscillator.start(noteStartTime);
+              oscillator.stop(noteEndTime);
+            });
+            
+            currentTime += bellInterval;
+          }
+          
+          console.log('✅ iOS AudioContext notification completed');
+        },
+        
+        // Approach 2: HTML5 Audio with iOS-specific handling
+        async () => {
+          console.log('🔔 Trying HTML5 Audio approach for iOS...');
+          
+          // Create notification tone data URL for iOS compatibility
+          const createNotificationDataURL = () => {
+            const sampleRate = 22050;
+            const duration = 1;
+            const samples = sampleRate * duration;
+            
+            // Create buffer for enhanced bell sound
+            const buffer = new ArrayBuffer(44 + samples * 2);
+            const view = new DataView(buffer);
+            
+            // WAV header for iOS compatibility
+            const writeString = (offset: number, string: string) => {
+              for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+              }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + samples * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, samples * 2, true);
+            
+            // Generate enhanced bell sound for iOS
+            let offset = 44;
+            for (let i = 0; i < samples; i++) {
+              const t = i / sampleRate;
+              const frequency1 = 800;
+              const frequency2 = 1000;
+              const frequency3 = 1200;
+              const envelope = Math.exp(-t * 2);
+              
+              const sample = envelope * (
+                Math.sin(2 * Math.PI * frequency1 * t) * 0.4 +
+                Math.sin(2 * Math.PI * frequency2 * t) * 0.3 +
+                Math.sin(2 * Math.PI * frequency3 * t) * 0.2
+              );
+              
+              const intSample = Math.max(-1, Math.min(1, sample)) * 0x7FFF;
+              view.setInt16(offset, intSample, true);
+              offset += 2;
+            }
+            
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+          };
+          
+          const audioUrl = createNotificationDataURL();
+          const audio = new Audio(audioUrl);
+          audio.volume = 0.9;
+          audio.preload = 'auto';
+          
+          // iOS-specific audio setup
+          audio.setAttribute('playsinline', 'true');
+          audio.setAttribute('webkit-playsinline', 'true');
+          
+          let playCount = 0;
+          const maxPlays = 10; // Play 10 times over 7 seconds
+          
+          const playNext = async () => {
+            if (playCount < maxPlays) {
+              try {
+                audio.currentTime = 0;
+                await audio.play();
+                playCount++;
+                setTimeout(playNext, 700); // 0.7 second intervals
+              } catch (error) {
+                console.log('🔔 HTML5 Audio play error:', error);
+              }
+            } else {
+              URL.revokeObjectURL(audioUrl);
+              console.log('✅ HTML5 Audio notification sequence completed');
+            }
+          };
+          
+          await playNext();
+        },
+        
+        // Approach 3: iOS Web Audio API with Tone.js compatibility
+        async () => {
+          console.log('🔔 Trying enhanced Web Audio for iOS...');
+          
+          const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+          const audioContext = new AudioContext();
+          
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          
+          // Create a more aggressive notification pattern for iOS
+          const createIOSNotificationPattern = () => {
+            const duration = 7; // 7 seconds total
+            const beepCount = 14; // More frequent beeps for iOS
+            const beepDuration = 0.3;
+            const beepInterval = 0.5;
+            
+            for (let i = 0; i < beepCount; i++) {
+              const startTime = audioContext.currentTime + (i * beepInterval);
+              const endTime = startTime + beepDuration;
+              
+              // Create multiple oscillators for richer sound on iOS
+              [800, 1000, 1200].forEach((freq, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+                
+                // iOS-optimized audio chain
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'sine';
+                
+                // Low-pass filter for smoother sound on iOS
+                filter.type = 'lowpass';
+                filter.frequency.value = 2000;
+                
+                const vol = 0.6 / (index + 1); // Decreasing volume for harmonics
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+                
+                oscillator.start(startTime);
+                oscillator.stop(endTime);
+              });
+            }
+          };
+          
+          createIOSNotificationPattern();
+          console.log('✅ Enhanced Web Audio iOS notification started');
+        }
+      ];
       
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
+      // Try approaches in sequence for maximum iOS compatibility
+      for (let i = 0; i < approaches.length; i++) {
+        try {
+          await approaches[i]();
+          console.log(`✅ iOS notification approach ${i + 1} succeeded`);
+          break; // Exit after first successful approach
+        } catch (error) {
+          console.log(`⚠️ iOS notification approach ${i + 1} failed:`, error);
+          if (i === approaches.length - 1) {
+            // Final fallback for iOS
+            console.log('🔔 Using final iOS fallback notification...');
+            
+            // Create multiple quick visual + title notifications for iOS
+            for (let j = 0; j < 7; j++) {
+              setTimeout(() => {
+                document.title = `🔔 ออเดอร์ใหม่! (${j + 1}/7)`;
+                
+                // Try to trigger iOS system vibration if available
+                if ('vibrate' in navigator) {
+                  navigator.vibrate([200, 100, 200]);
+                }
+                
+                console.log(`🔔 iOS fallback notification ${j + 1}/7`);
+              }, j * 1000);
+            }
+            
+            // Reset title after notifications
+            setTimeout(() => {
+              document.title = document.title.replace(/🔔 ออเดอร์ใหม่! \(\d\/7\)/, '');
+            }, 8000);
+          }
+        }
       }
       
-      const totalDuration = 7; // 7 seconds
-      const bellInterval = 0.8; // Interval between bell sounds
-      const volume = 0.6; // Increased volume
-      
-      let currentTime = audioContext.currentTime;
-      const endTime = currentTime + totalDuration;
-      
-      console.log(`🔔 Playing notification bell for ${totalDuration} seconds`);
-      
-      // Create continuous bell sounds for 7 seconds
-      while (currentTime < endTime) {
-        // Create pleasant bell sound with 3 harmonious notes
-        const bellFrequencies = [
-          { freq: 523.25, delay: 0.0, duration: 0.6 },   // C5
-          { freq: 659.25, delay: 0.15, duration: 0.5 },  // E5  
-          { freq: 783.99, delay: 0.3, duration: 0.4 }    // G5
-        ];
-        
-        bellFrequencies.forEach((note) => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          // Add low-pass filter for softer sound
-          const lowPassFilter = audioContext.createBiquadFilter();
-          lowPassFilter.type = 'lowpass';
-          lowPassFilter.frequency.value = 2000;
-          
-          oscillator.connect(lowPassFilter);
-          lowPassFilter.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.value = note.freq;
-          oscillator.type = 'sine';
-          
-          const noteStartTime = currentTime + note.delay;
-          const noteEndTime = noteStartTime + note.duration;
-          
-          // Create smooth bell sound envelope
-          gainNode.gain.setValueAtTime(0, noteStartTime);
-          gainNode.gain.linearRampToValueAtTime(volume, noteStartTime + 0.02);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, noteEndTime);
-          
-          oscillator.start(noteStartTime);
-          oscillator.stop(noteEndTime);
-        });
-        
-        currentTime += bellInterval;
-      }
-      
-      console.log(`✅ Order confirmation notification played for ${totalDuration} seconds`);
     } catch (error) {
-      console.error('Notification sound failed:', error);
+      console.error('❌ All iOS notification methods failed:', error);
+      
+      // Ultimate fallback for iOS - visual feedback
+      document.body.style.backgroundColor = '#ff6b6b';
+      setTimeout(() => {
+        document.body.style.backgroundColor = '';
+      }, 200);
     }
   };
 
-  // Function to trigger global notification across all platforms
+  // Enhanced global notification trigger for all platforms (except customer page)
   const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
     try {
-      console.log('📡 Triggering global order notification...');
+      console.log('📡 Triggering enhanced global order notification...');
       
-      // Insert a record into customer_orders table to trigger real-time notifications
-      const { error } = await supabase
+      // Insert into customer_orders table for useOrderNotifications hook
+      const { error: customerOrderError } = await supabase
         .from('customer_orders')
         .insert({
           customer_id: currentUser.id,
@@ -178,13 +372,60 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           notes: customerNotes
         });
 
-      if (error) {
-        console.error('Failed to trigger global notification:', error);
+      if (customerOrderError) {
+        console.error('Failed to trigger customer_orders notification:', customerOrderError);
       } else {
-        console.log('✅ Global notification triggered successfully');
+        console.log('✅ customer_orders notification triggered successfully');
       }
+
+      // Also insert into orders table for GlobalNotificationProvider
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber + '-TRIGGER',
+          member_id: currentUser.id,
+          total_amount: totalAmount,
+          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          payment_method: paymentMethod === 'points' ? 'points' : 'online',
+          order_source: 'online',
+          pickup_time: pickupTime,
+          customer_notes: customerNotes
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Failed to trigger orders notification:', orderError);
+      } else {
+        console.log('✅ orders notification triggered successfully');
+      }
+
+      // Additional broadcast to notification channel for immediate cross-device sync
+      const channel = supabase.channel('immediate-order-notification');
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'new-order-immediate',
+        payload: {
+          orderId: orderNumber,
+          orderNumber: orderNumber,
+          totalAmount: totalAmount,
+          items: cartItems.map(item => ({
+            name: item.menu_item.name,
+            quantity: item.quantity,
+            price: item.menu_item.price
+          })),
+          customerInfo: currentUser ? {
+            full_name: currentUser.name,
+            phone: currentUser.phone
+          } : undefined,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Enhanced global notification triggered successfully');
     } catch (error) {
-      console.error('Error triggering global notification:', error);
+      console.error('Error triggering enhanced global notification:', error);
     }
   };
 
@@ -593,7 +834,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // Play notification sound for 7 seconds FIRST
+      // Play notification sound IMMEDIATELY for iOS compatibility
+      console.log('🔔 Playing immediate iOS notification sound...');
       await playOrderSuccessNotification();
 
       let receiptUrl = null;
@@ -707,7 +949,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         }
       }
 
-      // Trigger global notification across all platforms (except customer page)
+      // Trigger enhanced global notification AFTER order is saved
       await triggerGlobalOrderNotification(orderNumber, finalAmount);
 
       toast({ 
@@ -998,11 +1240,14 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             <div className="space-y-3">
               <Button 
-                onClick={async () => await playOrderSuccessNotification()}
+                onClick={async () => {
+                  console.log('🔔 Testing iOS notification sound...');
+                  await playOrderSuccessNotification();
+                }}
                 variant="outline"
-                className="w-full"
+                className="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium"
               >
-                🔊 ทดสอบเสียงแจ้งเตือน
+                🔊 ทดสอบเสียงแจ้งเตือน iOS (7 วินาที)
               </Button>
 
               <Button 

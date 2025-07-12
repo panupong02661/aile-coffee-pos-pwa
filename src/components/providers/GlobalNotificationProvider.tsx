@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -56,16 +55,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    console.log('🔔 Setting up notification system...');
+    console.log('🔔 Setting up enhanced notification system...');
     
     // Load notification settings and sounds
     loadNotificationData();
     
-    // Setup realtime subscription for new orders
-    console.log('📡 Setting up realtime subscription...');
+    // Setup realtime subscription for new orders with enhanced iOS support
+    console.log('📡 Setting up enhanced realtime subscription...');
     
     const orderChannel = supabase
-      .channel('online-orders-notifications')
+      .channel('enhanced-online-orders-notifications')
       .on(
         'postgres_changes',
         {
@@ -81,25 +80,37 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'customer_orders'
+        },
+        async (payload) => {
+          console.log('🔔 New customer order detected:', payload);
+          await handleNewCustomerOrder(payload.new);
+        }
+      )
       .subscribe((status) => {
-        console.log('📡 Online order subscription status:', status);
+        console.log('📡 Enhanced order subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to online order notifications');
+          console.log('✅ Successfully subscribed to enhanced order notifications');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to online order notifications');
+          console.error('❌ Error subscribing to enhanced order notifications');
         }
       });
 
-    // Setup cross-device notification sync channel
+    // Setup cross-device notification sync channel with iOS support
     const syncChannel = supabase
-      .channel('notification-sync')
+      .channel('enhanced-notification-sync')
       .on('broadcast', { event: 'dismiss-notification' }, () => {
         console.log('📡 Received dismiss broadcast');
         setShowOrderAlert(false);
         setNewOrder(null);
       })
       .on('broadcast', { event: 'new-order-notification' }, async (payload) => {
-        console.log('📡 Received cross-device order notification:', payload);
+        console.log('📡 Received enhanced cross-device order notification:', payload);
         const orderData = payload.payload;
         
         // Show notification on this device too
@@ -112,13 +123,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
         setShowOrderAlert(true);
         
-        // Play sound on this device
-        console.log('🔊 About to call playNotificationSound from broadcast');
+        // Play enhanced sound on this device
+        console.log('🔊 About to call enhanced playNotificationSound from broadcast');
         try {
-          await playNotificationSound();
+          await playEnhancedNotificationSound();
         } catch (soundError) {
           console.log('🔊 Broadcast sound play error:', soundError);
-          createBeepSound();
+          createEnhancedBeepSound();
         }
         
         // Show toast
@@ -134,14 +145,26 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
       })
+      .on('broadcast', { event: 'new-order-immediate' }, async (payload) => {
+        console.log('📡 Received immediate order notification:', payload);
+        const orderData = payload.payload;
+        
+        // Immediate notification response
+        await playEnhancedNotificationSound();
+        
+        toast.success('🔔 ออเดอร์ใหม่เข้ามาทันที!', {
+          description: `${orderData.orderNumber} - ฿${orderData.totalAmount}`,
+          duration: 8000
+        });
+      })
       .subscribe((status) => {
-        console.log('📡 Sync subscription status:', status);
+        console.log('📡 Enhanced sync subscription status:', status);
       });
 
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up notification subscriptions...');
+      console.log('🧹 Cleaning up enhanced notification subscriptions...');
       supabase.removeChannel(orderChannel);
       supabase.removeChannel(syncChannel);
       if (audioRef.current) {
@@ -185,6 +208,49 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     } catch (error) {
       console.error('❌ Error loading notification data:', error);
+    }
+  };
+
+  const handleNewCustomerOrder = async (orderData: any) => {
+    try {
+      console.log('🔔 Processing new customer order notification:', orderData);
+      
+      const orderForNotification: OnlineOrder = {
+        id: orderData.id,
+        order_number: orderData.order_number,
+        total_amount: orderData.total_amount,
+        items: orderData.items || [],
+        customer_profiles: orderData.customer_profiles
+      };
+      
+      setNewOrder(orderForNotification);
+      setShowOrderAlert(true);
+      
+      // Show toast notification
+      toast.success('มีออเดอร์ออนไลน์ใหม่!', {
+        description: `ออเดอร์ #${orderData.order_number} - ฿${orderData.total_amount}`,
+        duration: 15000,
+        action: {
+          label: 'ดูรายละเอียด',
+          onClick: () => {
+            handleDismiss();
+            navigate('/online-orders');
+          }
+        }
+      });
+
+      // Play enhanced notification sound
+      console.log('🔊 About to call playEnhancedNotificationSound for customer order');
+      
+      try {
+        await playEnhancedNotificationSound();
+      } catch (soundError) {
+        console.log('🔊 Sound play error:', soundError);
+        createEnhancedBeepSound();
+      }
+      
+    } catch (error) {
+      console.error('❌ Error processing new customer order notification:', error);
     }
   };
 
@@ -242,14 +308,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
 
-        // Play notification sound
-        console.log('🔊 About to call playNotificationSound');
+        // Play enhanced notification sound
+        console.log('🔊 About to call playEnhancedNotificationSound');
         
         try {
-          await playNotificationSound();
+          await playEnhancedNotificationSound();
         } catch (soundError) {
           console.log('🔊 Sound play error:', soundError);
-          createBeepSound();
+          createEnhancedBeepSound();
         }
         
         // Broadcast notification to all devices
@@ -275,12 +341,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const playNotificationSound = async () => {
-    console.log('🔊 playNotificationSound called');
+  const playEnhancedNotificationSound = async () => {
+    console.log('🔊 playEnhancedNotificationSound called for iOS');
     console.log('🔊 Sound enabled:', notificationSettings.sound_enabled);
     console.log('🔊 Volume:', notificationSettings.volume);
     console.log('🔊 Selected sound ID:', notificationSettings.selected_sound_id);
-    console.log('🔊 Available sounds:', notificationSounds);
     console.log('🔊 Duration:', notificationSettings.duration);
 
     if (!notificationSettings.sound_enabled) {
@@ -297,10 +362,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     let soundPlayed = false;
     
-    console.log('🔊 Selected sound ID:', notificationSettings.selected_sound_id);
-    console.log('🔊 Available custom sounds:', notificationSounds);
-    
-    // Check if we have a custom sound selected (UUID format)
+    // Enhanced iOS approach for custom sounds
     if (notificationSettings.selected_sound_id && 
         !['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
       
@@ -313,131 +375,80 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.log('🔊 Found custom sound:', selectedSound);
       
       if (selectedSound && selectedSound.file_url) {
-        console.log('🔊 Attempting to play custom sound:', selectedSound.name);
+        console.log('🔊 Attempting to play custom sound for iOS:', selectedSound.name);
         
         try {
           const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${selectedSound.file_url}`;
-          console.log('🔊 Custom sound URL:', fullUrl);
+          console.log('🔊 Custom sound URL for iOS:', fullUrl);
           
-          // Try multiple approaches for maximum compatibility
-          await Promise.race([
-            // Approach 1: Simple Audio with max volume
-            (async () => {
-              const audio = new Audio();
-              audioRef.current = audio;
-              audio.volume = 1.0; // Maximum volume
-              audio.src = fullUrl;
-              audio.preload = 'auto';
-              
-              await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
+          // Enhanced iOS audio setup
+          const audio = new Audio();
+          audioRef.current = audio;
+          audio.volume = 1.0; // Maximum volume for iOS
+          audio.src = fullUrl;
+          audio.preload = 'auto';
+          audio.setAttribute('playsinline', 'true');
+          audio.setAttribute('webkit-playsinline', 'true');
+          
+          // iOS-specific initialization
+          audio.load();
+          
+          // Play multiple times for iOS notification effect
+          let playCount = 0;
+          const maxPlays = Math.max(3, Math.floor(notificationSettings.duration));
+          
+          const playNext = async () => {
+            if (playCount < maxPlays && audioRef.current) {
+              try {
+                audioRef.current.currentTime = 0;
+                await audioRef.current.play();
+                console.log(`✅ iOS custom sound played ${playCount + 1}/${maxPlays}`);
+                soundPlayed = true;
+                playCount++;
                 
-                audio.oncanplaythrough = async () => {
-                  clearTimeout(timeout);
-                  try {
-                    await audio.play();
-                    console.log('✅ Custom sound played (simple approach)');
-                    soundPlayed = true;
-                    
-                    setTimeout(() => {
-                      if (audio && !audio.paused) {
-                        audio.pause();
-                        audio.currentTime = 0;
-                      }
-                    }, notificationSettings.duration * 1000);
-                    
-                    resolve();
-                  } catch (e) {
-                    reject(e);
-                  }
-                };
-                
-                audio.onerror = reject;
-                audio.load();
-              });
-            })(),
-            
-            // Approach 2: Audio Context with Gain
-            (async () => {
-              const audio = new Audio();
-              audio.volume = 1.0;
-              audio.src = fullUrl;
-              audio.crossOrigin = 'anonymous';
-              
-              const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-              if (audioContext.state === 'suspended') {
-                await audioContext.resume();
+                if (playCount < maxPlays) {
+                  setTimeout(playNext, 1000);
+                }
+              } catch (e) {
+                console.log(`⚠️ iOS custom sound play ${playCount + 1} failed:`, e);
               }
-              
-              const source = audioContext.createMediaElementSource(audio);
-              const gainNode = audioContext.createGain();
-              
-              source.connect(gainNode);
-              gainNode.connect(audioContext.destination);
-              gainNode.gain.value = 2.0; // Amplify volume
-              
-              await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Timeout')), 3000);
-                
-                audio.oncanplaythrough = async () => {
-                  clearTimeout(timeout);
-                  try {
-                    await audio.play();
-                    console.log('✅ Custom sound played (audio context approach)');
-                    soundPlayed = true;
-                    
-                    setTimeout(() => {
-                      if (audio && !audio.paused) {
-                        audio.pause();
-                        audio.currentTime = 0;
-                      }
-                    }, notificationSettings.duration * 1000);
-                    
-                    resolve();
-                  } catch (e) {
-                    reject(e);
-                  }
-                };
-                
-                audio.onerror = reject;
-                audio.load();
-              });
-            })()
-          ]);
+            }
+          };
+          
+          await playNext();
+          
         } catch (error) {
-          console.log('🔊 Custom sound failed:', error);
+          console.log('🔊 Custom sound failed for iOS:', error);
         }
-      } else {
-        console.log('🔊 Selected custom sound not found or has no file_url');
       }
     }
     
-    // If custom sound didn't play, try basic sounds or beep fallback
+    // If custom sound didn't play, try enhanced basic sounds for iOS
     if (!soundPlayed) {
-    // Check if it's a basic sound
       if (notificationSettings.selected_sound_id && 
           ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id)) {
-        console.log('🔊 Playing basic sound:', notificationSettings.selected_sound_id);
-        await playBasicSound(notificationSettings.selected_sound_id);
+        console.log('🔊 Playing enhanced basic sound for iOS:', notificationSettings.selected_sound_id);
+        await playEnhancedBasicSound(notificationSettings.selected_sound_id);
         soundPlayed = true;
       } else {
-        console.log('🔊 Using beep fallback');
-        await createBeepSound();
+        console.log('🔊 Using enhanced beep fallback for iOS');
+        await createEnhancedBeepSound();
       }
     }
   };
 
-  const playBasicSound = async (soundName: string) => {
+  const playEnhancedBasicSound = async (soundName: string) => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContext();
       
-      // Resume audio context if suspended
+      // iOS AudioContext handling
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
       
-      const duration = notificationSettings.duration * 1000;
-      const volume = Math.min(notificationSettings.volume * 2.0, 1.0); // Increase volume significantly
+      const duration = Math.max(3, notificationSettings.duration) * 1000; // At least 3 seconds for iOS
+      const volume = Math.min(notificationSettings.volume * 1.5, 1.0); // Boost volume for iOS
       
       let frequency = 800;
       
@@ -461,122 +472,141 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           frequency = 400;
           break;
         case 'ตีดๆๆๆ':
-          // Create beep pattern for "ตีดๆๆๆ"
-          const beepCount = 3;
-          const beepDuration = 150;
-          const beepInterval = 200;
+          // Enhanced beep pattern for iOS
+          const beepCount = Math.max(5, Math.floor(duration / 1000));
+          const beepDuration = 200;
+          const beepInterval = Math.floor(duration / beepCount);
           
           for (let i = 0; i < beepCount; i++) {
             const startTime = audioContext.currentTime + (i * beepInterval / 1000);
             const endTime = startTime + (beepDuration / 1000);
             
-            const beepOscillator = audioContext.createOscillator();
-            const beepGainNode = audioContext.createGain();
-            
-            beepOscillator.connect(beepGainNode);
-            beepGainNode.connect(audioContext.destination);
-            
-            beepOscillator.frequency.setValueAtTime(800, startTime);
-            beepOscillator.type = 'sine';
-            
-            beepGainNode.gain.setValueAtTime(0, startTime);
-            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
-            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
-            
-            beepOscillator.start(startTime);
-            beepOscillator.stop(endTime);
+            // Multiple oscillators for richer iOS sound
+            [800, 1000, 1200].forEach((freq, index) => {
+              const beepOscillator = audioContext.createOscillator();
+              const beepGainNode = audioContext.createGain();
+              const compressor = audioContext.createDynamicsCompressor();
+              
+              beepOscillator.connect(beepGainNode);
+              beepGainNode.connect(compressor);
+              compressor.connect(audioContext.destination);
+              
+              beepOscillator.frequency.setValueAtTime(freq, startTime);
+              beepOscillator.type = 'sine';
+              
+              const nodeVolume = volume / (index + 1);
+              beepGainNode.gain.setValueAtTime(0, startTime);
+              beepGainNode.gain.linearRampToValueAtTime(nodeVolume, startTime + 0.01);
+              beepGainNode.gain.setValueAtTime(nodeVolume, endTime - 0.01);
+              beepGainNode.gain.linearRampToValueAtTime(0, endTime);
+              
+              beepOscillator.start(startTime);
+              beepOscillator.stop(endTime);
+            });
           }
           
-          console.log(`✅ Enhanced beep sound played: ${soundName}`);
-          return; // Exit early for beep pattern
+          console.log(`✅ Enhanced iOS beep sound played: ${soundName}`);
+          return;
       }
       
-      // Create multiple oscillators for richer sound
-      const oscillators: OscillatorNode[] = [];
-      const gainNodes: GainNode[] = [];
+      // Enhanced oscillator pattern for iOS
+      const beepCount = Math.max(3, Math.floor(duration / 1000));
+      const beepDuration = 300;
+      const beepInterval = Math.floor(duration / beepCount);
       
-      // Main oscillator
-      const oscillator1 = audioContext.createOscillator();
-      const gainNode1 = audioContext.createGain();
-      oscillator1.connect(gainNode1);
-      gainNode1.connect(audioContext.destination);
-      oscillator1.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      oscillator1.type = 'sine';
+      for (let i = 0; i < beepCount; i++) {
+        const startTime = audioContext.currentTime + (i * beepInterval / 1000);
+        const endTime = startTime + (beepDuration / 1000);
+        
+        // Multiple harmonics for iOS
+        [1, 1.2, 1.5].forEach((multiplier, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const compressor = audioContext.createDynamicsCompressor();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(compressor);
+          compressor.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(frequency * multiplier, startTime);
+          oscillator.type = 'sine';
+          
+          const nodeVolume = volume / (index + 1);
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(nodeVolume, startTime + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, endTime);
+          
+          oscillator.start(startTime);
+          oscillator.stop(endTime);
+        });
+      }
       
-      // Harmonic oscillator for richer sound
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode2 = audioContext.createGain();
-      oscillator2.connect(gainNode2);
-      gainNode2.connect(audioContext.destination);
-      oscillator2.frequency.setValueAtTime(frequency * 1.5, audioContext.currentTime);
-      oscillator2.type = 'triangle';
-      
-      oscillators.push(oscillator1, oscillator2);
-      gainNodes.push(gainNode1, gainNode2);
-      
-      // Set up gain envelopes
-      gainNodes.forEach((gainNode, index) => {
-        const nodeVolume = index === 0 ? volume : volume * 0.3; // Second oscillator quieter
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(nodeVolume, audioContext.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-      });
-      
-      // Start oscillators
-      oscillators.forEach(oscillator => {
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + duration / 1000);
-      });
-      
-      console.log(`✅ Enhanced basic sound played: ${soundName}`);
+      console.log(`✅ Enhanced iOS basic sound played: ${soundName}`);
     } catch (error) {
-      console.error('❌ Basic sound failed:', error);
-      await createBeepSound();
+      console.error('❌ Enhanced iOS basic sound failed:', error);
+      await createEnhancedBeepSound();
     }
   };
 
-  const createBeepSound = async () => {
+  const createEnhancedBeepSound = async () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContext();
       
-      // Resume audio context if suspended
+      // iOS AudioContext handling
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
       }
       
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      
-      const volume = Math.min(notificationSettings.volume * 2.0, 1.0); // Increase volume significantly
-      const duration = notificationSettings.duration;
+      const volume = Math.min(notificationSettings.volume * 1.5, 1.0);
+      const duration = Math.max(3, notificationSettings.duration);
       const currentTime = audioContext.currentTime;
       
-      // Create stronger beep pattern based on duration
-      const beepCount = Math.max(2, Math.floor(duration / 0.3)); // More frequent beeps
+      // Enhanced beep pattern for iOS notification
+      const beepCount = Math.max(6, Math.floor(duration * 2));
       
       for (let i = 0; i < beepCount; i++) {
-        const startTime = currentTime + (i * 0.3);
-        const endTime = startTime + 0.15; // Longer beep duration
+        const startTime = currentTime + (i * 0.5);
+        const endTime = startTime + 0.2;
         
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-        gainNode.gain.setValueAtTime(volume, endTime - 0.02);
-        gainNode.gain.linearRampToValueAtTime(0, endTime);
+        // Multiple frequency beep for iOS attention
+        [800, 1000, 1200].forEach((frequency, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          const compressor = audioContext.createDynamicsCompressor();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(compressor);
+          compressor.connect(audioContext.destination);
+          
+          oscillator.frequency.value = frequency;
+          oscillator.type = 'sine';
+          
+          const nodeVolume = volume / (index + 1);
+          gainNode.gain.setValueAtTime(0, startTime);
+          gainNode.gain.linearRampToValueAtTime(nodeVolume, startTime + 0.02);
+          gainNode.gain.setValueAtTime(nodeVolume, endTime - 0.02);
+          gainNode.gain.linearRampToValueAtTime(0, endTime);
+          
+          oscillator.start(startTime);
+          oscillator.stop(endTime);
+        });
       }
       
-      oscillator.start(currentTime);
-      oscillator.stop(currentTime + duration);
-      
-      console.log('✅ Enhanced beep sound played');
+      console.log('✅ Enhanced iOS beep sound played');
     } catch (error) {
-      console.error('❌ Beep sound failed:', error);
+      console.error('❌ Enhanced iOS beep sound failed:', error);
+      
+      // Ultimate iOS fallback
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+      
+      // Visual feedback for iOS
+      document.body.style.backgroundColor = '#ff6b6b';
+      setTimeout(() => {
+        document.body.style.backgroundColor = '';
+      }, 300);
     }
   };
 
