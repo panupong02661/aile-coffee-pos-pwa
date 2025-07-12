@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -50,38 +51,27 @@ const CustomerMobileApp: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', phone: '', birth_date: '', gender: '' });
+  const [rewards, setRewards] = useState<Reward[]>([]);
 
-  // Mock rewards data
-  const [rewards] = useState<Reward[]>([
-    {
-      id: '1',
-      name: 'ส่วนลด 10% ทุกเมนู',
-      description: 'รับส่วนลด 10% สำหรับการสั่งซื้อครั้งถัดไป',
-      points_required: 100,
-      is_active: true
-    },
-    {
-      id: '2',
-      name: 'เครื่องดื่มฟรี 1 แก้ว',
-      description: 'รับเครื่องดื่มฟรี 1 แก้ว (เฉพาะเมนูที่กำหนด)',
-      points_required: 150,
-      is_active: true
-    },
-    {
-      id: '3',
-      name: 'ส่วนลด 50 บาท',
-      description: 'รับส่วนลด 50 บาท เมื่อซื้อครบ 300 บาท',
-      points_required: 200,
-      is_active: true
-    },
-    {
-      id: '4',
-      name: 'จัดส่งฟรี',
-      description: 'บริการจัดส่งฟรีสำหรับออเดอร์ถัดไป',
-      points_required: 80,
-      is_active: true
+  // Load rewards from database
+  const loadRewards = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rewards')
+        .select('*')
+        .eq('is_active', true)
+        .order('points_required', { ascending: true });
+
+      if (error) {
+        console.error('Error loading rewards:', error);
+        return;
+      }
+
+      setRewards(data || []);
+    } catch (error) {
+      console.error('Error loading rewards:', error);
     }
-  ]);
+  };
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -91,39 +81,92 @@ const CustomerMobileApp: React.FC = () => {
         const userData = JSON.parse(savedUser);
         setCurrentUser(userData);
         setIsAuthenticated(true);
+        // Load actual data from database
+        loadCustomerData(userData.phone);
       }
       setIsLoading(false);
     };
 
     checkAuth();
+    loadRewards();
   }, []);
+
+  const loadCustomerData = async (phone: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('phone', phone)
+        .single();
+
+      if (error) {
+        console.error('Error loading customer data:', error);
+        return;
+      }
+
+      if (data) {
+        const customerProfile: CustomerProfile = {
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          tier: data.tier,
+          points: data.points,
+          total_spent: data.total_spent,
+          birth_date: data.birth_date,
+          gender: data.gender
+        };
+        
+        setCurrentUser(customerProfile);
+        localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
+      }
+    } catch (error) {
+      console.error('Error loading customer data:', error);
+    }
+  };
 
   const handleLogin = async () => {
     try {
       setIsLoading(true);
       
-      // In real app, this would validate against Supabase
-      // For demo, we'll use mock validation
       if (loginForm.phone && loginForm.birth_date) {
-        const mockProfile: CustomerProfile = {
-          id: '1',
-          name: 'ลูกค้าตัวอย่าง',
-          phone: loginForm.phone,
-          email: 'customer@example.com',
-          tier: 'gold',
-          points: 1250,
-          total_spent: 8500,
-          birth_date: loginForm.birth_date,
-          gender: 'male'
+        // Check if customer exists in database
+        const { data, error } = await supabase
+          .from('members')
+          .select('*')
+          .eq('phone', loginForm.phone)
+          .eq('birth_date', loginForm.birth_date)
+          .single();
+
+        if (error || !data) {
+          toast({
+            title: 'ข้อมูลไม่ถูกต้อง',
+            description: 'ไม่พบข้อมูลสมาชิกหรือเบอร์โทรและวันเกิดไม่ตรงกัน',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const customerProfile: CustomerProfile = {
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          tier: data.tier,
+          points: data.points,
+          total_spent: data.total_spent,
+          birth_date: data.birth_date,
+          gender: data.gender
         };
         
-        setCurrentUser(mockProfile);
+        setCurrentUser(customerProfile);
         setIsAuthenticated(true);
-        localStorage.setItem('customerAuth', JSON.stringify(mockProfile));
+        localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
         
         toast({
           title: 'เข้าสู่ระบบสำเร็จ!',
-          description: 'ยินดีต้อนรับเข้าสู่ระบบ',
+          description: `ยินดีต้อนรับ ${data.name}`,
         });
       } else {
         toast({
@@ -133,6 +176,7 @@ const CustomerMobileApp: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถเข้าสู่ระบบได้',
@@ -148,21 +192,64 @@ const CustomerMobileApp: React.FC = () => {
       setIsLoading(true);
       
       if (registerForm.name && registerForm.phone && registerForm.birth_date) {
-        const mockProfile: CustomerProfile = {
-          id: '1',
-          name: registerForm.name,
-          phone: registerForm.phone,
-          email: '',
-          tier: 'silver',
-          points: 0,
-          total_spent: 0,
-          birth_date: registerForm.birth_date,
-          gender: registerForm.gender
+        // Check if phone already exists
+        const { data: existingMember } = await supabase
+          .from('members')
+          .select('phone')
+          .eq('phone', registerForm.phone)
+          .single();
+
+        if (existingMember) {
+          toast({
+            title: 'เบอร์โทรนี้มีอยู่แล้ว',
+            description: 'กรุณาใช้เบอร์โทรอื่นหรือเข้าสู่ระบบ',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Create new member
+        const { data, error } = await supabase
+          .from('members')
+          .insert({
+            name: registerForm.name,
+            phone: registerForm.phone,
+            birth_date: registerForm.birth_date,
+            gender: registerForm.gender || null,
+            tier: 'silver',
+            points: 0,
+            total_spent: 0
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Registration error:', error);
+          toast({
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ไม่สามารถสมัครสมาชิกได้',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const customerProfile: CustomerProfile = {
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          tier: data.tier,
+          points: data.points,
+          total_spent: data.total_spent,
+          birth_date: data.birth_date,
+          gender: data.gender
         };
         
-        setCurrentUser(mockProfile);
+        setCurrentUser(customerProfile);
         setIsAuthenticated(true);
-        localStorage.setItem('customerAuth', JSON.stringify(mockProfile));
+        localStorage.setItem('customerAuth', JSON.stringify(customerProfile));
         
         toast({
           title: 'สมัครสมาชิกสำเร็จ!',
@@ -176,6 +263,7 @@ const CustomerMobileApp: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถสมัครสมาชิกได้',
@@ -190,7 +278,29 @@ const CustomerMobileApp: React.FC = () => {
     if (!currentUser) return;
     
     try {
-      // In real app, this would update Supabase
+      const { error } = await supabase
+        .from('members')
+        .update({
+          name: currentUser.name,
+          phone: currentUser.phone,
+          birth_date: currentUser.birth_date,
+          gender: currentUser.gender
+        })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถอัปเดตโปรไฟล์ได้',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Update local storage
+      localStorage.setItem('customerAuth', JSON.stringify(currentUser));
+      
       toast({
         title: 'อัปเดตสำเร็จ!',
         description: 'โปรไฟล์ของคุณได้รับการอัปเดตแล้ว',
@@ -219,7 +329,39 @@ const CustomerMobileApp: React.FC = () => {
     }
 
     try {
-      // In real app, this would update the database
+      // Update member points
+      const { error: memberError } = await supabase
+        .from('members')
+        .update({ 
+          points: currentUser.points - pointsRequired 
+        })
+        .eq('id', currentUser.id);
+
+      if (memberError) {
+        console.error('Error updating member points:', memberError);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถแลกรางวัลได้',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Log point transaction
+      const { error: transactionError } = await supabase
+        .from('point_transactions')
+        .insert({
+          member_id: currentUser.id,
+          points_change: -pointsRequired,
+          transaction_type: 'redeem',
+          description: `แลกรางวัล - รางวัล ID: ${rewardId}`
+        });
+
+      if (transactionError) {
+        console.error('Error logging transaction:', transactionError);
+      }
+
+      // Update local state
       const updatedUser = {
         ...currentUser,
         points: currentUser.points - pointsRequired
