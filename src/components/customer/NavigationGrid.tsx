@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Gift, Tag, ShoppingBag, Clock, BarChart3 } from 'lucide-react';
+import { User, Gift, Tag, ShoppingBag, Clock, BarChart3, Target } from 'lucide-react';
 
 interface NavigationGridProps {
   activeTab: string;
@@ -16,6 +16,7 @@ const NavigationGrid = ({ activeTab, onTabChange }: NavigationGridProps) => {
     { id: 'shop', label: 'สั่งซื้อ', icon: ShoppingBag, color: 'bg-orange-500' },
     { id: 'history', label: 'ประวัติ', icon: Clock, color: 'bg-red-500' },
     { id: 'stats', label: 'สถิติ', icon: BarChart3, color: 'bg-indigo-500' },
+    { id: 'goals', label: 'เป้าหมาย', icon: Target, color: 'bg-pink-500' },
   ];
 
   return (

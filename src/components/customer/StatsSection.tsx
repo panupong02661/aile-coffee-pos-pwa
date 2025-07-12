@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BarChart3, TrendingUp, Award, ShoppingBag, Gift, Percent } from 'lucide-react';
+import { BarChart3, TrendingUp, Award, ShoppingBag, Gift, Percent, Star, Calendar, Trophy, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +26,12 @@ interface CustomerStats {
   total_points_earned: number;
   total_points_used: number;
   current_tier: string;
+  orders_this_month: number;
+  spent_this_month: number;
+  points_this_month: number;
+  average_order_value: number;
+  favorite_category: string;
+  last_order_date: string;
 }
 
 interface StatsSectionProps {
@@ -43,7 +50,13 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
     total_spent: 0,
     total_points_earned: 0,
     total_points_used: 0,
-    current_tier: ''
+    current_tier: '',
+    orders_this_month: 0,
+    spent_this_month: 0,
+    points_this_month: 0,
+    average_order_value: 0,
+    favorite_category: '',
+    last_order_date: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -122,24 +135,40 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
     if (!currentUser) return;
 
     try {
-      // Get total orders and spent
+      // Get all orders
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select('total_amount')
-        .eq('member_id', currentUser.id);
+        .select('total_amount, created_at')
+        .eq('member_id', currentUser.id)
+        .order('created_at', { ascending: false });
 
       if (orderError) throw orderError;
+
+      // Get this month's data
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const thisMonthOrders = orderData?.filter(order => 
+        new Date(order.created_at) >= startOfMonth
+      ) || [];
 
       // Get points transactions
       const { data: pointsData, error: pointsError } = await supabase
         .from('point_transactions')
-        .select('points_change, transaction_type')
+        .select('points_change, transaction_type, created_at')
         .eq('member_id', currentUser.id);
 
       if (pointsError) throw pointsError;
 
+      // Get this month's points
+      const thisMonthPoints = pointsData?.filter(t => 
+        new Date(t.created_at) >= startOfMonth && t.transaction_type === 'earned'
+      ).reduce((sum, t) => sum + t.points_change, 0) || 0;
+
       const totalOrders = orderData?.length || 0;
       const totalSpent = orderData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const thisMonthSpent = thisMonthOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
       
       const pointsEarned = pointsData?.filter(t => t.transaction_type === 'earned')
         .reduce((sum, t) => sum + t.points_change, 0) || 0;
@@ -147,12 +176,21 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
       const pointsUsed = Math.abs(pointsData?.filter(t => t.transaction_type === 'redeem')
         .reduce((sum, t) => sum + t.points_change, 0) || 0);
 
+      const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
+      const lastOrderDate = orderData?.[0]?.created_at || '';
+
       setCustomerStats({
         total_orders: totalOrders,
         total_spent: totalSpent,
         total_points_earned: pointsEarned,
         total_points_used: pointsUsed,
-        current_tier: currentUser.tier || 'silver'
+        current_tier: currentUser.tier || 'silver',
+        orders_this_month: thisMonthOrders.length,
+        spent_this_month: thisMonthSpent,
+        points_this_month: thisMonthPoints,
+        average_order_value: avgOrderValue,
+        favorite_category: 'กาแฟ', // This could be calculated from actual data
+        last_order_date: lastOrderDate
       });
     } catch (error) {
       console.error('Error fetching customer stats:', error);
@@ -195,6 +233,15 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'ไม่มีข้อมูล';
+    return new Date(dateString).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -210,6 +257,39 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Main Stats Card */}
+      <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold">
+                  {currentUser?.name?.charAt(0) || 'U'}
+                </span>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">{currentUser?.name || 'สมาชิก'}</h2>
+                <p className="text-white/80">{currentUser?.phone}</p>
+              </div>
+            </div>
+            <Badge className={`${getTierColor(customerStats.current_tier)} text-xs`}>
+              {getTierDisplayName(customerStats.current_tier)}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-white/80 text-sm">แต้มสะสม</p>
+              <p className="text-2xl font-bold">{(currentUser?.points || 0).toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-white/80 text-sm">ยอดใช้จ่าย</p>
+              <p className="text-2xl font-bold">฿{customerStats.total_spent.toLocaleString()}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
@@ -233,8 +313,8 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
                 <TrendingUp className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">ยอดซื้อรวม</p>
-                <p className="text-xl font-bold text-green-600">฿{customerStats.total_spent.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">ค่าเฉลี่ย/ออเดอร์</p>
+                <p className="text-xl font-bold text-green-600">฿{customerStats.average_order_value.toFixed(0)}</p>
               </div>
             </div>
           </CardContent>
@@ -244,11 +324,11 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Gift className="w-5 h-5 text-purple-600" />
+                <Calendar className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">แต้มที่ได้รับ</p>
-                <p className="text-xl font-bold text-purple-600">{customerStats.total_points_earned.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">เดือนนี้</p>
+                <p className="text-xl font-bold text-purple-600">{customerStats.orders_this_month} ออเดอร์</p>
               </div>
             </div>
           </CardContent>
@@ -258,18 +338,88 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Award className="w-5 h-5 text-orange-600" />
+                <Star className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">สถานะสมาชิก</p>
-                <Badge className={`text-xs ${getTierColor(customerStats.current_tier)}`}>
-                  {getTierDisplayName(customerStats.current_tier)}
-                </Badge>
+                <p className="text-sm text-gray-600">แต้มเดือนนี้</p>
+                <p className="text-xl font-bold text-orange-600">+{customerStats.points_this_month}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Additional Stats Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100">
+          <CardContent className="p-4 text-center">
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Target className="w-6 h-6 text-white" />
+            </div>
+            <p className="text-sm text-blue-600 mb-1">ออเดอร์ล่าสุด</p>
+            <p className="text-lg font-bold text-blue-700">{formatDate(customerStats.last_order_date)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-green-50 to-green-100">
+          <CardContent className="p-4 text-center">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <p className="text-sm text-green-600 mb-1">ยอดเดือนนี้</p>
+            <p className="text-lg font-bold text-green-700">฿{customerStats.spent_this_month.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Points Summary - Enhanced */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5" />
+            สรุปแต้มสะสม
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-green-600 mb-1">แต้มที่ได้รับ</p>
+                <p className="text-xl font-bold text-green-700">+{customerStats.total_points_earned.toLocaleString()}</p>
+              </div>
+              
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-sm text-red-600 mb-1">แต้มที่ใช้ไป</p>
+                <p className="text-xl font-bold text-red-700">-{customerStats.total_points_used.toLocaleString()}</p>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-blue-600 mb-1">แต้มคงเหลือ</p>
+                <p className="text-xl font-bold text-blue-700">{(currentUser?.points || 0).toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Points Earning Rules */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-purple-800 mb-2">การได้รับแต้ม</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">สมาชิกเงิน:</span>
+                  <span className="font-medium">1 แต้ม/บาท</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">สมาชิกทอง:</span>
+                  <span className="font-medium">1.5 แต้ม/บาท</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">สมาชิกแพลทินัม:</span>
+                  <span className="font-medium">2 แต้ม/บาท</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Top Menu Items */}
       <Card>
@@ -342,34 +492,6 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Points Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
-            สรุปแต้มสะสม
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-green-600 mb-1">แต้มที่ได้รับ</p>
-              <p className="text-xl font-bold text-green-700">+{customerStats.total_points_earned.toLocaleString()}</p>
-            </div>
-            
-            <div className="bg-red-50 p-4 rounded-lg">
-              <p className="text-sm text-red-600 mb-1">แต้มที่ใช้ไป</p>
-              <p className="text-xl font-bold text-red-700">-{customerStats.total_points_used.toLocaleString()}</p>
-            </div>
-            
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-600 mb-1">แต้มคงเหลือ</p>
-              <p className="text-xl font-bold text-blue-700">{(currentUser?.points || 0).toLocaleString()}</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
