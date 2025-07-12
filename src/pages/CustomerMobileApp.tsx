@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import StatsSection from '@/components/customer/StatsSection';
 import NavigationGrid from '@/components/customer/NavigationGrid';
 import CustomerGoals from '@/components/customer/CustomerGoals';
 import MemberCard from '@/components/customer/MemberCard';
+import LoginForm from '@/components/customer/LoginForm';
 
 interface CustomerProfile {
   id: string;
@@ -43,9 +43,13 @@ const CustomerMobileApp: React.FC = () => {
   const { toast } = useToast();
 
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
-  const [activeTab, setActiveTab] = useState('home'); // Changed default to 'home'
+  const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loginForm, setLoginForm] = useState({ phone: '', birth_date: '' });
+  const [registerForm, setRegisterForm] = useState({ name: '', phone: '', birth_date: '', gender: '' });
 
   // Mock rewards data
   const [rewards] = useState<Reward[]>([
@@ -80,37 +84,107 @@ const CustomerMobileApp: React.FC = () => {
   ]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setIsLoading(true);
-        // For demo purposes, using mock data. In real app, this would fetch from Supabase
+    // Check if user is already authenticated
+    const checkAuth = () => {
+      const savedUser = localStorage.getItem('customerAuth');
+      if (savedUser) {
+        const userData = JSON.parse(savedUser);
+        setCurrentUser(userData);
+        setIsAuthenticated(true);
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // In real app, this would validate against Supabase
+      // For demo, we'll use mock validation
+      if (loginForm.phone && loginForm.birth_date) {
         const mockProfile: CustomerProfile = {
           id: '1',
           name: 'ลูกค้าตัวอย่าง',
-          phone: '0812345678',
+          phone: loginForm.phone,
           email: 'customer@example.com',
           tier: 'gold',
           points: 1250,
           total_spent: 8500,
-          birth_date: '1990-01-01',
+          birth_date: loginForm.birth_date,
           gender: 'male'
         };
         
         setCurrentUser(mockProfile);
-      } catch (error: any) {
-        console.error('Error fetching profile:', error);
+        setIsAuthenticated(true);
+        localStorage.setItem('customerAuth', JSON.stringify(mockProfile));
+        
         toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้',
+          title: 'เข้าสู่ระบบสำเร็จ!',
+          description: 'ยินดีต้อนรับเข้าสู่ระบบ',
+        });
+      } else {
+        toast({
+          title: 'ข้อมูลไม่ครบถ้วน',
+          description: 'กรุณากรอกเบอร์โทรและวันเดือนปีเกิด',
           variant: 'destructive',
         });
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถเข้าสู่ระบบได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchProfile();
-  }, [toast]);
+  const handleRegister = async () => {
+    try {
+      setIsLoading(true);
+      
+      if (registerForm.name && registerForm.phone && registerForm.birth_date) {
+        const mockProfile: CustomerProfile = {
+          id: '1',
+          name: registerForm.name,
+          phone: registerForm.phone,
+          email: '',
+          tier: 'silver',
+          points: 0,
+          total_spent: 0,
+          birth_date: registerForm.birth_date,
+          gender: registerForm.gender
+        };
+        
+        setCurrentUser(mockProfile);
+        setIsAuthenticated(true);
+        localStorage.setItem('customerAuth', JSON.stringify(mockProfile));
+        
+        toast({
+          title: 'สมัครสมาชิกสำเร็จ!',
+          description: 'ยินดีต้อนรับสู่ระบบสมาชิก',
+        });
+      } else {
+        toast({
+          title: 'ข้อมูลไม่ครบถ้วน',
+          description: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถสมัครสมาชิกได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleUpdateProfile = async () => {
     if (!currentUser) return;
@@ -151,6 +225,7 @@ const CustomerMobileApp: React.FC = () => {
         points: currentUser.points - pointsRequired
       };
       setCurrentUser(updatedUser);
+      localStorage.setItem('customerAuth', JSON.stringify(updatedUser));
 
       toast({
         title: 'แลกรางวัลสำเร็จ!',
@@ -175,13 +250,41 @@ const CustomerMobileApp: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // In real app, this would clear authentication
+    // Clear authentication state
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setActiveTab('home');
+    localStorage.removeItem('customerAuth');
+    
+    // Reset forms
+    setLoginForm({ phone: '', birth_date: '' });
+    setRegisterForm({ name: '', phone: '', birth_date: '', gender: '' });
+    setIsRegistering(false);
+    
     toast({
       title: 'ออกจากระบบแล้ว',
       description: 'คุณได้ออกจากระบบเรียบร้อยแล้ว',
     });
-    // Here you would redirect to login page or clear user session
   };
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Shell>
+        <LoginForm
+          isRegistering={isRegistering}
+          setIsRegistering={setIsRegistering}
+          loginForm={loginForm}
+          setLoginForm={setLoginForm}
+          registerForm={registerForm}
+          setRegisterForm={setRegisterForm}
+          isLoading={isLoading}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+        />
+      </Shell>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
