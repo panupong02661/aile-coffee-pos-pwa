@@ -135,6 +135,8 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
     if (!currentUser) return;
 
     try {
+      console.log('Fetching customer stats for member ID:', currentUser.id);
+      
       // Get all orders
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -142,7 +144,12 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
         .eq('member_id', currentUser.id)
         .order('created_at', { ascending: false });
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order fetch error:', orderError);
+        throw orderError;
+      }
+
+      console.log('Order data:', orderData);
 
       // Get this month's data
       const startOfMonth = new Date();
@@ -153,28 +160,50 @@ const StatsSection = ({ currentUser }: StatsSectionProps) => {
         new Date(order.created_at) >= startOfMonth
       ) || [];
 
-      // Get points transactions
+      // Get points transactions with better filtering
       const { data: pointsData, error: pointsError } = await supabase
         .from('point_transactions')
         .select('points_change, transaction_type, created_at')
         .eq('member_id', currentUser.id);
 
-      if (pointsError) throw pointsError;
+      if (pointsError) {
+        console.error('Points fetch error:', pointsError);
+        throw pointsError;
+      }
 
-      // Get this month's points
+      console.log('Points data:', pointsData);
+
+      // Get this month's points - fix the transaction type filtering
       const thisMonthPoints = pointsData?.filter(t => 
-        new Date(t.created_at) >= startOfMonth && t.transaction_type === 'earned'
-      ).reduce((sum, t) => sum + t.points_change, 0) || 0;
+        new Date(t.created_at) >= startOfMonth && 
+        (t.transaction_type === 'earn' || t.transaction_type === 'earned')
+      ).reduce((sum, t) => sum + Math.abs(t.points_change), 0) || 0;
 
       const totalOrders = orderData?.length || 0;
       const totalSpent = orderData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const thisMonthSpent = thisMonthOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
       
-      const pointsEarned = pointsData?.filter(t => t.transaction_type === 'earned')
-        .reduce((sum, t) => sum + t.points_change, 0) || 0;
+      // Fix points calculation - check for both 'earn' and 'earned' transaction types
+      const pointsEarned = pointsData?.filter(t => 
+        t.transaction_type === 'earn' || 
+        t.transaction_type === 'earned' || 
+        t.points_change > 0
+      ).reduce((sum, t) => sum + Math.abs(t.points_change), 0) || 0;
       
-      const pointsUsed = Math.abs(pointsData?.filter(t => t.transaction_type === 'redeem')
-        .reduce((sum, t) => sum + t.points_change, 0) || 0);
+      // Fix points used calculation - check for both 'redeem' and negative values
+      const pointsUsed = Math.abs(pointsData?.filter(t => 
+        t.transaction_type === 'redeem' || 
+        t.transaction_type === 'redeemed' ||
+        t.points_change < 0
+      ).reduce((sum, t) => sum + Math.abs(t.points_change), 0) || 0);
+
+      console.log('Calculated stats:', {
+        totalOrders,
+        totalSpent,
+        pointsEarned,
+        pointsUsed,
+        thisMonthPoints
+      });
 
       const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
       const lastOrderDate = orderData?.[0]?.created_at || '';
