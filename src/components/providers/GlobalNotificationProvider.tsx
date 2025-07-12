@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Bell, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useIOSNotificationService } from '@/hooks/useIOSNotificationService';
 
 interface OnlineOrder {
   id: string;
@@ -45,6 +46,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Use iOS notification service
+  const { isIOS, triggerIOSNotification, playIOSNotificationSound } = useIOSNotificationService();
+
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
@@ -56,6 +60,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     console.log('🔔 Setting up enhanced notification system...');
+    console.log('🍎 iOS detected:', isIOS);
     
     // Load notification settings and sounds
     loadNotificationData();
@@ -123,13 +128,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
         setShowOrderAlert(true);
         
-        // Play enhanced sound on this device
-        console.log('🔊 About to call enhanced playNotificationSound from broadcast');
-        try {
-          await playEnhancedNotificationSound();
-        } catch (soundError) {
-          console.log('🔊 Broadcast sound play error:', soundError);
-          createEnhancedBeepSound();
+        // Enhanced iOS notification handling
+        if (isIOS) {
+          console.log('🍎 Triggering iOS notification from broadcast');
+          await triggerIOSNotification({
+            orderNumber: orderData.orderNumber,
+            totalAmount: orderData.totalAmount,
+            items: orderData.items || []
+          });
+        } else {
+          // Play enhanced sound on non-iOS devices
+          console.log('🔊 About to call enhanced playNotificationSound from broadcast');
+          try {
+            await playEnhancedNotificationSound();
+          } catch (soundError) {
+            console.log('🔊 Broadcast sound play error:', soundError);
+            createEnhancedBeepSound();
+          }
         }
         
         // Show toast
@@ -149,8 +164,18 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log('📡 Received immediate order notification:', payload);
         const orderData = payload.payload;
         
-        // Immediate notification response
-        await playEnhancedNotificationSound();
+        // Enhanced iOS immediate notification
+        if (isIOS) {
+          console.log('🍎 Triggering immediate iOS notification');
+          await triggerIOSNotification({
+            orderNumber: orderData.orderNumber,
+            totalAmount: orderData.totalAmount,
+            items: orderData.items || []
+          });
+        } else {
+          // Immediate notification response for non-iOS
+          await playEnhancedNotificationSound();
+        }
         
         toast.success('🔔 ออเดอร์ใหม่เข้ามาทันที!', {
           description: `${orderData.orderNumber} - ฿${orderData.totalAmount}`,
@@ -172,7 +197,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         audioRef.current = null;
       }
     };
-  }, [navigate, isCustomerMobileApp]);
+  }, [navigate, isCustomerMobileApp, isIOS, triggerIOSNotification]);
 
   const loadNotificationData = async () => {
     try {
@@ -239,14 +264,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       });
 
-      // Play enhanced notification sound
-      console.log('🔊 About to call playEnhancedNotificationSound for customer order');
-      
-      try {
-        await playEnhancedNotificationSound();
-      } catch (soundError) {
-        console.log('🔊 Sound play error:', soundError);
-        createEnhancedBeepSound();
+      // Enhanced iOS notification handling
+      if (isIOS) {
+        console.log('🍎 Triggering iOS notification for customer order');
+        await triggerIOSNotification({
+          orderNumber: orderData.order_number,
+          totalAmount: orderData.total_amount,
+          items: orderData.items || []
+        });
+      } else {
+        // Play enhanced notification sound for non-iOS
+        console.log('🔊 About to call playEnhancedNotificationSound for customer order');
+        try {
+          await playEnhancedNotificationSound();
+        } catch (soundError) {
+          console.log('🔊 Sound play error:', soundError);
+          createEnhancedBeepSound();
+        }
       }
       
     } catch (error) {
@@ -308,14 +342,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         });
 
-        // Play enhanced notification sound
-        console.log('🔊 About to call playEnhancedNotificationSound');
-        
-        try {
-          await playEnhancedNotificationSound();
-        } catch (soundError) {
-          console.log('🔊 Sound play error:', soundError);
-          createEnhancedBeepSound();
+        // Enhanced iOS notification handling
+        if (isIOS) {
+          console.log('🍎 Triggering iOS notification for new order');
+          await triggerIOSNotification({
+            orderNumber: completeOrder.order_number,
+            totalAmount: completeOrder.total_amount,
+            items: []
+          });
+        } else {
+          // Play enhanced notification sound for non-iOS
+          console.log('🔊 About to call playEnhancedNotificationSound');
+          try {
+            await playEnhancedNotificationSound();
+          } catch (soundError) {
+            console.log('🔊 Sound play error:', soundError);
+            createEnhancedBeepSound();
+          }
         }
         
         // Broadcast notification to all devices
