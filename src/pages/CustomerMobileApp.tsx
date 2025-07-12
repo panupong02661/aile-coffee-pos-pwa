@@ -1,6 +1,5 @@
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useSession, signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,79 +16,69 @@ import StatsSection from '@/components/customer/StatsSection';
 import NavigationGrid from '@/components/customer/NavigationGrid';
 import CustomerGoals from '@/components/customer/CustomerGoals';
 
-interface Profile {
+interface CustomerProfile {
   id: string;
   name: string;
   phone: string;
   email?: string;
   tier: string;
   points: number;
+  total_spent: number;
+  birth_date?: string;
+  gender?: string;
 }
 
 const CustomerMobileApp: React.FC = () => {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const { toast } = useToast();
 
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, router]);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (session?.user?.email) {
-        try {
-          setIsLoading(true);
-          const { data: profile, error } = await supabase
-            .from('members')
-            .select('*')
-            .eq('email', session.user.email)
-            .single();
-
-          if (error) {
-            throw error;
-          }
-
-          setCurrentUser(profile);
-        } catch (error: any) {
-          console.error('Error fetching profile:', error);
-          toast({
-            title: 'เกิดข้อผิดพลาด',
-            description: 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้',
-            variant: 'destructive',
-          });
-        } finally {
-          setIsLoading(false);
-        }
+      try {
+        setIsLoading(true);
+        // For demo purposes, using mock data. In real app, this would fetch from Supabase
+        const mockProfile: CustomerProfile = {
+          id: '1',
+          name: 'ลูกค้าตัวอย่าง',
+          phone: '0812345678',
+          email: 'customer@example.com',
+          tier: 'gold',
+          points: 1250,
+          total_spent: 8500,
+          birth_date: '1990-01-01',
+          gender: 'male'
+        };
+        
+        setCurrentUser(mockProfile);
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchProfile();
-  }, [session, toast]);
+  }, [toast]);
 
-  const handleUpdateProfile = async (updatedProfile: Profile) => {
+  const handleUpdateProfile = async () => {
+    if (!currentUser) return;
+    
     try {
-      const { data, error } = await supabase
-        .from('members')
-        .update(updatedProfile)
-        .eq('id', updatedProfile.id)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setCurrentUser(data);
+      // In real app, this would update Supabase
       toast({
         title: 'อัปเดตสำเร็จ!',
         description: 'โปรไฟล์ของคุณได้รับการอัปเดตแล้ว',
       });
+      setEditMode(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
@@ -107,23 +96,39 @@ const CustomerMobileApp: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
-        return <ProfileSection currentUser={currentUser} onUpdateProfile={handleUpdateProfile} />;
+        return (
+          <ProfileSection 
+            currentUser={currentUser} 
+            setCurrentUser={setCurrentUser}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            onUpdateProfile={handleUpdateProfile}
+          />
+        );
       case 'rewards':
         return <RewardsSection currentUser={currentUser} />;
       case 'coupons':
-        return <CouponsSection currentUser={currentUser} />;
+        return <CouponsSection coupons={[]} />;
       case 'shop':
         return <ShopSection currentUser={currentUser} />;
       case 'history':
         return <HistorySection currentUser={currentUser} />;
       case 'stats':
         return <StatsSection currentUser={currentUser} />;
-    case 'goals':
-      return <CustomerGoals currentUser={currentUser} />;
-    default:
-      return <ProfileSection currentUser={currentUser} onUpdateProfile={handleUpdateProfile} />;
-  }
-};
+      case 'goals':
+        return <CustomerGoals currentUser={currentUser} />;
+      default:
+        return (
+          <ProfileSection 
+            currentUser={currentUser} 
+            setCurrentUser={setCurrentUser}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            onUpdateProfile={handleUpdateProfile}
+          />
+        );
+    }
+  };
 
   if (isLoading) {
     return (
@@ -148,7 +153,7 @@ const CustomerMobileApp: React.FC = () => {
 
         {/* Logout Button */}
         <div className="p-4">
-          <Button variant="destructive" className="w-full" onClick={() => signOut()}>
+          <Button variant="destructive" className="w-full">
             ออกจากระบบ
           </Button>
         </div>

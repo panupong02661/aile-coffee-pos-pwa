@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User } from 'lucide-react';
-import { formatDateToThai, formatDateForDisplay, parseThaiDateInput } from '@/utils/dateUtils';
 
 interface CustomerProfile {
   id: string;
@@ -34,6 +33,23 @@ const ProfileSection = ({
   setEditMode,
   onUpdateProfile
 }: ProfileSectionProps) => {
+  const formatDateForDisplay = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('th-TH');
+  };
+
+  const formatDateToThai = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('th-TH');
+  };
+
+  const parseThaiDateInput = (input: string) => {
+    // Simple date parsing - in real app would need proper validation
+    return input;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
