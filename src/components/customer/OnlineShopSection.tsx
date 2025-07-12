@@ -185,7 +185,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
         // Method 3: iOS Visual and Haptic Feedback
         try {
-          // iOS Haptic Feedback
+          // iOS Haptic Feedback using navigator.vibrate()
           if ('vibrate' in navigator) {
             // Continuous vibration pattern for 7 seconds
             const vibrationPattern = [];
@@ -246,9 +246,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               body: `ออเดอร์ของคุณได้รับการยืนยันเรียบร้อยแล้ว จำนวน ฿${getTotalAmount()}`,
               icon: '/favicon.ico',
               requireInteraction: true,
-              silent: false,
-              vibrate: [200, 100, 200, 100, 200]
+              silent: false
             });
+
+            // Use navigator.vibrate() separately from Notification
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200, 100, 200]);
+            }
 
             // Auto-close after 7 seconds
             setTimeout(() => notification.close(), 7000);

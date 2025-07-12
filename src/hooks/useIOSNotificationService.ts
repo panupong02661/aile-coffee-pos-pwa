@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 
 export const useIOSNotificationService = () => {
@@ -176,9 +177,13 @@ export const useIOSNotificationService = () => {
           body: `ออเดอร์ #${payload.orderNumber} - ฿${payload.totalAmount}`,
           icon: '/favicon.ico',
           requireInteraction: true,
-          silent: false,
-          vibrate: [200, 100, 200, 100, 200]
+          silent: false
         });
+
+        // Use navigator.vibrate() separately from Notification
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200, 100, 200]);
+        }
 
         notification.onclick = () => {
           window.focus();
