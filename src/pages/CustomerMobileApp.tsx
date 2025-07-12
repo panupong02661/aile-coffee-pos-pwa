@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft } from 'lucide-react';
 
 import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
@@ -15,6 +16,7 @@ import HistorySection from '@/components/customer/HistorySection';
 import StatsSection from '@/components/customer/StatsSection';
 import NavigationGrid from '@/components/customer/NavigationGrid';
 import CustomerGoals from '@/components/customer/CustomerGoals';
+import MemberCard from '@/components/customer/MemberCard';
 
 interface CustomerProfile {
   id: string;
@@ -41,7 +43,7 @@ const CustomerMobileApp: React.FC = () => {
   const { toast } = useToast();
 
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('home'); // Changed default to 'home'
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
 
@@ -168,8 +170,42 @@ const CustomerMobileApp: React.FC = () => {
     setActiveTab(tab);
   };
 
+  const handleBackToHome = () => {
+    setActiveTab('home');
+  };
+
+  const handleLogout = () => {
+    // In real app, this would clear authentication
+    toast({
+      title: 'ออกจากระบบแล้ว',
+      description: 'คุณได้ออกจากระบบเรียบร้อยแล้ว',
+    });
+    // Here you would redirect to login page or clear user session
+  };
+
   const renderContent = () => {
     switch (activeTab) {
+      case 'home':
+        return (
+          <div className="space-y-4">
+            {/* Member Card */}
+            {currentUser && <MemberCard currentUser={currentUser} />}
+            
+            {/* Navigation Grid */}
+            <NavigationGrid activeTab={activeTab} onTabChange={handleTabChange} />
+            
+            {/* Logout Button */}
+            <div className="p-4">
+              <Button 
+                variant="destructive" 
+                className="w-full"
+                onClick={handleLogout}
+              >
+                ออกจากระบบ
+              </Button>
+            </div>
+          </div>
+        );
       case 'profile':
         return (
           <ProfileSection 
@@ -200,13 +236,24 @@ const CustomerMobileApp: React.FC = () => {
         return <CustomerGoals currentUser={currentUser} />;
       default:
         return (
-          <ProfileSection 
-            currentUser={currentUser} 
-            setCurrentUser={setCurrentUser}
-            editMode={editMode}
-            setEditMode={setEditMode}
-            onUpdateProfile={handleUpdateProfile}
-          />
+          <div className="space-y-4">
+            {/* Member Card */}
+            {currentUser && <MemberCard currentUser={currentUser} />}
+            
+            {/* Navigation Grid */}
+            <NavigationGrid activeTab={activeTab} onTabChange={handleTabChange} />
+            
+            {/* Logout Button */}
+            <div className="p-4">
+              <Button 
+                variant="destructive" 
+                className="w-full"
+                onClick={handleLogout}
+              >
+                ออกจากระบบ
+              </Button>
+            </div>
+          </div>
         );
     }
   };
@@ -224,19 +271,24 @@ const CustomerMobileApp: React.FC = () => {
   return (
     <Shell>
       <div className="flex flex-col h-screen">
-        {/* Navigation Grid */}
-        <NavigationGrid activeTab={activeTab} onTabChange={handleTabChange} />
+        {/* Header with Back Button (shown when not on home) */}
+        {activeTab !== 'home' && (
+          <div className="p-4 border-b bg-white sticky top-0 z-10">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToHome}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              กลับหน้าแรก
+            </Button>
+          </div>
+        )}
 
         {/* Content Section */}
-        <div className="flex-grow overflow-y-auto p-4">
+        <div className="flex-grow overflow-y-auto">
           {renderContent()}
-        </div>
-
-        {/* Logout Button */}
-        <div className="p-4">
-          <Button variant="destructive" className="w-full">
-            ออกจากระบบ
-          </Button>
         </div>
       </div>
     </Shell>
