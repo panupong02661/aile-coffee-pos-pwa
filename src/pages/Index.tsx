@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -35,7 +34,7 @@ const Index = () => {
   // Initialize order notifications for iPad compatibility
   const { playBellSound, initializeAudio } = useOrderNotifications();
   
-  // โหลดการตั้งค่าจาก localStorage
+  // โหลดการตั้งค่าจาก localStorage - updated to support up to 10 columns
   const [gridColumns, setGridColumns] = useState(() => {
     const saved = localStorage.getItem('pos-grid-columns');
     return saved ? parseInt(saved) : (isMobile ? 3 : 4);
@@ -79,7 +78,15 @@ const Index = () => {
     getAddonGroupsForCategory 
   } = useSupabaseData();
 
-  // Convert database categories to the format expected by components
+  // Save grid settings to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('pos-grid-columns', gridColumns.toString());
+  }, [gridColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('pos-item-size', itemSize);
+  }, [itemSize]);
+
   const convertedCategories = [
     { 
       id: '1', 

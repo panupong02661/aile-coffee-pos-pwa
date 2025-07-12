@@ -32,6 +32,10 @@ const MenuGrid = ({
     }
     
     switch (gridColumns) {
+      case 1:
+        return 'grid-cols-1';
+      case 2:
+        return 'grid-cols-2';
       case 3:
         return 'grid-cols-3';
       case 4:
@@ -40,6 +44,14 @@ const MenuGrid = ({
         return 'grid-cols-5';
       case 6:
         return 'grid-cols-6';
+      case 7:
+        return 'grid-cols-7';
+      case 8:
+        return 'grid-cols-8';
+      case 9:
+        return 'grid-cols-9';
+      case 10:
+        return 'grid-cols-10';
       default:
         return 'grid-cols-4';
     }
@@ -54,8 +66,14 @@ const MenuGrid = ({
       };
     }
     
-    // Desktop sizing
-    if (gridColumns >= 5) {
+    // Desktop sizing - adjust for higher column counts
+    if (gridColumns >= 8) {
+      return {
+        small: 'h-20',
+        medium: 'h-24',
+        large: 'h-28'
+      };
+    } else if (gridColumns >= 5) {
       return {
         small: 'h-24',
         medium: 'h-28',
@@ -96,12 +114,12 @@ const MenuGrid = ({
                 )}
                 <div className="flex-1 flex flex-col justify-between">
                   <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
-                    isMobile ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     {item.name}
                   </h3>
                   <p className={`text-coffee-600 font-semibold ${
-                    isMobile ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
                     ฿{item.price}
                   </p>

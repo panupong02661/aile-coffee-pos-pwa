@@ -84,7 +84,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   
   const { toast } = useToast();
 
-  // Function to play notification bell for 7 seconds
+  // Function to play notification bell for 7 seconds - enhanced version
   const playOrderSuccessNotification = async () => {
     try {
       console.log('🔔 Playing order confirmation notification for 7 seconds...');
@@ -97,7 +97,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       
       const totalDuration = 7; // 7 seconds
       const bellInterval = 0.8; // Interval between bell sounds
-      const volume = 0.4; // Volume level
+      const volume = 0.6; // Increased volume
       
       let currentTime = audioContext.currentTime;
       const endTime = currentTime + totalDuration;
@@ -147,6 +147,44 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       console.log(`✅ Order confirmation notification played for ${totalDuration} seconds`);
     } catch (error) {
       console.error('Notification sound failed:', error);
+    }
+  };
+
+  // Function to trigger global notification across all platforms
+  const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
+    try {
+      console.log('📡 Triggering global order notification...');
+      
+      // Insert a record into customer_orders table to trigger real-time notifications
+      const { error } = await supabase
+        .from('customer_orders')
+        .insert({
+          customer_id: currentUser.id,
+          order_number: orderNumber,
+          total_amount: totalAmount,
+          items: cartItems.map(item => ({
+            name: item.menu_item.name,
+            quantity: item.quantity,
+            price: item.menu_item.price,
+            addons: item.selected_addons?.map(addon => ({
+              name: addon.name,
+              price: addon.price
+            })) || []
+          })),
+          subtotal: totalAmount,
+          payment_method: paymentMethod,
+          order_status: 'confirmed',
+          delivery_type: 'pickup',
+          notes: customerNotes
+        });
+
+      if (error) {
+        console.error('Failed to trigger global notification:', error);
+      } else {
+        console.log('✅ Global notification triggered successfully');
+      }
+    } catch (error) {
+      console.error('Error triggering global notification:', error);
     }
   };
 
@@ -555,7 +593,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // Play notification sound for 7 seconds
+      // Play notification sound for 7 seconds FIRST
       await playOrderSuccessNotification();
 
       let receiptUrl = null;
@@ -668,6 +706,9 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             });
         }
       }
+
+      // Trigger global notification across all platforms (except customer page)
+      await triggerGlobalOrderNotification(orderNumber, finalAmount);
 
       toast({ 
         title: 'สั่งซื้อสำเร็จ!', 
