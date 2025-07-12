@@ -28,6 +28,15 @@ interface CustomerProfile {
   gender?: string;
 }
 
+interface Reward {
+  id: string;
+  name: string;
+  description?: string;
+  points_required: number;
+  image_url?: string;
+  is_active: boolean;
+}
+
 const CustomerMobileApp: React.FC = () => {
   const { toast } = useToast();
 
@@ -35,6 +44,38 @@ const CustomerMobileApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+
+  // Mock rewards data
+  const [rewards] = useState<Reward[]>([
+    {
+      id: '1',
+      name: 'ส่วนลด 10% ทุกเมนู',
+      description: 'รับส่วนลด 10% สำหรับการสั่งซื้อครั้งถัดไป',
+      points_required: 100,
+      is_active: true
+    },
+    {
+      id: '2',
+      name: 'เครื่องดื่มฟรี 1 แก้ว',
+      description: 'รับเครื่องดื่มฟรี 1 แก้ว (เฉพาะเมนูที่กำหนด)',
+      points_required: 150,
+      is_active: true
+    },
+    {
+      id: '3',
+      name: 'ส่วนลด 50 บาท',
+      description: 'รับส่วนลด 50 บาท เมื่อซื้อครบ 300 บาท',
+      points_required: 200,
+      is_active: true
+    },
+    {
+      id: '4',
+      name: 'จัดส่งฟรี',
+      description: 'บริการจัดส่งฟรีสำหรับออเดอร์ถัดไป',
+      points_required: 80,
+      is_active: true
+    }
+  ]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -89,6 +130,40 @@ const CustomerMobileApp: React.FC = () => {
     }
   };
 
+  const handleRedeemReward = async (rewardId: string, pointsRequired: number) => {
+    if (!currentUser) return;
+    
+    if (currentUser.points < pointsRequired) {
+      toast({
+        title: 'แต้มไม่เพียงพอ',
+        description: `คุณต้องมีแต้มอย่างน้อย ${pointsRequired} แต้ม`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // In real app, this would update the database
+      const updatedUser = {
+        ...currentUser,
+        points: currentUser.points - pointsRequired
+      };
+      setCurrentUser(updatedUser);
+
+      toast({
+        title: 'แลกรางวัลสำเร็จ!',
+        description: `คุณได้รับรางวัลแล้ว ใช้แต้มไป ${pointsRequired} แต้ม`,
+      });
+    } catch (error: any) {
+      console.error('Error redeeming reward:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถแลกรางวัลได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
@@ -106,7 +181,13 @@ const CustomerMobileApp: React.FC = () => {
           />
         );
       case 'rewards':
-        return <RewardsSection currentUser={currentUser} />;
+        return (
+          <RewardsSection 
+            rewards={rewards}
+            currentUser={currentUser} 
+            onRedeemReward={handleRedeemReward}
+          />
+        );
       case 'coupons':
         return <CouponsSection coupons={[]} />;
       case 'shop':
