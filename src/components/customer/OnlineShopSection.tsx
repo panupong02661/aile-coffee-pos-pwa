@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingCart, Plus, Minus } from 'lucide-react';
@@ -112,7 +113,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       }
       
       // เล่นเสียงทั่วไป
-      await playBellSound();
+      try {
+        await playBellSound();
+      } catch (soundError) {
+        console.log('Sound play failed:', soundError);
+      }
       
       console.log('✅ Immediate notification sound played');
     } catch (error) {
