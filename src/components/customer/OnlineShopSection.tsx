@@ -188,7 +188,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           } else {
             console.log('✅ Background save successful:', data);
             // เล่นเสียงแจ้งเตือนเพิ่มเติมเมื่อบันทึกสำเร็จ
-            playBellSound().catch(console.log);
+            playBellSound().catch((err) => console.log('Sound play failed:', err));
           }
         })
         .catch((error) => {
