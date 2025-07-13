@@ -1015,129 +1015,163 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // Play notification sound IMMEDIATELY for iOS compatibility
-      console.log('🔔 Playing immediate iOS notification sound...');
-      await playOrderSuccessNotification();
-
-      let receiptUrl = null;
-      if (receiptFile) {
-        receiptUrl = await uploadReceipt(receiptFile);
-        if (!receiptUrl) {
-          throw new Error('ไม่สามารถอัปโหลดสลีปได้');
-        }
+      // 🔔 PLAY NOTIFICATION SOUND IMMEDIATELY - DON'T WAIT FOR DATABASE
+      console.log('🔔 Playing immediate notification sound...');
+      try {
+        await playOrderSuccessNotification();
+        console.log('✅ Notification sound played successfully');
+      } catch (soundError) {
+        console.log('⚠️ Notification sound failed, continuing with order:', soundError);
       }
 
-      const orderNumber = generateOrderNumber();
-      
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          member_id: currentUser.id,
-          total_amount: finalAmount,
-          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          payment_method: paymentMethod === 'points' ? 'points' : 'online',
-          order_source: 'online',
-          receipt_image_url: receiptUrl,
-          pickup_time: pickupTime,
-          customer_notes: customerNotes
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Save order items
-      for (const item of cartItems) {
-        const { data: orderItem, error: itemError } = await supabase
-          .from('order_items')
-          .insert({
-            order_id: order.id,
-            menu_item_id: item.menu_item.id,
-            menu_item_name: item.menu_item.name,
-            quantity: item.quantity,
-            unit_price: item.menu_item.price,
-            total_price: item.quantity * item.menu_item.price
-          })
-          .select()
-          .single();
-
-        if (itemError) throw itemError;
-
-        if (item.selected_addons && item.selected_addons.length > 0) {
-          const addonItems = item.selected_addons.map(addon => ({
-            order_id: order.id,
-            order_item_id: orderItem.id,
-            addon_id: addon.id,
-            addon_name: addon.name,
-            quantity: item.quantity,
-            unit_price: Number(addon.price),
-            total_price: item.quantity * Number(addon.price)
-          }));
-
-          const { error: addonError } = await supabase
-            .from('order_addons')
-            .insert(addonItems);
-
-          if (addonError) throw addonError;
-        }
-      }
-
-      // Handle points and member updates
-      if (paymentMethod === 'points' && pointsUsed > 0) {
-        // Deduct points
-        await supabase
-          .from('members')
-          .update({
-            points: currentUser.points - pointsUsed,
-            total_spent: currentUser.total_spent + finalAmount
-          })
-          .eq('id', currentUser.id);
-
-        // Log point transaction
-        await supabase
-          .from('point_transactions')
-          .insert({
-            member_id: currentUser.id,
-            points_change: -pointsUsed,
-            transaction_type: 'redeem',
-            description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
-            order_id: order.id
-          });
-      } else {
-        // Earn points from purchase
-        const tierSettings = getCurrentTierSettings();
-        const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
-        
-        await supabase
-          .from('members')
-          .update({
-            points: currentUser.points + pointsEarned,
-            total_spent: currentUser.total_spent + finalAmount
-          })
-          .eq('id', currentUser.id);
-
-        if (pointsEarned > 0) {
-          await supabase
-            .from('point_transactions')
-            .insert({
-              member_id: currentUser.id,
-              points_change: pointsEarned,
-              transaction_type: 'earned',
-              description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
-              order_id: order.id
-            });
-        }
-      }
-
-      // Trigger enhanced global notification AFTER order is saved
-      await triggerGlobalOrderNotification(orderNumber, finalAmount);
-
+      // Show immediate success message to user
       toast({ 
-        title: 'สั่งซื้อสำเร็จ!', 
-        description: `หมายเลขออเดอร์: ${orderNumber}` 
+        title: 'กำลังดำเนินการ...', 
+        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ' 
       });
 
+      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
+      const orderNumber = generateOrderNumber();
+      
+      // Start all database operations in background without waiting
+      setTimeout(async () => {
+        try {
+          let receiptUrl = null;
+          if (receiptFile) {
+            receiptUrl = await uploadReceipt(receiptFile);
+            if (!receiptUrl) {
+              throw new Error('ไม่สามารถอัปโหลดสลีปได้');
+            }
+          }
+
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert({
+              order_number: orderNumber,
+              member_id: currentUser.id,
+              total_amount: finalAmount,
+              items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+              payment_method: paymentMethod === 'points' ? 'points' : 'online',
+              order_source: 'online',
+              receipt_image_url: receiptUrl,
+              pickup_time: pickupTime,
+              customer_notes: customerNotes
+            })
+            .select()
+            .single();
+
+          if (orderError) throw orderError;
+
+          // Save order items
+          for (const item of cartItems) {
+            const { data: orderItem, error: itemError } = await supabase
+              .from('order_items')
+              .insert({
+                order_id: order.id,
+                menu_item_id: item.menu_item.id,
+                menu_item_name: item.menu_item.name,
+                quantity: item.quantity,
+                unit_price: item.menu_item.price,
+                total_price: item.quantity * item.menu_item.price
+              })
+              .select()
+              .single();
+
+            if (itemError) throw itemError;
+
+            if (item.selected_addons && item.selected_addons.length > 0) {
+              const addonItems = item.selected_addons.map(addon => ({
+                order_id: order.id,
+                order_item_id: orderItem.id,
+                addon_id: addon.id,
+                addon_name: addon.name,
+                quantity: item.quantity,
+                unit_price: Number(addon.price),
+                total_price: item.quantity * Number(addon.price)
+              }));
+
+              const { error: addonError } = await supabase
+                .from('order_addons')
+                .insert(addonItems);
+
+              if (addonError) throw addonError;
+            }
+          }
+
+          // Handle points and member updates
+          if (paymentMethod === 'points' && pointsUsed > 0) {
+            // Deduct points
+            await supabase
+              .from('members')
+              .update({
+                points: currentUser.points - pointsUsed,
+                total_spent: currentUser.total_spent + finalAmount
+              })
+              .eq('id', currentUser.id);
+
+            // Log point transaction
+            await supabase
+              .from('point_transactions')
+              .insert({
+                member_id: currentUser.id,
+                points_change: -pointsUsed,
+                transaction_type: 'redeem',
+                description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
+                order_id: order.id
+              });
+          } else {
+            // Earn points from purchase
+            const tierSettings = getCurrentTierSettings();
+            const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
+            
+            await supabase
+              .from('members')
+              .update({
+                points: currentUser.points + pointsEarned,
+                total_spent: currentUser.total_spent + finalAmount
+              })
+              .eq('id', currentUser.id);
+
+            if (pointsEarned > 0) {
+              await supabase
+                .from('point_transactions')
+                .insert({
+                  member_id: currentUser.id,
+                  points_change: pointsEarned,
+                  transaction_type: 'earned',
+                  description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
+                  order_id: order.id
+                });
+            }
+          }
+
+          // Trigger enhanced global notification AFTER order is saved
+          await triggerGlobalOrderNotification(orderNumber, finalAmount);
+
+          // Show final success message
+          toast({ 
+            title: 'สั่งซื้อสำเร็จ!', 
+            description: `หมายเลขออเดอร์: ${orderNumber}` 
+          });
+
+          setTimeout(() => {
+            toast({ 
+              title: '✅ ขอบคุณครับ!', 
+              description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
+            });
+          }, 1000);
+
+        } catch (error: any) {
+          console.error('Background order processing error:', error);
+          toast({ 
+            title: 'ข้อผิดพลาดในการบันทึก', 
+            description: error.message || 'ข้อมูลอาจไม่ได้รับการบันทึก กรุณาติดต่อเจ้าหน้าที่', 
+            variant: 'destructive' 
+          });
+        }
+      }, 100); // Start background process after 100ms
+
+      // Clear form immediately - don't wait for database
       setCartItems([]);
       setPickupTime('');
       setCustomerNotes('');
@@ -1147,13 +1181,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setPaymentMethod('qr');
       setPointsToUse('');
       
-      setTimeout(() => {
-        toast({ 
-          title: '✅ ขอบคุณครับ!', 
-          description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
-        });
-      }, 1000);
-
     } catch (error: any) {
       console.error('Order submission error:', error);
       toast({ 
@@ -1162,6 +1189,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         variant: 'destructive' 
       });
     } finally {
+      // Reset processing state quickly
       setIsProcessing(false);
     }
   };
