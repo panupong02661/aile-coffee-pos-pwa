@@ -98,115 +98,117 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       return;
     }
 
-    // 🔥 เล่นเสียงแจ้งเตือนทันทีที่กดปุ่ม (ไม่รอบันทึกข้อมูล)
+    // สร้าง order number ล่วงหน้า
+    const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    // 🔥 เล่นเสียงแจ้งเตือนทันทีที่กดปุ่ม
+    console.log('🔔 Playing immediate notification sound...');
+    
     try {
-      console.log('🔔 Playing immediate notification sound...');
-      
       // เล่นเสียงสำหรับ iOS
       if (isIOS) {
-        await triggerIOSNotification({
+        triggerIOSNotification({
           message: 'กำลังดำเนินการสั่งซื้อ...',
-          orderNumber: `TMP-${Date.now()}`,
+          orderNumber: orderNumber,
           totalAmount: getTotal()
+        }).catch(error => {
+          console.log('⚠️ iOS notification failed:', error);
         });
       }
       
       // เล่นเสียงทั่วไป
-      await playBellSound();
-      
-      console.log('✅ Immediate notification sound played');
+      try {
+        await playBellSound();
+        console.log('✅ Immediate notification sound played');
+      } catch (error) {
+        console.log('⚠️ Bell sound failed:', error);
+      }
     } catch (error) {
-      console.log('⚠️ Immediate notification failed, continuing...', error);
+      console.log('⚠️ Immediate notification failed:', error);
     }
 
-    // แสดงการประมวลผลทันที
+    // แสดงการประมวลผลและ toast ทันที
     setIsProcessing(true);
-
-    // แสดง toast ทันที
+    
     toast({
       title: "🔔 กำลังดำเนินการสั่งซื้อ",
       description: "กรุณารอสักครู่...",
       duration: 3000,
     });
 
-    try {
-      // สร้างข้อมูลออเดอร์
-      const orderData = {
-        customer_id: currentUser?.id || null,
-        items: cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          total: item.price * item.quantity
-        })),
-        subtotal: getSubtotal(),
-        discount_amount: getDiscountAmount(),
-        total_amount: getTotal(),
-        order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        payment_method: 'online',
-        payment_status: 'pending',
-        order_status: 'confirmed',
-        delivery_type: deliveryType,
-        delivery_address: customerInfo.address,
-        notes: customerInfo.notes || null
-      };
+    // แสดงผลสำเร็จทันที
+    toast({
+      title: "✅ สั่งซื้อสำเร็จ!",
+      description: `ออเดอร์ ${orderNumber} ได้รับการยืนยันแล้ว`,
+      duration: 5000,
+    });
 
-      console.log('📦 Submitting order:', orderData);
+    // ล้างตะกร้าและข้อมูลทันที
+    const orderData = {
+      customer_id: currentUser?.id || null,
+      items: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        total: item.price * item.quantity
+      })),
+      subtotal: getSubtotal(),
+      discount_amount: getDiscountAmount(),
+      total_amount: getTotal(),
+      order_number: orderNumber,
+      payment_method: 'online',
+      payment_status: 'pending',
+      order_status: 'confirmed',
+      delivery_type: deliveryType,
+      delivery_address: customerInfo.address,
+      notes: customerInfo.notes || null
+    };
 
-      // 🚀 บันทึกข้อมูลแบบ background (ไม่บล็อก UI)
-      const saveOrderPromise = supabase
-        .from('customer_orders')
-        .insert([orderData])
-        .select()
-        .single();
+    // ล้างข้อมูลทันที
+    setCart([]);
+    setCustomerInfo({ name: '', phone: '', address: '', notes: '' });
+    setIsProcessing(false);
 
-      // แสดงผลสำเร็จทันที (ไม่รอการบันทึก)
-      toast({
-        title: "✅ สั่งซื้อสำเร็จ!",
-        description: `ออเดอร์ ${orderData.order_number} ได้รับการยืนยันแล้ว`,
-        duration: 5000,
-      });
+    // 🚀 บันทึกข้อมูลแบบ background (ไม่บล็อก UI)
+    console.log('📦 Starting background order save:', orderData);
+    
+    // ใช้ setTimeout เพื่อให้การบันทึกทำงานใน background
+    setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('customer_orders')
+          .insert([orderData])
+          .select()
+          .single();
 
-      // ล้างตะกร้าทันที
-      setCart([]);
-      setCustomerInfo({ name: '', phone: '', address: '', notes: '' });
-      setIsProcessing(false);
-
-      // ตรวจสอบผลการบันทึกใน background
-      saveOrderPromise
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('❌ Background save failed:', error);
-            // แสดง toast แจ้งปัญหา แต่ไม่รบกวนผู้ใช้มาก
-            toast({
-              title: "⚠️ การบันทึกล่าช้า",
-              description: "ออเดอร์ของคุณได้รับการยืนยันแล้ว แต่การบันทึกอาจล่าช้า",
-              variant: "default",
-              duration: 3000,
-            });
-          } else {
-            console.log('✅ Background save successful:', data);
-            // เล่นเสียงแจ้งเตือนเพิ่มเติมเมื่อบันทึกสำเร็จ
-            playBellSound().catch(console.log);
+        if (error) {
+          console.error('❌ Background save failed:', error);
+          toast({
+            title: "⚠️ การบันทึกล่าช้า",
+            description: "ออเดอร์ของคุณได้รับการยืนยันแล้ว แต่การบันทึกอาจล่าช้า",
+            variant: "default",
+            duration: 3000,
+          });
+        } else {
+          console.log('✅ Background save successful:', data);
+          // เล่นเสียงแจ้งเตือนเพิ่มเติมเมื่อบันทึกสำเร็จ
+          try {
+            await playBellSound();
+          } catch (error) {
+            console.log('⚠️ Success sound failed:', error);
           }
-        })
-        .catch((error) => {
-          console.error('❌ Unexpected background save error:', error);
+        }
+      } catch (error) {
+        console.error('❌ Unexpected background save error:', error);
+        toast({
+          title: "⚠️ การบันทึกล่าช้า", 
+          description: "ออเดอร์ของคุณได้รับการยืนยันแล้ว แต่การบันทึกอาจล่าช้า",
+          variant: "default",
+          duration: 3000,
         });
-
-    } catch (error) {
-      console.error('❌ Order submission failed:', error);
-      
-      setIsProcessing(false);
-      
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง",
-        variant: "destructive",
-        duration: 5000,
-      });
-    }
+      }
+    }, 100); // รอ 100ms แล้วค่อยเริ่มบันทึก
   };
 
   // Initialize audio on component mount
