@@ -4,15 +4,10 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-console.log('Starting application...');
-
 const container = document.getElementById("root");
 if (!container) {
-  console.error("Root element not found!");
   throw new Error("Root element not found");
 }
-
-console.log('Root element found, creating React root...');
 
 const root = createRoot(container);
 root.render(
@@ -20,5 +15,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-console.log('React app rendered');
