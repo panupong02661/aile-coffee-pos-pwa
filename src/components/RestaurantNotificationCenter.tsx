@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Bell, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 interface Order {
   id: string;
   order_number: string;
   total_amount: number;
-  items: any[];
+  items: Json;
   order_status: string;
   created_at: string;
   notes?: string;
@@ -84,6 +85,21 @@ const RestaurantNotificationCenter = () => {
       case 'completed': return 'เสร็จสิ้น';
       default: return status;
     }
+  };
+
+  const parseItems = (items: Json): any[] => {
+    if (Array.isArray(items)) {
+      return items;
+    }
+    if (typeof items === 'string') {
+      try {
+        const parsed = JSON.parse(items);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   };
 
   return (
@@ -175,89 +191,92 @@ const RestaurantNotificationCenter = () => {
             </CardContent>
           </Card>
         ) : (
-          orders.map(order => (
-            <Card key={order.id} className="border-l-4 border-coffee-500">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">
-                      ออเดอร์ #{order.order_number}
-                    </CardTitle>
-                    <p className="text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleString('th-TH')}
-                    </p>
-                  </div>
-                  <Badge className={`${getStatusColor(order.order_status)} text-white`}>
-                    {getStatusText(order.order_status)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Order Items */}
-                  <div>
-                    <h4 className="font-medium mb-2">รายการสินค้า:</h4>
-                    <div className="space-y-1 text-sm">
-                      {order.items.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between">
-                          <span>{item.name} x{item.quantity}</span>
-                          <span>฿{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  {order.notes && (
+          orders.map(order => {
+            const orderItems = parseItems(order.items);
+            return (
+              <Card key={order.id} className="border-l-4 border-coffee-500">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium mb-1">หมายเหตุ:</h4>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                        {order.notes}
+                      <CardTitle className="text-lg">
+                        ออเดอร์ #{order.order_number}
+                      </CardTitle>
+                      <p className="text-sm text-gray-500">
+                        {new Date(order.created_at).toLocaleString('th-TH')}
                       </p>
                     </div>
-                  )}
-
-                  {/* Total */}
-                  <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                    <span>ยอดรวม:</span>
-                    <span className="text-coffee-600">฿{order.total_amount.toFixed(2)}</span>
+                    <Badge className={`${getStatusColor(order.order_status)} text-white`}>
+                      {getStatusText(order.order_status)}
+                    </Badge>
                   </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Order Items */}
+                    <div>
+                      <h4 className="font-medium mb-2">รายการสินค้า:</h4>
+                      <div className="space-y-1 text-sm">
+                        {orderItems.map((item: any, index: number) => (
+                          <div key={index} className="flex justify-between">
+                            <span>{item.name} x{item.quantity}</span>
+                            <span>฿{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    {order.order_status === 'pending' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        เริ่มเตรียม
-                      </Button>
+                    {/* Notes */}
+                    {order.notes && (
+                      <div>
+                        <h4 className="font-medium mb-1">หมายเหตุ:</h4>
+                        <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                          {order.notes}
+                        </p>
+                      </div>
                     )}
-                    {order.order_status === 'preparing' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateOrderStatus(order.id, 'ready')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        พร้อมรับ
-                      </Button>
-                    )}
-                    {order.order_status === 'ready' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateOrderStatus(order.id, 'completed')}
-                        className="bg-gray-600 hover:bg-gray-700"
-                      >
-                        เสร็จสิ้น
-                      </Button>
-                    )}
+
+                    {/* Total */}
+                    <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                      <span>ยอดรวม:</span>
+                      <span className="text-coffee-600">฿{order.total_amount.toFixed(2)}</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2">
+                      {order.order_status === 'pending' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateOrderStatus(order.id, 'preparing')}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          เริ่มเตรียม
+                        </Button>
+                      )}
+                      {order.order_status === 'preparing' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateOrderStatus(order.id, 'ready')}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          พร้อมรับ
+                        </Button>
+                      )}
+                      {order.order_status === 'ready' && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateOrderStatus(order.id, 'completed')}
+                          className="bg-gray-600 hover:bg-gray-700"
+                        >
+                          เสร็จสิ้น
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>
