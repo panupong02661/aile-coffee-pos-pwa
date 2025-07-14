@@ -719,7 +719,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลเวรทำงานได้', variant: 'destructive' });
       return;
     }
-    setShifts(data || []);
+    
+    const typedShifts = (data || []).map(shift => ({
+      ...shift,
+      status: shift.status as 'active' | 'closed'
+    }));
+    
+    setShifts(typedShifts);
   };
 
   const fetchSuppliers = async () => {
@@ -751,7 +757,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดใบสั่งซื้อได้', variant: 'destructive' });
       return;
     }
-    setPurchaseOrders(data || []);
+    
+    const typedOrders = (data || []).map(order => ({
+      ...order,
+      status: order.status as 'pending' | 'sent' | 'received' | 'cancelled'
+    }));
+    
+    setPurchaseOrders(typedOrders);
   };
 
   const fetchTableAreas = async () => {
@@ -783,7 +795,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลโต๊ะได้', variant: 'destructive' });
       return;
     }
-    setTables(data || []);
+    
+    const typedTables = (data || []).map(table => ({
+      ...table,
+      status: table.status as 'available' | 'occupied' | 'reserved' | 'maintenance'
+    }));
+    
+    setTables(typedTables);
   };
 
   const fetchTableReservations = async () => {
@@ -802,7 +820,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการจองโต๊ะได้', variant: 'destructive' });
       return;
     }
-    setTableReservations(data || []);
+    
+    const typedReservations = (data || []).map(reservation => ({
+      ...reservation,
+      status: reservation.status as 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+    }));
+    
+    setTableReservations(typedReservations);
   };
 
   const fetchCreditCustomers = async () => {
@@ -835,7 +859,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการขายเครดิตได้', variant: 'destructive' });
       return;
     }
-    setCreditSales(data || []);
+    
+    const typedSales = (data || []).map(sale => ({
+      ...sale,
+      status: sale.status as 'pending' | 'paid' | 'overdue' | 'cancelled'
+    }));
+    
+    setCreditSales(typedSales);
   };
 
   const fetchPriceSchedules = async () => {
@@ -861,7 +891,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลคนส่งได้', variant: 'destructive' });
       return;
     }
-    setDeliveryDrivers(data || []);
+    
+    const typedDrivers = (data || []).map(driver => ({
+      ...driver,
+      status: driver.status as 'available' | 'busy' | 'offline'
+    }));
+    
+    setDeliveryDrivers(typedDrivers);
   };
 
   const fetchDeliveryAssignments = async () => {
@@ -881,7 +917,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการมอบหมายงานส่งได้', variant: 'destructive' });
       return;
     }
-    setDeliveryAssignments(data || []);
+    
+    const typedAssignments = (data || []).map(assignment => ({
+      ...assignment,
+      status: assignment.status as 'assigned' | 'picked_up' | 'on_route' | 'delivered' | 'cancelled'
+    }));
+    
+    setDeliveryAssignments(typedAssignments);
   };
 
   const fetchProductReservations = async () => {
@@ -906,7 +948,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการจองสินค้าได้', variant: 'destructive' });
       return;
     }
-    setProductReservations(data || []);
+    
+    const typedReservations = (data || []).map(reservation => ({
+      ...reservation,
+      status: reservation.status as 'active' | 'fulfilled' | 'cancelled' | 'expired'
+    }));
+    
+    setProductReservations(typedReservations);
   };
 
   const fetchSMSSettings = async () => {
