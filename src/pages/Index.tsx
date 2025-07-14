@@ -8,17 +8,8 @@ import {
   Settings, 
   Users, 
   Package,
-  Smartphone,
-  Shield,
-  CreditCard,
-  UserPlus,
   Star,
-  Globe,
-  Printer,
-  TrendingUp,
-  QrCode,
-  AlertTriangle,
-  Wrench
+  TrendingUp
 } from "lucide-react";
 
 const Index = () => {
@@ -57,103 +48,94 @@ const Index = () => {
     }
   ];
 
-  try {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              ระบบจัดการร้านค้า POS
-            </h1>
-            <p className="text-xl text-gray-600">
-              ระบบครบครันสำหรับจัดการร้านค้าขนาดเล็กถึงขนาดใหญ่
-            </p>
-          </div>
+  const handleNavigation = (path) => {
+    try {
+      console.log('Navigating to:', path);
+      navigate(path);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
 
-          {/* Main Features */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">ฟีเจอร์หลัก</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {mainFeatures.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
-                    <CardHeader className="pb-2">
-                      <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
-                        <IconComponent className="w-6 h-6 text-white" />
-                      </div>
-                      <CardTitle className="text-lg">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 mb-4">{feature.description}</p>
-                      <Button 
-                        className="w-full" 
-                        onClick={() => {
-                          console.log('Navigating to:', feature.path);
-                          navigate(feature.path);
-                        }}
-                      >
-                        เข้าใช้งาน
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            ระบบจัดการร้านค้า POS
+          </h1>
+          <p className="text-xl text-gray-600">
+            ระบบครบครันสำหรับจัดการร้านค้าขนาดเล็กถึงขนาดใหญ่
+          </p>
+        </div>
 
-          {/* Quick Navigation */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button 
-              variant="outline" 
-              className="h-16"
-              onClick={() => navigate("/member-management")}
-            >
-              <Users className="w-5 h-5 mr-2" />
-              จัดการสมาชิก
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-16"
-              onClick={() => navigate("/inventory")}
-            >
-              <Package className="w-5 h-5 mr-2" />
-              คลังสินค้า
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-16"
-              onClick={() => navigate("/promotions")}
-            >
-              <Star className="w-5 h-5 mr-2" />
-              โปรโมชั่น
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-16"
-              onClick={() => navigate("/shop-settings")}
-            >
-              <Settings className="w-5 h-5 mr-2" />
-              ตั้งค่าร้าน
-            </Button>
+        {/* Main Features */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">ฟีเจอร์หลัก</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {mainFeatures.map((feature, index) => {
+              const IconComponent = feature.icon;
+              return (
+                <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="pb-2">
+                    <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
+                      <IconComponent className="w-6 h-6 text-white" />
+                    </div>
+                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 mb-4">{feature.description}</p>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleNavigation(feature.path)}
+                    >
+                      เข้าใช้งาน
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
-      </div>
-    );
-  } catch (error) {
-    console.error('Error rendering Index page:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">เกิดข้อผิดพลาด</h1>
-          <p className="text-gray-600 mb-4">กรุณาลองรีเฟรชหน้าเว็บ</p>
-          <Button onClick={() => window.location.reload()}>
-            รีเฟรช
+
+        {/* Quick Navigation */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Button 
+            variant="outline" 
+            className="h-16"
+            onClick={() => handleNavigation("/member-management")}
+          >
+            <Users className="w-5 h-5 mr-2" />
+            จัดการสมาชิก
+          </Button>
+          <Button 
+            variant="outline" 
+            className="h-16"
+            onClick={() => handleNavigation("/inventory")}
+          >
+            <Package className="w-5 h-5 mr-2" />
+            คลังสินค้า
+          </Button>
+          <Button 
+            variant="outline" 
+            className="h-16"
+            onClick={() => handleNavigation("/promotions")}
+          >
+            <Star className="w-5 h-5 mr-2" />
+            โปรโมชั่น
+          </Button>
+          <Button 
+            variant="outline" 
+            className="h-16"
+            onClick={() => handleNavigation("/shop-settings")}
+          >
+            <Settings className="w-5 h-5 mr-2" />
+            ตั้งค่าร้าน
           </Button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default Index;

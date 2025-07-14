@@ -4,32 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import GlobalNotificationProvider from "@/components/providers/GlobalNotificationProvider";
 import Index from "./pages/Index";
-import POS from "./pages/POS";
-import MenuManagement from "./pages/MenuManagement";
-import Reports from "./pages/Reports";
-import ShopSettings from "./pages/ShopSettings";
-import Dashboard from "./pages/Dashboard";
-import MemberManagement from "./pages/MemberManagement";
-import OnlineSystem from "./pages/OnlineSystem";
-import CustomerSystem from "./pages/CustomerSystem";
-import MemberRegistration from "./pages/MemberRegistration";
-import SecuritySystem from "./pages/SecuritySystem";
-import Inventory from "./pages/Inventory";
-import Promotions from "./pages/Promotions";
-import CustomerMobileApp from "./pages/CustomerMobileApp";
-import CustomerAppManagement from "./pages/CustomerAppManagement";
-import FinancialSystem from "./pages/FinancialSystem";
-import StaffManagement from "./pages/StaffManagement";
-import TechnologySystem from "./pages/TechnologySystem";
-import PrinterSettings from "./pages/PrinterSettings";
-import OnlineOrderManagement from "./pages/OnlineOrderManagement";
-import AdvancedReports from "./pages/AdvancedReports";
-import QRCodePromptPayPage from "./pages/QRCodePromptPayPage";
-import SecurityRecommendationsPage from "./pages/SecurityRecommendationsPage";
-import AdvancedManagement from "./pages/AdvancedManagement";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,42 +16,19 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  console.log('App component rendering...');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <GlobalNotificationProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/pos" element={<POS />} />
-              <Route path="/menu-management" element={<MenuManagement />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/shop-settings" element={<ShopSettings />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/member-management" element={<MemberManagement />} />
-              <Route path="/online-system" element={<OnlineSystem />} />
-              <Route path="/customer-system" element={<CustomerSystem />} />
-              <Route path="/member-registration" element={<MemberRegistration />} />
-              <Route path="/security-system" element={<SecuritySystem />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/promotions" element={<Promotions />} />
-              <Route path="/customer-mobile" element={<CustomerMobileApp />} />
-              <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-              <Route path="/financial-system" element={<FinancialSystem />} />
-              <Route path="/staff-management" element={<StaffManagement />} />
-              <Route path="/technology-system" element={<TechnologySystem />} />
-              <Route path="/printer-settings" element={<PrinterSettings />} />
-              <Route path="/online-order-management" element={<OnlineOrderManagement />} />
-              <Route path="/advanced-reports" element={<AdvancedReports />} />
-              <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-              <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
-              <Route path="/advanced-management" element={<AdvancedManagement />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </GlobalNotificationProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="*" element={<div className="p-8 text-center"><h1>หน้าที่คุณต้องการยังไม่พร้อมใช้งาน</h1></div>} />
+          </Routes>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
