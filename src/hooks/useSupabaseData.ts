@@ -1007,7 +1007,13 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการเชื่อมต่อ API ได้', variant: 'destructive' });
       return;
     }
-    setApiIntegrations(data || []);
+    
+    const typedIntegrations = (data || []).map(integration => ({
+      ...integration,
+      type: integration.type as 'accounting' | 'erp' | 'delivery' | 'payment'
+    }));
+    
+    setApiIntegrations(typedIntegrations);
   };
 
   // Helper functions
