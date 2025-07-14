@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,10 +190,14 @@ const CreditManagement = () => {
       if (status === 'paid') {
         const customer = creditCustomers.find(c => c.id === sale.credit_customer_id);
         if (customer) {
+          const currentBalance = Number(customer.current_balance) || 0;
+          const saleAmount = Number(sale.amount) || 0;
+          const newBalance = currentBalance - saleAmount;
+          
           const { error: balanceError } = await supabase
             .from('credit_customers')
             .update({ 
-              current_balance: (customer.current_balance || 0) - sale.amount 
+              current_balance: newBalance
             })
             .eq('id', sale.credit_customer_id);
 
