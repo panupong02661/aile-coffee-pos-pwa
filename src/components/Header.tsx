@@ -1,34 +1,35 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Menu, Search, Settings } from 'lucide-react';
+import { Menu, Search, Settings, User } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
   onMemberClick?: () => void;
-  categories: { id: string; name: string }[];
-  selectedCategory: string;
-  onCategorySelect: (categoryId: string) => void;
-  gridColumns: number;
-  setGridColumns: (columns: number) => void;
-  itemSize: 'small' | 'medium' | 'large';
-  setItemSize: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'pos' | 'online' | 'other';
+  categories?: { id: string; name: string }[];
+  selectedCategory?: string;
+  onCategorySelect?: (categoryId: string) => void;
+  gridColumns?: number;
+  setGridColumns?: (columns: number) => void;
+  itemSize?: 'small' | 'medium' | 'large';
+  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
 }
 
 const Header = ({ 
   onToggleSidebar, 
   onMemberClick, 
-  categories, 
-  selectedCategory, 
-  onCategorySelect,
-  gridColumns,
-  setGridColumns,
-  itemSize,
-  setItemSize,
+  categories = [], 
+  selectedCategory = '', 
+  onCategorySelect = () => {},
+  gridColumns = 4,
+  setGridColumns = () => {},
+  itemSize = 'medium',
+  setItemSize = () => {},
   page = 'other'
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -103,7 +104,7 @@ const Header = ({
         setGridColumns={setGridColumns}
         itemSize={itemSize}
         setItemSize={setItemSize}
-        page={page} // ส่ง page prop ไปยัง DisplaySettingsModal
+        page={page}
       />
     </>
   );
