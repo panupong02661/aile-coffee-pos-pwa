@@ -207,7 +207,7 @@ const DeliveryManagement = () => {
 
   const updateAssignmentStatus = async (assignment, status) => {
     try {
-      const updateData = { status };
+      const updateData: any = { status };
       
       // Set pickup/delivery time based on status
       if (status === 'picked_up') {

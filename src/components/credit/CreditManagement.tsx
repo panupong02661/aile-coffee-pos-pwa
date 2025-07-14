@@ -173,7 +173,7 @@ const CreditManagement = () => {
 
   const updateSaleStatus = async (sale, status, paidAmount = null) => {
     try {
-      const updateData = { status };
+      const updateData: any = { status };
       
       if (status === 'paid' && paidAmount !== null) {
         updateData.paid_amount = paidAmount;
@@ -189,14 +189,17 @@ const CreditManagement = () => {
 
       // Update credit customer balance
       if (status === 'paid') {
-        const { error: balanceError } = await supabase
-          .from('credit_customers')
-          .update({ 
-            current_balance: (sale.credit_customers?.current_balance || 0) - sale.amount 
-          })
-          .eq('id', sale.credit_customer_id);
+        const customer = creditCustomers.find(c => c.id === sale.credit_customer_id);
+        if (customer) {
+          const { error: balanceError } = await supabase
+            .from('credit_customers')
+            .update({ 
+              current_balance: (customer.current_balance || 0) - sale.amount 
+            })
+            .eq('id', sale.credit_customer_id);
 
-        if (balanceError) throw balanceError;
+          if (balanceError) throw balanceError;
+        }
       }
 
       toast({
@@ -367,24 +370,24 @@ const CreditManagement = () => {
                       </div>
                       <div className="flex items-center text-sm">
                         <DollarSign className="w-4 h-4 mr-2" />
-                        <span>วงเงิน: ฿{customer.credit_limit.toLocaleString()}</span>
+                        <span>วงเงิน: ฿{customer.credit_limit?.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center text-sm">
                         <DollarSign className="w-4 h-4 mr-2" />
-                        <span>ยอดค้างชำระ: ฿{customer.current_balance.toLocaleString()}</span>
+                        <span>ยอดค้างชำระ: ฿{(customer.current_balance || 0).toLocaleString()}</span>
                       </div>
                       <div className="text-sm">
                         <strong>เงื่อนไขชำระ:</strong> {customer.payment_terms} วัน
                       </div>
                       
-                      {customer.current_balance > customer.credit_limit * 0.8 && (
+                      {(customer.current_balance || 0) > (customer.credit_limit || 0) * 0.8 && (
                         <div className="flex items-center text-sm text-amber-600 bg-amber-50 p-2 rounded">
                           <AlertTriangle className="w-4 h-4 mr-2" />
                           ใกล้เต็มวงเงิน
                         </div>
                       )}
                       
-                      {customer.current_balance > customer.credit_limit && (
+                      {(customer.current_balance || 0) > (customer.credit_limit || 0) && (
                         <div className="flex items-center text-sm text-red-600 bg-red-50 p-2 rounded">
                           <AlertTriangle className="w-4 h-4 mr-2" />
                           เกินวงเงินเครดิต
@@ -429,7 +432,7 @@ const CreditManagement = () => {
                             .filter(customer => customer.is_active)
                             .map((customer) => (
                             <SelectItem key={customer.id} value={customer.id}>
-                              {customer.members?.name} (วงเงิน: ฿{customer.credit_limit.toLocaleString()})
+                              {customer.members?.name} (วงเงิน: ฿{(customer.credit_limit || 0).toLocaleString()})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -493,84 +496,87 @@ const CreditManagement = () => {
                   <p className="text-muted-foreground">ยังไม่มีการขายเครดิต</p>
                 </div>
               ) : (
-                creditSales.map((sale) => (
-                  <Card key={sale.id} className="relative">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">
-                          ฿{sale.amount.toLocaleString()}
-                        </CardTitle>
-                        <div className="flex space-x-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditSale(sale)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                creditSales.map((sale) => {
+                  const customer = creditCustomers.find(c => c.id === sale.credit_customer_id);
+                  return (
+                    <Card key={sale.id} className="relative">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-lg">
+                            ฿{sale.amount.toLocaleString()}
+                          </CardTitle>
+                          <div className="flex space-x-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditSale(sale)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <Badge 
-                        className={`${getStatusColor(sale.status)} text-white w-fit`}
-                      >
-                        {getStatusText(sale.status)}
-                      </Badge>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="text-sm">
-                        <strong>ลูกค้า:</strong> {sale.credit_customers?.members?.name || 'ไม่ระบุ'}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        กำหนดชำระ: {new Date(sale.due_date).toLocaleDateString('th-TH')}
-                      </div>
-                      
-                      {sale.status === 'pending' && isOverdue(sale.due_date) && (
-                        <div className="flex items-center text-sm text-red-600 bg-red-50 p-2 rounded">
-                          <AlertTriangle className="w-4 h-4 mr-2" />
-                          เกินกำหนด {calculateDaysOverdue(sale.due_date)} วัน
-                        </div>
-                      )}
-                      
-                      {sale.paid_date && (
-                        <div className="flex items-center text-sm text-green-600">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          ชำระแล้วเมื่อ: {new Date(sale.paid_date).toLocaleDateString('th-TH')}
-                        </div>
-                      )}
-                      
-                      {sale.paid_amount > 0 && (
+                        <Badge 
+                          className={`${getStatusColor(sale.status)} text-white w-fit`}
+                        >
+                          {getStatusText(sale.status)}
+                        </Badge>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
                         <div className="text-sm">
-                          <strong>จำนวนที่ชำระ:</strong> ฿{sale.paid_amount.toLocaleString()}
+                          <strong>ลูกค้า:</strong> {customer?.members?.name || 'ไม่ระบุ'}
                         </div>
-                      )}
-                      
-                      {sale.notes && (
-                        <div className="text-sm text-muted-foreground">
-                          {sale.notes}
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          กำหนดชำระ: {new Date(sale.due_date).toLocaleDateString('th-TH')}
                         </div>
-                      )}
-                      
-                      {sale.status === 'pending' && (
-                        <div className="flex space-x-2 pt-2">
-                          <Button
-                            size="sm"
-                            onClick={() => updateSaleStatus(sale, 'paid', sale.amount)}
-                          >
-                            ชำระแล้ว
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateSaleStatus(sale, 'cancelled')}
-                          >
-                            ยกเลิก
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                        
+                        {sale.status === 'pending' && isOverdue(sale.due_date) && (
+                          <div className="flex items-center text-sm text-red-600 bg-red-50 p-2 rounded">
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            เกินกำหนด {calculateDaysOverdue(sale.due_date)} วัน
+                          </div>
+                        )}
+                        
+                        {sale.paid_date && (
+                          <div className="flex items-center text-sm text-green-600">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            ชำระแล้วเมื่อ: {new Date(sale.paid_date).toLocaleDateString('th-TH')}
+                          </div>
+                        )}
+                        
+                        {(sale.paid_amount || 0) > 0 && (
+                          <div className="text-sm">
+                            <strong>จำนวนที่ชำระ:</strong> ฿{(sale.paid_amount || 0).toLocaleString()}
+                          </div>
+                        )}
+                        
+                        {sale.notes && (
+                          <div className="text-sm text-muted-foreground">
+                            {sale.notes}
+                          </div>
+                        )}
+                        
+                        {sale.status === 'pending' && (
+                          <div className="flex space-x-2 pt-2">
+                            <Button
+                              size="sm"
+                              onClick={() => updateSaleStatus(sale, 'paid', sale.amount)}
+                            >
+                              ชำระแล้ว
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateSaleStatus(sale, 'cancelled')}
+                            >
+                              ยกเลิก
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </div>

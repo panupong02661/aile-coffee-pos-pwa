@@ -112,7 +112,7 @@ const PurchaseOrderManagement = () => {
 
   const updateStatus = async (order, status) => {
     try {
-      const updateData = { status };
+      const updateData: any = { status };
       
       if (status === 'received') {
         updateData.actual_delivery_date = new Date().toISOString().split('T')[0];
