@@ -19,7 +19,7 @@ const CreditManagement = () => {
   
   // Customer management state
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [isCustomerSubmitting, setIsCustomerSubmitting] = useState(false);
   
   const [customerForm, setCustomerForm] = useState({
@@ -30,7 +30,7 @@ const CreditManagement = () => {
 
   // Sale management state
   const [isSaleOpen, setIsSaleOpen] = useState(false);
-  const [editingSale, setEditingSale] = useState(null);
+  const [editingSale, setEditingSale] = useState<any>(null);
   const [isSaleSubmitting, setIsSaleSubmitting] = useState(false);
   
   const [saleForm, setSaleForm] = useState({
@@ -59,7 +59,7 @@ const CreditManagement = () => {
     setEditingSale(null);
   };
 
-  const handleCustomerSubmit = async (e) => {
+  const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCustomerSubmitting(true);
 
@@ -104,7 +104,7 @@ const CreditManagement = () => {
     }
   };
 
-  const handleSaleSubmit = async (e) => {
+  const handleSaleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaleSubmitting(true);
 
@@ -149,7 +149,7 @@ const CreditManagement = () => {
     }
   };
 
-  const handleEditCustomer = (customer) => {
+  const handleEditCustomer = (customer: any) => {
     setCustomerForm({
       member_id: customer.member_id || '',
       credit_limit: customer.credit_limit,
@@ -159,7 +159,7 @@ const CreditManagement = () => {
     setIsCustomerOpen(true);
   };
 
-  const handleEditSale = (sale) => {
+  const handleEditSale = (sale: any) => {
     setSaleForm({
       credit_customer_id: sale.credit_customer_id || '',
       amount: sale.amount,
@@ -170,7 +170,7 @@ const CreditManagement = () => {
     setIsSaleOpen(true);
   };
 
-  const updateSaleStatus = async (sale, status, paidAmount = null) => {
+  const updateSaleStatus = async (sale: any, status: string, paidAmount: number | null = null) => {
     try {
       const updateData: any = { status };
       
@@ -221,7 +221,7 @@ const CreditManagement = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500';
       case 'paid': return 'bg-green-500';
@@ -231,7 +231,7 @@ const CreditManagement = () => {
     }
   };
 
-  const getStatusText = (status) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'รอชำระ';
       case 'paid': return 'ชำระแล้ว';
@@ -241,14 +241,14 @@ const CreditManagement = () => {
     }
   };
 
-  const isOverdue = (dueDate) => {
+  const isOverdue = (dueDate: string) => {
     return new Date(dueDate) < new Date();
   };
 
-  const calculateDaysOverdue = (dueDate) => {
+  const calculateDaysOverdue = (dueDate: string) => {
     const today = new Date();
     const due = new Date(dueDate);
-    const diffTime = today - due;
+    const diffTime = Number(today) - Number(due);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
   };
