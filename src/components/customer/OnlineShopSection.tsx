@@ -84,6 +84,46 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   
   const { toast } = useToast();
 
+  // Function to unlock audio context for iOS/WebKit
+  const unlockAudio = async () => {
+    try {
+      console.log('🔓 Unlocking audio context for iOS/WebKit...');
+      
+      // Create and immediately play silent audio to unlock context
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 20; // Below human hearing
+        gainNode.gain.value = 0.001; // Almost silent
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.01);
+        
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        console.log('🔓 Audio context unlocked successfully');
+      }
+      
+      // Also try HTML Audio element unlock
+      const audio = new Audio();
+      audio.volume = 0.001;
+      audio.muted = true;
+      await audio.play().catch(() => {});
+      audio.pause();
+      
+    } catch (error) {
+      console.log('🔓 Audio unlock failed:', error);
+    }
+  };
+
   // Enhanced iOS-compatible notification sound for 7 seconds
   const playOrderSuccessNotification = async () => {
     try {
@@ -1015,30 +1055,61 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // 🔔 PLAY NOTIFICATION SOUND IMMEDIATELY - DON'T WAIT FOR DATABASE
+      console.log('Starting submitOrder...');
+      
+      // 🔓 UNLOCK AUDIO CONTEXT FIRST (iOS/WebKit compatibility)
+      console.log('🔓 Unlocking audio context for iOS/WebKit...');
+      await unlockAudio();
+      
+      // 🔔 PLAY NOTIFICATION SOUND IMMEDIATELY - IN USER INTERACTION CONTEXT
       console.log('🔔 Playing immediate notification sound...');
       try {
         await playOrderSuccessNotification();
         console.log('✅ Notification sound played successfully');
       } catch (soundError) {
-        console.log('⚠️ Notification sound failed, continuing with order:', soundError);
+        console.error('⚠️ Notification sound failed, showing fallback UI:', soundError);
+        // Show fallback visual notification if sound fails
+        toast({
+          title: '🔔 คำสั่งซื้อสำเร็จ!',
+          description: 'ออเดอร์ของคุณถูกยืนยันเรียบร้อยแล้ว',
+          variant: 'default'
+        });
       }
 
-      // Show immediate success message to user
+      // Show immediate progress message to user (in synchronous context)
+      console.log('Showing toast...');
       toast({ 
         title: 'กำลังดำเนินการ...', 
         description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ' 
       });
 
-      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
+      // 🚀 CLEAR FORM IMMEDIATELY - Don't wait for database operations
       const orderNumber = generateOrderNumber();
       
-      // Start all database operations in background without waiting
+      // Store current values before clearing
+      const currentCartItems = [...cartItems];
+      const currentPickupTime = pickupTime;
+      const currentCustomerNotes = customerNotes;
+      const currentReceiptFile = receiptFile;
+      
+      // Clear form immediately for better UX
+      setCartItems([]);
+      setPickupTime('');
+      setCustomerNotes('');
+      setReceiptFile(null);
+      setShowPayment(false);
+      setQrCodeUrl('');
+      setPaymentMethod('qr');
+      setPointsToUse('');
+      setIsProcessing(false); // Reset processing state immediately
+
+      // 💾 ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
+      // Use setTimeout to ensure this runs outside of the click event context
       setTimeout(async () => {
         try {
           let receiptUrl = null;
-          if (receiptFile) {
-            receiptUrl = await uploadReceipt(receiptFile);
+          if (currentReceiptFile) {
+            receiptUrl = await uploadReceipt(currentReceiptFile);
             if (!receiptUrl) {
               throw new Error('ไม่สามารถอัปโหลดสลีปได้');
             }
@@ -1050,12 +1121,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               order_number: orderNumber,
               member_id: currentUser.id,
               total_amount: finalAmount,
-              items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+              items_count: currentCartItems.reduce((sum, item) => sum + item.quantity, 0),
               payment_method: paymentMethod === 'points' ? 'points' : 'online',
               order_source: 'online',
               receipt_image_url: receiptUrl,
-              pickup_time: pickupTime,
-              customer_notes: customerNotes
+              pickup_time: currentPickupTime,
+              customer_notes: currentCustomerNotes
             })
             .select()
             .single();
@@ -1063,7 +1134,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           if (orderError) throw orderError;
 
           // Save order items
-          for (const item of cartItems) {
+          for (const item of currentCartItems) {
             const { data: orderItem, error: itemError } = await supabase
               .from('order_items')
               .insert({
@@ -1170,16 +1241,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           });
         }
       }, 100); // Start background process after 100ms
-
-      // Clear form immediately - don't wait for database
-      setCartItems([]);
-      setPickupTime('');
-      setCustomerNotes('');
-      setReceiptFile(null);
-      setShowPayment(false);
-      setQrCodeUrl('');
-      setPaymentMethod('qr');
-      setPointsToUse('');
       
     } catch (error: any) {
       console.error('Order submission error:', error);
