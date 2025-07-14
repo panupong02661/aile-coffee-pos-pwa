@@ -48,7 +48,7 @@ const Index = () => {
     }
   ];
 
-  const handleNavigation = (path) => {
+  const handleNavigation = (path: string) => {
     try {
       console.log('Navigating to:', path);
       navigate(path);
