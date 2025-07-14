@@ -1,160 +1,110 @@
-
-import { Settings, User, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Menu, Search, Settings } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
-import CategoryFilter from './CategoryFilter';
-import { Category } from '@/types';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
-  onSettingsClick?: () => void;
+  onToggleSidebar: () => void;
   onMemberClick?: () => void;
-  onToggleSidebar?: () => void;
-  categories?: Category[];
-  selectedCategory?: string;
-  onCategorySelect?: (categoryId: string) => void;
-  gridColumns?: number;
-  setGridColumns?: (columns: number) => void;
-  itemSize?: 'small' | 'medium' | 'large';
-  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'dashboard' | 'pos' | 'qr-promptpay' | 'online-orders' | 'other';
+  categories: { id: string; name: string }[];
+  selectedCategory: string;
+  onCategorySelect: (categoryId: string) => void;
+  gridColumns: number;
+  setGridColumns: (columns: number) => void;
+  itemSize: 'small' | 'medium' | 'large';
+  setItemSize: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'pos' | 'online' | 'other';
 }
 
 const Header = ({ 
-  onSettingsClick, 
+  onToggleSidebar, 
   onMemberClick, 
-  onToggleSidebar,
-  categories = [],
-  selectedCategory = '',
-  onCategorySelect = () => {},
-  gridColumns = 4,
-  setGridColumns = () => {},
-  itemSize = 'medium',
-  setItemSize = () => {},
+  categories, 
+  selectedCategory, 
+  onCategorySelect,
+  gridColumns,
+  setGridColumns,
+  itemSize,
+  setItemSize,
   page = 'other'
 }: HeaderProps) => {
-  const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <>
-      <div className={`bg-coffee-600 text-white rounded-lg shadow-lg ${
-        isMobile ? 'p-2' : 'p-3'
-      } mb-4`}>
-        {/* Mobile Layout - 2 rows */}
-        {isMobile ? (
-          <>
-            {/* First row - Menu button and action buttons */}
-            <div className="flex justify-between items-center mb-2">
-              {/* Always show hamburger menu button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
+            <Menu className="w-5 h-5" />
+          </Button>
+
+          {onMemberClick && (
+            <Button variant="outline" size="sm" className="ml-2" onClick={onMemberClick}>
+              <User className="w-4 h-4 mr-2" />
+              ลูกค้า
+            </Button>
+          )}
+          
+          <div className="hidden md:flex items-center ml-6">
+            {categories.map(category => (
               <Button
-                variant="ghost"
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
-                onClick={onToggleSidebar}
-                className="text-white hover:bg-coffee-500 p-2"
+                className="mr-2"
+                onClick={() => onCategorySelect(category.id)}
               >
-                <Menu className="w-5 h-5" />
+                {category.name}
               </Button>
-              
-              {page === 'pos' && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={onMemberClick}
-                    className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-                  >
-                    <User className="w-4 h-4 mr-1" />
-                    สมาชิก
-                  </Button>
-                  
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setIsDisplaySettingsOpen(true)}
-                    className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-            
-            {/* Second row - Category filter */}
-            {page === 'pos' && (
-              <CategoryFilter
-                categories={categories}
-                selectedCategory={selectedCategory}
-                onCategorySelect={onCategorySelect}
-                variant="header"
-              />
-            )}
-          </>
-        ) : (
-          /* Desktop/Tablet Layout - 1 row */
-          <div className="flex justify-between items-center">
-            {/* Left side - Menu button and category filter */}
-            <div className="flex items-center space-x-4 flex-1">
-              {/* Always show hamburger menu button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onToggleSidebar}
-                className="text-white hover:bg-coffee-500 p-2"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-              
-              {page === 'pos' && (
-                <div className="flex-1">
-                  <CategoryFilter
-                    categories={categories}
-                    selectedCategory={selectedCategory}
-                    onCategorySelect={onCategorySelect}
-                    variant="header"
-                  />
-                </div>
-              )}
-            </div>
-            
-            {/* Right side - Action buttons */}
-            {page === 'pos' && (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={onMemberClick}
-                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-                >
-                  <User className="w-4 h-4 mr-1" />
-                  สมาชิก
-                </Button>
-                
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setIsDisplaySettingsOpen(true)}
-                  className="bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
+            ))}
           </div>
-        )}
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
+            <Search className="w-5 h-5" />
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
-      {page === 'pos' && (
-        <DisplaySettingsModal
-          isOpen={isDisplaySettingsOpen}
-          onClose={() => setIsDisplaySettingsOpen(false)}
-          gridColumns={gridColumns}
-          setGridColumns={setGridColumns}
-          itemSize={itemSize}
-          setItemSize={setItemSize}
-        />
-      )}
+      {/* Search Modal */}
+      <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <SheetContent side="top" className="bg-cream-100">
+          <SheetHeader>
+            <SheetTitle>ค้นหาสินค้า</SheetTitle>
+            <SheetDescription>
+              ป้อนชื่อสินค้าที่คุณต้องการค้นหา
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="search" className="text-right">
+                คำค้นหา
+              </Label>
+              <Input id="search" className="col-span-3" />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+      
+      {/* Settings Modal */}
+      <DisplaySettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        gridColumns={gridColumns}
+        setGridColumns={setGridColumns}
+        itemSize={itemSize}
+        setItemSize={setItemSize}
+        page={page} // ส่ง page prop ไปยัง DisplaySettingsModal
+      />
     </>
   );
 };

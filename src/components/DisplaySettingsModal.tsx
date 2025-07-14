@@ -13,6 +13,7 @@ interface DisplaySettingsModalProps {
   setGridColumns: (columns: number) => void;
   itemSize: 'small' | 'medium' | 'large';
   setItemSize: (size: 'small' | 'medium' | 'large') => void;
+  page?: 'pos' | 'online' | 'other'; // เพิ่ม prop เพื่อแยกระหว่างหน้าต่างๆ
 }
 
 const DisplaySettingsModal = ({ 
@@ -21,15 +22,28 @@ const DisplaySettingsModal = ({
   gridColumns, 
   setGridColumns, 
   itemSize, 
-  setItemSize 
+  setItemSize,
+  page = 'pos' 
 }: DisplaySettingsModalProps) => {
+  
+  const getPageTitle = () => {
+    switch (page) {
+      case 'online':
+        return 'ตั้งค่าการแสดงผล - ระบบสั่งซื้อออนไลน์';
+      case 'pos':
+        return 'ตั้งค่าการแสดงผล - ระบบ POS';
+      default:
+        return 'ตั้งค่าการแสดงผล';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            ตั้งค่าการแสดงผล
+            {getPageTitle()}
           </DialogTitle>
         </DialogHeader>
         
@@ -59,6 +73,11 @@ const DisplaySettingsModal = ({
             </div>
             <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
               <strong>แนะนำ:</strong> 2 คอลัมน์สำหรับมือถือ, 3-4 คอลัมน์สำหรับแท็บเล็ต, 6-10 คอลัมน์สำหรับเดสท็อป
+              {page === 'online' && (
+                <div className="mt-1">
+                  <strong>หมายเหตุ:</strong> การตั้งค่าจะถูกบันทึกและใช้ในครั้งถัดไป
+                </div>
+              )}
             </div>
           </div>
 
