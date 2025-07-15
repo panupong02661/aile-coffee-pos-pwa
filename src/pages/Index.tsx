@@ -104,7 +104,6 @@ const Index = () => {
     }))
   ];
 
-  // Convert database menu items to the format expected by components
   const convertedMenuItems = menuItems.map(item => ({
     id: item.id,
     name: item.name,
