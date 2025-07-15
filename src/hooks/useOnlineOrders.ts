@@ -33,6 +33,7 @@ export const useOnlineOrders = () => {
 
   const fetchOrders = async () => {
     try {
+      console.log('Fetching online orders...');
       setLoading(true);
       
       // ดึงข้อมูลออเดอร์จาก customer_orders table
@@ -55,6 +56,9 @@ export const useOnlineOrders = () => {
           )
         `)
         .order('created_at', { ascending: false });
+
+      console.log('Fetched customer orders:', customerOrders);
+      console.log('Query error:', error);
 
       if (error) {
         console.error('Error fetching online orders:', error);
@@ -99,6 +103,7 @@ export const useOnlineOrders = () => {
         };
       }) || [];
 
+      console.log('Formatted orders:', formattedOrders);
       setOrders(formattedOrders);
     } catch (error) {
       console.error('Error in fetchOrders:', error);

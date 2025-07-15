@@ -13,6 +13,9 @@ const OnlineOrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
   const [filter, setFilter] = useState<'all' | 'new' | 'preparing' | 'ready'>('new');
 
+  console.log('Orders in component:', orders);
+  console.log('Loading state:', loading);
+
   const filteredOrders = orders.filter(order => {
     switch (filter) {
       case 'new': return order.isNew || order.order_status === 'pending';
@@ -101,6 +104,7 @@ const OnlineOrderManagement = () => {
                 <div className="bg-white rounded-lg border border-coffee-200 p-8 text-center">
                   <div className="text-4xl mb-4">📝</div>
                   <p className="text-coffee-600">ไม่มีออเดอร์ในหมวดหมู่นี้</p>
+                  <p className="text-sm text-coffee-500 mt-2">ออเดอร์ทั้งหมด: {orders.length} รายการ</p>
                 </div>
               ) : (
                 filteredOrders.map((order) => (
