@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -23,6 +24,7 @@ const Index = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   // Load display settings from localStorage
   const [gridColumns, setGridColumns] = useState(() => {
@@ -193,12 +195,20 @@ const Index = () => {
       {/* Mobile Cart */}
       {isMobile && (
         <MobileCart
+          isOpen={isMobileCartOpen}
+          onClose={() => setIsMobileCartOpen(false)}
           cartItems={cartItems}
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeFromCart}
+          onUpdateDiscount={updateDiscount}
           onClearCart={clearCart}
-          onPaymentComplete={() => setShowPaymentModal(true)}
+          billDiscount={billDiscount}
+          billDiscountType={billDiscountType}
+          onUpdateBillDiscount={setBillDiscount}
+          onUpdateBillDiscountType={setBillDiscountType}
+          onRestoreCart={restoreCart}
           selectedMember={selectedMember}
+          onPaymentComplete={() => setShowPaymentModal(true)}
         />
       )}
     </div>
