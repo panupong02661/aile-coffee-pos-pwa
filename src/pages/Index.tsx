@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -35,15 +36,50 @@ const Index = () => {
     return (saved as 'small' | 'medium' | 'large') || 'medium';
   });
 
-  const { menuItems, addons, categories, loading } = useSupabaseData();
-  const { cartItems, addToCart, removeFromCart, updateCartItemQuantity, clearCart } = useCart();
+  const { menuItems: dbMenuItems, addons: dbAddons, categories, loading } = useSupabaseData();
+  const { 
+    cartItems, 
+    addToCart, 
+    updateQuantity,
+    removeFromCart, 
+    clearCart,
+    billDiscount,
+    billDiscountType,
+    setBillDiscount,
+    setBillDiscountType,
+    updateDiscount,
+    restoreCart
+  } = useCart();
+
+  // Transform database types to interface types
+  const menuItems: MenuItem[] = dbMenuItems.map(item => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    image: item.image_url,
+    description: item.description,
+    category_id: item.category_id || '', // Provide default empty string for required field
+    is_available: item.is_available,
+    calculated_cost: item.cost_price
+  }));
+
+  const addons: Addon[] = dbAddons.map(addon => ({
+    id: addon.id,
+    name: addon.name,
+    price: addon.price,
+    category: 'other', // Default category since it's required
+    is_required: addon.addon_groups?.is_required || false,
+    allow_multiple: addon.addon_groups?.allow_multiple || false,
+    addon_group_id: addon.addon_group_id,
+    addon_groups: addon.addon_groups
+  }));
 
   const filteredMenuItems = selectedCategory
     ? menuItems.filter(item => item.category_id === selectedCategory && item.is_available)
     : menuItems.filter(item => item.is_available);
 
   const handleAddToCart = (item: MenuItem, selectedAddons?: Addon[]) => {
-    addToCart(item, selectedAddons);
+    addToCart(item, selectedAddons || []);
   };
 
   useEffect(() => {
@@ -51,6 +87,12 @@ const Index = () => {
       setIsRightSidebarOpen(false);
     }
   }, [isMobile]);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+  const billDiscountAmount = billDiscountType === 'percent' 
+    ? Math.min(subtotal * billDiscount / 100, subtotal)
+    : Math.min(billDiscount, subtotal);
+  const total = Math.max(0, subtotal - billDiscountAmount);
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -105,12 +147,17 @@ const Index = () => {
                 <div className="h-full">
                   <Cart
                     cartItems={cartItems}
-                    onUpdateQuantity={updateCartItemQuantity}
+                    onUpdateQuantity={updateQuantity}
                     onRemoveItem={removeFromCart}
+                    onUpdateDiscount={updateDiscount}
                     onClearCart={clearCart}
-                    onCheckout={() => setShowPaymentModal(true)}
+                    billDiscount={billDiscount}
+                    billDiscountType={billDiscountType}
+                    onUpdateBillDiscount={setBillDiscount}
+                    onUpdateBillDiscountType={setBillDiscountType}
+                    onRestoreCart={restoreCart}
                     selectedMember={selectedMember}
-                    onRemoveMember={() => setSelectedMember(null)}
+                    onPaymentComplete={() => setShowPaymentModal(true)}
                   />
                 </div>
               )}
@@ -133,9 +180,14 @@ const Index = () => {
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
+        total={total}
+        onPayment={() => {
+          clearCart();
+          setShowPaymentModal(false);
+        }}
         cartItems={cartItems}
-        total={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}
-        clearCart={clearCart}
+        billDiscount={billDiscount}
+        billDiscountType={billDiscountType}
         selectedMember={selectedMember}
       />
 
@@ -143,10 +195,10 @@ const Index = () => {
       {isMobile && (
         <MobileCart
           cartItems={cartItems}
-          onUpdateQuantity={updateCartItemQuantity}
+          onUpdateQuantity={updateQuantity}
           onRemoveItem={removeFromCart}
           onClearCart={clearCart}
-          onCheckout={() => setShowPaymentModal(true)}
+          onPaymentComplete={() => setShowPaymentModal(true)}
           selectedMember={selectedMember}
           onRemoveMember={() => setSelectedMember(null)}
         />
