@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -200,7 +199,6 @@ const Index = () => {
           onClearCart={clearCart}
           onPaymentComplete={() => setShowPaymentModal(true)}
           selectedMember={selectedMember}
-          onRemoveMember={() => setSelectedMember(null)}
         />
       )}
     </div>
