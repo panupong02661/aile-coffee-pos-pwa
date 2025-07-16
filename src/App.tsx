@@ -10,6 +10,7 @@ const queryClient = new QueryClient();
 
 // Lazy load components with proper error boundaries
 const Index = lazy(() => import('./pages/Index').catch(() => ({ default: () => <div>Error loading page</div> })));
+const MainPOSSystem = lazy(() => import('./components/pos-system/MainPOSSystem').catch(() => ({ default: () => <div>Error loading POS System</div> })));
 const Dashboard = lazy(() => import('./pages/Dashboard').catch(() => ({ default: () => <div>Error loading Dashboard</div> })));
 const MenuManagement = lazy(() => import('./pages/MenuManagement').catch(() => ({ default: () => <div>Error loading Menu Management</div> })));
 const MemberManagement = lazy(() => import('./pages/MemberManagement').catch(() => ({ default: () => <div>Error loading Member Management</div> })));
@@ -46,8 +47,9 @@ function App() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             }>
-              <Routes>
-                <Route path="/" element={<Index />} />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/pos-system" element={<MainPOSSystem />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/menu" element={<MenuManagement />} />
                 <Route path="/members" element={<MemberManagement />} />
