@@ -36,7 +36,7 @@ interface OrderItem {
 
 type POSView = 'pos' | 'stock' | 'loyalty' | 'discount' | 'payment' | 'dashboard' | 'reports' | 'upload';
 
-export const MainPOSSystem: React.FC = () => {
+const MainPOSSystem: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<POSView>('pos');
   const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
@@ -208,6 +208,8 @@ const MenuImageUpload: React.FC = () => (
     </Card>
   </div>
 );
+
+export default MainPOSSystem;
 
 const ReceiptPrinting: React.FC = () => (
   <div className="space-y-6">
