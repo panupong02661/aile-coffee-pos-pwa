@@ -18,7 +18,7 @@ interface HeaderProps {
   setGridColumns?: (columns: number) => void;
   itemSize?: 'small' | 'medium' | 'large';
   setItemSize?: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
+  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'menu-management' | 'other';
 }
 
 const Header = ({ 
