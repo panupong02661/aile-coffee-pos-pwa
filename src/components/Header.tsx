@@ -9,6 +9,7 @@ import DisplaySettingsModal from './DisplaySettingsModal';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  onToggleMainSidebar?: () => void;
   onMemberClick?: () => void;
   categories?: { id: string; name: string }[];
   selectedCategory?: string;
@@ -22,6 +23,7 @@ interface HeaderProps {
 
 const Header = ({ 
   onToggleSidebar, 
+  onToggleMainSidebar,
   onMemberClick, 
   categories = [], 
   selectedCategory = '', 
@@ -39,6 +41,14 @@ const Header = ({
     <>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
+          {/* ปุ่มสำหรับ toggle MainSidebar */}
+          {onToggleMainSidebar && (
+            <Button variant="ghost" size="icon" onClick={onToggleMainSidebar}>
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
+
+          {/* ปุ่มสำหรับ toggle Sidebar ปกติ */}
           <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
             <Menu className="w-5 h-5" />
           </Button>

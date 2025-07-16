@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,9 +36,18 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [cropperImageSrc, setCropperImageSrc] = useState('');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
-  const [gridColumns, setGridColumns] = useState(4);
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [categoryMenuCounts, setCategoryMenuCounts] = useState<{ [key: string]: number }>({});
+
+  // โหลดค่าการตั้งค่าจาก localStorage
+  const [gridColumns, setGridColumns] = useState(() => {
+    const saved = localStorage.getItem('menu-management-grid-columns');
+    return saved ? parseInt(saved) : 4;
+  });
+  
+  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
+    const saved = localStorage.getItem('menu-management-item-size');
+    return (saved as 'small' | 'medium' | 'large') || 'medium';
+  });
   
   const { 
     menuItems, 
@@ -49,6 +59,15 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
   } = useSupabaseData();
   
   const { toast } = useToast();
+
+  // บันทึกค่าการตั้งค่าใน localStorage เมื่อมีการเปลี่ยนแปลง
+  useEffect(() => {
+    localStorage.setItem('menu-management-grid-columns', gridColumns.toString());
+  }, [gridColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('menu-management-item-size', itemSize);
+  }, [itemSize]);
 
   // Calculate menu count for each category
   useEffect(() => {
@@ -515,7 +534,7 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
         </TabsContent>
       </Tabs>
 
-      {/* Display Settings Modal */}
+      {/* Display Settings Modal with page-specific props */}
       <DisplaySettingsModal
         isOpen={showDisplaySettings}
         onClose={() => setShowDisplaySettings(false)}
@@ -523,6 +542,7 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
         setGridColumns={setGridColumns}
         itemSize={itemSize}
         setItemSize={setItemSize}
+        page="menu-management"
       />
 
       {/* Forms and Modals */}
