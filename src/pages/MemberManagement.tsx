@@ -25,13 +25,6 @@ const MemberManagement = () => {
         <div className="p-4">
           <Header 
             onToggleSidebar={() => setIsSidebarOpen(true)}
-            categories={[]}
-            selectedCategory=""
-            onCategorySelect={() => {}}
-            gridColumns={4}
-            setGridColumns={() => {}}
-            itemSize="medium"
-            setItemSize={() => {}}
             page="other"
           />
           
