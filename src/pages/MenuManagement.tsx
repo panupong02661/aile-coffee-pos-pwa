@@ -529,7 +529,7 @@ const MenuManagement = ({ onToggleSidebar }: MenuManagementProps) => {
           setGridColumns={setGridColumns}
           itemSize={itemSize}
           setItemSize={setItemSize}
-          page="menu"
+          page="other"
         />
 
         {/* Forms and Modals */}
