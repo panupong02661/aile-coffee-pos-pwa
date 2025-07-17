@@ -35,10 +35,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <GlobalNotificationProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <GlobalNotificationProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -65,8 +65,8 @@ const App = () => (
             <Route path="/delivery-integration" element={<DeliveryIntegration />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </GlobalNotificationProvider>
+        </GlobalNotificationProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
