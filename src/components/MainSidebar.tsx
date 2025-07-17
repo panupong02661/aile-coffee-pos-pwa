@@ -73,7 +73,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control', '/delivery-integration'
+    '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
+    '/notification-settings', '/daily-report-settings'
   ];
   
   const menuItems = [
@@ -136,10 +137,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     
     // เมนูเดิมที่เหลือ
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
-    { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
+    { id: 'customer-app-management', label: 'จัดการแอปลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
-    { id: 'notifications', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notifications' },
+    { id: 'notification-settings', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notification-settings' },
     { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
     { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
