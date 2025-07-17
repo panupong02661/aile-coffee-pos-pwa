@@ -8,6 +8,23 @@ import Header from '@/components/Header';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
+interface DatabaseMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image_url?: string;
+  is_available: boolean;
+  category_id?: string;
+  cost_price: number;
+  created_at: string;
+  updated_at: string;
+  categories?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 const MenuManagement = () => {
   const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(false);
 
@@ -27,7 +44,7 @@ const MenuManagement = () => {
     }
   });
 
-  const { data: menuItems = [], error: menuError, isLoading: menuLoading } = useQuery({
+  const { data: rawMenuItems = [], error: menuError, isLoading: menuLoading } = useQuery({
     queryKey: ['menu-items'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,6 +65,17 @@ const MenuManagement = () => {
       return data || [];
     }
   });
+
+  // Transform the data to match the MenuItem interface
+  const menuItems = rawMenuItems.map((item: DatabaseMenuItem) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    image_url: item.image_url,
+    is_available: item.is_available,
+    categories: item.categories || undefined
+  }));
 
   useEffect(() => {
     if (categoriesError) {
