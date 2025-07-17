@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Briefcase, DollarSign, Receipt, CreditCard } from 'lucide-react';
+import { Briefcase, DollarSign, Receipt, CreditCard, TrendingUp, FileText } from 'lucide-react';
 
 const FinancialSystem = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -86,8 +86,14 @@ const FinancialSystem = () => {
                       </div>
                       
                       <div className="flex space-x-4">
-                        <Button>บันทึกรายรับ</Button>
-                        <Button variant="outline">บันทึกรายจ่าย</Button>
+                        <Button>
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          บันทึกรายรับ
+                        </Button>
+                        <Button variant="outline">
+                          <FileText className="w-4 h-4 mr-2" />
+                          บันทึกรายจ่าย
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>
@@ -102,11 +108,27 @@ const FinancialSystem = () => {
                         </Button>
                       </div>
                       
-                      <Card>
-                        <CardContent className="pt-6">
-                          <p className="text-center text-muted-foreground">กำลังพัฒนาระบบคำนวณภาษีมูลค่าเพิ่ม...</p>
-                        </CardContent>
-                      </Card>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm font-medium">ภาษีมูลค่าเพิ่ม</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">฿1,234</div>
+                            <p className="text-xs text-muted-foreground">สำหรับเดือนนี้</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm font-medium">ใบกำกับภาษี</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">15</div>
+                            <p className="text-xs text-muted-foreground">ออกแล้วเดือนนี้</p>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   </TabsContent>
                   
@@ -120,22 +142,68 @@ const FinancialSystem = () => {
                         </Button>
                       </div>
                       
-                      <Card>
-                        <CardContent className="pt-6">
-                          <p className="text-center text-muted-foreground">กำลังพัฒนาระบบให้ลูกค้าซื้อเชื่อ...</p>
-                        </CardContent>
-                      </Card>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm font-medium">ยอดเครดิตคงเหลือ</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-orange-600">฿25,000</div>
+                            <p className="text-xs text-muted-foreground">จากลูกค้า 8 ราย</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-sm font-medium">ค้างชำระ</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold text-red-600">฿3,500</div>
+                            <p className="text-xs text-muted-foreground">เกินกำหนด 3 ราย</p>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   </TabsContent>
                   
                   <TabsContent value="reports" className="mt-6">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">รายงานการเงิน</h3>
-                      <Card>
-                        <CardContent className="pt-6">
-                          <p className="text-center text-muted-foreground">กำลังพัฒนารายงานการเงินแบบละเอียด...</p>
-                        </CardContent>
-                      </Card>
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">รายงานการเงิน</h3>
+                        <Button>
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          สร้างรายงาน
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                          <CardHeader>
+                            <CardTitle className="text-sm">รายงานกำไรขาดทุน</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-xs text-muted-foreground">ดูสรุปรายได้และค่าใช้จ่าย</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                          <CardHeader>
+                            <CardTitle className="text-sm">งบดุล</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-xs text-muted-foreground">สถานะทางการเงินของธุรกิจ</p>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                          <CardHeader>
+                            <CardTitle className="text-sm">กระแสเงินสด</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-xs text-muted-foreground">การเคลื่อนไหวของเงินสด</p>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
