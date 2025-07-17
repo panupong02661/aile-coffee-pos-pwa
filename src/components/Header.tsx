@@ -8,8 +8,7 @@ import { Menu, Search, Settings, User } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
 
 interface HeaderProps {
-  onToggleSidebar?: () => void;
-  onToggleMainSidebar?: () => void;
+  onToggleSidebar: () => void;
   onMemberClick?: () => void;
   categories?: { id: string; name: string }[];
   selectedCategory?: string;
@@ -18,13 +17,11 @@ interface HeaderProps {
   setGridColumns?: (columns: number) => void;
   itemSize?: 'small' | 'medium' | 'large';
   setItemSize?: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'menu' | 'customer-app' | 'other';
-  showMainSidebarToggle?: boolean;
+  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
 }
 
 const Header = ({ 
   onToggleSidebar, 
-  onToggleMainSidebar,
   onMemberClick, 
   categories = [], 
   selectedCategory = '', 
@@ -33,8 +30,7 @@ const Header = ({
   setGridColumns = () => {},
   itemSize = 'medium',
   setItemSize = () => {},
-  page = 'other',
-  showMainSidebarToggle = false
+  page = 'other'
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -43,17 +39,9 @@ const Header = ({
     <>
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          {showMainSidebarToggle && onToggleMainSidebar && (
-            <Button variant="ghost" size="icon" onClick={onToggleMainSidebar} className="mr-2">
-              <Menu className="w-5 h-5" />
-            </Button>
-          )}
-          
-          {onToggleSidebar && (
-            <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
-              <Menu className="w-5 h-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
+            <Menu className="w-5 h-5" />
+          </Button>
 
           {onMemberClick && (
             <Button variant="outline" size="sm" className="ml-2" onClick={onMemberClick}>

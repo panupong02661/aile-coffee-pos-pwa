@@ -73,8 +73,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
-    '/notification-settings', '/daily-report-settings'
+    '/usage-logs', '/role-access', '/access-control'
   ];
   
   const menuItems = [
@@ -83,7 +82,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
     { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
-    { id: 'delivery-integration', label: 'ผูกระบบ Delivery', icon: Truck, path: '/delivery-integration' },
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
@@ -137,10 +135,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     
     // เมนูเดิมที่เหลือ
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
-    { id: 'customer-app-management', label: 'จัดการแอปลูกค้า', icon: UserCog, path: '/customer-app-management' },
+    { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
-    { id: 'notification-settings', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notification-settings' },
+    { id: 'notifications', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notifications' },
     { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
     { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },

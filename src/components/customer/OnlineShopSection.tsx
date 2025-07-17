@@ -1532,7 +1532,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         setGridColumns={setGridColumns}
         itemSize={itemSize}
         setItemSize={setItemSize}
-        page="online"
       />
 
       <AddonModal
