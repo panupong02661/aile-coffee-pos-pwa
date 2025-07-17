@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,11 +24,13 @@ import {
   Calendar,
   ShoppingBag,
   Zap,
-  Cake
+  Cake,
+  Menu
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLimitedRewards, useCreateLimitedReward } from '@/hooks/useLimitedRewards';
+import MainSidebar from '@/components/MainSidebar';
 
 interface Customer {
   id: string;
@@ -67,6 +68,7 @@ interface MenuItem {
 }
 
 const CustomerAppManagement = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -401,10 +403,25 @@ const CustomerAppManagement = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
       {/* Header */}
       <div className="bg-white shadow-sm border-b p-6">
-        <h1 className="text-2xl font-bold text-gray-800">จัดการแอปลูกค้า</h1>
-        <p className="text-gray-600 mt-1">ส่งของขวัญ สร้างของรางวัลพิเศษ และจัดการของรางวัลวันเกิด</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">จัดการแอปลูกค้า</h1>
+              <p className="text-gray-600 mt-1">ส่งของขวัญ สร้างของรางวัลพิเศษ และจัดการของรางวัลวันเกิด</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="p-6">
