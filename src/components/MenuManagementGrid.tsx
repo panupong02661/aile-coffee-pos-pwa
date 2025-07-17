@@ -3,15 +3,27 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Camera } from 'lucide-react';
-import { DatabaseMenuItem } from '@/hooks/useSupabaseData';
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image_url?: string;
+  is_available: boolean;
+  categories?: {
+    id: string;
+    name: string;
+  };
+}
 
 interface MenuManagementGridProps {
-  menuItems: DatabaseMenuItem[];
+  menuItems: MenuItem[];
   gridColumns?: number;
   itemSize?: string;
-  onEdit: (item: DatabaseMenuItem) => void;
-  onDelete: (item: DatabaseMenuItem) => void;
-  onAddImage: (item: DatabaseMenuItem) => void;
+  onEdit: (item: MenuItem) => void;
+  onDelete: (item: MenuItem) => void;
+  onAddImage: (item: MenuItem) => void;
 }
 
 const MenuManagementGrid = ({ 
