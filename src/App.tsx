@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import GlobalNotificationProvider from "@/components/providers/GlobalNotificationProvider";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -38,34 +39,36 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <GlobalNotificationProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/menu" element={<MenuManagement />} />
-            <Route path="/members" element={<MemberManagement />} />
-            <Route path="/online-system" element={<OnlineSystem />} />
-            <Route path="/customer-system" element={<CustomerSystem />} />
-            <Route path="/member-registration" element={<MemberRegistration />} />
-            <Route path="/promotions" element={<Promotions />} />
-            <Route path="/shop-settings" element={<ShopSettings />} />
-            <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-            <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-            <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/printer-settings" element={<PrinterSettings />} />
-            <Route path="/online-orders" element={<OnlineOrderManagement />} />
-            <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
-            <Route path="/advanced-reports" element={<AdvancedReports />} />
-            <Route path="/technology-system" element={<TechnologySystem />} />
-            <Route path="/financial-system" element={<FinancialSystem />} />
-            <Route path="/security-system" element={<SecuritySystem />} />
-            <Route path="/staff-management" element={<StaffManagement />} />
-            <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </GlobalNotificationProvider>
+        <AuthProvider>
+          <GlobalNotificationProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/menu" element={<MenuManagement />} />
+              <Route path="/members" element={<MemberManagement />} />
+              <Route path="/online-system" element={<OnlineSystem />} />
+              <Route path="/customer-system" element={<CustomerSystem />} />
+              <Route path="/member-registration" element={<MemberRegistration />} />
+              <Route path="/promotions" element={<Promotions />} />
+              <Route path="/shop-settings" element={<ShopSettings />} />
+              <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
+              <Route path="/customer-app-management" element={<CustomerAppManagement />} />
+              <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/printer-settings" element={<PrinterSettings />} />
+              <Route path="/online-orders" element={<OnlineOrderManagement />} />
+              <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
+              <Route path="/advanced-reports" element={<AdvancedReports />} />
+              <Route path="/technology-system" element={<TechnologySystem />} />
+              <Route path="/financial-system" element={<FinancialSystem />} />
+              <Route path="/security-system" element={<SecuritySystem />} />
+              <Route path="/staff-management" element={<StaffManagement />} />
+              <Route path="/delivery-integration" element={<DeliveryIntegration />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </GlobalNotificationProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
