@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Menu } from 'lucide-react';
+import MainSidebar from '@/components/MainSidebar';
 
 import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
@@ -55,6 +56,7 @@ const CustomerMobileApp: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Enhanced database connection test
   const testDatabaseConnection = async (): Promise<boolean> => {
@@ -685,29 +687,50 @@ const CustomerMobileApp: React.FC = () => {
   }
 
   return (
-    <Shell>
-      <div className="flex flex-col h-screen">
-        {/* Header with Back Button (shown when not on home) */}
-        {activeTab !== 'home' && (
+    <>
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
+      
+      <Shell>
+        <div className="flex flex-col h-screen">
+          {/* Header with Back Button and Sidebar Toggle */}
           <div className="p-4 border-b bg-white sticky top-0 z-10">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackToHome}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              กลับหน้าแรก
-            </Button>
+            <div className="flex items-center justify-between">
+              {activeTab !== 'home' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToHome}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  กลับหน้าแรก
+                </Button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="text-coffee-600 hover:text-coffee-800 hover:bg-coffee-50"
+                  >
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                  <span className="font-semibold">แอปมือถือลูกค้า</span>
+                </div>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* Content Section */}
-        <div className="flex-grow overflow-y-auto">
-          {renderContent()}
+          {/* Content Section */}
+          <div className="flex-grow overflow-y-auto">
+            {renderContent()}
+          </div>
         </div>
-      </div>
-    </Shell>
+      </Shell>
+    </>
   );
 };
 
