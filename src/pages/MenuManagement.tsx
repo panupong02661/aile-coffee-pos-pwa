@@ -8,23 +8,6 @@ import Header from '@/components/Header';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
-interface DatabaseMenuItem {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  image_url?: string;
-  is_available: boolean;
-  category_id?: string;
-  cost_price: number;
-  created_at: string;
-  updated_at: string;
-  categories?: {
-    id: string;
-    name: string;
-  } | null;
-}
-
 const MenuManagement = () => {
   const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(false);
 
@@ -67,14 +50,17 @@ const MenuManagement = () => {
   });
 
   // Transform the data to match the MenuItem interface
-  const menuItems = rawMenuItems.map((item: DatabaseMenuItem) => ({
+  const menuItems = rawMenuItems.map((item: any) => ({
     id: item.id,
     name: item.name,
     description: item.description,
     price: item.price,
     image_url: item.image_url,
     is_available: item.is_available,
-    categories: item.categories || undefined
+    categories: item.categories ? {
+      id: item.categories.id,
+      name: item.categories.name
+    } : undefined
   }));
 
   useEffect(() => {
