@@ -28,17 +28,13 @@ const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
 const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
 const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommendationsPage'));
 
-// New system pages
+// New 5 main system pages
 const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
 const StaffManagement = lazy(() => import('./pages/StaffManagement'));
 const FinancialSystem = lazy(() => import('./pages/FinancialSystem'));
 const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
-
-// New delivery and notification pages
-const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
-const NotificationSettings = lazy(() => import('./pages/NotificationSettings'));
 
 function App() {
   return (
@@ -71,7 +67,7 @@ function App() {
                   <Route path="/online-orders" element={<OnlineOrderManagement />} />
                   <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
                   
-                  {/* System routes */}
+                  {/* New 5 main system routes */}
                   <Route path="/advanced-reports" element={<AdvancedReports />} />
                   <Route path="/sales-reports" element={<AdvancedReports />} />
                   <Route path="/product-reports" element={<AdvancedReports />} />
@@ -99,16 +95,13 @@ function App() {
                   <Route path="/api-system" element={<TechnologySystem />} />
                   <Route path="/external-integration" element={<TechnologySystem />} />
                   <Route path="/staff-mobile-app" element={<TechnologySystem />} />
+                  <Route path="/customer-mobile-app" element={<TechnologySystem />} />
                   <Route path="/data-backup" element={<SecuritySystem />} />
                   <Route path="/auto-backup" element={<SecuritySystem />} />
                   <Route path="/system-logs" element={<SecuritySystem />} />
                   <Route path="/usage-logs" element={<SecuritySystem />} />
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
-                  
-                  {/* New delivery and notification routes */}
-                  <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-                  <Route path="/notification-settings" element={<NotificationSettings />} />
                 </Routes>
               </Suspense>
               <Toaster />
