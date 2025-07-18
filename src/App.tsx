@@ -1,6 +1,8 @@
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/hooks/useAuth';
 import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
 import MenuManagement from '@/pages/MenuManagement';
@@ -34,63 +36,65 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/menu" element={<MenuManagement />} />
-          <Route path="/members" element={<MemberManagement />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/shop-settings" element={<ShopSettings />} />
-          <Route path="/promotions" element={<Promotions />} />
-          <Route path="/online-system" element={<OnlineSystem />} />
-          <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-          <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-          <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/printer-settings" element={<PrinterSettings />} />
-          <Route path="/online-orders" element={<OnlineOrderManagement />} />
-          <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
-          <Route path="/advanced-reports" element={<AdvancedReports />} />
-          <Route path="/sales-reports" element={<AdvancedReports />} />
-          <Route path="/product-reports" element={<AdvancedReports />} />
-          <Route path="/customer-analytics" element={<AdvancedReports />} />
-          <Route path="/staff" element={<StaffManagement />} />
-          <Route path="/time-attendance" element={<StaffManagement />} />
-          <Route path="/permissions" element={<StaffManagement />} />
-          <Route path="/branch-management" element={<StaffManagement />} />
-          <Route path="/accounting" element={<FinancialSystem />} />
-          <Route path="/income-expense" element={<FinancialSystem />} />
-          <Route path="/profit-loss" element={<FinancialSystem />} />
-          <Route path="/tax-system" element={<FinancialSystem />} />
-          <Route path="/vat-calculation" element={<FinancialSystem />} />
-          <Route path="/tax-invoice" element={<FinancialSystem />} />
-          <Route path="/credit-system" element={<FinancialSystem />} />
-          <Route path="/digital-payment" element={<TechnologySystem />} />
-          <Route path="/credit-card" element={<TechnologySystem />} />
-          <Route path="/api-system" element={<TechnologySystem />} />
-          <Route path="/external-integration" element={<TechnologySystem />} />
-          <Route path="/staff-mobile-app" element={<TechnologySystem />} />
-          <Route path="/data-backup" element={<SecuritySystem />} />
-          <Route path="/auto-backup" element={<SecuritySystem />} />
-          <Route path="/system-logs" element={<SecuritySystem />} />
-          <Route path="/usage-logs" element={<SecuritySystem />} />
-          <Route path="/role-access" element={<SecuritySystem />} />
-          <Route path="/access-control" element={<SecuritySystem />} />
-          <Route path="/crm" element={<CustomerSystem />} />
-          <Route path="/customer-data" element={<CustomerSystem />} />
-          <Route path="/purchase-history" element={<CustomerSystem />} />
-          <Route path="/marketing" element={<CustomerSystem />} />
-          <Route path="/sms-marketing" element={<CustomerSystem />} />
-          <Route path="/email-marketing" element={<CustomerSystem />} />
-          <Route path="/table-reservation" element={<CustomerSystem />} />
-          <Route path="/member-registration" element={<MemberRegistration />} />
-          <Route path="/pos" element={<POS />} />
-          <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-          <Route path="/line-notify" element={<LineNotifySettings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/menu" element={<MenuManagement />} />
+            <Route path="/members" element={<MemberManagement />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/shop-settings" element={<ShopSettings />} />
+            <Route path="/promotions" element={<Promotions />} />
+            <Route path="/online-system" element={<OnlineSystem />} />
+            <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
+            <Route path="/customer-app-management" element={<CustomerAppManagement />} />
+            <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/printer-settings" element={<PrinterSettings />} />
+            <Route path="/online-orders" element={<OnlineOrderManagement />} />
+            <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
+            <Route path="/advanced-reports" element={<AdvancedReports />} />
+            <Route path="/sales-reports" element={<AdvancedReports />} />
+            <Route path="/product-reports" element={<AdvancedReports />} />
+            <Route path="/customer-analytics" element={<AdvancedReports />} />
+            <Route path="/staff" element={<StaffManagement />} />
+            <Route path="/time-attendance" element={<StaffManagement />} />
+            <Route path="/permissions" element={<StaffManagement />} />
+            <Route path="/branch-management" element={<StaffManagement />} />
+            <Route path="/accounting" element={<FinancialSystem />} />
+            <Route path="/income-expense" element={<FinancialSystem />} />
+            <Route path="/profit-loss" element={<FinancialSystem />} />
+            <Route path="/tax-system" element={<FinancialSystem />} />
+            <Route path="/vat-calculation" element={<FinancialSystem />} />
+            <Route path="/tax-invoice" element={<FinancialSystem />} />
+            <Route path="/credit-system" element={<FinancialSystem />} />
+            <Route path="/digital-payment" element={<TechnologySystem />} />
+            <Route path="/credit-card" element={<TechnologySystem />} />
+            <Route path="/api-system" element={<TechnologySystem />} />
+            <Route path="/external-integration" element={<TechnologySystem />} />
+            <Route path="/staff-mobile-app" element={<TechnologySystem />} />
+            <Route path="/data-backup" element={<SecuritySystem />} />
+            <Route path="/auto-backup" element={<SecuritySystem />} />
+            <Route path="/system-logs" element={<SecuritySystem />} />
+            <Route path="/usage-logs" element={<SecuritySystem />} />
+            <Route path="/role-access" element={<SecuritySystem />} />
+            <Route path="/access-control" element={<SecuritySystem />} />
+            <Route path="/crm" element={<CustomerSystem />} />
+            <Route path="/customer-data" element={<CustomerSystem />} />
+            <Route path="/purchase-history" element={<CustomerSystem />} />
+            <Route path="/marketing" element={<CustomerSystem />} />
+            <Route path="/sms-marketing" element={<CustomerSystem />} />
+            <Route path="/email-marketing" element={<CustomerSystem />} />
+            <Route path="/table-reservation" element={<CustomerSystem />} />
+            <Route path="/member-registration" element={<MemberRegistration />} />
+            <Route path="/pos" element={<POS />} />
+            <Route path="/delivery-integration" element={<DeliveryIntegration />} />
+            <Route path="/line-notify" element={<LineNotifySettings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
       <Toaster />
     </QueryClientProvider>
   );
