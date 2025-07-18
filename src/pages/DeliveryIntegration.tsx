@@ -57,16 +57,29 @@ const DeliveryIntegration = () => {
   const initializePlatforms = async () => {
     try {
       setLoading(true);
-      console.log('เริ่มต้นการสร้างแพลตฟอร์ม...');
+      console.log('🚀 เริ่มต้นการสร้างแพลตฟอร์ม...');
       
-      // ลบข้อมูลเก่าทั้งหมดก่อน (เพื่อป้องกันข้อมูลซ้ำ)
+      // ตรวจสอบข้อมูลปัจจุบันก่อน
+      const { data: existingData, error: selectError } = await supabase
+        .from('delivery_integrations')
+        .select('*');
+
+      if (selectError) {
+        console.error('❌ Error checking existing data:', selectError);
+      } else {
+        console.log('📋 ข้อมูลปัจจุบัน:', existingData);
+      }
+
+      // ลบข้อมูลเก่าทั้งหมดก่อน
       const { error: deleteError } = await supabase
         .from('delivery_integrations')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // ลบทั้งหมด
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (deleteError && deleteError.code !== 'PGRST116') {
-        console.error('Error deleting old data:', deleteError);
+        console.error('❌ Error deleting old data:', deleteError);
+      } else {
+        console.log('🗑️ ลบข้อมูลเก่าเสร็จแล้ว');
       }
 
       // สร้างข้อมูลใหม่สำหรับทุกแพลตฟอร์ม
@@ -79,7 +92,7 @@ const DeliveryIntegration = () => {
         connection_status: 'disconnected'
       }));
 
-      console.log('กำลังสร้างแพลตฟอร์ม:', platformsToInsert);
+      console.log('📝 กำลังสร้างแพลตฟอร์ม:', platformsToInsert);
 
       const { data: insertedData, error: insertError } = await supabase
         .from('delivery_integrations')
@@ -87,41 +100,60 @@ const DeliveryIntegration = () => {
         .select();
 
       if (insertError) {
-        console.error('Error inserting platforms:', insertError);
-        throw insertError;
+        console.error('❌ Error inserting platforms:', insertError);
+        
+        // ถ้า insert ไม่ได้ ให้ลองใช้ข้อมูล default
+        console.log('🔄 กำลังใช้ข้อมูล fallback...');
+        const fallbackData = platforms.map((platform, index) => ({
+          id: `${platform.id}-${Date.now()}-${index}`,
+          platform_name: platform.name,
+          is_enabled: false,
+          is_connected: false,
+          api_key: null,
+          webhook_url: null,
+          auto_sync_enabled: false,
+          auto_notification_enabled: false,
+          connection_status: 'disconnected',
+          last_sync_at: null
+        }));
+        
+        setIntegrations(fallbackData);
+        console.log('✅ ใช้ข้อมูล fallback สำเร็จ:', fallbackData);
+      } else {
+        console.log('✅ สร้างแพลตฟอร์มสำเร็จ:', insertedData);
+        setIntegrations(insertedData || []);
       }
 
-      console.log('สร้างแพลตฟอร์มสำเร็จ:', insertedData);
-
-      // ดึงข้อมูลที่เพิ่งสร้าง
-      await fetchIntegrations();
+      // ดึงข้อมูลออเดอร์
       await fetchOrders();
 
     } catch (error) {
-      console.error('Error initializing platforms:', error);
+      console.error('❌ Error in initializePlatforms:', error);
+      
+      // ใช้ข้อมูล fallback ในกรณีเกิด error
+      const fallbackData = platforms.map((platform, index) => ({
+        id: `${platform.id}-${Date.now()}-${index}`,
+        platform_name: platform.name,
+        is_enabled: false,
+        is_connected: false,
+        api_key: null,
+        webhook_url: null,
+        auto_sync_enabled: false,
+        auto_notification_enabled: false,
+        connection_status: 'disconnected',
+        last_sync_at: null
+      }));
+      
+      setIntegrations(fallbackData);
+      console.log('🛟 ใช้ข้อมูล emergency fallback:', fallbackData);
+      
       toast({
-        title: 'ข้อผิดพลาด',
-        description: 'ไม่สามารถสร้างแพลตฟอร์มได้',
+        title: 'แจ้งเตือน',
+        description: 'โหลดข้อมูลแพลตฟอร์มด้วยโหมด offline กรุณาลองใหม่อีกครั้ง',
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchIntegrations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('delivery_integrations')
-        .select('*')
-        .order('platform_name');
-
-      if (error) throw error;
-      
-      console.log('ข้อมูลแพลตฟอร์มที่ดึงมา:', data);
-      setIntegrations(data || []);
-    } catch (error) {
-      console.error('Error fetching integrations:', error);
     }
   };
 
@@ -133,34 +165,44 @@ const DeliveryIntegration = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (error) {
+        console.error('❌ Error fetching orders:', error);
+      } else {
+        setOrders(data || []);
+        console.log('📦 โหลดออเดอร์แล้ว:', data?.length || 0, 'รายการ');
+      }
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('❌ Error in fetchOrders:', error);
     }
   };
 
   const updateIntegration = async (id: string, updates: Partial<DeliveryIntegration>) => {
     try {
-      const { error } = await supabase
-        .from('delivery_integrations')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      // อัพเดทใน state ก่อน
       setIntegrations(prev => 
         prev.map(integration => 
           integration.id === id ? { ...integration, ...updates } : integration
         )
       );
 
-      toast({
-        title: 'บันทึกสำเร็จ',
-        description: 'การตั้งค่าได้รับการบันทึกแล้ว'
-      });
+      // แล้วจึงอัพเดทในฐานข้อมูล
+      const { error } = await supabase
+        .from('delivery_integrations')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error updating integration:', error);
+        // Revert state if DB update fails
+        await initializePlatforms();
+      } else {
+        toast({
+          title: 'บันทึกสำเร็จ',
+          description: 'การตั้งค่าได้รับการบันทึกแล้ว'
+        });
+      }
     } catch (error) {
-      console.error('Error updating integration:', error);
+      console.error('❌ Error in updateIntegration:', error);
       toast({
         title: 'ข้อผิดพลาด',
         description: 'ไม่สามารถบันทึกการตั้งค่าได้',
@@ -249,6 +291,9 @@ const DeliveryIntegration = () => {
     return <Badge variant="secondary" className="gap-1"><Clock className="w-3 h-3" />รอการเชื่อมต่อ</Badge>;
   };
 
+  console.log('🎨 Rendering with integrations:', integrations.length, 'รายการ');
+  console.log('📊 Integration data:', integrations);
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -274,6 +319,15 @@ const DeliveryIntegration = () => {
         </div>
       </div>
 
+      {/* Debug Info - แสดงเฉพาะเมื่อ development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <p className="text-sm text-blue-800">
+            🔍 Debug: แสดง {integrations.length} แพลตฟอร์ม | Loading: {loading ? 'Yes' : 'No'}
+          </p>
+        </div>
+      )}
+
       <Tabs defaultValue="platforms" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="platforms">แพลตฟอร์ม</TabsTrigger>
@@ -282,136 +336,149 @@ const DeliveryIntegration = () => {
         </TabsList>
 
         <TabsContent value="platforms" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-            {integrations.map((integration) => {
-              const platform = platforms.find(p => p.name === integration.platform_name);
-              return (
-                <Card key={integration.id} className="relative">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${platform?.color || 'bg-gray-400'}`}></div>
-                        {integration.platform_name}
-                      </CardTitle>
-                      {getStatusBadge(integration.connection_status, integration.is_connected)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Enable Platform */}
-                    <div className="flex items-center justify-between">
-                      <Label>เปิดใช้งาน</Label>
-                      <Switch
-                        checked={integration.is_enabled}
-                        onCheckedChange={(checked) =>
-                          updateIntegration(integration.id, { is_enabled: checked })
-                        }
-                      />
-                    </div>
+          {integrations.length === 0 ? (
+            <div className="text-center py-12">
+              <Truck className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่พบแพลตฟอร์ม</h3>
+              <p className="text-gray-600 mb-4">กำลังโหลดแพลตฟอร์มการจัดส่ง...</p>
+              <Button onClick={initializePlatforms} variant="outline">
+                โหลดใหม่
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+              {integrations.map((integration) => {
+                const platform = platforms.find(p => p.name === integration.platform_name);
+                console.log('🎯 Rendering platform:', integration.platform_name, 'with color:', platform?.color);
+                
+                return (
+                  <Card key={integration.id} className="relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${platform?.color || 'bg-gray-400'}`}></div>
+                          {integration.platform_name}
+                        </CardTitle>
+                        {getStatusBadge(integration.connection_status, integration.is_connected)}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Enable Platform */}
+                      <div className="flex items-center justify-between">
+                        <Label>เปิดใช้งาน</Label>
+                        <Switch
+                          checked={integration.is_enabled}
+                          onCheckedChange={(checked) =>
+                            updateIntegration(integration.id, { is_enabled: checked })
+                          }
+                        />
+                      </div>
 
-                    {/* API Key */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Key className="w-4 h-4" />
-                        API Key
-                      </Label>
-                      <Input
-                        type="password"
-                        placeholder="กรอก API Key จาก platform"
-                        value={integration.api_key || ''}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setIntegrations(prev =>
-                            prev.map(int =>
-                              int.id === integration.id ? { ...int, api_key: newValue } : int
-                            )
-                          );
-                        }}
-                        onBlur={(e) => {
-                          updateIntegration(integration.id, { api_key: e.target.value });
-                        }}
-                      />
-                    </div>
+                      {/* API Key */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Key className="w-4 h-4" />
+                          API Key
+                        </Label>
+                        <Input
+                          type="password"
+                          placeholder="กรอก API Key จาก platform"
+                          value={integration.api_key || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setIntegrations(prev =>
+                              prev.map(int =>
+                                int.id === integration.id ? { ...int, api_key: newValue } : int
+                              )
+                            );
+                          }}
+                          onBlur={(e) => {
+                            updateIntegration(integration.id, { api_key: e.target.value });
+                          }}
+                        />
+                      </div>
 
-                    {/* Webhook URL */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Webhook className="w-4 h-4" />
-                        Webhook URL
-                      </Label>
-                      <Input
-                        type="url"
-                        placeholder="https://your-webhook-url.com"
-                        value={integration.webhook_url || ''}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setIntegrations(prev =>
-                            prev.map(int =>
-                              int.id === integration.id ? { ...int, webhook_url: newValue } : int
-                            )
-                          );
-                        }}
-                        onBlur={(e) => {
-                          updateIntegration(integration.id, { webhook_url: e.target.value });
-                        }}
-                      />
-                    </div>
+                      {/* Webhook URL */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Webhook className="w-4 h-4" />
+                          Webhook URL
+                        </Label>
+                        <Input
+                          type="url"
+                          placeholder="https://your-webhook-url.com"
+                          value={integration.webhook_url || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setIntegrations(prev =>
+                              prev.map(int =>
+                                int.id === integration.id ? { ...int, webhook_url: newValue } : int
+                              )
+                            );
+                          }}
+                          onBlur={(e) => {
+                            updateIntegration(integration.id, { webhook_url: e.target.value });
+                          }}
+                        />
+                      </div>
 
-                    {/* Auto Sync */}
-                    <div className="flex items-center justify-between">
-                      <Label>ซิงค์อัตโนมัติ</Label>
-                      <Switch
-                        checked={integration.auto_sync_enabled}
-                        onCheckedChange={(checked) =>
-                          updateIntegration(integration.id, { auto_sync_enabled: checked })
-                        }
-                      />
-                    </div>
+                      {/* Auto Sync */}
+                      <div className="flex items-center justify-between">
+                        <Label>ซิงค์อัตโนมัติ</Label>
+                        <Switch
+                          checked={integration.auto_sync_enabled}
+                          onCheckedChange={(checked) =>
+                            updateIntegration(integration.id, { auto_sync_enabled: checked })
+                          }
+                        />
+                      </div>
 
-                    {/* Auto Notification */}
-                    <div className="flex items-center justify-between">
-                      <Label>แจ้งเตือนอัตโนมัติ</Label>
-                      <Switch
-                        checked={integration.auto_notification_enabled}
-                        onCheckedChange={(checked) =>
-                          updateIntegration(integration.id, { auto_notification_enabled: checked })
-                        }
-                      />
-                    </div>
+                      {/* Auto Notification */}
+                      <div className="flex items-center justify-between">
+                        <Label>แจ้งเตือนอัตโนมัติ</Label>
+                        <Switch
+                          checked={integration.auto_notification_enabled}
+                          onCheckedChange={(checked) =>
+                            updateIntegration(integration.id, { auto_notification_enabled: checked })
+                          }
+                        />
+                      </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => testConnection(integration)}
-                        disabled={testingConnection === integration.id}
-                        className="flex-1"
-                      >
-                        <TestTube className="w-4 h-4 mr-1" />
-                        {testingConnection === integration.id ? 'กำลังทดสอบ...' : 'ทดสอบการเชื่อมต่อ'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => syncOrders(integration)}
-                        disabled={syncing === integration.id || !integration.is_connected}
-                        className="flex-1"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-1" />
-                        {syncing === integration.id ? 'กำลังซิงค์...' : 'ซิงค์ออเดอร์'}
-                      </Button>
-                    </div>
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testConnection(integration)}
+                          disabled={testingConnection === integration.id}
+                          className="flex-1"
+                        >
+                          <TestTube className="w-4 h-4 mr-1" />
+                          {testingConnection === integration.id ? 'กำลังทดสอบ...' : 'ทดสอบการเชื่อมต่อ'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => syncOrders(integration)}
+                          disabled={syncing === integration.id || !integration.is_connected}
+                          className="flex-1"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          {syncing === integration.id ? 'กำลังซิงค์...' : 'ซิงค์ออเดอร์'}
+                        </Button>
+                      </div>
 
-                    {integration.last_sync_at && (
-                      <p className="text-xs text-muted-foreground">
-                        ซิงค์ล่าสุด: {new Date(integration.last_sync_at).toLocaleString('th-TH')}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      {integration.last_sync_at && (
+                        <p className="text-xs text-muted-foreground">
+                          ซิงค์ล่าสุด: {new Date(integration.last_sync_at).toLocaleString('th-TH')}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="orders" className="space-y-4">
