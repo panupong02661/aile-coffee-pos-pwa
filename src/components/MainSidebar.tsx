@@ -73,7 +73,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control'
+    '/usage-logs', '/role-access', '/access-control', '/delivery-integration'
   ];
   
   const menuItems = [
@@ -82,6 +82,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
     { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
+    { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
