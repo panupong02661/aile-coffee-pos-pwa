@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,14 +19,11 @@ import {
   WifiOff,
   RefreshCw,
   Download,
-  Upload,
-  Clock,
+  TestTube,
   Package,
-  DollarSign,
+  Clock,
   BarChart3,
-  Eye,
-  Save,
-  TestTube
+  Save
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -66,7 +62,6 @@ const DeliveryIntegration = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
-  const [selectedIntegration, setSelectedIntegration] = useState<DeliveryIntegration | null>(null);
 
   const platforms = [
     {
@@ -106,7 +101,6 @@ const DeliveryIntegration = () => {
 
       if (error) throw error;
 
-      // สร้าง integration เริ่มต้นถ้าไม่มี
       if (!data || data.length === 0) {
         await initializeIntegrations();
         return;
@@ -209,10 +203,9 @@ const DeliveryIntegration = () => {
     setTesting(integration.id);
     
     try {
-      // จำลองการทดสอบการเชื่อมต่อ
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const isSuccess = Math.random() > 0.3; // 70% โอกาสสำเร็จ
+      const isSuccess = Math.random() > 0.3;
       
       await updateIntegration(integration.id, {
         is_connected: isSuccess,
@@ -247,12 +240,10 @@ const DeliveryIntegration = () => {
     setSyncing(integration.id);
 
     try {
-      // จำลองการซิงค์ออเดอร์
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       const orderCount = Math.floor(Math.random() * 10) + 1;
       
-      // บันทึก sync log
       await supabase.from('delivery_sync_logs').insert({
         platform_name: integration.platform_name,
         sync_type: 'manual',
@@ -294,10 +285,10 @@ const DeliveryIntegration = () => {
     }
     
     if (integration.is_connected) {
-      return <Badge className="bg-green-500 hover:bg-green-600">เชื่อมต่อแล้ว</Badge>;
+      return <Badge className="bg-green-500 hover:bg-green-600">ปิดใช้งาน</Badge>;
     }
     
-    return <Badge variant="destructive">ไม่ได้เชื่อมต่อ</Badge>;
+    return <Badge variant="destructive">ปิดใช้งาน</Badge>;
   };
 
   if (loading) {
@@ -315,8 +306,8 @@ const DeliveryIntegration = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-coffee-800">ผูกระบบ Delivery</h1>
-            <p className="text-coffee-600 mt-2">จัดการการเชื่อมต่อกับแพลตฟอร์ม Delivery ต่างๆ</p>
+            <h1 className="text-3xl font-bold text-coffee-800">ระบบ Delivery Integration</h1>
+            <p className="text-coffee-600 mt-2">เชื่อมต่อและจัดการออเดอร์จากแพลตฟอร์ม Delivery ต่างๆ</p>
           </div>
           <Button 
             onClick={() => loadOrders()}
@@ -337,19 +328,19 @@ const DeliveryIntegration = () => {
           </TabsList>
 
           <TabsContent value="platforms" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-6">
               {platforms.map((platform) => {
                 const integration = integrations.find(i => i.platform_name === platform.id);
                 
                 return (
                   <Card key={platform.id} className="relative">
-                    <CardHeader>
+                    <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="text-2xl">{platform.icon}</div>
                           <div>
-                            <CardTitle className="text-lg">{platform.name}</CardTitle>
-                            <CardDescription className="text-sm">
+                            <CardTitle className="text-xl">{platform.name}</CardTitle>
+                            <CardDescription className="text-sm text-gray-600">
                               {platform.description}
                             </CardDescription>
                           </div>
@@ -358,14 +349,49 @@ const DeliveryIntegration = () => {
                       </div>
                     </CardHeader>
                     
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                       {integration && (
                         <>
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor={`enabled-${platform.id}`}>เปิดใช้งาน</Label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* API Key Section */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 text-gray-500">🔑</div>
+                                <Label className="text-sm font-medium">API Key</Label>
+                              </div>
+                              <Input
+                                type="password"
+                                placeholder="ใส่ API Key"
+                                value={integration.api_key || ''}
+                                onChange={(e) => 
+                                  updateIntegration(integration.id, { api_key: e.target.value })
+                                }
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Webhook URL Section */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 text-gray-500">🌐</div>
+                                <Label className="text-sm font-medium">Webhook URL</Label>
+                              </div>
+                              <Input
+                                placeholder="https://your-domain.com/webhook"
+                                value={integration.webhook_url || ''}
+                                onChange={(e) => 
+                                  updateIntegration(integration.id, { webhook_url: e.target.value })
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Settings Toggles */}
+                          <div className="space-y-4 border-t pt-4">
+                            <div className="flex items-center justify-between py-2">
+                              <span className="text-sm">เปิดใช้งานแพลตฟอร์ม</span>
                               <Switch
-                                id={`enabled-${platform.id}`}
                                 checked={integration.is_enabled}
                                 onCheckedChange={(checked) => 
                                   updateIntegration(integration.id, { is_enabled: checked })
@@ -373,96 +399,64 @@ const DeliveryIntegration = () => {
                               />
                             </div>
 
-                            {integration.is_enabled && (
-                              <>
-                                <div className="space-y-2">
-                                  <Label htmlFor={`api-key-${platform.id}`}>API Key</Label>
-                                  <Input
-                                    id={`api-key-${platform.id}`}
-                                    type="password"
-                                    placeholder="ใส่ API Key"
-                                    value={integration.api_key || ''}
-                                    onChange={(e) => 
-                                      updateIntegration(integration.id, { api_key: e.target.value })
-                                    }
-                                  />
-                                </div>
+                            <div className="flex items-center justify-between py-2">
+                              <span className="text-sm">ซิงค์อัตโนมัติ</span>
+                              <Switch
+                                checked={integration.auto_sync_enabled}
+                                onCheckedChange={(checked) => 
+                                  updateIntegration(integration.id, { auto_sync_enabled: checked })
+                                }
+                              />
+                            </div>
 
-                                <div className="space-y-2">
-                                  <Label htmlFor={`webhook-${platform.id}`}>Webhook URL</Label>
-                                  <Input
-                                    id={`webhook-${platform.id}`}
-                                    placeholder="https://..."
-                                    value={integration.webhook_url || ''}
-                                    onChange={(e) => 
-                                      updateIntegration(integration.id, { webhook_url: e.target.value })
-                                    }
-                                  />
-                                </div>
-
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <Label htmlFor={`auto-sync-${platform.id}`}>ซิงค์อัตโนมัติ</Label>
-                                    <Switch
-                                      id={`auto-sync-${platform.id}`}
-                                      checked={integration.auto_sync_enabled}
-                                      onCheckedChange={(checked) => 
-                                        updateIntegration(integration.id, { auto_sync_enabled: checked })
-                                      }
-                                    />
-                                  </div>
-
-                                  <div className="flex items-center justify-between">
-                                    <Label htmlFor={`auto-notify-${platform.id}`}>แจ้งเตือนอัตโนมัติ</Label>
-                                    <Switch
-                                      id={`auto-notify-${platform.id}`}
-                                      checked={integration.auto_notification_enabled}
-                                      onCheckedChange={(checked) => 
-                                        updateIntegration(integration.id, { auto_notification_enabled: checked })
-                                      }
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2 pt-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => testConnection(integration)}
-                                    disabled={testing === integration.id}
-                                    className="flex-1"
-                                  >
-                                    {testing === integration.id ? (
-                                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                                    ) : (
-                                      <TestTube className="w-4 h-4 mr-2" />
-                                    )}
-                                    ทดสอบ
-                                  </Button>
-
-                                  <Button 
-                                    size="sm"
-                                    onClick={() => syncOrders(integration)}
-                                    disabled={syncing === integration.id || !integration.is_connected}
-                                    className="flex-1"
-                                  >
-                                    {syncing === integration.id ? (
-                                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                                    ) : (
-                                      <Download className="w-4 h-4 mr-2" />
-                                    )}
-                                    ซิงค์
-                                  </Button>
-                                </div>
-
-                                {integration.last_sync_at && (
-                                  <div className="text-xs text-gray-500 text-center">
-                                    ซิงค์ล่าสุด: {new Date(integration.last_sync_at).toLocaleString('th-TH')}
-                                  </div>
-                                )}
-                              </>
-                            )}
+                            <div className="flex items-center justify-between py-2">
+                              <span className="text-sm">แจ้งเตือนอัตโนมัติ</span>
+                              <Switch
+                                checked={integration.auto_notification_enabled}
+                                onCheckedChange={(checked) => 
+                                  updateIntegration(integration.id, { auto_notification_enabled: checked })
+                                }
+                              />
+                            </div>
                           </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-3 pt-4 border-t">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => testConnection(integration)}
+                              disabled={testing === integration.id}
+                              className="flex-1"
+                            >
+                              {testing === integration.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                              ) : (
+                                <TestTube className="w-4 h-4 mr-2" />
+                              )}
+                              ทดสอบการเชื่อมต่อ
+                            </Button>
+
+                            <Button 
+                              size="sm"
+                              onClick={() => syncOrders(integration)}
+                              disabled={syncing === integration.id || !integration.is_connected}
+                              className="flex-1"
+                            >
+                              {syncing === integration.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                              ) : (
+                                <Download className="w-4 h-4 mr-2" />
+                              )}
+                              ซิงค์ออเดอร์
+                            </Button>
+                          </div>
+
+                          {integration.last_sync_at && (
+                            <div className="text-xs text-gray-500 text-center pt-2">
+                              ซิงค์ล่าสุด: {new Date(integration.last_sync_at).toLocaleString('th-TH')}
+                            </div>
+                          )}
                         </>
                       )}
                     </CardContent>
