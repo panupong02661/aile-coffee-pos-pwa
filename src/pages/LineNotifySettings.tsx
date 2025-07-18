@@ -228,7 +228,7 @@ const LineNotifySettings = () => {
           <div className="text-sm text-gray-600 mt-2 p-3 bg-purple-50 rounded-lg">
             <h4 className="font-medium mb-2">วิธีตั้งค่า Discord Webhook:</h4>
             <ol className="list-decimal list-inside space-y-1">
-              <li>เข้า Server Settings > Integrations</li>
+              <li>เข้า Server Settings &gt; Integrations</li>
               <li>สร้าง Webhook ใหม่</li>
               <li>เลือก channel ที่ต้องการ</li>
               <li>คัดลอก Webhook URL</li>
