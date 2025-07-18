@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -51,56 +50,77 @@ const DeliveryIntegration = () => {
   ];
 
   useEffect(() => {
-    fetchIntegrations();
-    fetchOrders();
+    initializePlatforms();
   }, []);
+
+  const initializePlatforms = async () => {
+    try {
+      setLoading(true);
+      console.log('เริ่มต้นการสร้างแพลตฟอร์ม...');
+      
+      // ลบข้อมูลเก่าทั้งหมดก่อน (เพื่อป้องกันข้อมูลซ้ำ)
+      const { error: deleteError } = await supabase
+        .from('delivery_integrations')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // ลบทั้งหมด
+
+      if (deleteError && deleteError.code !== 'PGRST116') {
+        console.error('Error deleting old data:', deleteError);
+      }
+
+      // สร้างข้อมูลใหม่สำหรับทุกแพลตฟอร์ม
+      const platformsToInsert = platforms.map(platform => ({
+        platform_name: platform.name,
+        is_enabled: false,
+        is_connected: false,
+        auto_sync_enabled: false,
+        auto_notification_enabled: false,
+        connection_status: 'disconnected'
+      }));
+
+      console.log('กำลังสร้างแพลตฟอร์ม:', platformsToInsert);
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('delivery_integrations')
+        .insert(platformsToInsert)
+        .select();
+
+      if (insertError) {
+        console.error('Error inserting platforms:', insertError);
+        throw insertError;
+      }
+
+      console.log('สร้างแพลตฟอร์มสำเร็จ:', insertedData);
+
+      // ดึงข้อมูลที่เพิ่งสร้าง
+      await fetchIntegrations();
+      await fetchOrders();
+
+    } catch (error) {
+      console.error('Error initializing platforms:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถสร้างแพลตฟอร์มได้',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchIntegrations = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('delivery_integrations')
         .select('*')
         .order('platform_name');
 
       if (error) throw error;
-
-      // Initialize missing platforms
-      const existingPlatforms = data?.map(d => d.platform_name) || [];
-      const missingPlatforms = platforms.filter(p => !existingPlatforms.includes(p.name));
-
-      for (const platform of missingPlatforms) {
-        const { error: insertError } = await supabase
-          .from('delivery_integrations')
-          .insert({
-            platform_name: platform.name,
-            is_enabled: false,
-            is_connected: false,
-            auto_sync_enabled: false,
-            auto_notification_enabled: false,
-            connection_status: 'disconnected'
-          });
-
-        if (insertError) console.error('Error creating platform:', insertError);
-      }
-
-      // Fetch again after initialization
-      const { data: updatedData, error: fetchError } = await supabase
-        .from('delivery_integrations')
-        .select('*')
-        .order('platform_name');
-
-      if (fetchError) throw fetchError;
-      setIntegrations(updatedData || []);
+      
+      console.log('ข้อมูลแพลตฟอร์มที่ดึงมา:', data);
+      setIntegrations(data || []);
     } catch (error) {
       console.error('Error fetching integrations:', error);
-      toast({
-        title: 'ข้อผิดพลาด',
-        description: 'ไม่สามารถโหลดข้อมูลการเชื่อมต่อได้',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
