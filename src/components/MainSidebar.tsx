@@ -73,7 +73,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control'
+    '/usage-logs', '/role-access', '/access-control', '/delivery-integration'
   ];
   
   const menuItems = [
@@ -86,6 +86,9 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
     { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
+    
+    // ระบบ Delivery Integration
+    { id: 'delivery-integration', label: 'ผูกระบบ Delivery', icon: Truck, path: '/delivery-integration' },
     
     // ระบบจัดการหลัก
     { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: TrendingUp, path: '/advanced-reports' },
