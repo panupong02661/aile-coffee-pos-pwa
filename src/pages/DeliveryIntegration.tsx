@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -352,16 +351,17 @@ const DeliveryIntegration = () => {
                     <CardContent className="space-y-6">
                       {integration && (
                         <>
-                          {/* API Key และ Webhook URL Section */}
+                          {/* ช่องกรอก API Key และ Webhook URL */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 text-gray-500">🔑</div>
-                                <Label className="text-sm font-medium">API Key</Label>
-                              </div>
+                              <Label htmlFor={`api-key-${integration.id}`} className="text-sm font-medium flex items-center gap-2">
+                                <span className="text-gray-500">🔑</span>
+                                API Key
+                              </Label>
                               <Input
+                                id={`api-key-${integration.id}`}
                                 type="password"
-                                placeholder="ใส่ API Key"
+                                placeholder="ใส่ API Key ของคุณ"
                                 value={integration.api_key || ''}
                                 onChange={(e) => 
                                   updateIntegration(integration.id, { api_key: e.target.value })
@@ -371,11 +371,13 @@ const DeliveryIntegration = () => {
                             </div>
 
                             <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 text-gray-500">🌐</div>
-                                <Label className="text-sm font-medium">Webhook URL</Label>
-                              </div>
+                              <Label htmlFor={`webhook-${integration.id}`} className="text-sm font-medium flex items-center gap-2">
+                                <span className="text-gray-500">🌐</span>
+                                Webhook URL
+                              </Label>
                               <Input
+                                id={`webhook-${integration.id}`}
+                                type="url"
                                 placeholder="https://your-domain.com/webhook"
                                 value={integration.webhook_url || ''}
                                 onChange={(e) => 
@@ -386,10 +388,10 @@ const DeliveryIntegration = () => {
                             </div>
                           </div>
 
-                          {/* Settings Toggles */}
+                          {/* การตั้งค่า Toggle */}
                           <div className="space-y-4 border-t pt-4">
                             <div className="flex items-center justify-between py-2">
-                              <span className="text-sm">เปิดใช้งานแพลตฟอร์ม</span>
+                              <span className="text-sm font-medium">เปิดใช้งานแพลตฟอร์ม</span>
                               <Switch
                                 checked={integration.is_enabled}
                                 onCheckedChange={(checked) => 
@@ -419,7 +421,7 @@ const DeliveryIntegration = () => {
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
+                          {/* ปุ่มการดำเนินการ */}
                           <div className="flex gap-3 pt-4 border-t">
                             <Button 
                               size="sm" 
