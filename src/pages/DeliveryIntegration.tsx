@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -285,10 +284,10 @@ const DeliveryIntegration = () => {
     }
     
     if (integration.is_connected) {
-      return <Badge className="bg-green-500 hover:bg-green-600">ปิดใช้งาน</Badge>;
+      return <Badge className="bg-green-500 hover:bg-green-600">เชื่อมต่อแล้ว</Badge>;
     }
     
-    return <Badge variant="destructive">ปิดใช้งาน</Badge>;
+    return <Badge variant="destructive">ยังไม่เชื่อมต่อ</Badge>;
   };
 
   if (loading) {
