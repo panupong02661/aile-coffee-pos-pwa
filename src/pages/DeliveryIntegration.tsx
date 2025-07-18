@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -351,8 +352,8 @@ const DeliveryIntegration = () => {
                     <CardContent className="space-y-6">
                       {integration && (
                         <>
+                          {/* API Key และ Webhook URL Section */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* API Key Section */}
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 text-gray-500">🔑</div>
@@ -369,7 +370,6 @@ const DeliveryIntegration = () => {
                               />
                             </div>
 
-                            {/* Webhook URL Section */}
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 text-gray-500">🌐</div>
