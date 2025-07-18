@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +9,7 @@ const corsHeaders = {
 interface NotificationRequest {
   webhook_url: string;
   message: string;
-  platform?: 'line' | 'instagram' | 'discord';
+  platform?: 'line' | 'instagram' | 'discord' | 'telegram';
 }
 
 serve(async (req) => {
@@ -34,6 +33,9 @@ serve(async (req) => {
     switch (platform) {
       case 'line':
         response = await sendLineNotification(webhook_url, message);
+        break;
+      case 'telegram':
+        response = await sendTelegramNotification(webhook_url, message);
         break;
       case 'discord':
         response = await sendDiscordNotification(webhook_url, message);
@@ -75,6 +77,37 @@ async function sendLineNotification(token: string, message: string) {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`LINE API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  return { success: true, response: result };
+}
+
+async function sendTelegramNotification(botTokenAndChatId: string, message: string) {
+  // รูปแบบ: BOT_TOKEN:CHAT_ID
+  const [botToken, chatId] = botTokenAndChatId.split(':');
+  
+  if (!botToken || !chatId) {
+    throw new Error('Invalid Telegram format. Use: BOT_TOKEN:CHAT_ID');
+  }
+
+  const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  
+  const response = await fetch(telegramApiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'HTML'
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Telegram API error: ${response.status} - ${errorText}`);
   }
 
   const result = await response.json();

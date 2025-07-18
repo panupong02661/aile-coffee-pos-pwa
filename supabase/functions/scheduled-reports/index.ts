@@ -23,17 +23,26 @@ serve(async (req) => {
     const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
     const currentDate = now.getDate();
 
-    // Get active notification schedules
-    const { data: schedules, error: schedulesError } = await supabase
-      .from('notification_schedules')
-      .select('*')
-      .eq('is_active', true);
-
-    if (schedulesError) throw schedulesError;
+    // ดึงการตั้งค่าจาก localStorage simulation - ในกรณีจริงจะใช้ database
+    // สำหรับตอนนี้เราจะทำงานกับ mock data เพื่อทดสอบ function
+    const mockSchedules = [
+      {
+        id: '1',
+        platform: 'telegram',
+        webhook_url: 'mock_token:mock_chat_id',
+        daily_enabled: true,
+        daily_time: currentTime,
+        monthly_enabled: false,
+        monthly_date: 1,
+        monthly_time: '09:00',
+        report_types: ['sales', 'inventory'],
+        is_active: true
+      }
+    ];
 
     const results = [];
 
-    for (const schedule of schedules || []) {
+    for (const schedule of mockSchedules) {
       let shouldSendDaily = false;
       let shouldSendMonthly = false;
 
@@ -72,7 +81,8 @@ serve(async (req) => {
             results.push({
               schedule_id: schedule.id,
               status: 'success',
-              type: shouldSendMonthly ? 'monthly' : 'daily'
+              type: shouldSendMonthly ? 'monthly' : 'daily',
+              platform: schedule.platform
             });
           } else {
             throw new Error(`Failed to send notification: ${notificationResponse.statusText}`);
@@ -83,7 +93,8 @@ serve(async (req) => {
           results.push({
             schedule_id: schedule.id,
             status: 'error',
-            error: error.message
+            error: error.message,
+            platform: schedule.platform
           });
         }
       }

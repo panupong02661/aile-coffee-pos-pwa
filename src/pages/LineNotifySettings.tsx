@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationSetting {
   id?: string;
-  platform: 'line' | 'instagram' | 'discord';
+  platform: 'line' | 'instagram' | 'discord' | 'telegram';
   webhook_url: string;
   daily_enabled: boolean;
   daily_time: string;
@@ -45,24 +45,21 @@ const LineNotifySettings = () => {
   const [currentSetting, setCurrentSetting] = useState<NotificationSetting>(defaultSetting);
 
   useEffect(() => {
-    fetchSettings();
+    loadSettings();
   }, []);
 
-  const fetchSettings = async () => {
+  const loadSettings = () => {
     try {
-      const { data, error } = await supabase
-        .from('notification_schedules')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSettings(data || []);
-      
-      if (data && data.length > 0) {
-        setCurrentSetting(data[0]);
+      const savedSettings = localStorage.getItem('notification_settings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+        if (parsedSettings.length > 0) {
+          setCurrentSetting(parsedSettings[0]);
+        }
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Error loading settings:', error);
       toast.error('ไม่สามารถโหลดการตั้งค่าได้');
     }
   };
@@ -70,34 +67,20 @@ const LineNotifySettings = () => {
   const saveSetting = async () => {
     setLoading(true);
     try {
-      const settingData = {
-        platform: currentSetting.platform,
-        webhook_url: currentSetting.webhook_url,
-        daily_enabled: currentSetting.daily_enabled,
-        daily_time: currentSetting.daily_time,
-        monthly_enabled: currentSetting.monthly_enabled,
-        monthly_date: currentSetting.monthly_date,
-        monthly_time: currentSetting.monthly_time,
-        report_types: currentSetting.report_types,
-        is_active: currentSetting.is_active
-      };
-
-      let result;
-      if (currentSetting.id) {
-        result = await supabase
-          .from('notification_schedules')
-          .update(settingData)
-          .eq('id', currentSetting.id);
+      // บันทึกใน localStorage
+      const updatedSettings = [...settings];
+      const existingIndex = updatedSettings.findIndex(s => s.platform === currentSetting.platform);
+      
+      if (existingIndex >= 0) {
+        updatedSettings[existingIndex] = { ...currentSetting, id: updatedSettings[existingIndex].id || Date.now().toString() };
       } else {
-        result = await supabase
-          .from('notification_schedules')
-          .insert([settingData]);
+        updatedSettings.push({ ...currentSetting, id: Date.now().toString() });
       }
-
-      if (result.error) throw result.error;
+      
+      localStorage.setItem('notification_settings', JSON.stringify(updatedSettings));
+      setSettings(updatedSettings);
 
       toast.success('บันทึกการตั้งค่าสำเร็จ');
-      fetchSettings();
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('ไม่สามารถบันทึกการตั้งค่าได้');
@@ -112,7 +95,8 @@ const LineNotifySettings = () => {
       const { error } = await supabase.functions.invoke('send-line-notification', {
         body: {
           webhook_url: currentSetting.webhook_url,
-          message: `ทดสอบการส่งแจ้งเตือนจาก ${currentSetting.platform.toUpperCase()}\nเวลา: ${new Date().toLocaleString('th-TH')}`
+          message: `ทดสอบการส่งแจ้งเตือนจาก ${currentSetting.platform.toUpperCase()}\nเวลา: ${new Date().toLocaleString('th-TH')}`,
+          platform: currentSetting.platform
         }
       });
 
@@ -145,6 +129,34 @@ const LineNotifySettings = () => {
     });
   };
 
+  const handlePlatformChange = (platform: 'line' | 'instagram' | 'discord' | 'telegram') => {
+    // หาการตั้งค่าที่มีอยู่สำหรับแพลตฟอร์มนี้
+    const existingSetting = settings.find(s => s.platform === platform);
+    if (existingSetting) {
+      setCurrentSetting(existingSetting);
+    } else {
+      setCurrentSetting({
+        ...defaultSetting,
+        platform: platform
+      });
+    }
+  };
+
+  const getPlatformPlaceholder = (platform: string) => {
+    switch (platform) {
+      case 'line':
+        return 'ใส่ LINE Notify Token';
+      case 'telegram':
+        return 'ใส่ Telegram Bot Token และ Chat ID (format: BOT_TOKEN:CHAT_ID)';
+      case 'discord':
+        return 'ใส่ Discord Webhook URL';
+      case 'instagram':
+        return 'ใส่ Instagram API Token';
+      default:
+        return 'ใส่ Token หรือ URL';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-cream-50 flex">
       <MainSidebar 
@@ -169,7 +181,7 @@ const LineNotifySettings = () => {
           />
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-coffee-800">แจ้งเตือน LINE</h1>
+            <h1 className="text-3xl font-bold text-coffee-800">การแจ้งเตือน</h1>
             <p className="text-coffee-600 mt-2">ตั้งค่าการแจ้งเตือนรายงานประจำวันและประจำเดือน</p>
           </div>
 
@@ -190,30 +202,34 @@ const LineNotifySettings = () => {
                     <Label htmlFor="platform">แพลตฟอร์ม</Label>
                     <Select
                       value={currentSetting.platform}
-                      onValueChange={(value: 'line' | 'instagram' | 'discord') => 
-                        setCurrentSetting({...currentSetting, platform: value})
-                      }
+                      onValueChange={handlePlatformChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="เลือกแพลตฟอร์ม" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="line">LINE Notify</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
+                        <SelectItem value="telegram">Telegram</SelectItem>
                         <SelectItem value="discord">Discord</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* Webhook URL */}
                   <div className="space-y-2">
-                    <Label htmlFor="webhook_url">Webhook URL / Token</Label>
+                    <Label htmlFor="webhook_url">Token / Webhook URL</Label>
                     <Input
                       id="webhook_url"
                       value={currentSetting.webhook_url}
                       onChange={(e) => setCurrentSetting({...currentSetting, webhook_url: e.target.value})}
-                      placeholder={`ใส่ ${currentSetting.platform.toUpperCase()} Webhook URL หรือ Token`}
+                      placeholder={getPlatformPlaceholder(currentSetting.platform)}
                     />
+                    {currentSetting.platform === 'telegram' && (
+                      <p className="text-sm text-gray-600">
+                        รูปแบบ: BOT_TOKEN:CHAT_ID (เช่น 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11:@your_channel_id)
+                      </p>
+                    )}
                   </div>
 
                   {/* Daily Reports */}
