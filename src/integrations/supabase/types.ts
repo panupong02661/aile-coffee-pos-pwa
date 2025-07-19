@@ -1683,6 +1683,51 @@ export type Database = {
           },
         ]
       }
+      notification_schedules: {
+        Row: {
+          created_at: string
+          daily_enabled: boolean
+          daily_time: string
+          id: string
+          is_active: boolean
+          monthly_date: number
+          monthly_enabled: boolean
+          monthly_time: string
+          platform: string
+          report_types: string[]
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string
+          daily_enabled?: boolean
+          daily_time?: string
+          id?: string
+          is_active?: boolean
+          monthly_date?: number
+          monthly_enabled?: boolean
+          monthly_time?: string
+          platform?: string
+          report_types?: string[]
+          updated_at?: string
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string
+          daily_enabled?: boolean
+          daily_time?: string
+          id?: string
+          is_active?: boolean
+          monthly_date?: number
+          monthly_enabled?: boolean
+          monthly_time?: string
+          platform?: string
+          report_types?: string[]
+          updated_at?: string
+          webhook_url?: string
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string | null
