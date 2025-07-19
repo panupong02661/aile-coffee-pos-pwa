@@ -23,13 +23,15 @@ const LimitedPromotions = () => {
   const [promotions, setPromotions] = useState<LimitedPromotion[]>([]);
   const [claimedPromotions, setClaimedPromotions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch limited promotions from database
   const fetchPromotions = async () => {
     try {
-      console.log('🔄 Fetching limited promotions...');
+      console.log('🔄 Starting to fetch limited promotions...');
       setIsLoading(true);
+      setError(null);
       
       const { data, error } = await supabase
         .from('limited_promotions')
@@ -37,11 +39,12 @@ const LimitedPromotions = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      console.log('📋 All promotions from DB:', data);
-      console.log('❌ Any errors?', error);
+      console.log('📊 Raw data from database:', data);
+      console.log('❌ Database error:', error);
 
       if (error) {
         console.error('❌ Error fetching promotions:', error);
+        setError(`Database error: ${error.message}`);
         toast({
           title: 'เกิดข้อผิดพลาด',
           description: `ไม่สามารถโหลดโปรโมชั่นได้: ${error.message}`,
@@ -50,9 +53,16 @@ const LimitedPromotions = () => {
         return;
       }
 
-      // ไม่กรองตามวันที่ก่อน เพื่อดูว่ามีข้อมูลหรือไม่
-      const transformedPromotions: LimitedPromotion[] = (data || []).map(item => {
-        console.log('🔄 Processing promotion:', item.title, 'Active:', item.is_active);
+      if (!data || data.length === 0) {
+        console.log('⚠️ No data returned from database');
+        setError('No promotions found in database');
+        setPromotions([]);
+        return;
+      }
+
+      // Transform the data
+      const transformedPromotions: LimitedPromotion[] = data.map(item => {
+        console.log('🔄 Processing promotion:', item.title);
         return {
           id: item.id,
           title: item.title,
@@ -72,7 +82,9 @@ const LimitedPromotions = () => {
       console.log('✅ Transformed promotions:', transformedPromotions);
       setPromotions(transformedPromotions);
     } catch (error) {
-      console.error('❌ Error in fetchPromotions:', error);
+      console.error('❌ Unexpected error in fetchPromotions:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Unexpected error: ${errorMessage}`);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถโหลดโปรโมชั่นได้',
@@ -226,8 +238,28 @@ const LimitedPromotions = () => {
     );
   }
 
-  console.log('🎯 Current promotions state:', promotions);
-  console.log('🔍 Active promotions:', promotions.filter(p => isPromotionActive(p)));
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 mb-4">
+          <Zap className="h-6 w-6 text-yellow-500" />
+          <h2 className="text-2xl font-bold text-gray-800">โปรโมชั่นพิเศษ</h2>
+        </div>
+        <div className="text-center py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 font-medium">เกิดข้อผิดพลาด</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+          </div>
+          <button 
+            onClick={fetchPromotions}
+            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -239,11 +271,13 @@ const LimitedPromotions = () => {
         </span>
       </div>
 
-      {/* Debug info - แสดงจำนวนโปรโมชั่นทั้งหมด */}
-      <div className="bg-blue-50 p-2 rounded text-sm text-blue-800 mb-4">
+      {/* Debug info */}
+      <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 mb-4">
         📊 Debug: พบโปรโมชั่น {promotions.length} รายการ | 
         เปิดใช้งาน: {promotions.filter(p => p.is_active).length} รายการ | 
         ในช่วงเวลา: {promotions.filter(p => isPromotionActive(p)).length} รายการ
+        <br />
+        🔍 Database connection: OK | Error: {error || 'None'}
       </div>
 
       {promotions.length > 0 ? (
@@ -276,7 +310,8 @@ const LimitedPromotions = () => {
                   <div className="text-xs text-gray-400 mt-1">
                     🔍 Active: {promotion.is_active ? 'Yes' : 'No'} | 
                     Start: {new Date(promotion.start_date).toLocaleDateString()} | 
-                    End: {new Date(promotion.end_date).toLocaleDateString()}
+                    End: {new Date(promotion.end_date).toLocaleDateString()} |
+                    In time range: {isPromotionActive(promotion) ? 'Yes' : 'No'}
                   </div>
                 </div>
 
@@ -339,9 +374,15 @@ const LimitedPromotions = () => {
         <div className="text-center py-8 text-gray-500">
           <Gift className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>ไม่มีโปรโมชั่นพิเศษในขณะนี้</p>
+          <p className="text-sm mt-2">อาจเป็นเพราะ:</p>
+          <ul className="text-sm mt-1 space-y-1">
+            <li>• ไม่มีโปรโมชั่นในฐานข้อมูล</li>
+            <li>• โปรโมชั่นไม่อยู่ในช่วงเวลาที่กำหนด</li>
+            <li>• โปรโมชั่นถูกปิดใช้งาน</li>
+          </ul>
           <button 
             onClick={fetchPromotions}
-            className="mt-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            className="mt-4 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
           >
             รีเฟรช
           </button>
