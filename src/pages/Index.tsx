@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -7,7 +6,6 @@ import Cart from '@/components/Cart';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
-import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -318,6 +316,8 @@ const Index = () => {
             itemSize={itemSize}
             setItemSize={setItemSize}
             page="pos"
+            selectedMember={selectedMember}
+            onRemoveMember={handleRemoveMember}
           />
           
           {/* Debug toggle button */}
@@ -369,16 +369,6 @@ const Index = () => {
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
               <div className="h-full flex flex-col">
-                {/* Selected Member Display - Reduced size by half */}
-                {selectedMember && (
-                  <div className="mb-2">
-                    <SelectedMemberDisplay
-                      member={selectedMember}
-                      onRemove={handleRemoveMember}
-                    />
-                  </div>
-                )}
-                
                 <div className="flex-1 overflow-hidden">
                   <Cart
                     cartItems={cartItems}
