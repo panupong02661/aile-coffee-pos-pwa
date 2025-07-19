@@ -23,8 +23,21 @@ const MyCoupons = () => {
 
   const fetchMyCoupons = async () => {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('customerLoginData') || '{}');
+      console.log('🔄 Fetching customer coupons...');
+      setIsLoading(true);
+      
+      // First try to get from customerAuth (if available)
+      let currentUser = JSON.parse(localStorage.getItem('customerAuth') || '{}');
+      
+      // If not found, try customerLoginData
       if (!currentUser.id) {
+        currentUser = JSON.parse(localStorage.getItem('customerLoginData') || '{}');
+      }
+      
+      console.log('Current user for coupons:', currentUser);
+      
+      if (!currentUser.id) {
+        console.log('❌ No user ID found');
         setIsLoading(false);
         return;
       }
@@ -37,13 +50,24 @@ const MyCoupons = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching coupons:', error);
+        console.error('❌ Error fetching coupons:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดคูปองได้',
+          variant: 'destructive',
+        });
         return;
       }
 
+      console.log('✅ Fetched coupons:', data);
       setCoupons(data || []);
     } catch (error) {
-      console.error('Error fetching my coupons:', error);
+      console.error('❌ Error fetching my coupons:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดคูปองได้',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -64,9 +88,11 @@ const MyCoupons = () => {
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
     if (days > 0) return `เหลือ ${days} วัน`;
-    return `เหลือ ${hours} ชั่วโมง`;
+    if (hours > 0) return `เหลือ ${hours} ชั่วโมง`;
+    return `เหลือ ${minutes} นาที`;
   };
 
   const isExpired = (expiresAt?: string) => {
@@ -83,7 +109,7 @@ const MyCoupons = () => {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-        <p className="mt-2 text-gray-500">กำลังโหลด...</p>
+        <p className="mt-2 text-gray-500">กำลังโหลดคูปอง...</p>
       </div>
     );
   }
@@ -93,7 +119,13 @@ const MyCoupons = () => {
       <div className="text-center py-12">
         <Ticket className="h-16 w-16 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">ยังไม่มีคูปอง</h3>
-        <p className="text-gray-500">ไปดูโปรโมชั่นพิเศษเพื่อรับคูปองใหม่</p>
+        <p className="text-gray-500 mb-4">ไปดูโปรโมชั่นพิเศษเพื่อรับคูปองใหม่</p>
+        <button 
+          onClick={fetchMyCoupons}
+          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+        >
+          รีเฟรช
+        </button>
       </div>
     );
   }
@@ -202,6 +234,15 @@ const MyCoupons = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="text-center pt-4">
+        <button 
+          onClick={fetchMyCoupons}
+          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          รีเฟรช
+        </button>
       </div>
     </div>
   );

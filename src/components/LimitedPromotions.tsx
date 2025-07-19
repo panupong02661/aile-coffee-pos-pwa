@@ -16,17 +16,20 @@ interface LimitedPromotion {
   end_date: string;
   is_active: boolean;
   promo_code?: string;
+  min_purchase?: number;
 }
 
 const LimitedPromotions = () => {
   const [promotions, setPromotions] = useState<LimitedPromotion[]>([]);
   const [claimedPromotions, setClaimedPromotions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   // Fetch limited promotions from database
   const fetchPromotions = async () => {
     try {
-      console.log('Fetching limited promotions...');
+      console.log('🔄 Fetching limited promotions...');
+      setIsLoading(true);
       
       const { data, error } = await supabase
         .from('limited_promotions')
@@ -37,15 +40,20 @@ const LimitedPromotions = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching promotions:', error);
+        console.error('❌ Error fetching promotions:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดโปรโมชั่นได้',
+          variant: 'destructive',
+        });
         return;
       }
 
-      console.log('Raw promotion data from DB:', data);
+      console.log('✅ Raw promotion data from DB:', data);
 
       // Transform the data to match our interface
       const transformedPromotions: LimitedPromotion[] = (data || []).map(item => {
-        console.log('Transforming promotion:', item);
+        console.log('🔄 Transforming promotion:', item);
         return {
           id: item.id,
           title: item.title,
@@ -57,14 +65,22 @@ const LimitedPromotions = () => {
           start_date: item.start_date,
           end_date: item.end_date,
           is_active: item.is_active,
-          promo_code: item.promo_code
+          promo_code: item.promo_code,
+          min_purchase: item.min_purchase
         };
       });
 
-      console.log('Transformed promotions:', transformedPromotions);
+      console.log('✅ Transformed promotions:', transformedPromotions);
       setPromotions(transformedPromotions);
     } catch (error) {
-      console.error('Error fetching promotions:', error);
+      console.error('❌ Error fetching promotions:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดโปรโมชั่นได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,6 +113,8 @@ const LimitedPromotions = () => {
     }
 
     try {
+      console.log('🎯 Claiming promotion:', promotion.title);
+      
       // Update promotion claims count
       const { error } = await supabase
         .from('limited_promotions')
@@ -104,7 +122,7 @@ const LimitedPromotions = () => {
         .eq('id', promotionId);
 
       if (error) {
-        console.error('Error updating promotion claims:', error);
+        console.error('❌ Error updating promotion claims:', error);
         toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถรับคูปองได้', variant: 'destructive' });
         return;
       }
@@ -113,7 +131,7 @@ const LimitedPromotions = () => {
       const couponCode = `${promotion.promo_code || 'PROMO'}${Date.now().toString().slice(-4)}`;
 
       // Create customer gift entry (assuming we have a current user)
-      const currentUser = JSON.parse(localStorage.getItem('customerLoginData') || '{}');
+      const currentUser = JSON.parse(localStorage.getItem('customerAuth') || '{}');
       if (currentUser.id) {
         const { error: giftError } = await supabase
           .from('customer_gifts')
@@ -130,7 +148,7 @@ const LimitedPromotions = () => {
           });
 
         if (giftError) {
-          console.error('Error creating gift:', giftError);
+          console.error('❌ Error creating gift:', giftError);
         }
       }
 
@@ -150,8 +168,10 @@ const LimitedPromotions = () => {
         description: `รับคูปอง ${promotion.title} แล้ว! โค้ด: ${couponCode}`,
         duration: 5000
       });
+
+      console.log('✅ Promotion claimed successfully:', couponCode);
     } catch (error) {
-      console.error('Error claiming promotion:', error);
+      console.error('❌ Error claiming promotion:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการรับคูปอง', variant: 'destructive' });
     }
   };
@@ -162,10 +182,13 @@ const LimitedPromotions = () => {
     
     if (diff <= 0) return 'หมดเวลา';
     
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
-    return `เหลือ ${hours}:${minutes.toString().padStart(2, '0')}`;
+    if (days > 0) return `เหลือ ${days} วัน`;
+    if (hours > 0) return `เหลือ ${hours} ชั่วโมง`;
+    return `เหลือ ${minutes} นาที`;
   };
 
   const getProgressPercentage = (current: number, max: number) => {
@@ -180,6 +203,26 @@ const LimitedPromotions = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 mb-4">
+          <Zap className="h-6 w-6 text-yellow-500" />
+          <h2 className="text-2xl font-bold text-gray-800">โปรโมชั่นพิเศษ</h2>
+          <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs animate-pulse">
+            Limited Time!
+          </span>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-2 text-gray-500">กำลังโหลดโปรโมชั่น...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const activePromotions = promotions.filter(p => p.is_active);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2 mb-4">
@@ -190,79 +233,96 @@ const LimitedPromotions = () => {
         </span>
       </div>
 
-      {promotions.filter(p => p.is_active).map(promotion => (
-        <div key={promotion.id} className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-1">
-          <div className="bg-white rounded-lg p-4">
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">{promotion.title}</h3>
-                <p className="text-gray-600 text-sm mb-2">{promotion.description}</p>
-                
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{getTimeRemaining(promotion.end_date)}</span>
+      {activePromotions.length > 0 ? (
+        activePromotions.map(promotion => (
+          <div key={promotion.id} className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-1">
+            <div className="bg-white rounded-lg p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">{promotion.title}</h3>
+                  <p className="text-gray-600 text-sm mb-2">{promotion.description}</p>
+                  
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{getTimeRemaining(promotion.end_date)}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Users className="h-4 w-4" />
+                      <span>{promotion.max_claims - promotion.current_claims} ใบเหลือ</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Users className="h-4 w-4" />
-                    <span>{promotion.max_claims - promotion.current_claims} ใบเหลือ</span>
+                  
+                  {promotion.min_purchase && promotion.min_purchase > 0 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      *ขั้นต่ำ ฿{promotion.min_purchase}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-right">
+                  <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold mb-2">
+                    {formatDiscountDisplay(promotion.discount_value, promotion.discount_type)}
                   </div>
+                  {promotion.promo_code && (
+                    <div className="text-xs text-gray-500">
+                      โค้ด: {promotion.promo_code}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold mb-2">
-                  {formatDiscountDisplay(promotion.discount_value, promotion.discount_type)}
+              {/* Progress Bar */}
+              <div className="mb-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>รับไปแล้ว {promotion.current_claims}/{promotion.max_claims}</span>
+                  <span>{Math.round(getProgressPercentage(promotion.current_claims, promotion.max_claims))}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${getProgressPercentage(promotion.current_claims, promotion.max_claims)}%` }}
+                  ></div>
                 </div>
               </div>
-            </div>
 
-            {/* Progress Bar */}
-            <div className="mb-3">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>รับไปแล้ว {promotion.current_claims}/{promotion.max_claims}</span>
-                <span>{Math.round(getProgressPercentage(promotion.current_claims, promotion.max_claims))}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${getProgressPercentage(promotion.current_claims, promotion.max_claims)}%` }}
-                ></div>
-              </div>
+              <button
+                onClick={() => claimPromotion(promotion.id)}
+                disabled={
+                  claimedPromotions.includes(promotion.id) || 
+                  promotion.current_claims >= promotion.max_claims ||
+                  new Date() > new Date(promotion.end_date)
+                }
+                className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${
+                  claimedPromotions.includes(promotion.id)
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : promotion.current_claims >= promotion.max_claims || new Date() > new Date(promotion.end_date)
+                    ? 'bg-red-300 text-red-700 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600'
+                }`}
+              >
+                {claimedPromotions.includes(promotion.id)
+                  ? '✓ รับแล้ว'
+                  : promotion.current_claims >= promotion.max_claims
+                  ? 'หมดแล้ว'
+                  : new Date() > new Date(promotion.end_date)
+                  ? 'หมดเวลา'
+                  : '🎁 รับคูปอง'
+                }
+              </button>
             </div>
-
-            <button
-              onClick={() => claimPromotion(promotion.id)}
-              disabled={
-                claimedPromotions.includes(promotion.id) || 
-                promotion.current_claims >= promotion.max_claims ||
-                new Date() > new Date(promotion.end_date)
-              }
-              className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${
-                claimedPromotions.includes(promotion.id)
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : promotion.current_claims >= promotion.max_claims || new Date() > new Date(promotion.end_date)
-                  ? 'bg-red-300 text-red-700 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600'
-              }`}
-            >
-              {claimedPromotions.includes(promotion.id)
-                ? '✓ รับแล้ว'
-                : promotion.current_claims >= promotion.max_claims
-                ? 'หมดแล้ว'
-                : new Date() > new Date(promotion.end_date)
-                ? 'หมดเวลา'
-                : '🎁 รับคูปอง'
-              }
-            </button>
           </div>
-        </div>
-      ))}
-
-      {promotions.filter(p => p.is_active).length === 0 && (
+        ))
+      ) : (
         <div className="text-center py-8 text-gray-500">
           <Gift className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>ไม่มีโปรโมชั่นพิเศษในขณะนี้</p>
+          <button 
+            onClick={fetchPromotions}
+            className="mt-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          >
+            รีเฟรช
+          </button>
         </div>
       )}
     </div>
