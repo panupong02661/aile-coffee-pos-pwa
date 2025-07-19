@@ -110,16 +110,18 @@ const Header = ({
         <div className="flex items-center space-x-2">
           {/* Inline Member Display */}
           {selectedMember && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-white border border-coffee-200 rounded-lg shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-coffee-800">{selectedMember.name}</span>
-                <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-1 py-0`}>
-                  <span className="flex items-center gap-1">
-                    {getTierIcon(selectedMember.tier)}
-                    {getTierName(selectedMember.tier)}
-                  </span>
-                </Badge>
-                <span className="text-sm font-bold text-coffee-600">
+            <div className="flex items-center gap-2 px-2 py-1 bg-white border border-coffee-200 rounded-lg shadow-sm">
+              <div className="flex flex-col gap-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-coffee-800">{selectedMember.name}</span>
+                  <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-1 py-0`}>
+                    <span className="flex items-center gap-1">
+                      {getTierIcon(selectedMember.tier)}
+                      {getTierName(selectedMember.tier)}
+                    </span>
+                  </Badge>
+                </div>
+                <span className="text-xs font-bold text-coffee-600">
                   {selectedMember.points.toLocaleString()} แต้ม
                 </span>
               </div>
