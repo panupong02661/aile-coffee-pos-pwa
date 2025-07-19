@@ -49,55 +49,54 @@ const SelectedMemberDisplay = ({ member, onRemove }: SelectedMemberDisplayProps)
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
-      case 'platinum': return <Crown className="w-4 h-4" />;
-      case 'gold': return <Award className="w-4 h-4" />;
-      case 'silver': return <Star className="w-4 h-4" />;
-      default: return <User className="w-4 h-4" />;
+      case 'platinum': return <Crown className="w-3 h-3" />;
+      case 'gold': return <Award className="w-3 h-3" />;
+      case 'silver': return <Star className="w-3 h-3" />;
+      default: return <User className="w-3 h-3" />;
     }
   };
 
   return (
-    <Card className={`mb-4 border-2 ${getCardBorderColor(member.tier)} shadow-md`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            {/* Member info centered */}
-            <div className="text-center mb-3">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <h3 className="font-bold text-lg text-coffee-800">{member.name}</h3>
-                <Badge className={`${getTierBadgeColor(member.tier)} shadow-sm`}>
-                  <span className="flex items-center gap-1">
-                    {getTierIcon(member.tier)}
-                    สมาชิก{getTierName(member.tier)}
-                  </span>
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">{member.phone}</p>
-              <div className="flex justify-center items-center gap-4">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-coffee-600">
-                    {member.points.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500">แต้มสะสม</p>
-                </div>
-                <div className="w-px h-8 bg-gray-300"></div>
-                <div className="text-center">
-                  <p className="text-lg font-bold text-green-600">
-                    ฿{member.total_spent.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500">ยอดใช้จ่าย</p>
-                </div>
-              </div>
+    <Card className={`border ${getCardBorderColor(member.tier)} shadow-sm relative`}>
+      <CardContent className="p-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="absolute top-1 right-1 text-gray-400 hover:text-red-600 hover:bg-red-50 w-6 h-6 p-0"
+        >
+          <X className="w-3 h-3" />
+        </Button>
+        
+        <div className="pr-6">
+          {/* Compact member info */}
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold text-sm text-coffee-800">{member.name}</h3>
+            <Badge className={`${getTierBadgeColor(member.tier)} text-xs px-1 py-0`}>
+              <span className="flex items-center gap-1">
+                {getTierIcon(member.tier)}
+                {getTierName(member.tier)}
+              </span>
+            </Badge>
+          </div>
+          
+          <p className="text-xs text-gray-600 mb-2">{member.phone}</p>
+          
+          <div className="flex items-center justify-between text-xs">
+            <div className="text-center">
+              <p className="font-bold text-coffee-600">
+                {member.points.toLocaleString()}
+              </p>
+              <p className="text-gray-500">แต้ม</p>
+            </div>
+            <div className="w-px h-6 bg-gray-300"></div>
+            <div className="text-center">
+              <p className="font-bold text-green-600">
+                ฿{member.total_spent.toLocaleString()}
+              </p>
+              <p className="text-gray-500">ยอดใช้จ่าย</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="text-gray-500 hover:text-red-600 hover:bg-red-50 absolute top-2 right-2"
-          >
-            <X className="w-4 h-4" />
-          </Button>
         </div>
       </CardContent>
     </Card>

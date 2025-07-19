@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -161,14 +162,14 @@ const Cart = ({
   return (
     <>
       <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
-        <CardHeader className="pb-3 flex-shrink-0">
-          <CardTitle className="text-coffee-800">ตะกร้าสินค้า</CardTitle>
+        <CardHeader className="pb-2 pt-3 flex-shrink-0">
+          <CardTitle className="text-coffee-800 text-base">ตะกร้าสินค้า</CardTitle>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-3 pt-0 overflow-hidden">
           {/* Payment Summary Section - Always show */}
-          <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50 flex-shrink-0">
-            <div className="space-y-2">
+          <div className="border border-coffee-200 rounded-lg p-3 mb-3 bg-coffee-50 flex-shrink-0">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-sm">
                 <span>ยอดรวมย่อย:</span>
                 <span>฿{subtotal}</span>
@@ -194,13 +195,13 @@ const Cart = ({
 
               <Separator />
               
-              <div className="flex justify-between font-bold text-lg">
+              <div className="flex justify-between font-bold text-base">
                 <span>ยอดชำระสุทธิ:</span>
                 <span className="text-coffee-600">฿{total}</span>
               </div>
             </div>
 
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2 mt-3">
               <Button 
                 className="w-full bg-coffee-600 hover:bg-coffee-700 h-8"
                 onClick={() => setIsPaymentModalOpen(true)}
@@ -214,7 +215,7 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={() => setIsDiscountModalOpen(true)}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-8 p-1"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-7 p-1"
                   size="sm"
                 >
                   <Percent className="w-3 h-3" />
@@ -223,7 +224,7 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={() => setIsHoldBillModalOpen(true)}
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8 p-1"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-7 p-1"
                   size="sm"
                 >
                   <Clock className="w-3 h-3" />
@@ -232,7 +233,7 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={() => setIsCodeModalOpen(true)}
-                  className="border-green-300 text-green-700 hover:bg-green-50 h-8 p-1"
+                  className="border-green-300 text-green-700 hover:bg-green-50 h-7 p-1"
                   size="sm"
                 >
                   <QrCode className="w-3 h-3" />
@@ -241,7 +242,7 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={onClearCart}
-                  className="h-8 p-1"
+                  className="h-7 p-1"
                   size="sm"
                 >
                   เคลียร์
@@ -252,14 +253,14 @@ const Cart = ({
 
           {/* Cart Items Section - Independent scrollbar */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin' }}>
+            <div className="h-full overflow-y-auto overflow-x-hidden space-y-2" style={{ scrollbarWidth: 'thin' }}>
               {cartItems.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   ไม่มีสินค้าในตะกร้า
                 </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
+                  <div key={item.id} className="border border-coffee-100 rounded-lg p-2 space-y-2">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium text-sm text-coffee-800">
@@ -292,18 +293,18 @@ const Cart = ({
                           variant="outline"
                           size="sm"
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                          className="w-8 h-8 p-0"
+                          className="w-7 h-7 p-0"
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">
+                        <span className="w-8 text-center font-medium text-sm">
                           {item.quantity}
                         </span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 p-0"
+                          className="w-7 h-7 p-0"
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
@@ -311,17 +312,17 @@ const Cart = ({
                           variant="outline"
                           size="sm"
                           onClick={() => handleItemDiscountClick(item)}
-                          className={`ml-2 w-8 h-8 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                          className={`ml-2 w-7 h-7 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
                           title={item.item_discount > 0 
                             ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
                             : 'ส่วนลด'
                           }
                         >
-                          <Tag className="w-4 h-4" />
+                          <Tag className="w-3 h-3" />
                         </Button>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-coffee-600">
+                        <div className="font-medium text-coffee-600 text-sm">
                           ฿{item.total_price}
                         </div>
                       </div>

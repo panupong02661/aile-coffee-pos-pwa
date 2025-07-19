@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -368,12 +369,14 @@ const Index = () => {
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
               <div className="h-full flex flex-col">
-                {/* Selected Member Display */}
+                {/* Selected Member Display - Reduced size by half */}
                 {selectedMember && (
-                  <SelectedMemberDisplay
-                    member={selectedMember}
-                    onRemove={handleRemoveMember}
-                  />
+                  <div className="mb-2">
+                    <SelectedMemberDisplay
+                      member={selectedMember}
+                      onRemove={handleRemoveMember}
+                    />
+                  </div>
                 )}
                 
                 <div className="flex-1 overflow-hidden">
