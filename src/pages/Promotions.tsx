@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,11 +77,29 @@ const Promotions = () => {
 
   const handleCreatePromotion = async () => {
     try {
+      // ตรวจสอบข้อมูลก่อนบันทึก
+      if (!formData.title.trim()) {
+        toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกชื่อโปรโมชั่น', variant: 'destructive' });
+        return;
+      }
+
+      if (!formData.start_date || !formData.end_date) {
+        toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด', variant: 'destructive' });
+        return;
+      }
+
+      if (formData.discount_value <= 0) {
+        toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกจำนวนส่วนลด', variant: 'destructive' });
+        return;
+      }
+
+      console.log('Creating promotion with data:', formData);
+
       const { data, error } = await supabase
         .from('limited_promotions')
         .insert([{
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           discount_type: formData.discount_type,
           discount_value: formData.discount_value,
           max_claims: formData.max_claims,
@@ -90,15 +107,17 @@ const Promotions = () => {
           start_date: formData.start_date,
           end_date: formData.end_date,
           is_active: true,
-          promo_code: formData.promo_code
+          promo_code: formData.promo_code.trim().toUpperCase() || null
         }])
         .select();
 
       if (error) {
         console.error('Error creating promotion:', error);
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถสร้างโปรโมชั่นได้', variant: 'destructive' });
+        toast({ title: 'ข้อผิดพลาด', description: `ไม่สามารถสร้างโปรโมชั่นได้: ${error.message}`, variant: 'destructive' });
         return;
       }
+
+      console.log('Promotion created successfully:', data);
 
       // Transform new data and add to state
       const newPromotions = (data || []).map(item => ({
@@ -115,7 +134,7 @@ const Promotions = () => {
         promo_code: item.promo_code
       }));
 
-      setPromotions([...promotions, ...newPromotions]);
+      setPromotions([...newPromotions, ...promotions]);
       setIsFormOpen(false);
       setFormData({
         title: '',
@@ -141,14 +160,14 @@ const Promotions = () => {
       const { error } = await supabase
         .from('limited_promotions')
         .update({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           discount_type: formData.discount_type,
           discount_value: formData.discount_value,
           max_claims: formData.max_claims,
           start_date: formData.start_date,
           end_date: formData.end_date,
-          promo_code: formData.promo_code
+          promo_code: formData.promo_code.trim().toUpperCase() || null
         })
         .eq('id', editingPromotion.id);
 
@@ -159,7 +178,17 @@ const Promotions = () => {
       }
 
       setPromotions(promotions.map(promo =>
-        promo.id === editingPromotion.id ? { ...promo, ...formData } : promo
+        promo.id === editingPromotion.id ? { 
+          ...promo, 
+          title: formData.title,
+          description: formData.description,
+          discount_type: formData.discount_type,
+          discount_value: formData.discount_value,
+          max_claims: formData.max_claims,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          promo_code: formData.promo_code.toUpperCase() || null
+        } : promo
       ));
       setIsFormOpen(false);
       setEditingPromotion(null);
@@ -243,13 +272,15 @@ const Promotions = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="promo_code">รหัสคูปอง (ถ้ามี)</Label>
+                      <Label htmlFor="promo_code">รหัสคูปอง *</Label>
                       <Input
                         id="promo_code"
                         value={formData.promo_code}
-                        onChange={(e) => setFormData({...formData, promo_code: e.target.value})}
-                        placeholder="เช่น SPECIAL20"
+                        onChange={(e) => setFormData({...formData, promo_code: e.target.value.toUpperCase()})}
+                        placeholder="เช่น SAVE30"
+                        maxLength={10}
                       />
+                      <p className="text-xs text-gray-500 mt-1">รหัสนี้จะใช้สำหรับลูกค้าใส่ในระบบ POS</p>
                     </div>
                   </div>
 
@@ -272,25 +303,27 @@ const Promotions = () => {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="discount_value">จำนวนส่วนลดหรือมูลค่า</Label>
+                      <Label htmlFor="discount_value">จำนวนส่วนลดหรือมูลค่า *</Label>
                       <Input
                         id="discount_value"
                         type="number"
                         value={formData.discount_value.toString()}
                         onChange={(e) => setFormData({...formData, discount_value: parseFloat(e.target.value) || 0})}
-                        placeholder="100"
+                        placeholder="30"
+                        min="0"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="max_claims">จำนวนคนที่รับได้สูงสุด</Label>
+                    <Label htmlFor="max_claims">จำนวนคนที่รับได้สูงสุด *</Label>
                     <Input
                       id="max_claims"
                       type="number"
                       value={formData.max_claims.toString()}
                       onChange={(e) => setFormData({...formData, max_claims: parseInt(e.target.value) || 0})}
-                      placeholder="100"
+                      placeholder="50"
+                      min="1"
                     />
                   </div>
 
@@ -366,6 +399,11 @@ const Promotions = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-semibold">{promotion.title}</h4>
+                          {promotion.promo_code && (
+                            <div className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded inline-block mb-2">
+                              โค้ด: {promotion.promo_code}
+                            </div>
+                          )}
                           <p className="text-sm text-gray-600">{promotion.description}</p>
                           <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                             <span>ส่วนลด: {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : '฿'}</span>
