@@ -35,25 +35,24 @@ const LimitedPromotions = () => {
         .from('limited_promotions')
         .select('*')
         .eq('is_active', true)
-        .lte('start_date', new Date().toISOString())
-        .gte('end_date', new Date().toISOString())
         .order('created_at', { ascending: false });
+
+      console.log('📋 All promotions from DB:', data);
+      console.log('❌ Any errors?', error);
 
       if (error) {
         console.error('❌ Error fetching promotions:', error);
         toast({
           title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถโหลดโปรโมชั่นได้',
+          description: `ไม่สามารถโหลดโปรโมชั่นได้: ${error.message}`,
           variant: 'destructive',
         });
         return;
       }
 
-      console.log('✅ Raw promotion data from DB:', data);
-
-      // Transform the data to match our interface
+      // ไม่กรองตามวันที่ก่อน เพื่อดูว่ามีข้อมูลหรือไม่
       const transformedPromotions: LimitedPromotion[] = (data || []).map(item => {
-        console.log('🔄 Transforming promotion:', item);
+        console.log('🔄 Processing promotion:', item.title, 'Active:', item.is_active);
         return {
           id: item.id,
           title: item.title,
@@ -73,7 +72,7 @@ const LimitedPromotions = () => {
       console.log('✅ Transformed promotions:', transformedPromotions);
       setPromotions(transformedPromotions);
     } catch (error) {
-      console.error('❌ Error fetching promotions:', error);
+      console.error('❌ Error in fetchPromotions:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถโหลดโปรโมชั่นได้',
@@ -86,7 +85,6 @@ const LimitedPromotions = () => {
 
   // Check which promotions user has already claimed
   const checkClaimedPromotions = async () => {
-    // For now, we'll use localStorage to track claims since we don't have user authentication
     const claimed = localStorage.getItem('claimedPromotions');
     if (claimed) {
       setClaimedPromotions(JSON.parse(claimed));
@@ -203,6 +201,13 @@ const LimitedPromotions = () => {
     }
   };
 
+  const isPromotionActive = (promotion: LimitedPromotion) => {
+    const now = new Date();
+    const startDate = new Date(promotion.start_date);
+    const endDate = new Date(promotion.end_date);
+    return promotion.is_active && now >= startDate && now <= endDate;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -221,7 +226,8 @@ const LimitedPromotions = () => {
     );
   }
 
-  const activePromotions = promotions.filter(p => p.is_active);
+  console.log('🎯 Current promotions state:', promotions);
+  console.log('🔍 Active promotions:', promotions.filter(p => isPromotionActive(p)));
 
   return (
     <div className="space-y-4">
@@ -233,8 +239,15 @@ const LimitedPromotions = () => {
         </span>
       </div>
 
-      {activePromotions.length > 0 ? (
-        activePromotions.map(promotion => (
+      {/* Debug info - แสดงจำนวนโปรโมชั่นทั้งหมด */}
+      <div className="bg-blue-50 p-2 rounded text-sm text-blue-800 mb-4">
+        📊 Debug: พบโปรโมชั่น {promotions.length} รายการ | 
+        เปิดใช้งาน: {promotions.filter(p => p.is_active).length} รายการ | 
+        ในช่วงเวลา: {promotions.filter(p => isPromotionActive(p)).length} รายการ
+      </div>
+
+      {promotions.length > 0 ? (
+        promotions.map(promotion => (
           <div key={promotion.id} className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-1">
             <div className="bg-white rounded-lg p-4">
               <div className="flex justify-between items-start mb-3">
@@ -258,6 +271,13 @@ const LimitedPromotions = () => {
                       *ขั้นต่ำ ฿{promotion.min_purchase}
                     </p>
                   )}
+
+                  {/* Debug info per promotion */}
+                  <div className="text-xs text-gray-400 mt-1">
+                    🔍 Active: {promotion.is_active ? 'Yes' : 'No'} | 
+                    Start: {new Date(promotion.start_date).toLocaleDateString()} | 
+                    End: {new Date(promotion.end_date).toLocaleDateString()}
+                  </div>
                 </div>
 
                 <div className="text-right">
@@ -291,12 +311,14 @@ const LimitedPromotions = () => {
                 disabled={
                   claimedPromotions.includes(promotion.id) || 
                   promotion.current_claims >= promotion.max_claims ||
-                  new Date() > new Date(promotion.end_date)
+                  !isPromotionActive(promotion)
                 }
                 className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${
                   claimedPromotions.includes(promotion.id)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : promotion.current_claims >= promotion.max_claims || new Date() > new Date(promotion.end_date)
+                    : promotion.current_claims >= promotion.max_claims
+                    ? 'bg-red-300 text-red-700 cursor-not-allowed'
+                    : !isPromotionActive(promotion)
                     ? 'bg-red-300 text-red-700 cursor-not-allowed'
                     : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600'
                 }`}
@@ -305,7 +327,7 @@ const LimitedPromotions = () => {
                   ? '✓ รับแล้ว'
                   : promotion.current_claims >= promotion.max_claims
                   ? 'หมดแล้ว'
-                  : new Date() > new Date(promotion.end_date)
+                  : !isPromotionActive(promotion)
                   ? 'หมดเวลา'
                   : '🎁 รับคูปอง'
                 }
