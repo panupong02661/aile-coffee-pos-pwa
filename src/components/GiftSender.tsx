@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,6 +65,14 @@ const GiftSender = () => {
     setSelectedCustomers(selectedCustomers.filter(c => c.id !== customerId));
   };
 
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const sendGifts = async () => {
     if (!giftType || !giftName || selectedCustomers.length === 0) {
       toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
@@ -77,6 +84,7 @@ const GiftSender = () => {
     try {
       const giftsToSend = selectedCustomers.map(customer => ({
         customer_id: customer.id,
+        gift_id: generateUUID(),
         gift_type: giftType,
         gift_name: giftName,
         gift_description: giftDescription,
