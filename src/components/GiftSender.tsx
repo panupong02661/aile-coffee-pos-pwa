@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Gift, Send, Users, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Gift, Send, Users, Search, Filter, Crown, Star, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -17,15 +19,37 @@ interface Customer {
   points: number;
 }
 
+interface Reward {
+  id: string;
+  name: string;
+  points_required?: number;
+  expires_at?: string;
+}
+
+interface Promotion {
+  id: string;
+  name: string;
+  discount_value: number;
+  discount_type: string;
+  end_date: string;
+}
+
 const GiftSender = () => {
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [tierFilter, setTierFilter] = useState('all');
   const [giftType, setGiftType] = useState('');
-  const [giftValue, setGiftValue] = useState('');
+  const [selectedReward, setSelectedReward] = useState('');
+  const [selectedPromotion, setSelectedPromotion] = useState('');
   const [giftName, setGiftName] = useState('');
+  const [giftValue, setGiftValue] = useState('');
   const [giftDescription, setGiftDescription] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
   const [message, setMessage] = useState('');
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const giftTypes = [
@@ -37,32 +61,145 @@ const GiftSender = () => {
     { value: 'coupon', label: 'คูปอง' }
   ];
 
-  const searchCustomers = async () => {
-    if (!searchTerm.trim()) return;
+  const tierOptions = [
+    { value: 'all', label: 'ทุกระดับ' },
+    { value: 'bronze', label: 'บรอนซ์' },
+    { value: 'silver', label: 'เงิน' },
+    { value: 'gold', label: 'ทอง' },
+    { value: 'platinum', label: 'แพลทินัม' }
+  ];
 
+  useEffect(() => {
+    fetchAllCustomers();
+    fetchRewards();
+    fetchPromotions();
+  }, []);
+
+  useEffect(() => {
+    filterCustomers();
+  }, [allCustomers, searchTerm, tierFilter]);
+
+  const fetchAllCustomers = async () => {
     try {
       const { data, error } = await supabase
         .from('customer_profiles')
         .select('*')
-        .or(`full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-        .limit(10);
+        .order('full_name');
 
       if (error) throw error;
-      setCustomers(data || []);
+      setAllCustomers(data || []);
     } catch (error) {
-      console.error('Error searching customers:', error);
-      toast.error('เกิดข้อผิดพลาดในการค้นหาลูกค้า');
+      console.error('Error fetching customers:', error);
+      toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า');
     }
   };
 
-  const addCustomer = (customer: Customer) => {
-    if (!selectedCustomers.find(c => c.id === customer.id)) {
-      setSelectedCustomers([...selectedCustomers, customer]);
+  const fetchRewards = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rewards')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setRewards(data || []);
+    } catch (error) {
+      console.error('Error fetching rewards:', error);
     }
   };
 
-  const removeCustomer = (customerId: string) => {
-    setSelectedCustomers(selectedCustomers.filter(c => c.id !== customerId));
+  const fetchPromotions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('is_active', true)
+        .gte('end_date', new Date().toISOString());
+
+      if (error) throw error;
+      setPromotions(data || []);
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+    }
+  };
+
+  const filterCustomers = () => {
+    let filtered = allCustomers;
+
+    if (searchTerm) {
+      filtered = filtered.filter(customer =>
+        customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone.includes(searchTerm)
+      );
+    }
+
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(customer => customer.tier === tierFilter);
+    }
+
+    setFilteredCustomers(filtered);
+  };
+
+  const toggleCustomerSelection = (customer: Customer) => {
+    setSelectedCustomers(prev => {
+      const isSelected = prev.find(c => c.id === customer.id);
+      if (isSelected) {
+        return prev.filter(c => c.id !== customer.id);
+      } else {
+        return [...prev, customer];
+      }
+    });
+  };
+
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return <Crown className="w-4 h-4 text-purple-600" />;
+      case 'gold': return <Trophy className="w-4 h-4 text-yellow-600" />;
+      case 'silver': return <Star className="w-4 h-4 text-gray-600" />;
+      default: return <Users className="w-4 h-4 text-orange-600" />;
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return 'bg-purple-100 text-purple-800';
+      case 'gold': return 'bg-yellow-100 text-yellow-800';
+      case 'silver': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-orange-100 text-orange-800';
+    }
+  };
+
+  const handleGiftTypeChange = (type: string) => {
+    setGiftType(type);
+    setSelectedReward('');
+    setSelectedPromotion('');
+    setGiftName('');
+    setGiftValue('');
+    setGiftDescription('');
+    setExpiryDate('');
+  };
+
+  const handleRewardSelection = (rewardId: string) => {
+    const reward = rewards.find(r => r.id === rewardId);
+    if (reward) {
+      setSelectedReward(rewardId);
+      setGiftName(reward.name);
+      setGiftValue(reward.points_required?.toString() || '');
+      if (reward.expires_at) {
+        setExpiryDate(new Date(reward.expires_at).toISOString().split('T')[0]);
+      }
+    }
+  };
+
+  const handlePromotionSelection = (promotionId: string) => {
+    const promotion = promotions.find(p => p.id === promotionId);
+    if (promotion) {
+      setSelectedPromotion(promotionId);
+      setGiftName(promotion.name);
+      setGiftValue(promotion.discount_value.toString());
+      setGiftDescription(`ส่วนลด ${promotion.discount_value}${promotion.discount_type === 'percentage' ? '%' : ' บาท'}`);
+      setExpiryDate(new Date(promotion.end_date).toISOString().split('T')[0]);
+    }
   };
 
   const generateUUID = () => {
@@ -75,13 +212,16 @@ const GiftSender = () => {
 
   const sendGifts = async () => {
     if (!giftType || !giftName || selectedCustomers.length === 0) {
-      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+      toast.error('กรุณากรอกข้อมูลและเลือกลูกค้าให้ครบถ้วน');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      const expireDate = expiryDate ? new Date(expiryDate).toISOString() : 
+                        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
       const giftsToSend = selectedCustomers.map(customer => ({
         customer_id: customer.id,
         gift_id: generateUUID(),
@@ -91,7 +231,7 @@ const GiftSender = () => {
         gift_value: giftValue ? parseFloat(giftValue) : 0,
         message: message,
         sent_by: 'admin',
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        expires_at: expireDate,
       }));
 
       const { error } = await supabase
@@ -105,12 +245,13 @@ const GiftSender = () => {
       // Reset form
       setSelectedCustomers([]);
       setGiftType('');
+      setSelectedReward('');
+      setSelectedPromotion('');
       setGiftValue('');
       setGiftName('');
       setGiftDescription('');
+      setExpiryDate('');
       setMessage('');
-      setCustomers([]);
-      setSearchTerm('');
 
     } catch (error) {
       console.error('Error sending gifts:', error);
@@ -121,110 +262,166 @@ const GiftSender = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left Panel - Customer List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5" />
-            ส่งของขวัญให้ลูกค้า
+            <Users className="w-5 h-5" />
+            เลือกลูกค้า ({selectedCustomers.length} คน)
           </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Customer Selection */}
-          <div className="space-y-4">
-            <Label className="text-base font-medium">เลือกลูกค้า</Label>
-            <div className="flex gap-2">
+          
+          {/* Search and Filter */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="ค้นหาด้วยชื่อหรือเบอร์โทร..."
+                placeholder="ค้นหาชื่อหรือเบอร์โทร..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchCustomers()}
+                className="pl-10"
               />
-              <Button onClick={searchCustomers} variant="outline">
-                <Search className="w-4 h-4" />
-              </Button>
             </div>
-
-            {/* Search Results */}
-            {customers.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium mb-2">ผลการค้นหา:</h4>
-                <div className="space-y-2">
-                  {customers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className="flex items-center justify-between p-2 border rounded cursor-pointer hover:bg-gray-50"
-                      onClick={() => addCustomer(customer)}
-                    >
-                      <div>
-                        <span className="font-medium">{customer.full_name}</span>
-                        <span className="text-sm text-gray-500 ml-2">({customer.phone})</span>
-                        <span className={`text-xs px-2 py-1 rounded ml-2 ${
-                          customer.tier === 'platinum' ? 'bg-purple-100 text-purple-800' :
-                          customer.tier === 'gold' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {customer.tier}
-                        </span>
-                      </div>
-                      <Button size="sm" variant="outline">เพิ่ม</Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Selected Customers */}
-            {selectedCustomers.length > 0 && (
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  ลูกค้าที่เลือก ({selectedCustomers.length} คน):
-                </h4>
-                <div className="space-y-2">
-                  {selectedCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className="flex items-center justify-between p-2 bg-blue-50 rounded"
-                    >
-                      <div>
-                        <span className="font-medium">{customer.full_name}</span>
-                        <span className="text-sm text-gray-500 ml-2">({customer.phone})</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeCustomer(customer.id)}
-                      >
-                        ลบ
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Gift Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="giftType">ประเภทของขวัญ</Label>
-              <Select value={giftType} onValueChange={setGiftType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกประเภทของขวัญ" />
+            
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <Select value={tierFilter} onValueChange={setTierFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {giftTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {tierOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="max-h-96 overflow-y-auto">
+          <div className="space-y-2">
+            {filteredCustomers.map((customer) => {
+              const isSelected = selectedCustomers.find(c => c.id === customer.id);
+              return (
+                <div
+                  key={customer.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => toggleCustomerSelection(customer)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getTierIcon(customer.tier)}
+                      <div>
+                        <div className="font-medium">{customer.full_name}</div>
+                        <div className="text-sm text-gray-500">{customer.phone}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getTierColor(customer.tier)}>
+                        {customer.tier}
+                      </Badge>
+                      <div className="text-sm text-gray-500">
+                        {customer.points?.toLocaleString()} แต้ม
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {filteredCustomers.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              ไม่พบลูกค้าที่ตรงกับเงื่อนไข
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Right Panel - Gift Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5" />
+            เลือกของขวัญ
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {/* Gift Type Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="giftType">ประเภทของขวัญ</Label>
+            <Select value={giftType} onValueChange={handleGiftTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกประเภทของขวัญ" />
+              </SelectTrigger>
+              <SelectContent>
+                {giftTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Reward Selection */}
+          {giftType === 'reward' && (
+            <div className="space-y-2">
+              <Label>ของรางวัล</Label>
+              <Select value={selectedReward} onValueChange={handleRewardSelection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกของรางวัล" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rewards.map((reward) => (
+                    <SelectItem key={reward.id} value={reward.id}>
+                      {reward.name} ({reward.points_required} แต้ม)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Promotion Selection */}
+          {giftType === 'promotion' && (
+            <div className="space-y-2">
+              <Label>โปรโมชั่น</Label>
+              <Select value={selectedPromotion} onValueChange={handlePromotionSelection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกโปรโมชั่น" />
+                </SelectTrigger>
+                <SelectContent>
+                  {promotions.map((promotion) => (
+                    <SelectItem key={promotion.id} value={promotion.id}>
+                      {promotion.name} (ลด {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : ' บาท'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Gift Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="giftName">ชื่อของขวัญ</Label>
+              <Input
+                id="giftName"
+                placeholder="ชื่อของขวัญ"
+                value={giftName}
+                onChange={(e) => setGiftName(e.target.value)}
+              />
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="giftValue">มูลค่าของขวัญ (บาท)</Label>
+              <Label htmlFor="giftValue">มูลค่า/แต้ม</Label>
               <Input
                 id="giftValue"
                 type="number"
@@ -233,26 +430,26 @@ const GiftSender = () => {
                 onChange={(e) => setGiftValue(e.target.value)}
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="giftName">ชื่อของขวัญ</Label>
-              <Input
-                id="giftName"
-                placeholder="เช่น ส่วนลด 50 บาท"
-                value={giftName}
-                onChange={(e) => setGiftName(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="giftDescription">รายละเอียด</Label>
+            <Input
+              id="giftDescription"
+              placeholder="รายละเอียดของขวัญ"
+              value={giftDescription}
+              onChange={(e) => setGiftDescription(e.target.value)}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="giftDescription">รายละเอียดของขวัญ</Label>
-              <Input
-                id="giftDescription"
-                placeholder="รายละเอียดเพิ่มเติม"
-                value={giftDescription}
-                onChange={(e) => setGiftDescription(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="expiryDate">วันหมดอายุ (ไม่บังคับ)</Label>
+            <Input
+              id="expiryDate"
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -268,10 +465,10 @@ const GiftSender = () => {
 
           <Button
             onClick={sendGifts}
-            disabled={isLoading || selectedCustomers.length === 0}
+            disabled={isLoading || selectedCustomers.length === 0 || !giftType || !giftName}
             className="w-full"
           >
-            <Gift className="w-4 h-4 mr-2" />
+            <Send className="w-4 h-4 mr-2" />
             {isLoading ? 'กำลังส่ง...' : `ส่งของขวัญ (${selectedCustomers.length} คน)`}
           </Button>
         </CardContent>
