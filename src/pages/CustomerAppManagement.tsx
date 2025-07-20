@@ -1,11 +1,11 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Smartphone, Gift, Bell, Settings, Users, Calendar } from 'lucide-react';
+import { Smartphone, Gift, Bell, Settings, Users, Calendar, Send } from 'lucide-react';
 import BirthdayGiftManager from '@/components/BirthdayGiftManager';
 import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
 import CustomerCoupons from '@/components/CustomerCoupons';
+import GiftSender from '@/components/GiftSender';
 
 const CustomerAppManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -22,7 +22,7 @@ const CustomerAppManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Smartphone className="w-4 h-4" />
             ภาพรวม
@@ -38,6 +38,10 @@ const CustomerAppManagement = () => {
           <TabsTrigger value="coupons" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             คูปองลูกค้า
+          </TabsTrigger>
+          <TabsTrigger value="send-gifts" className="flex items-center gap-2">
+            <Send className="w-4 h-4" />
+            ส่งของขวัญ
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
@@ -132,6 +136,10 @@ const CustomerAppManagement = () => {
 
         <TabsContent value="coupons">
           <CustomerCoupons />
+        </TabsContent>
+
+        <TabsContent value="send-gifts">
+          <GiftSender />
         </TabsContent>
 
         <TabsContent value="notifications">
