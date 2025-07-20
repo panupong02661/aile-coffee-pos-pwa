@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,7 +122,7 @@ const GiftSender = () => {
         id: promo.id,
         name: promo.name,
         discount_value: promo.discount_value,
-        discount_type: promo.type || promo.discount_type || 'percentage',
+        discount_type: promo.type || 'percentage',
         end_date: promo.end_date
       }));
       
