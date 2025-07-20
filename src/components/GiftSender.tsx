@@ -117,7 +117,17 @@ const GiftSender = () => {
         .gte('end_date', new Date().toISOString());
 
       if (error) throw error;
-      setPromotions(data || []);
+      
+      // Map the data to match our Promotion interface
+      const mappedPromotions = (data || []).map(promo => ({
+        id: promo.id,
+        name: promo.name,
+        discount_value: promo.discount_value,
+        discount_type: promo.type || promo.discount_type || 'percentage',
+        end_date: promo.end_date
+      }));
+      
+      setPromotions(mappedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
     }
