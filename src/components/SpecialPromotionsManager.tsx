@@ -4,366 +4,329 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Gift, Users, Clock, Zap } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Plus, Copy, Calendar, Users, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface SpecialPromotion {
-  id: string;
-  title: string;
-  description: string;
-  discountValue: number;
-  discountType: 'percentage' | 'amount';
-  maxClaims: number;
-  currentClaims: number;
-  startTime: Date;
-  endTime: Date;
-  isActive: boolean;
-  minPurchase?: number;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { useLimitedRewards, useCreateLimitedReward } from '@/hooks/useLimitedRewards';
 
 const SpecialPromotionsManager = () => {
-  const [promotions, setPromotions] = useState<SpecialPromotion[]>([
-    {
-      id: '1',
-      title: 'Flash Sale 50% Off!',
-      description: 'ลดราคา 50% สำหรับเมนูเครื่องดื่มทุกแก้ว',
-      discountValue: 50,
-      discountType: 'percentage',
-      maxClaims: 100,
-      currentClaims: 23,
-      startTime: new Date(),
-      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      isActive: true
-    }
-  ]);
-
-  const [showForm, setShowForm] = useState(false);
-  const [editingPromotion, setEditingPromotion] = useState<SpecialPromotion | null>(null);
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: '',
-    discountValue: 0,
-    discountType: 'percentage' as 'percentage' | 'amount',
-    maxClaims: 1,
-    startTime: '',
-    endTime: '',
-    minPurchase: 0
+    reward_type: 'discount',
+    discount_type: 'percent',
+    discount_value: 0,
+    max_claims: 1,
+    start_date: '',
+    end_date: '',
+    target_month: new Date().getMonth() + 1,
+    reward_code: ''
   });
 
+  const { data: rewards = [], refetch } = useLimitedRewards();
+  const createReward = useCreateLimitedReward();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description || !formData.startTime || !formData.endTime) {
-      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกข้อมูลให้ครบถ้วน', variant: 'destructive' });
+    if (!formData.name || !formData.start_date || !formData.end_date) {
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'กรุณากรอกข้อมูลที่จำเป็น',
+        variant: 'destructive'
+      });
       return;
     }
 
-    const newPromotion: SpecialPromotion = {
-      id: editingPromotion?.id || Date.now().toString(),
-      title: formData.title,
-      description: formData.description,
-      discountValue: formData.discountValue,
-      discountType: formData.discountType,
-      maxClaims: formData.maxClaims,
-      currentClaims: editingPromotion?.currentClaims || 0,
-      startTime: new Date(formData.startTime),
-      endTime: new Date(formData.endTime),
-      isActive: true,
-      minPurchase: formData.minPurchase > 0 ? formData.minPurchase : undefined
+    const rewardData = {
+      ...formData,
+      start_date: new Date(formData.start_date).toISOString(),
+      end_date: new Date(formData.end_date).toISOString(),
+      is_active: true,
+      current_claims: 0
     };
 
-    if (editingPromotion) {
-      setPromotions(promotions.map(p => p.id === editingPromotion.id ? newPromotion : p));
-      toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อย' });
-    } else {
-      setPromotions([...promotions, newPromotion]);
-      toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นใหม่เรียบร้อย' });
-    }
-
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      discountValue: 0,
-      discountType: 'percentage',
-      maxClaims: 1,
-      startTime: '',
-      endTime: '',
-      minPurchase: 0
-    });
-    setEditingPromotion(null);
-    setShowForm(false);
-  };
-
-  const handleEdit = (promotion: SpecialPromotion) => {
-    setEditingPromotion(promotion);
-    setFormData({
-      title: promotion.title,
-      description: promotion.description,
-      discountValue: promotion.discountValue,
-      discountType: promotion.discountType,
-      maxClaims: promotion.maxClaims,
-      startTime: promotion.startTime.toISOString().slice(0, 16),
-      endTime: promotion.endTime.toISOString().slice(0, 16),
-      minPurchase: promotion.minPurchase || 0
-    });
-    setShowForm(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('คุณต้องการลบโปรโมชั่นนี้หรือไม่?')) {
-      setPromotions(promotions.filter(p => p.id !== id));
-      toast({ title: 'สำเร็จ', description: 'ลบโปรโมชั่นเรียบร้อย' });
+    try {
+      await createReward.mutateAsync(rewardData);
+      setFormData({
+        name: '',
+        description: '',
+        reward_type: 'discount',
+        discount_type: 'percent',
+        discount_value: 0,
+        max_claims: 1,
+        start_date: '',
+        end_date: '',
+        target_month: new Date().getMonth() + 1,
+        reward_code: ''
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error creating reward:', error);
     }
   };
 
-  const toggleActive = (id: string) => {
-    setPromotions(promotions.map(p => 
-      p.id === id ? { ...p, isActive: !p.isActive } : p
-    ));
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('limited_rewards')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'สำเร็จ',
+        description: 'ลบของรางวัลสำเร็จ'
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error deleting reward:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถลบของรางวัลได้',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const getTimeRemaining = (endTime: Date) => {
-    const now = new Date();
-    const diff = endTime.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'หมดเวลา';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `เหลือ ${hours}:${minutes.toString().padStart(2, '0')}`;
+  const copyCodeFromPromotions = async () => {
+    try {
+      // ดึงโค้ดจากตาราง limited_promotions
+      const { data: promotions, error } = await supabase
+        .from('limited_promotions')
+        .select('promo_code, title, description, discount_value, discount_type, start_date, end_date, max_claims')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (promotions && promotions.length > 0) {
+        const latestPromotion = promotions[0];
+        
+        // แปลงข้อมูลจาก promotion เป็น reward format
+        setFormData({
+          name: latestPromotion.title,
+          description: latestPromotion.description || '',
+          reward_type: 'discount',
+          discount_type: latestPromotion.discount_type || 'percent',
+          discount_value: latestPromotion.discount_value,
+          max_claims: latestPromotion.max_claims,
+          start_date: new Date(latestPromotion.start_date).toISOString().split('T')[0],
+          end_date: new Date(latestPromotion.end_date).toISOString().split('T')[0],
+          target_month: new Date().getMonth() + 1,
+          reward_code: latestPromotion.promo_code || ''
+        });
+
+        toast({
+          title: 'สำเร็จ',
+          description: `คัดลอกโค้ด ${latestPromotion.promo_code} จากหน้าโปรโมชั่นแล้ว`
+        });
+      } else {
+        toast({
+          title: 'ไม่พบข้อมูล',
+          description: 'ไม่พบโปรโมชั่นที่ใช้งานอยู่',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Error copying code:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถคัดลอกโค้ดได้',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const generateRandomCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData({ ...formData, reward_code: result });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Zap className="h-6 w-6 text-yellow-500" />
-          <h1 className="text-2xl font-bold text-gray-800">จัดการโปรโมชั่นพิเศษ</h1>
-        </div>
-        <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-          <Plus className="w-4 h-4 mr-2" />
-          สร้างโปรโมชั่น
-        </Button>
-      </div>
-
-      {/* Form Modal */}
-      {showForm && (
-        <Card className="border-2 border-purple-200">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Gift className="h-5 w-5 text-purple-500" />
-              <span>{editingPromotion ? 'แก้ไขโปรโมชั่น' : 'สร้างโปรโมชั่นใหม่'}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">ชื่อโปรโมชั่น</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    placeholder="เช่น Flash Sale 50% Off!"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="maxClaims">จำนวนที่แจกได้</Label>
-                  <Input
-                    id="maxClaims"
-                    type="number"
-                    min="1"
-                    value={formData.maxClaims}
-                    onChange={(e) => setFormData({...formData, maxClaims: parseInt(e.target.value)})}
-                  />
-                </div>
-              </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5" />
+            สร้างของรางวัลพิเศษ
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="description">รายละเอียด</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="อธิบายเงื่อนไขและรายละเอียดของโปรโมชั่น"
+                <Label htmlFor="name">ชื่อของรางวัล</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="เช่น ส่วนลดพิเศษ"
+                  required
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="discountType">ประเภทส่วนลด</Label>
-                  <Select value={formData.discountType} onValueChange={(value: 'percentage' | 'amount') => setFormData({...formData, discountType: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">เปอร์เซ็นต์ (%)</SelectItem>
-                      <SelectItem value="amount">จำนวนเงิน (฿)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="discountValue">ค่าส่วนลด</Label>
+              <div>
+                <Label htmlFor="reward_code">รหัสคูปอง</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="discountValue"
-                    type="number"
-                    min="0"
-                    value={formData.discountValue}
-                    onChange={(e) => setFormData({...formData, discountValue: parseFloat(e.target.value)})}
+                    id="reward_code"
+                    value={formData.reward_code}
+                    onChange={(e) => setFormData({ ...formData, reward_code: e.target.value.toUpperCase() })}
+                    placeholder="SAVE30"
+                    maxLength={10}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="minPurchase">ยอดขั้นต่ำ (ถ้ามี)</Label>
-                  <Input
-                    id="minPurchase"
-                    type="number"
-                    min="0"
-                    value={formData.minPurchase}
-                    onChange={(e) => setFormData({...formData, minPurchase: parseFloat(e.target.value)})}
-                    placeholder="0 = ไม่มีขั้นต่ำ"
-                  />
+                  <Button type="button" variant="outline" onClick={generateRandomCode}>
+                    สุ่ม
+                  </Button>
+                  <Button type="button" variant="outline" onClick={copyCodeFromPromotions}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy
+                  </Button>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="startTime">เวลาเริ่มต้น</Label>
-                  <Input
-                    id="startTime"
-                    type="datetime-local"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="endTime">เวลาสิ้นสุด</Label>
-                  <Input
-                    id="endTime"
-                    type="datetime-local"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({...formData, endTime: e.target.value})}
-                  />
-                </div>
+            <div>
+              <Label htmlFor="description">คำอธิบาย</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="อธิบายรายละเอียดของรางวัล"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="discount_type">ประเภทส่วนลด</Label>
+                <Select value={formData.discount_type} onValueChange={(value) => setFormData({ ...formData, discount_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent">เปอร์เซ็นต์</SelectItem>
+                    <SelectItem value="amount">จำนวนเงิน</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              <div className="flex space-x-2">
-                <Button type="submit" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                  {editingPromotion ? 'บันทึกการแก้ไข' : 'สร้างโปรโมชั่น'}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  ยกเลิก
-                </Button>
+              <div>
+                <Label htmlFor="discount_value">ค่าส่วนลด</Label>
+                <Input
+                  id="discount_value"
+                  type="number"
+                  value={formData.discount_value}
+                  onChange={(e) => setFormData({ ...formData, discount_value: Number(e.target.value) })}
+                  min="0"
+                  step="0.01"
+                />
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+              <div>
+                <Label htmlFor="max_claims">จำนวนที่รับได้</Label>
+                <Input
+                  id="max_claims"
+                  type="number"
+                  value={formData.max_claims}
+                  onChange={(e) => setFormData({ ...formData, max_claims: Number(e.target.value) })}
+                  min="1"
+                />
+              </div>
+            </div>
 
-      {/* Promotions List */}
-      <div className="grid gap-4">
-        {promotions.map(promotion => (
-          <Card key={promotion.id} className={`${promotion.isActive ? 'border-l-4 border-l-purple-500' : 'opacity-60'}`}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold">{promotion.title}</h3>
-                    {promotion.isActive && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                        เปิดใช้งาน
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="start_date">วันที่เริ่ม</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="end_date">วันที่สิ้นสุด</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={createReward.isPending}>
+              <Plus className="w-4 h-4 mr-2" />
+              {createReward.isPending ? 'กำลังสร้าง...' : 'สร้างของรางวัล'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            ของรางวัลพิเศษที่สร้างแล้ว
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {rewards.length === 0 ? (
+              <p className="text-center text-gray-500">ยังไม่มีของรางวัลพิเศษ</p>
+            ) : (
+              rewards.map((reward) => (
+                <div key={reward.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium">{reward.name}</h4>
+                      {reward.reward_code && (
+                        <Badge variant="secondary" className="font-mono">
+                          {reward.reward_code}
+                        </Badge>
+                      )}
+                      <Badge variant={reward.is_active ? "default" : "secondary"}>
+                        {reward.is_active ? 'ใช้งาน' : 'ปิด'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(reward.start_date).toLocaleDateString('th-TH')} - {new Date(reward.end_date).toLocaleDateString('th-TH')}
                       </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 mb-3">{promotion.description}</p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center space-x-1">
-                      <Gift className="h-4 w-4 text-purple-500" />
+                      <span className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {reward.current_claims}/{reward.max_claims}
+                      </span>
                       <span>
-                        {promotion.discountType === 'percentage' 
-                          ? `${promotion.discountValue}% OFF` 
-                          : `฿${promotion.discountValue} OFF`
-                        }
+                        ส่วนลด: {reward.discount_value}{reward.discount_type === 'percent' ? '%' : '฿'}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="h-4 w-4 text-blue-500" />
-                      <span>{promotion.currentClaims}/{promotion.maxClaims}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4 text-orange-500" />
-                      <span>{getTimeRemaining(promotion.endTime)}</span>
-                    </div>
-                    {promotion.minPurchase && (
-                      <div className="text-gray-500">
-                        ขั้นต่ำ ฿{promotion.minPurchase}
-                      </div>
-                    )}
                   </div>
-
-                  {/* Progress Bar */}
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min((promotion.currentClaims / promotion.maxClaims) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex space-x-2 ml-4">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => toggleActive(promotion.id)}
+                    onClick={() => handleDelete(reward.id)}
+                    className="text-red-500 hover:text-red-700"
                   >
-                    {promotion.isActive ? 'ปิด' : 'เปิด'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(promotion)}
-                  >
-                    <Edit className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(promotion.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {promotions.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Zap className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">ยังไม่มีโปรโมชั่นพิเศษ</h3>
-              <p className="text-gray-500 mb-4">สร้างโปรโมชั่น Limited Time เพื่อเพิ่มยอดขาย</p>
-              <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                <Plus className="w-4 h-4 mr-2" />
-                สร้างโปรโมชั่นแรก
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -186,6 +186,13 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
 
       // Code is valid - apply it
       console.log('โค้ดพร้อมใช้งาน:', foundGift);
+      
+      // ถ้าเป็นคูปองฟรี (gift_type = 'menu_item') ให้ตั้งค่า gift_value เป็นราคาเมนู
+      if (foundGift.gift_type === 'menu_item' && foundGift.menu_items) {
+        foundGift.gift_value = foundGift.menu_items.price;
+        console.log('ตั้งค่าส่วนลดคูปองฟรีเป็นราคาเมนู:', foundGift.gift_value);
+      }
+      
       onApplyCode(foundGift);
 
       // Show success message
@@ -193,7 +200,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
       
       if (foundGift.gift_type === 'menu_item') {
         const menuItemName = foundGift.menu_items?.name || foundGift.gift_name;
-        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ฟรี)`;
+        successMessage = `เพิ่มเมนู ${menuItemName} ลงในตะกร้าแล้ว (ส่วนลดรายการ ${foundGift.gift_value} บาท)`;
       } else if (foundGift.gift_type === 'promotion') {
         const discountType = foundGift.discount_type === 'percentage' ? '%' : '฿';
         successMessage = `ใช้โค้ด ${foundGift.gift_name} แล้ว (ส่วนลด ${foundGift.gift_value}${discountType})`;
@@ -251,6 +258,7 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <p><strong>เงื่อนไขการใช้งานโค้ด:</strong></p>
             <p>• รองรับโค้ดจากโปรโมชั่นพิเศษและของรางวัลวันเกิด</p>
+            <p>• โค้ดคูปองฟรีจะหักส่วนลดเท่าราคาเมนู</p>
             <p>• โค้ดสามารถใช้ได้หลายครั้งก่อนชำระเงิน</p>
             <p>• เมื่อชำระเงินแล้ว โค้ดจะถูกใช้งานจริงและไม่สามารถใช้ซ้ำได้</p>
           </div>
