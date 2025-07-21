@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -69,12 +70,21 @@ const GiftSender = () => {
   const fetchPromotions = async () => {
     try {
       const { data, error } = await supabase
-        .from('special_promotions')
+        .from('limited_promotions')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPromotions(data || []);
+      
+      // Map the data to match the Promotion interface
+      const mappedPromotions = (data || []).map(promo => ({
+        id: promo.id,
+        name: promo.title, // Map title to name
+        description: promo.description || '',
+        image_url: '' // Add default empty image_url since it doesn't exist in limited_promotions
+      }));
+      
+      setPromotions(mappedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
       toast.error('ไม่สามารถโหลดข้อมูลโปรโมชั่นได้');
