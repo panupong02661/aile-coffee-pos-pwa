@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,10 @@ interface Customer {
   phone: string;
   tier: string;
   points: number;
+  total_spent: number;
+  birth_date?: string;
+  gender?: string;
+  user_id?: string;
 }
 
 interface Reward {
@@ -86,6 +91,8 @@ const GiftSender = () => {
         .order('full_name');
 
       if (error) throw error;
+      
+      console.log('Fetched customers:', data);
       setAllCustomers(data || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -117,7 +124,6 @@ const GiftSender = () => {
 
       if (error) throw error;
       
-      // Map the data to match our Promotion interface
       const mappedPromotions = (data || []).map(promo => ({
         id: promo.id,
         name: promo.name,
@@ -251,7 +257,6 @@ const GiftSender = () => {
 
       toast.success(`ส่งของขวัญสำเร็จให้ ${selectedCustomers.length} คน`);
       
-      // Reset form
       setSelectedCustomers([]);
       setGiftType('');
       setSelectedReward('');
@@ -272,7 +277,6 @@ const GiftSender = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left Panel - Customer List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -280,7 +284,6 @@ const GiftSender = () => {
             เลือกลูกค้า ({selectedCustomers.length} คน)
           </CardTitle>
           
-          {/* Search and Filter */}
           <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -335,7 +338,7 @@ const GiftSender = () => {
                         {customer.tier}
                       </Badge>
                       <div className="text-sm text-gray-500">
-                        {customer.points?.toLocaleString()} แต้ม
+                        {customer.points?.toLocaleString() || 0} แต้ม
                       </div>
                     </div>
                   </div>
@@ -346,13 +349,12 @@ const GiftSender = () => {
           
           {filteredCustomers.length === 0 && (
             <div className="text-center text-gray-500 py-8">
-              ไม่พบลูกค้าที่ตรงกับเงื่อนไข
+              {allCustomers.length === 0 ? 'ไม่พบข้อมูลลูกค้าในระบบ' : 'ไม่พบลูกค้าที่ตรงกับเงื่อนไข'}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Right Panel - Gift Details */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -362,7 +364,6 @@ const GiftSender = () => {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Gift Type Selection */}
           <div className="space-y-2">
             <Label htmlFor="giftType">ประเภทของขวัญ</Label>
             <Select value={giftType} onValueChange={handleGiftTypeChange}>
@@ -379,7 +380,6 @@ const GiftSender = () => {
             </Select>
           </div>
 
-          {/* Reward Selection */}
           {giftType === 'reward' && (
             <div className="space-y-2">
               <Label>ของรางวัล</Label>
@@ -398,7 +398,6 @@ const GiftSender = () => {
             </div>
           )}
 
-          {/* Promotion Selection */}
           {giftType === 'promotion' && (
             <div className="space-y-2">
               <Label>โปรโมชั่น</Label>
@@ -417,7 +416,6 @@ const GiftSender = () => {
             </div>
           )}
 
-          {/* Gift Details */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="giftName">ชื่อของขวัญ</Label>

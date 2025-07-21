@@ -27,7 +27,9 @@ import {
   MapPin,
   FileText,
   Calendar,
-  Filter
+  Filter,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -180,7 +182,66 @@ const OnlineOrderManagement = () => {
       if (error) throw error;
       return data as OnlineOrder[];
     },
-    refetchInterval: 2000, // Refresh every 2 seconds for real-time updates
+    refetchInterval: 2000,
+  });
+
+  // Fetch summary data for today, this month, and this year
+  const { data: todayOrders = [] } = useQuery({
+    queryKey: ['today-orders'],
+    queryFn: async () => {
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('order_source', 'online')
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString());
+        
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: monthOrders = [] } = useQuery({
+    queryKey: ['month-orders'],
+    queryFn: async () => {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('order_source', 'online')
+        .gte('created_at', monthStart.toISOString())
+        .lte('created_at', now.toISOString());
+        
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 60000,
+  });
+
+  const { data: yearOrders = [] } = useQuery({
+    queryKey: ['year-orders'],
+    queryFn: async () => {
+      const now = new Date();
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('order_source', 'online')
+        .gte('created_at', yearStart.toISOString())
+        .lte('created_at', now.toISOString());
+        
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 300000,
   });
 
   const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
@@ -550,8 +611,6 @@ const OnlineOrderManagement = () => {
     try {
       console.log('🔧 Selecting uploaded sound:', soundId);
       
-      console.log('🔧 Selecting uploaded sound:', soundId);
-      
       // Update notification settings to use the selected sound
       await updateNotificationSettings({
         selected_sound_id: soundId,
@@ -629,6 +688,22 @@ const OnlineOrderManagement = () => {
   const ordersCount = orders.length;
   const totalAmount = orders.reduce((sum, order) => sum + order.total_amount, 0);
 
+  // Calculate summary statistics
+  const todaySummary = {
+    count: todayOrders.length,
+    amount: todayOrders.reduce((sum, order) => sum + order.total_amount, 0)
+  };
+
+  const monthSummary = {
+    count: monthOrders.length,
+    amount: monthOrders.reduce((sum, order) => sum + order.total_amount, 0)
+  };
+
+  const yearSummary = {
+    count: yearOrders.length,
+    amount: yearOrders.reduce((sum, order) => sum + order.total_amount, 0)
+  };
+
   return (
     <div className="h-screen bg-cream-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
@@ -676,6 +751,72 @@ const OnlineOrderManagement = () => {
                 )}
               </div>
             </Button>
+          </div>
+
+          {/* Order Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  สรุปออเดอร์วันนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
+                    <span className="text-lg font-bold text-blue-600">{todaySummary.count}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">ยอดรวม</span>
+                    <span className="text-lg font-bold text-blue-600">฿{todaySummary.amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  สรุปออเดอร์เดือนนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
+                    <span className="text-lg font-bold text-green-600">{monthSummary.count}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">ยอดรวม</span>
+                    <span className="text-lg font-bold text-green-600">฿{monthSummary.amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-purple-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  สรุปออเดอร์ปีนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
+                    <span className="text-lg font-bold text-purple-600">{yearSummary.count}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">ยอดรวม</span>
+                    <span className="text-lg font-bold text-purple-600">฿{yearSummary.amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Date Filter Section */}
@@ -1059,8 +1200,8 @@ const OnlineOrderManagement = () => {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               {/* Upload New Sound */}
