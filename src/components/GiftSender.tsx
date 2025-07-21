@@ -1,93 +1,95 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Gift } from 'lucide-react';
-import { toast } from 'sonner';
+import { Gift, Send, Users, Search, Filter, Crown, Star, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-interface CustomerProfile {
+interface Customer {
   id: string;
   full_name: string;
   phone: string;
   tier: string;
-  total_spent?: number;
-}
-
-interface Promotion {
-  id: string;
-  name: string;
-  description: string;
-  image_url: string;
+  points: number;
 }
 
 interface Reward {
   id: string;
   name: string;
-  description: string;
-  image_url: string;
+  points_required?: number;
+  expires_at?: string;
 }
 
-interface MenuItem {
+interface Promotion {
   id: string;
   name: string;
-  price: number;
-  image_url: string;
+  discount_value: number;
+  discount_type: string;
+  end_date: string;
 }
 
 const GiftSender = () => {
-  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [rewards, setRewards] = useState<Reward[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
-  const [customerSearch, setCustomerSearch] = useState('');
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
-  const [selectedGiftType, setSelectedGiftType] = useState('promotion');
-  const [selectedGiftId, setSelectedGiftId] = useState('');
+  const [giftType, setGiftType] = useState('');
+  const [selectedReward, setSelectedReward] = useState('');
+  const [selectedPromotion, setSelectedPromotion] = useState('');
+  const [giftName, setGiftName] = useState('');
+  const [giftValue, setGiftValue] = useState('');
+  const [giftDescription, setGiftDescription] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [message, setMessage] = useState('');
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // ดึงข้อมูลลูกค้าทั้งหมดจากระบบ
-  const fetchCustomers = async () => {
+  const giftTypes = [
+    { value: 'reward', label: 'ของรางวัล' },
+    { value: 'promotion', label: 'โปรโมชั่น' },
+    { value: 'special_reward', label: 'ของรางวัลพิเศษ' },
+    { value: 'menu_item', label: 'เมนูอาหาร' },
+    { value: 'discount', label: 'ส่วนลด' },
+    { value: 'coupon', label: 'คูปอง' }
+  ];
+
+  const tierOptions = [
+    { value: 'all', label: 'ทุกระดับ' },
+    { value: 'bronze', label: 'บรอนซ์' },
+    { value: 'silver', label: 'เงิน' },
+    { value: 'gold', label: 'ทอง' },
+    { value: 'platinum', label: 'แพลทินัม' }
+  ];
+
+  useEffect(() => {
+    fetchAllCustomers();
+    fetchRewards();
+    fetchPromotions();
+  }, []);
+
+  useEffect(() => {
+    filterCustomers();
+  }, [allCustomers, searchTerm, tierFilter]);
+
+  const fetchAllCustomers = async () => {
     try {
       const { data, error } = await supabase
         .from('customer_profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('full_name');
 
       if (error) throw error;
-      setCustomers(data || []);
+      setAllCustomers(data || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลลูกค้าได้');
-    }
-  };
-
-  const fetchPromotions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('limited_promotions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Map the data to match the Promotion interface
-      const mappedPromotions = (data || []).map(promo => ({
-        id: promo.id,
-        name: promo.title, // Map title to name
-        description: promo.description || '',
-        image_url: '' // Add default empty image_url since it doesn't exist in limited_promotions
-      }));
-      
-      setPromotions(mappedPromotions);
-    } catch (error) {
-      console.error('Error fetching promotions:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลโปรโมชั่นได้');
+      toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า');
     }
   };
 
@@ -96,257 +98,391 @@ const GiftSender = () => {
       const { data, error } = await supabase
         .from('rewards')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('is_active', true);
 
       if (error) throw error;
       setRewards(data || []);
     } catch (error) {
       console.error('Error fetching rewards:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลของรางวัลได้');
     }
   };
 
-  const fetchMenuItems = async () => {
+  const fetchPromotions = async () => {
     try {
       const { data, error } = await supabase
-        .from('menu_items')
+        .from('promotions')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('is_active', true)
+        .gte('end_date', new Date().toISOString());
 
       if (error) throw error;
-      setMenuItems(data || []);
+      
+      // Map the data to match our Promotion interface
+      const mappedPromotions = (data || []).map(promo => ({
+        id: promo.id,
+        name: promo.name,
+        discount_value: promo.discount_value,
+        discount_type: promo.type || 'percentage',
+        end_date: promo.end_date
+      }));
+      
+      setPromotions(mappedPromotions);
     } catch (error) {
-      console.error('Error fetching menu items:', error);
-      toast.error('ไม่สามารถโหลดข้อมูลเมนูได้');
+      console.error('Error fetching promotions:', error);
     }
   };
 
-  useEffect(() => {
-    fetchCustomers();
-    fetchPromotions();
-    fetchRewards();
-    fetchMenuItems();
-  }, []);
+  const filterCustomers = () => {
+    let filtered = allCustomers;
 
-  const filteredCustomers = customers.filter(customer => {
-    const searchTerm = customerSearch.toLowerCase();
-    const fullName = customer.full_name.toLowerCase();
-    const phone = customer.phone;
+    if (searchTerm) {
+      filtered = filtered.filter(customer =>
+        customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone.includes(searchTerm)
+      );
+    }
 
-    const matchesSearch = fullName.includes(searchTerm) || phone.includes(searchTerm);
-    const matchesTier = tierFilter === 'all' || customer.tier === tierFilter;
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(customer => customer.tier === tierFilter);
+    }
 
-    return matchesSearch && matchesTier;
-  });
+    setFilteredCustomers(filtered);
+  };
 
-  const handleSendGift = async () => {
-    if (selectedCustomers.length === 0) {
-      toast.error('กรุณาเลือกลูกค้าอย่างน้อย 1 คน');
+  const toggleCustomerSelection = (customer: Customer) => {
+    setSelectedCustomers(prev => {
+      const isSelected = prev.find(c => c.id === customer.id);
+      if (isSelected) {
+        return prev.filter(c => c.id !== customer.id);
+      } else {
+        return [...prev, customer];
+      }
+    });
+  };
+
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return <Crown className="w-4 h-4 text-purple-600" />;
+      case 'gold': return <Trophy className="w-4 h-4 text-yellow-600" />;
+      case 'silver': return <Star className="w-4 h-4 text-gray-600" />;
+      default: return <Users className="w-4 h-4 text-orange-600" />;
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return 'bg-purple-100 text-purple-800';
+      case 'gold': return 'bg-yellow-100 text-yellow-800';
+      case 'silver': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-orange-100 text-orange-800';
+    }
+  };
+
+  const handleGiftTypeChange = (type: string) => {
+    setGiftType(type);
+    setSelectedReward('');
+    setSelectedPromotion('');
+    setGiftName('');
+    setGiftValue('');
+    setGiftDescription('');
+    setExpiryDate('');
+  };
+
+  const handleRewardSelection = (rewardId: string) => {
+    const reward = rewards.find(r => r.id === rewardId);
+    if (reward) {
+      setSelectedReward(rewardId);
+      setGiftName(reward.name);
+      setGiftValue(reward.points_required?.toString() || '');
+      if (reward.expires_at) {
+        setExpiryDate(new Date(reward.expires_at).toISOString().split('T')[0]);
+      }
+    }
+  };
+
+  const handlePromotionSelection = (promotionId: string) => {
+    const promotion = promotions.find(p => p.id === promotionId);
+    if (promotion) {
+      setSelectedPromotion(promotionId);
+      setGiftName(promotion.name);
+      setGiftValue(promotion.discount_value.toString());
+      setGiftDescription(`ส่วนลด ${promotion.discount_value}${promotion.discount_type === 'percentage' ? '%' : ' บาท'}`);
+      setExpiryDate(new Date(promotion.end_date).toISOString().split('T')[0]);
+    }
+  };
+
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const sendGifts = async () => {
+    if (!giftType || !giftName || selectedCustomers.length === 0) {
+      toast.error('กรุณากรอกข้อมูลและเลือกลูกค้าให้ครบถ้วน');
       return;
     }
 
-    if (!selectedGiftId) {
-      toast.error('กรุณาเลือกของขวัญที่ต้องการส่ง');
-      return;
-    }
+    setIsLoading(true);
 
     try {
-      // Logic to send the gift to selected customers
-      // This is a placeholder, replace with your actual implementation
-      toast.success(`ส่งของขวัญไปยังลูกค้า ${selectedCustomers.length} คน`);
+      const expireDate = expiryDate ? new Date(expiryDate).toISOString() : 
+                        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const giftsToSend = selectedCustomers.map(customer => ({
+        customer_id: customer.id,
+        gift_id: generateUUID(),
+        gift_type: giftType,
+        gift_name: giftName,
+        gift_description: giftDescription,
+        gift_value: giftValue ? parseFloat(giftValue) : 0,
+        message: message,
+        sent_by: 'admin',
+        expires_at: expireDate,
+      }));
+
+      const { error } = await supabase
+        .from('customer_gifts')
+        .insert(giftsToSend);
+
+      if (error) throw error;
+
+      toast.success(`ส่งของขวัญสำเร็จให้ ${selectedCustomers.length} คน`);
+      
+      // Reset form
+      setSelectedCustomers([]);
+      setGiftType('');
+      setSelectedReward('');
+      setSelectedPromotion('');
+      setGiftValue('');
+      setGiftName('');
+      setGiftDescription('');
+      setExpiryDate('');
+      setMessage('');
+
     } catch (error) {
-      console.error('Error sending gift:', error);
-      toast.error('ไม่สามารถส่งของขวัญได้');
+      console.error('Error sending gifts:', error);
+      toast.error('เกิดข้อผิดพลาดในการส่งของขวัญ');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Send className="w-5 h-5" />
-          ส่งของขวัญให้ลูกค้า
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* ฝั่งซ้าย - เลือกลูกค้า */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-4">เลือกลูกค้า</h3>
-            
-            {/* ค้นหาลูกค้า */}
-            <div className="space-y-2">
-              <Label htmlFor="customer-search">ค้นหาลูกค้า</Label>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left Panel - Customer List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            เลือกลูกค้า ({selectedCustomers.length} คน)
+          </CardTitle>
+          
+          {/* Search and Filter */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                id="customer-search"
-                placeholder="ค้นหาด้วยชื่อหรือเบอร์โทร..."
-                value={customerSearch}
-                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
             </div>
-
-            {/* กรองตามระดับ */}
-            <div className="space-y-2">
-              <Label htmlFor="tier-filter">กรองตามระดับสมาชิก</Label>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
               <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกระดับสมาชิก" />
+                <SelectTrigger className="w-full">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="bronze">สมาชิกทองแดง</SelectItem>
-                  <SelectItem value="silver">สมาชิกเงิน</SelectItem>
-                  <SelectItem value="gold">สมาชิกทอง</SelectItem>
-                  <SelectItem value="platinum">สมาชิกแพลตินัม</SelectItem>
+                  {tierOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* รายการลูกค้า */}
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              <Label>รายการลูกค้าทั้งหมด ({filteredCustomers.length} คน)</Label>
-              <div className="space-y-2">
-                {filteredCustomers.map((customer) => (
-                  <div
-                    key={customer.id}
-                    onClick={() => setSelectedCustomers(prev => 
-                      prev.includes(customer.id)
-                        ? prev.filter(id => id !== customer.id)
-                        : [...prev, customer.id]
-                    )}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedCustomers.includes(customer.id)
-                        ? 'bg-blue-50 border-blue-300'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
+          </div>
+        </CardHeader>
+        
+        <CardContent className="max-h-96 overflow-y-auto">
+          <div className="space-y-2">
+            {filteredCustomers.map((customer) => {
+              const isSelected = selectedCustomers.find(c => c.id === customer.id);
+              return (
+                <div
+                  key={customer.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => toggleCustomerSelection(customer)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getTierIcon(customer.tier)}
                       <div>
-                        <p className="font-medium">{customer.full_name}</p>
-                        <p className="text-sm text-gray-600">{customer.phone}</p>
+                        <div className="font-medium">{customer.full_name}</div>
+                        <div className="text-sm text-gray-500">{customer.phone}</div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant={
-                          customer.tier === 'platinum' ? 'default' :
-                          customer.tier === 'gold' ? 'secondary' :
-                          customer.tier === 'silver' ? 'outline' : 'secondary'
-                        }>
-                          {customer.tier === 'bronze' && 'ทองแดง'}
-                          {customer.tier === 'silver' && 'เงิน'}
-                          {customer.tier === 'gold' && 'ทอง'}
-                          {customer.tier === 'platinum' && 'แพลตินัม'}
-                        </Badge>
-                        <p className="text-xs text-gray-500 mt-1">
-                          ยอดซื้อ: ฿{customer.total_spent?.toLocaleString() || 0}
-                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getTierColor(customer.tier)}>
+                        {customer.tier}
+                      </Badge>
+                      <div className="text-sm text-gray-500">
+                        {customer.points?.toLocaleString()} แต้ม
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {filteredCustomers.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              ไม่พบลูกค้าที่ตรงกับเงื่อนไข
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {selectedCustomers.length > 0 && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-blue-800">
-                  เลือกแล้ว {selectedCustomers.length} คน
-                </p>
-              </div>
-            )}
+      {/* Right Panel - Gift Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="w-5 h-5" />
+            เลือกของขวัญ
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {/* Gift Type Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="giftType">ประเภทของขวัญ</Label>
+            <Select value={giftType} onValueChange={handleGiftTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกประเภทของขวัญ" />
+              </SelectTrigger>
+              <SelectContent>
+                {giftTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* ฝั่งขวา - เลือกของขวัญ */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-4">เลือกของขวัญ</h3>
-
-            {/* ประเภทของขวัญ */}
+          {/* Reward Selection */}
+          {giftType === 'reward' && (
             <div className="space-y-2">
-              <Label>ประเภทของขวัญ</Label>
-              <div className="flex gap-4">
-                <Button
-                  variant={selectedGiftType === 'promotion' ? 'default' : 'outline'}
-                  onClick={() => setSelectedGiftType('promotion')}
-                >
-                  โปรโมชั่น
-                </Button>
-                <Button
-                  variant={selectedGiftType === 'reward' ? 'default' : 'outline'}
-                  onClick={() => setSelectedGiftType('reward')}
-                >
-                  ของรางวัล
-                </Button>
-                <Button
-                  variant={selectedGiftType === 'menu_item' ? 'default' : 'outline'}
-                  onClick={() => setSelectedGiftType('menu_item')}
-                >
-                  เมนู
-                </Button>
-              </div>
-            </div>
-
-            {/* รายการของขวัญ */}
-            <div className="space-y-2">
-              <Label>เลือกของขวัญ</Label>
-              <Select value={selectedGiftId} onValueChange={setSelectedGiftId}>
+              <Label>ของรางวัล</Label>
+              <Select value={selectedReward} onValueChange={handleRewardSelection}>
                 <SelectTrigger>
-                  <SelectValue placeholder="เลือกของขวัญ" />
+                  <SelectValue placeholder="เลือกของรางวัล" />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedGiftType === 'promotion' &&
-                    promotions.map((promotion) => (
-                      <SelectItem key={promotion.id} value={promotion.id}>
-                        {promotion.name}
-                      </SelectItem>
-                    ))}
-                  {selectedGiftType === 'reward' &&
-                    rewards.map((reward) => (
-                      <SelectItem key={reward.id} value={reward.id}>
-                        {reward.name}
-                      </SelectItem>
-                    ))}
-                  {selectedGiftType === 'menu_item' &&
-                    menuItems.map((menuItem) => (
-                      <SelectItem key={menuItem.id} value={menuItem.id}>
-                        {menuItem.name}
-                      </SelectItem>
-                    ))}
+                  {rewards.map((reward) => (
+                    <SelectItem key={reward.id} value={reward.id}>
+                      {reward.name} ({reward.points_required} แต้ม)
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            {/* แสดงตัวอย่างของขวัญ */}
-            {selectedGiftId && (
-              <div className="p-4 border rounded-lg">
-                {selectedGiftType === 'promotion' && (
-                  <>
-                    <h4 className="font-medium">โปรโมชั่น</h4>
-                    <p>{promotions.find(p => p.id === selectedGiftId)?.name}</p>
-                  </>
-                )}
-                {selectedGiftType === 'reward' && (
-                  <>
-                    <h4 className="font-medium">ของรางวัล</h4>
-                    <p>{rewards.find(r => r.id === selectedGiftId)?.name}</p>
-                  </>
-                )}
-                 {selectedGiftType === 'menu_item' && (
-                  <>
-                    <h4 className="font-medium">เมนู</h4>
-                    <p>{menuItems.find(r => r.id === selectedGiftId)?.name}</p>
-                  </>
-                )}
-              </div>
-            )}
+          {/* Promotion Selection */}
+          {giftType === 'promotion' && (
+            <div className="space-y-2">
+              <Label>โปรโมชั่น</Label>
+              <Select value={selectedPromotion} onValueChange={handlePromotionSelection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกโปรโมชั่น" />
+                </SelectTrigger>
+                <SelectContent>
+                  {promotions.map((promotion) => (
+                    <SelectItem key={promotion.id} value={promotion.id}>
+                      {promotion.name} (ลด {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : ' บาท'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-            {/* ปุ่มส่งของขวัญ */}
-            <Button onClick={handleSendGift} className="w-full">
-              <Gift className="w-4 h-4 mr-2" />
-              ส่งของขวัญ
-            </Button>
+          {/* Gift Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="giftName">ชื่อของขวัญ</Label>
+              <Input
+                id="giftName"
+                placeholder="ชื่อของขวัญ"
+                value={giftName}
+                onChange={(e) => setGiftName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="giftValue">มูลค่า/แต้ม</Label>
+              <Input
+                id="giftValue"
+                type="number"
+                placeholder="0"
+                value={giftValue}
+                onChange={(e) => setGiftValue(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          <div className="space-y-2">
+            <Label htmlFor="giftDescription">รายละเอียด</Label>
+            <Input
+              id="giftDescription"
+              placeholder="รายละเอียดของขวัญ"
+              value={giftDescription}
+              onChange={(e) => setGiftDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="expiryDate">วันหมดอายุ (ไม่บังคับ)</Label>
+            <Input
+              id="expiryDate"
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message">ข้อความถึงลูกค้า (ไม่บังคับ)</Label>
+            <Textarea
+              id="message"
+              placeholder="ข้อความที่ต้องการส่งถึงลูกค้า..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <Button
+            onClick={sendGifts}
+            disabled={isLoading || selectedCustomers.length === 0 || !giftType || !giftName}
+            className="w-full"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            {isLoading ? 'กำลังส่ง...' : `ส่งของขวัญ (${selectedCustomers.length} คน)`}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
