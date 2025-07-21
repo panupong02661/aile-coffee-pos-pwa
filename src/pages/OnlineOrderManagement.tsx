@@ -629,6 +629,49 @@ const OnlineOrderManagement = () => {
   const ordersCount = orders.length;
   const totalAmount = orders.reduce((sum, order) => sum + order.total_amount, 0);
 
+  // เพิ่มการคำนวณสรุปออเดอร์
+  const calculateOrderSummary = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisYear = new Date(now.getFullYear(), 0, 1);
+
+    // ออเดอร์วันนี้
+    const todayOrders = orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= today;
+    });
+
+    // ออเดอร์เดือนนี้
+    const monthOrders = orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= thisMonth;
+    });
+
+    // ออเดอร์ปีนี้
+    const yearOrders = orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= thisYear;
+    });
+
+    return {
+      today: {
+        count: todayOrders.length,
+        total: todayOrders.reduce((sum, order) => sum + order.total_amount, 0)
+      },
+      month: {
+        count: monthOrders.length,
+        total: monthOrders.reduce((sum, order) => sum + order.total_amount, 0)
+      },
+      year: {
+        count: yearOrders.length,
+        total: yearOrders.reduce((sum, order) => sum + order.total_amount, 0)
+      }
+    };
+  };
+
+  const orderSummary = calculateOrderSummary();
+
   return (
     <div className="h-screen bg-cream-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
@@ -676,6 +719,48 @@ const OnlineOrderManagement = () => {
                 )}
               </div>
             </Button>
+          </div>
+
+          {/* เพิ่มสรุปออเดอร์ */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  ออเดอร์วันนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600 mb-2">{orderSummary.today.count}</div>
+                <p className="text-sm text-gray-600">฿{orderSummary.today.total.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  ออเดอร์เดือนนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600 mb-2">{orderSummary.month.count}</div>
+                <p className="text-sm text-gray-600">฿{orderSummary.month.total.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  ออเดอร์ปีนี้
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600 mb-2">{orderSummary.year.count}</div>
+                <p className="text-sm text-gray-600">฿{orderSummary.year.total.toLocaleString()}</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Date Filter Section */}
