@@ -57,24 +57,24 @@ const OnlineOrderManagement = () => {
       // Get all unique customer IDs
       const customerIds = [...new Set(ordersData?.map(order => order.customer_id) || [])];
       
-      // Get customer data from members table
-      const { data: membersData, error: membersError } = await supabase
-        .from('members')
-        .select('id, name, phone')
+      // Get customer profiles for these IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('customer_profiles')
+        .select('id, full_name, phone')
         .in('id', customerIds);
 
-      if (membersError) throw membersError;
+      if (profilesError) throw profilesError;
 
-      // Create a map of customer data for quick lookup
-      const membersMap = new Map(membersData?.map(member => [member.id, member]) || []);
+      // Create a map of customer profiles for quick lookup
+      const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
 
       const convertedOrders: OnlineOrder[] = (ordersData || []).map(order => {
-        const memberData = membersMap.get(order.customer_id);
+        const customerProfile = profilesMap.get(order.customer_id);
         return {
           id: order.id,
           order_number: order.order_number,
-          customer_name: memberData?.name || undefined,
-          customer_phone: memberData?.phone || undefined,
+          customer_name: customerProfile?.full_name || undefined,
+          customer_phone: customerProfile?.phone || undefined,
           items: Array.isArray(order.items) ? order.items : [],
           total_amount: order.total_amount,
           order_status: order.order_status,
