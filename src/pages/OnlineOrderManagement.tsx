@@ -45,35 +45,48 @@ const OnlineOrderManagement = () => {
   const fetchOnlineOrders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // First, get all customer orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('customer_orders')
-        .select(`
-          *,
-          members!inner(
-            name,
-            phone
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (ordersError) throw ordersError;
 
-      const convertedOrders: OnlineOrder[] = (data || []).map(order => ({
-        id: order.id,
-        order_number: order.order_number,
-        customer_name: order.members?.name || undefined,
-        customer_phone: order.members?.phone || undefined,
-        items: Array.isArray(order.items) ? order.items : [],
-        total_amount: order.total_amount,
-        order_status: order.order_status,
-        payment_status: order.payment_status,
-        payment_method: order.payment_method || 'online',
-        delivery_type: order.delivery_type,
-        delivery_address: order.delivery_address || undefined,
-        created_at: order.created_at,
-        updated_at: order.updated_at,
-        notes: order.notes || undefined
-      }));
+      // Get all unique customer IDs
+      const customerIds = [...new Set(ordersData?.map(order => order.customer_id) || [])];
+      
+      // Get customer profiles for these IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('customer_profiles')
+        .select('id, full_name, phone')
+        .in('id', customerIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of customer profiles for quick lookup
+      const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
+
+      const convertedOrders: OnlineOrder[] = (ordersData || []).map(order => {
+        const customerProfile = profilesMap.get(order.customer_id);
+        return {
+          id: order.id,
+          order_number: order.order_number,
+          customer_name: customerProfile?.full_name || undefined,
+          customer_phone: customerProfile?.phone || undefined,
+          items: Array.isArray(order.items) ? order.items : [],
+          total_amount: order.total_amount,
+          order_status: order.order_status,
+          payment_status: order.payment_status,
+          payment_method: order.payment_method || 'online',
+          delivery_type: order.delivery_type,
+          delivery_address: order.delivery_address || undefined,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+          notes: order.notes || undefined
+        };
+      });
 
       setOrders(convertedOrders);
       setFilteredOrders(convertedOrders);
