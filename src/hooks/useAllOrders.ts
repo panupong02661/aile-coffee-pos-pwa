@@ -49,7 +49,7 @@ export const useAllOrders = () => {
         return;
       }
 
-      // Transform data to include member_name
+      // Transform data to include member_name and ensure status exists
       const transformedData = data?.map(order => ({
         ...order,
         member_name: order.members?.name || null,
