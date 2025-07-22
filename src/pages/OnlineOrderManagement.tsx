@@ -60,7 +60,13 @@ const OnlineOrderManagement = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('customer_orders')
-        .select('*')
+        .select(`
+          *,
+          customer_profiles!inner(
+            full_name,
+            phone
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -69,8 +75,8 @@ const OnlineOrderManagement = () => {
       const convertedOrders: OnlineOrder[] = (data || []).map(order => ({
         id: order.id,
         order_number: order.order_number,
-        customer_name: order.customer_name || undefined,
-        customer_phone: order.customer_phone || undefined,
+        customer_name: order.customer_profiles?.full_name || undefined,
+        customer_phone: order.customer_profiles?.phone || undefined,
         items: Array.isArray(order.items) ? order.items : [],
         total_amount: order.total_amount,
         order_status: order.order_status,
