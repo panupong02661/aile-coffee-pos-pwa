@@ -1999,7 +1999,6 @@ export type Database = {
           payment_method: string
           pickup_time: string | null
           receipt_image_url: string | null
-          status: string | null
           total_amount: number
           updated_at: string
         }
@@ -2016,7 +2015,6 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
-          status?: string | null
           total_amount?: number
           updated_at?: string
         }
@@ -2033,7 +2031,6 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
-          status?: string | null
           total_amount?: number
           updated_at?: string
         }

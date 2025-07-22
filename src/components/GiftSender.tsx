@@ -276,16 +276,11 @@ const GiftSender = () => {
         expires_at: expireDate,
       }));
 
-      console.log('Sending gifts:', giftsToSend);
-
       const { error } = await supabase
         .from('customer_gifts')
         .insert(giftsToSend);
 
-      if (error) {
-        console.error('Insert error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast.success(`ส่งของขวัญสำเร็จให้ ${selectedCustomers.length} คน`);
       
@@ -301,7 +296,7 @@ const GiftSender = () => {
 
     } catch (error) {
       console.error('Error sending gifts:', error);
-      toast.error('เกิดข้อผิดพลาดในการส่งของขวัญ: ' + (error as Error).message);
+      toast.error('เกิดข้อผิดพลาดในการส่งของขวัญ');
     } finally {
       setIsLoading(false);
     }
