@@ -74,6 +74,7 @@ const GiftSender = () => {
   ];
 
   useEffect(() => {
+    console.log('Component mounted, fetching data...');
     fetchAllCustomers();
     fetchRewards();
     fetchPromotions();
@@ -85,18 +86,30 @@ const GiftSender = () => {
 
   const fetchAllCustomers = async () => {
     try {
+      console.log('Fetching customers from customer_profiles table...');
       const { data, error } = await supabase
         .from('customer_profiles')
         .select('*')
         .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
-      console.log('Fetched customers:', data);
-      setAllCustomers(data || []);
+      console.log('Fetched customers data:', data);
+      console.log('Number of customers:', data?.length || 0);
+      
+      if (data && data.length > 0) {
+        setAllCustomers(data);
+        toast.success(`พบข้อมูลลูกค้า ${data.length} คน`);
+      } else {
+        console.log('No customer data found');
+        toast.info('ไม่พบข้อมูลลูกค้าในระบบ');
+      }
     } catch (error) {
       console.error('Error fetching customers:', error);
-      toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า');
+      toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า: ' + (error as Error).message);
     }
   };
 
@@ -108,6 +121,7 @@ const GiftSender = () => {
         .eq('is_active', true);
 
       if (error) throw error;
+      console.log('Fetched rewards:', data);
       setRewards(data || []);
     } catch (error) {
       console.error('Error fetching rewards:', error);
@@ -117,7 +131,7 @@ const GiftSender = () => {
   const fetchPromotions = async () => {
     try {
       const { data, error } = await supabase
-        .from('promotions')
+        .from('limited_promotions')
         .select('*')
         .eq('is_active', true)
         .gte('end_date', new Date().toISOString());
@@ -126,12 +140,13 @@ const GiftSender = () => {
       
       const mappedPromotions = (data || []).map(promo => ({
         id: promo.id,
-        name: promo.name,
+        name: promo.title || promo.name || 'ไม่มีชื่อ',
         discount_value: promo.discount_value,
-        discount_type: promo.type || 'percentage',
+        discount_type: promo.discount_type || 'percentage',
         end_date: promo.end_date
       }));
       
+      console.log('Fetched promotions:', mappedPromotions);
       setPromotions(mappedPromotions);
     } catch (error) {
       console.error('Error fetching promotions:', error);
@@ -140,16 +155,19 @@ const GiftSender = () => {
 
   const filterCustomers = () => {
     let filtered = allCustomers;
+    console.log('Filtering customers, total:', allCustomers.length);
 
     if (searchTerm) {
       filtered = filtered.filter(customer =>
         customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone.includes(searchTerm)
       );
+      console.log('After search filter:', filtered.length);
     }
 
     if (tierFilter !== 'all') {
       filtered = filtered.filter(customer => customer.tier === tierFilter);
+      console.log('After tier filter:', filtered.length);
     }
 
     setFilteredCustomers(filtered);
@@ -310,6 +328,15 @@ const GiftSender = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            <Button 
+              onClick={fetchAllCustomers} 
+              variant="outline" 
+              size="sm"
+              className="w-full"
+            >
+              รีเฟรชข้อมูลลูกค้า
+            </Button>
           </div>
         </CardHeader>
         
@@ -349,7 +376,13 @@ const GiftSender = () => {
           
           {filteredCustomers.length === 0 && (
             <div className="text-center text-gray-500 py-8">
-              {allCustomers.length === 0 ? 'ไม่พบข้อมูลลูกค้าในระบบ' : 'ไม่พบลูกค้าที่ตรงกับเงื่อนไข'}
+              {allCustomers.length === 0 ? 'ไม่พบข้อมูลลูกค้าในระบบ กรุณากดรีเฟรชข้อมูลลูกค้า' : 'ไม่พบลูกค้าที่ตรงกับเงื่อนไข'}
+            </div>
+          )}
+
+          {allCustomers.length > 0 && (
+            <div className="mt-4 text-sm text-gray-600 text-center">
+              แสดงข้อมูลลูกค้า {filteredCustomers.length} จาก {allCustomers.length} คน
             </div>
           )}
         </CardContent>

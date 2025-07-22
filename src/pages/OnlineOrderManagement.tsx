@@ -1,1246 +1,412 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Settings, 
-  Volume2, 
-  VolumeX, 
-  Play, 
-  Pause, 
-  Upload,
-  CheckCircle,
-  XCircle,
-  Clock,
-  User,
-  ShoppingBag,
-  DollarSign,
-  Trash2,
-  Phone,
-  MapPin,
-  FileText,
-  Calendar,
-  Filter,
-  TrendingUp,
-  BarChart3
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Package2, CheckCircle, Clock, XCircle, Search, Filter, Calendar, TrendingUp, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Header from '@/components/Header';
-import MainSidebar from '@/components/MainSidebar';
+import { toast } from 'sonner';
 
 interface OnlineOrder {
   id: string;
   order_number: string;
-  member_id: string;
+  customer_name?: string;
+  customer_phone?: string;
+  items: any[];
   total_amount: number;
-  items_count: number;
+  order_status: string;
+  payment_status: string;
   payment_method: string;
+  delivery_type: string;
+  delivery_address?: string;
+  notes?: string;
   created_at: string;
-  customer_notes?: string;
-  order_items?: Array<{
-    menu_item_name: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-    order_addons?: Array<{
-      addon_name: string;
-      quantity: number;
-      unit_price: number;
-      total_price: number;
-    }>;
-  }>;
-  members?: {
-    name: string;
-    phone: string;
-  };
+  updated_at: string;
 }
 
-interface NotificationSound {
-  id: string;
-  name: string;
-  file_url: string;
-  is_active: boolean;
+interface OrderSummary {
+  totalOrders: number;
+  totalAmount: number;
+  pendingOrders: number;
+  completedOrders: number;
 }
-
-interface NotificationSettings {
-  id?: string;
-  sound_enabled: boolean;
-  selected_sound_id?: string;
-  volume: number;
-  duration: number;
-}
-
-type DateFilter = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'this_year' | 'all' | 'custom';
 
 const OnlineOrderManagement = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSoundSettingsOpen, setIsSoundSettingsOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState<{ [key: string]: boolean }>({});
-  const [playingAudio, setPlayingAudio] = useState<HTMLAudioElement | null>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [orders, setOrders] = useState<OnlineOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<OnlineOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrder | null>(null);
-  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Summary states
+  const [dailySummary, setDailySummary] = useState<OrderSummary>({ totalOrders: 0, totalAmount: 0, pendingOrders: 0, completedOrders: 0 });
+  const [monthlySummary, setMonthlySummary] = useState<OrderSummary>({ totalOrders: 0, totalAmount: 0, pendingOrders: 0, completedOrders: 0 });
+  const [yearlySummary, setYearlySummary] = useState<OrderSummary>({ totalOrders: 0, totalAmount: 0, pendingOrders: 0, completedOrders: 0 });
 
-  const getDateRange = (filter: DateFilter) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    switch (filter) {
-      case 'today':
-        return {
-          start: today.toISOString(),
-          end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString()
-        };
-      case 'yesterday':
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        return {
-          start: yesterday.toISOString(),
-          end: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString()
-        };
-      case 'this_week':
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        return {
-          start: weekStart.toISOString(),
-          end: now.toISOString()
-        };
-      case 'this_month':
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        return {
-          start: monthStart.toISOString(),
-          end: now.toISOString()
-        };
-      case 'this_year':
-        const yearStart = new Date(now.getFullYear(), 0, 1);
-        return {
-          start: yearStart.toISOString(),
-          end: now.toISOString()
-        };
-      case 'custom':
-        if (customStartDate && customEndDate) {
-          return {
-            start: new Date(customStartDate).toISOString(),
-            end: new Date(customEndDate + 'T23:59:59').toISOString()
-          };
-        }
-        return null;
-      default:
-        return null;
-    }
-  };
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['online-orders', dateFilter, customStartDate, customEndDate],
-    queryFn: async () => {
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          members (
-            name,
-            phone
-          ),
-          order_items (
-            menu_item_name,
-            quantity,
-            unit_price,
-            total_price,
-            order_addons (
-              addon_name,
-              quantity,
-              unit_price,
-              total_price
-            )
-          )
-        `)
-        .eq('order_source', 'online')
-        .order('created_at', { ascending: false });
+  useEffect(() => {
+    filterOrders();
+  }, [orders, searchTerm, statusFilter]);
 
-      const dateRange = getDateRange(dateFilter);
-      if (dateRange) {
-        query = query
-          .gte('created_at', dateRange.start)
-          .lte('created_at', dateRange.end);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as OnlineOrder[];
-    },
-    refetchInterval: 2000,
-  });
-
-  // Fetch summary data for today, this month, and this year
-  const { data: todayOrders = [] } = useQuery({
-    queryKey: ['today-orders'],
-    queryFn: async () => {
-      const today = new Date();
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
-      
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
       const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('order_source', 'online')
-        .gte('created_at', todayStart.toISOString())
-        .lte('created_at', todayEnd.toISOString());
-        
-      if (error) throw error;
-      return data || [];
-    },
-    refetchInterval: 30000,
-  });
-
-  const { data: monthOrders = [] } = useQuery({
-    queryKey: ['month-orders'],
-    queryFn: async () => {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('order_source', 'online')
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', now.toISOString());
-        
-      if (error) throw error;
-      return data || [];
-    },
-    refetchInterval: 60000,
-  });
-
-  const { data: yearOrders = [] } = useQuery({
-    queryKey: ['year-orders'],
-    queryFn: async () => {
-      const now = new Date();
-      const yearStart = new Date(now.getFullYear(), 0, 1);
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('order_source', 'online')
-        .gte('created_at', yearStart.toISOString())
-        .lte('created_at', now.toISOString());
-        
-      if (error) throw error;
-      return data || [];
-    },
-    refetchInterval: 300000,
-  });
-
-  const { data: notificationSounds = [], isLoading: soundsLoading } = useQuery({
-    queryKey: ['notification-sounds'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('notification_sounds')
+        .from('customer_orders')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as NotificationSound[];
-    },
-  });
 
-  const { data: settingsData } = useQuery({
-    queryKey: ['notification-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('notification_settings')
-        .select('*')
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      return data as NotificationSettings | null;
-    },
-  });
-
-  useEffect(() => {
-    if (settingsData) {
-      console.log('🔧 Loading notification settings from database:', settingsData);
-      setNotificationSettings(settingsData);
+      setOrders(data || []);
+      calculateSummaries(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์');
+    } finally {
+      setLoading(false);
     }
-  }, [settingsData]);
-
-  // Debug: Log current notification settings
-  useEffect(() => {
-    console.log('🔧 Current notification settings state:', notificationSettings);
-    if (notificationSettings?.selected_sound_id) {
-      console.log('🔧 Currently selected sound:', notificationSettings.selected_sound_id);
-    }
-  }, [notificationSettings]);
-
-  // Refetch data when settings change
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-    queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
-  }, [queryClient]);
-
-  const handleToggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const handleCloseSidebar = () => {
-    setIsSidebarOpen(false);
+  const calculateSummaries = (ordersData: OnlineOrder[]) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const thisMonth = today.getMonth();
+    const thisYear = today.getFullYear();
+
+    // Daily summary
+    const dailyOrders = ordersData.filter(order => 
+      order.created_at.split('T')[0] === todayStr
+    );
+    setDailySummary({
+      totalOrders: dailyOrders.length,
+      totalAmount: dailyOrders.reduce((sum, order) => sum + order.total_amount, 0),
+      pendingOrders: dailyOrders.filter(order => order.order_status === 'pending').length,
+      completedOrders: dailyOrders.filter(order => order.order_status === 'completed').length
+    });
+
+    // Monthly summary
+    const monthlyOrders = ordersData.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate.getMonth() === thisMonth && orderDate.getFullYear() === thisYear;
+    });
+    setMonthlySummary({
+      totalOrders: monthlyOrders.length,
+      totalAmount: monthlyOrders.reduce((sum, order) => sum + order.total_amount, 0),
+      pendingOrders: monthlyOrders.filter(order => order.order_status === 'pending').length,
+      completedOrders: monthlyOrders.filter(order => order.order_status === 'completed').length
+    });
+
+    // Yearly summary
+    const yearlyOrders = ordersData.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate.getFullYear() === thisYear;
+    });
+    setYearlySummary({
+      totalOrders: yearlyOrders.length,
+      totalAmount: yearlyOrders.reduce((sum, order) => sum + order.total_amount, 0),
+      pendingOrders: yearlyOrders.filter(order => order.order_status === 'pending').length,
+      completedOrders: yearlyOrders.filter(order => order.order_status === 'completed').length
+    });
   };
 
-  const handleViewOrderDetail = (order: OnlineOrder) => {
-    setSelectedOrder(order);
-    setIsOrderDetailOpen(true);
+  const filterOrders = () => {
+    let filtered = orders;
+
+    if (searchTerm) {
+      filtered = filtered.filter(order =>
+        order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer_phone?.includes(searchTerm)
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.order_status === statusFilter);
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'preparing': return 'bg-orange-100 text-orange-800';
+      case 'ready': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
+      default: return <Package2 className="w-4 h-4" />;
+    }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('orders')
+        .from('customer_orders')
         .update({ 
-          order_status: newStatus, 
-          updated_at: new Date().toISOString() 
+          order_status: newStatus,
+          updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
 
       if (error) throw error;
 
       toast.success('อัปเดตสถานะออเดอร์สำเร็จ');
-      queryClient.invalidateQueries({ queryKey: ['online-orders'] });
+      fetchOrders();
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast.error('ไม่สามารถอัปเดตสถานะออเดอร์ได้');
+      toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
     }
   };
 
-  const stopAllSounds = () => {
-    if (playingAudio) {
-      playingAudio.pause();
-      playingAudio.currentTime = 0;
-      setPlayingAudio(null);
-    }
-    setIsPlaying({});
-  };
-
-  const playBasicSound = async (soundName: string) => {
-    try {
-      stopAllSounds();
-      
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const duration = (notificationSettings?.duration || 2) * 1000;
-      const volume = notificationSettings?.volume || 0.8;
-      
-      let frequency = 800;
-      
-      switch (soundName) {
-        case 'ระฆัง':
-          frequency = 800;
-          break;
-        case 'กิ่งก่า':
-          frequency = 1000;
-          break;
-        case 'แจ้งเตือน':
-          frequency = 600;
-          break;
-        case 'ปลุก':
-          frequency = 1200;
-          break;
-        case 'กระดิ่ง':
-          frequency = 900;
-          break;
-        case 'ออด':
-          frequency = 400;
-          break;
-        case 'ตีดๆๆๆ':
-          // Create beep pattern for "ตีดๆๆๆ"
-          const beepCount = 3;
-          const beepDuration = 150;
-          const beepInterval = 200;
-          
-          for (let i = 0; i < beepCount; i++) {
-            const startTime = audioContext.currentTime + (i * beepInterval / 1000);
-            const endTime = startTime + (beepDuration / 1000);
-            
-            const beepOscillator = audioContext.createOscillator();
-            const beepGainNode = audioContext.createGain();
-            
-            beepOscillator.connect(beepGainNode);
-            beepGainNode.connect(audioContext.destination);
-            
-            beepOscillator.frequency.setValueAtTime(800, startTime);
-            beepOscillator.type = 'sine';
-            
-            beepGainNode.gain.setValueAtTime(0, startTime);
-            beepGainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-            beepGainNode.gain.setValueAtTime(volume, endTime - 0.01);
-            beepGainNode.gain.linearRampToValueAtTime(0, endTime);
-            
-            beepOscillator.start(startTime);
-            beepOscillator.stop(endTime);
-          }
-          
-          setIsPlaying(prev => ({ ...prev, [soundName]: true }));
-          setTimeout(() => {
-            setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-          }, beepCount * beepInterval);
-          return; // Exit early for beep pattern
-        default:
-          frequency = 800;
-      }
-      
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-      
-      setIsPlaying(prev => ({ ...prev, [soundName]: true }));
-      
-      setTimeout(() => {
-        setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-      }, duration);
-      
-    } catch (error) {
-      console.error('Error playing basic sound:', error);
-      toast.error('ไม่สามารถเล่นเสียงได้');
-    }
-  };
-
-  const playUploadedSound = async (soundUrl: string, soundName: string) => {
-    try {
-      stopAllSounds();
-      
-      const audio = new Audio();
-      const duration = (notificationSettings?.duration || 2) * 1000;
-      const volume = Math.min((notificationSettings?.volume || 0.8) * 1.5, 1.0);
-      
-      audio.volume = volume;
-      audio.src = soundUrl;
-      
-      setIsPlaying(prev => ({ ...prev, [soundName]: true }));
-      setPlayingAudio(audio);
-      
-      await audio.play();
-      
-      setTimeout(() => {
-        if (audio && !audio.paused) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
-        setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-        setPlayingAudio(null);
-      }, duration);
-      
-      audio.addEventListener('ended', () => {
-        setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-        setPlayingAudio(null);
-      });
-      
-    } catch (error) {
-      console.error('Error playing uploaded sound:', error);
-      toast.error('ไม่สามารถเล่นเสียงได้');
-      setIsPlaying(prev => ({ ...prev, [soundName]: false }));
-      setPlayingAudio(null);
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const validTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
-
-      if (!validTypes.includes(file.type)) {
-        toast.error('รองรับเฉพาะไฟล์เสียง MP3, WAV, OGG เท่านั้น');
-        return;
-      }
-
-      if (file.size > maxSize) {
-        toast.error('ขนาดไฟล์ต้องไม่เกิน 5MB');
-        return;
-      }
-
-      setUploadedFile(file);
-    }
-  };
-
-  const uploadSound = async () => {
-    if (!uploadedFile) return;
-
-    setIsUploading(true);
-    try {
-      const { data: existingSounds } = await supabase
-        .from('notification_sounds')
-        .select('*')
-        .eq('is_active', true);
-
-      // Deactivate all existing sounds
-      if (existingSounds && existingSounds.length > 0) {
-        await supabase
-          .from('notification_sounds')
-          .update({ is_active: false })
-          .eq('is_active', true);
-      }
-
-      const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = fileName;
-
-      const { error: uploadError } = await supabase.storage
-        .from('notification-sounds')
-        .upload(filePath, uploadedFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: insertedSound, error: dbError } = await supabase
-        .from('notification_sounds')
-        .insert({
-          name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-          file_url: filePath,
-          is_active: true // Set new sound as active immediately
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      // Update notification settings to use the new sound
-      await updateNotificationSettings({
-        selected_sound_id: insertedSound.id,
-        sound_enabled: true
-      });
-
-      toast.success('อัปโหลดเสียงสำเร็จและตั้งเป็นค่าเริ่มต้น');
-      setUploadedFile(null);
-      queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
-    } catch (error) {
-      console.error('Error uploading sound:', error);
-      toast.error('ไม่สามารถอัปโหลดเสียงได้');
-    }
-    setIsUploading(false);
-  };
-
-  const updateNotificationSettings = async (updates: Partial<NotificationSettings>) => {
-    try {
-      console.log('🔧 updateNotificationSettings called with:', updates);
-      console.log('🔧 Current notificationSettings:', notificationSettings);
-      
-      if (notificationSettings?.id) {
-        console.log('🔧 Updating existing settings with ID:', notificationSettings.id);
-        const { error } = await supabase
-          .from('notification_settings')
-          .update(updates)
-          .eq('id', notificationSettings.id);
-
-        if (error) throw error;
-      } else {
-        console.log('🔧 Creating new settings');
-        const { data, error } = await supabase
-          .from('notification_settings')
-          .insert(updates)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setNotificationSettings(data);
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      
-      console.log('🔧 Settings updated successfully:', updates);
-      
-      toast.success('บันทึกการตั้งค่าสำเร็จ');
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      toast.error('ไม่สามารถบันทึกการตั้งค่าได้');
-    }
-  };
-
-  const selectBasicSound = async (soundName: string) => {
-    try {
-      console.log('🔧 Selecting basic sound:', soundName);
-      
-      // Don't deactivate notification_sounds table for basic sounds
-      // Only update notification_settings
-      
-      const updates = {
-        selected_sound_id: soundName, // Use sound name as identifier for basic sounds
-        sound_enabled: true
-      };
-
-      console.log('🔧 Updating settings with:', updates);
-      await updateNotificationSettings(updates);
-      
-      console.log('🔧 Settings after update:', updates);
-      
-      // Force refresh of notification settings
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      
-      toast.success(`เลือกเสียง "${soundName}" สำเร็จ`);
-    } catch (error) {
-      console.error('Error selecting basic sound:', error);
-      toast.error('ไม่สามารถเลือกเสียงได้');
-    }
-  };
-
-  const selectUploadedSound = async (soundId: string) => {
-    try {
-      console.log('🔧 Selecting uploaded sound:', soundId);
-      
-      // Update notification settings to use the selected sound
-      await updateNotificationSettings({
-        selected_sound_id: soundId,
-        sound_enabled: true
-      });
-      
-      // Force refresh of notification settings
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
-      toast.success('เลือกเสียงสำเร็จ');
-    } catch (error) {
-      console.error('Error selecting uploaded sound:', error);
-      toast.error('ไม่สามารถเลือกเสียงได้');
-    }
-  };
-
-  const deleteSound = async (soundId: string) => {
-    try {
-      // Get the sound data first
-      const { data: soundData } = await supabase
-        .from('notification_sounds')
-        .select('file_url')
-        .eq('id', soundId)
-        .single();
-
-      if (soundData) {
-        // Delete from storage
-        await supabase.storage
-          .from('notification-sounds')
-          .remove([soundData.file_url]);
-      }
-
-      // Delete from database
-      const { error } = await supabase
-        .from('notification_sounds')
-        .delete()
-        .eq('id', soundId);
-
-      if (error) throw error;
-
-      toast.success('ลบเสียงสำเร็จ');
-      queryClient.invalidateQueries({ queryKey: ['notification-sounds'] });
-    } catch (error) {
-      console.error('Error deleting sound:', error);
-      toast.error('ไม่สามารถลบเสียงได้');
-    }
-  };
-
-  const basicSounds = [
-    'ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'
-  ];
-
-  const getPaymentMethodText = (method: string) => {
-    switch (method) {
-      case 'cash': return 'เงินสด';
-      case 'credit_card': return 'บัตรเครดิต';
-      case 'promptpay': return 'พร้อมเพย์';
-      case 'online': return 'ออนไลน์';
-      default: return method;
-    }
-  };
-
-  const getDateFilterText = () => {
-    switch (dateFilter) {
-      case 'today': return 'วันนี้';
-      case 'yesterday': return 'เมื่อวาน';
-      case 'this_week': return 'สัปดาห์นี้';
-      case 'this_month': return 'เดือนนี้';
-      case 'this_year': return 'ปีนี้';
-      case 'custom': return 'กำหนดเอง';
-      default: return 'ทั้งหมด';
-    }
-  };
-
-  const ordersCount = orders.length;
-  const totalAmount = orders.reduce((sum, order) => sum + order.total_amount, 0);
-
-  // Calculate summary statistics
-  const todaySummary = {
-    count: todayOrders.length,
-    amount: todayOrders.reduce((sum, order) => sum + order.total_amount, 0)
-  };
-
-  const monthSummary = {
-    count: monthOrders.length,
-    amount: monthOrders.reduce((sum, order) => sum + order.total_amount, 0)
-  };
-
-  const yearSummary = {
-    count: yearOrders.length,
-    amount: yearOrders.reduce((sum, order) => sum + order.total_amount, 0)
-  };
-
-  return (
-    <div className="h-screen bg-cream-50 flex">
-      <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
-      
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
-      }`}>
-        <div className="p-4">
-          <Header 
-            onToggleSidebar={handleToggleSidebar}
-            categories={[]}
-            selectedCategory=""
-            onCategorySelect={() => {}}
-            gridColumns={4}
-            setGridColumns={() => {}}
-            itemSize="medium"
-            setItemSize={() => {}}
-            page="other"
-          />
-          
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">จัดการออเดอร์ออนไลน์</h1>
-            <Button
-              onClick={() => setIsSoundSettingsOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              <div className="flex flex-col items-start">
-                <span>ตั้งค่าเสียงแจ้งเตือน</span>
-                {notificationSettings && (
-                  <span className="text-xs text-gray-500">
-                    {notificationSettings.sound_enabled ? (
-                      notificationSettings.selected_sound_id ? (
-                        ['ระฆัง', 'กิ่งก่า', 'แจ้งเตือน', 'ปลุก', 'กระดิ่ง', 'ออด', 'ตีดๆๆๆ'].includes(notificationSettings.selected_sound_id) 
-                          ? `เสียง: ${notificationSettings.selected_sound_id}`
-                          : (() => {
-                              const foundSound = notificationSounds.find(s => s.id === notificationSettings.selected_sound_id);
-                              console.log('🔧 Looking for uploaded sound with ID:', notificationSettings.selected_sound_id, 'Found:', foundSound);
-                              return `เสียง: ${foundSound?.name || 'ไม่ทราบ'}`;
-                            })()
-                      ) : 'ไม่ได้เลือกเสียง'
-                    ) : 'ปิดเสียง'}
-                  </span>
-                )}
-              </div>
-            </Button>
-          </div>
-
-          {/* Order Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  สรุปออเดอร์วันนี้
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
-                    <span className="text-lg font-bold text-blue-600">{todaySummary.count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">ยอดรวม</span>
-                    <span className="text-lg font-bold text-blue-600">฿{todaySummary.amount.toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  สรุปออเดอร์เดือนนี้
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
-                    <span className="text-lg font-bold text-green-600">{monthSummary.count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">ยอดรวม</span>
-                    <span className="text-lg font-bold text-green-600">฿{monthSummary.amount.toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-purple-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  สรุปออเดอร์ปีนี้
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">จำนวนออเดอร์</span>
-                    <span className="text-lg font-bold text-purple-600">{yearSummary.count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">ยอดรวม</span>
-                    <span className="text-lg font-bold text-purple-600">฿{yearSummary.amount.toLocaleString()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Date Filter Section */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="w-5 h-5" />
-                ตัวกรองแสดงผล
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-                <div className="flex-1">
-                  <Label htmlFor="date-filter">ช่วงเวลา</Label>
-                  <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">ทั้งหมด</SelectItem>
-                      <SelectItem value="today">วันนี้</SelectItem>
-                      <SelectItem value="yesterday">เมื่อวาน</SelectItem>
-                      <SelectItem value="this_week">สัปดาห์นี้</SelectItem>
-                      <SelectItem value="this_month">เดือนนี้</SelectItem>
-                      <SelectItem value="this_year">ปีนี้</SelectItem>
-                      <SelectItem value="custom">กำหนดเอง</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {dateFilter === 'custom' && (
-                  <>
-                    <div>
-                      <Label htmlFor="start-date">วันที่เริ่มต้น</Label>
-                      <Input
-                        id="start-date"
-                        type="date"
-                        value={customStartDate}
-                        onChange={(e) => setCustomStartDate(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="end-date">วันที่สิ้นสุด</Label>
-                      <Input
-                        id="end-date"
-                        type="date"
-                        value={customEndDate}
-                        onChange={(e) => setCustomEndDate(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  <div className="font-medium mb-1">สรุป: {getDateFilterText()}</div>
-                  <div className="flex gap-4">
-                    <span>{ordersCount} ออเดอร์</span>
-                    <span>฿{totalAmount.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {ordersLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  const SummaryCard = ({ title, data, icon, color }: { 
+    title: string; 
+    data: OrderSummary; 
+    icon: React.ReactNode; 
+    color: string; 
+  }) => (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className={`text-lg flex items-center gap-2 ${color}`}>
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className={`text-2xl font-bold ${color}`}>
+              {data.totalOrders}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {orders.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <ShoppingBag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">
-                      {dateFilter === 'all' ? 'ยังไม่มีออเดอร์ออนไลน์' : `ไม่มีออเดอร์ในช่วง${getDateFilterText()}`}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                orders.map((order) => (
-                  <Card key={order.id} className="hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-2">
-                            <ShoppingBag className="w-5 h-5 text-orange-500" />
-                            #{order.order_number}
-                          </h3>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4" />
-                                <span className="font-medium">ลูกค้า:</span>
-                                <span>{order.members?.name || 'ไม่ระบุชื่อ'}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4" />
-                                <span className="font-medium">เบอร์โทร:</span>
-                                <span>{order.members?.phone || 'ไม่ระบุ'}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4" />
-                                <span className="font-medium">วันที่สั่ง:</span>
-                                <span>{new Date(order.created_at).toLocaleString('th-TH')}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">รายการ:</span>
-                                <span>{order.items_count} รายการ</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">การชำระเงิน:</span>
-                                <span>{getPaymentMethodText(order.payment_method)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {order.customer_notes && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-start gap-2">
-                                <FileText className="w-4 h-4 mt-0.5 text-gray-500" />
-                                <div>
-                                  <span className="font-medium text-gray-700">หมายเหตุ:</span>
-                                  <p className="text-gray-600 mt-1">{order.customer_notes}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="text-right ml-4">
-                          <div className="text-2xl font-bold text-orange-600 mb-3 flex items-center justify-end">
-                            <DollarSign className="w-5 h-5 mr-1" />
-                            ฿{order.total_amount.toFixed(2)}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Button
-                              onClick={() => handleViewOrderDetail(order)}
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                            >
-                              ดูรายละเอียด
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+            <p className="text-sm text-gray-600">ออเดอร์ทั้งหมด</p>
+          </div>
+          <div>
+            <div className={`text-2xl font-bold ${color}`}>
+              ฿{data.totalAmount.toLocaleString()}
             </div>
-          )}
+            <p className="text-sm text-gray-600">ยอดขายรวม</p>
+          </div>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-orange-600">รออนุมัติ: {data.pendingOrders}</span>
+          <span className="text-green-600">เสร็จสิ้น: {data.completedOrders}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">กำลังโหลด...</div>
         </div>
       </div>
+    );
+  }
 
-      {/* Order Detail Dialog */}
-      <Dialog open={isOrderDetailOpen} onOpenChange={setIsOrderDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>รายละเอียดออเดอร์ #{selectedOrder?.order_number}</DialogTitle>
-          </DialogHeader>
+  return (
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-coffee-800 mb-2">
+          จัดการออเดอร์ออนไลน์
+        </h1>
+        <p className="text-coffee-600">
+          ระบบจัดการออเดอร์จากลูกค้าออนไลน์
+        </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <SummaryCard
+          title="สรุปรายวัน"
+          data={dailySummary}
+          icon={<Calendar className="w-5 h-5" />}
+          color="text-blue-600"
+        />
+        <SummaryCard
+          title="สรุปรายเดือน"
+          data={monthlySummary}
+          icon={<TrendingUp className="w-5 h-5" />}
+          color="text-green-600"
+        />
+        <SummaryCard
+          title="สรุปรายปี"
+          data={yearlySummary}
+          icon={<ShoppingCart className="w-5 h-5" />}
+          color="text-purple-600"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package2 className="w-5 h-5" />
+            รายการออเดอร์ ({filteredOrders.length})
+          </CardTitle>
           
-          {selectedOrder && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-800">ข้อมูลลูกค้า</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{selectedOrder.members?.name || 'ไม่ระบุชื่อ'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{selectedOrder.members?.phone || 'ไม่ระบุ'}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-800">ข้อมูลออเดอร์</h3>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">การชำระเงิน: </span>
-                      <span>{getPaymentMethodText(selectedOrder.payment_method)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-3">รายการสินค้า</h3>
-                <div className="space-y-3">
-                  {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
-                    selectedOrder.order_items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{item.menu_item_name}</p>
-                          {item.order_addons && item.order_addons.length > 0 && (
-                            <p className="text-sm text-gray-600">
-                              + {item.order_addons.map(addon => addon.addon_name).join(', ')}
-                            </p>
-                          )}
-                          <p className="text-sm text-gray-600">จำนวน: {item.quantity}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">฿{item.total_price.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">ไม่มีรายการสินค้า</p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="border-t pt-4">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>ยอดสุทธิ:</span>
-                  <span>฿{selectedOrder.total_amount.toFixed(2)}</span>
-                </div>
-              </div>
-              
-              {selectedOrder.customer_notes && (
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">หมายเหตุ</h3>
-                  <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-                    {selectedOrder.customer_notes}
-                  </p>
-                </div>
-              )}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="ค้นหาเลขออเดอร์, ชื่อลูกค้า, หรือเบอร์โทร..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          )}
-          
-          <DialogFooter>
-            <Button onClick={() => setIsOrderDetailOpen(false)}>
-              ปิด
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Sound Settings Dialog */}
-      <Dialog open={isSoundSettingsOpen} onOpenChange={setIsSoundSettingsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>ตั้งค่าเสียงแจ้งเตือนออเดอร์ออนไลน์</DialogTitle>
-          </DialogHeader>
-          
-          <ScrollArea className="max-h-[70vh]">
-            <div className="space-y-6">
-              {/* Sound Toggle */}
-              <div className="flex items-center justify-between">
-                <Label htmlFor="sound-enabled">เปิดใช้งานเสียงแจ้งเตือน</Label>
-                <Switch
-                  id="sound-enabled"
-                  checked={notificationSettings?.sound_enabled || false}
-                  onCheckedChange={(checked) => updateNotificationSettings({ sound_enabled: checked })}
-                />
-              </div>
-
-              {/* Volume Control */}
-              <div className="space-y-2">
-                <Label>ระดับเสียง ({Math.round((notificationSettings?.volume || 0.8) * 100)}%)</Label>
-                <div className="flex items-center gap-4">
-                  <VolumeX className="w-4 h-4" />
-                  <Slider
-                    value={[notificationSettings?.volume || 0.8]}
-                    onValueChange={([value]) => updateNotificationSettings({ volume: value })}
-                    max={1}
-                    min={0}
-                    step={0.1}
-                    className="flex-1"
-                  />
-                  <Volume2 className="w-4 h-4" />
-                </div>
-              </div>
-
-              {/* Duration Control */}
-              <div className="space-y-2">
-                <Label>ระยะเวลาเล่น ({notificationSettings?.duration || 2} วินาที)</Label>
-                <Slider
-                  value={[notificationSettings?.duration || 2]}
-                  onValueChange={([value]) => updateNotificationSettings({ duration: value })}
-                  max={10}
-                  min={1}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Basic Sounds */}
-              <div className="space-y-3">
-                <Label className="text-base font-medium">เสียงพื้นฐาน</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {basicSounds.map((sound) => (
-                    <div key={sound} className={`flex items-center justify-between p-3 border rounded-lg ${
-                      notificationSettings?.selected_sound_id === sound ? 'bg-orange-50 border-orange-300' : ''
-                    }`}>
-                      <span className="text-sm">{sound}</span>
-                      <div className="flex items-center gap-2">
-                        {notificationSettings?.selected_sound_id === sound && (
-                          <CheckCircle className="w-4 h-4 text-orange-600" />
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => playBasicSound(sound)}
-                          disabled={isPlaying[sound]}
-                        >
-                          {isPlaying[sound] ? (
-                            <Pause className="w-4 h-4" />
-                          ) : (
-                            <Play className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => selectBasicSound(sound)}
-                          variant={notificationSettings?.selected_sound_id === sound ? "default" : "outline"}
-                        >
-                          {notificationSettings?.selected_sound_id === sound ? 'ใช้งาน' : 'เลือก'}
-                        </Button>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกสถานะ</SelectItem>
+                  <SelectItem value="pending">รออนุมัติ</SelectItem>
+                  <SelectItem value="confirmed">ยืนยันแล้ว</SelectItem>
+                  <SelectItem value="preparing">กำลังเตรียม</SelectItem>
+                  <SelectItem value="ready">พร้อมส่ง</SelectItem>
+                  <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+                  <SelectItem value="cancelled">ยกเลิก</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="space-y-4">
+            {filteredOrders.map((order) => (
+              <div
+                key={order.id}
+                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                onClick={() => {
+                  setSelectedOrder(order);
+                  setIsModalOpen(true);
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="font-medium text-lg">#{order.order_number}</div>
+                    <Badge className={getStatusColor(order.order_status)}>
+                      <div className="flex items-center gap-1">
+                        {getStatusIcon(order.order_status)}
+                        {order.order_status}
                       </div>
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-lg text-green-600">
+                      ฿{order.total_amount.toLocaleString()}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Uploaded Sounds */}
-              <div className="space-y-3">
-                <Label className="text-base font-medium">เสียงที่อัพโหลด</Label>
-                
-                 {notificationSounds.map((sound) => (
-                   <div key={sound.id} className={`flex items-center justify-between p-3 border rounded-lg ${
-                     notificationSettings?.selected_sound_id === sound.id ? 'bg-orange-50 border-orange-300' : ''
-                   }`}>
-                     <span className="text-sm">{sound.name}</span>
-                     <div className="flex items-center gap-2">
-                       {notificationSettings?.selected_sound_id === sound.id && (
-                         <CheckCircle className="w-4 h-4 text-orange-600" />
-                       )}
-                       <Button
-                         size="sm"
-                         variant="outline"
-                         onClick={() => {
-                           console.log('🔊 Playing uploaded sound:', sound.name, sound.file_url);
-                           const fullUrl = `https://mzvzbxflwvksohrmxbsy.supabase.co/storage/v1/object/public/notification-sounds/${sound.file_url}`;
-                           console.log('🔊 Full URL:', fullUrl);
-                           playUploadedSound(fullUrl, sound.name);
-                         }}
-                         disabled={isPlaying[sound.name]}
-                       >
-                        {isPlaying[sound.name] ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4" />
-                        )}
-                      </Button>
-                       <Button
-                         size="sm"
-                         onClick={() => selectUploadedSound(sound.id)}
-                         variant={notificationSettings?.selected_sound_id === sound.id ? "default" : "outline"}
-                       >
-                         {notificationSettings?.selected_sound_id === sound.id ? 'ใช้งาน' : 'เลือก'}
-                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteSound(sound.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div className="text-sm text-gray-500">
+                      {new Date(order.created_at).toLocaleString('th-TH')}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Upload New Sound */}
-              <div className="space-y-3">
-                <Label className="text-base font-medium">อัพโหลดเสียงใหม่</Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={uploadSound}
-                    disabled={!uploadedFile || isUploading}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isUploading ? 'กำลังอัพโหลด...' : 'อัพโหลด'}
-                  </Button>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">ลูกค้า: </span>
+                    {order.customer_name || 'ไม่ระบุ'}
+                  </div>
+                  <div>
+                    <span className="text-gray-600">เบอร์โทร: </span>
+                    {order.customer_phone || 'ไม่ระบุ'}
+                  </div>
+                  <div>
+                    <span className="text-gray-600">การชำระเงิน: </span>
+                    {order.payment_method}
+                  </div>
+                  <div>
+                    <span className="text-gray-600">การจัดส่ง: </span>
+                    {order.delivery_type}
+                  </div>
                 </div>
-                {uploadedFile && (
-                  <div className="text-sm text-gray-600">
-                    ไฟล์ที่เลือก: {uploadedFile.name}
+
+                {order.delivery_address && (
+                  <div className="mt-2 text-sm">
+                    <span className="text-gray-600">ที่อยู่จัดส่ง: </span>
+                    {order.delivery_address}
                   </div>
                 )}
-                <div className="text-xs text-gray-500">
-                  รองรับไฟล์เสียง (MP3, WAV, OGG) ขนาดไม่เกิน 5MB • เมื่ออัพโหลดจะตั้งเป็นเสียงเริ่มต้นทันที
+
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOrderStatus(order.id, 'confirmed');
+                    }}
+                    disabled={order.order_status !== 'pending'}
+                  >
+                    ยืนยัน
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOrderStatus(order.id, 'preparing');
+                    }}
+                    disabled={order.order_status !== 'confirmed'}
+                  >
+                    เตรียมอาหาร
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOrderStatus(order.id, 'ready');
+                    }}
+                    disabled={order.order_status !== 'preparing'}
+                  >
+                    พร้อมส่ง
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOrderStatus(order.id, 'completed');
+                    }}
+                    disabled={order.order_status !== 'ready'}
+                  >
+                    เสร็จสิ้น
+                  </Button>
                 </div>
               </div>
-            </div>
-          </ScrollArea>
+            ))}
+          </div>
           
-          <DialogFooter>
-            <Button onClick={() => setIsSoundSettingsOpen(false)}>
-              ปิด
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {filteredOrders.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              ไม่พบออเดอร์ที่ตรงกับเงื่อนไข
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
