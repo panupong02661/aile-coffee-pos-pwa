@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,14 +13,13 @@ import { toast } from 'sonner';
 
 interface Customer {
   id: string;
-  full_name: string;
+  name: string;
   phone: string;
   tier: string;
   points: number;
   total_spent: number;
-  birth_date?: string;
-  gender?: string;
-  user_id?: string;
+  join_date?: string;
+  email?: string;
 }
 
 interface Reward {
@@ -66,7 +66,6 @@ const GiftSender = () => {
 
   const tierOptions = [
     { value: 'all', label: 'ทุกระดับ' },
-    { value: 'bronze', label: 'บรอนซ์' },
     { value: 'silver', label: 'เงิน' },
     { value: 'gold', label: 'ทอง' },
     { value: 'platinum', label: 'แพลทินัม' }
@@ -85,11 +84,11 @@ const GiftSender = () => {
 
   const fetchAllCustomers = async () => {
     try {
-      console.log('Fetching customers from customer_profiles table...');
+      console.log('Fetching customers from members table...');
       const { data, error } = await supabase
-        .from('customer_profiles')
+        .from('members')
         .select('*')
-        .order('full_name');
+        .order('name');
 
       if (error) {
         console.error('Supabase error:', error);
@@ -100,8 +99,19 @@ const GiftSender = () => {
       console.log('Number of customers:', data?.length || 0);
       
       if (data && data.length > 0) {
-        setAllCustomers(data);
-        toast.success(`พบข้อมูลลูกค้า ${data.length} คน`);
+        const convertedCustomers = data.map(member => ({
+          id: member.id,
+          name: member.name,
+          phone: member.phone,
+          tier: member.tier,
+          points: member.points,
+          total_spent: member.total_spent,
+          join_date: member.join_date,
+          email: member.email
+        }));
+        
+        setAllCustomers(convertedCustomers);
+        toast.success(`พบข้อมูลลูกค้า ${convertedCustomers.length} คน`);
       } else {
         console.log('No customer data found');
         toast.info('ไม่พบข้อมูลลูกค้าในระบบ');
@@ -158,7 +168,7 @@ const GiftSender = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(customer =>
-        customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer.phone.includes(searchTerm)
       );
       console.log('After search filter:', filtered.length);
@@ -355,7 +365,7 @@ const GiftSender = () => {
                     <div className="flex items-center gap-2">
                       {getTierIcon(customer.tier)}
                       <div>
-                        <div className="font-medium">{customer.full_name}</div>
+                        <div className="font-medium">{customer.name}</div>
                         <div className="text-sm text-gray-500">{customer.phone}</div>
                       </div>
                     </div>
