@@ -32,7 +32,6 @@ export const useAllOrders = () => {
         .from('orders')
         .select(`
           *,
-          status,
           members (
             name
           )
