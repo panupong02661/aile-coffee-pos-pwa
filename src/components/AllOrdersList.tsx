@@ -15,19 +15,20 @@ const AllOrdersList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>('');
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const { orders, loading, error } = useAllOrders();
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
       currency: 'THB'
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('th-TH', {
       year: 'numeric',
       month: 'short',
@@ -38,12 +39,12 @@ const AllOrdersList = () => {
   };
 
   // ฟังก์ชันทำความสะอาดเลขออเดอร์ (ลบ TRIGGER ออก)
-  const cleanOrderNumber = (orderNumber) => {
+  const cleanOrderNumber = (orderNumber: string) => {
     if (!orderNumber) return '';
     return orderNumber.replace(/-TRIGGER$/, '');
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -52,7 +53,7 @@ const AllOrdersList = () => {
     }
   };
 
-  const getPaymentStatusColor = (status) => {
+  const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -71,8 +72,9 @@ const AllOrdersList = () => {
     return matchesSearch && matchesStatus && matchesPayment && matchesDate;
   });
 
-  const handleViewDetails = (order) => {
-    setSelectedOrder(order);
+  const handleViewDetails = (order: any) => {
+    setSelectedOrderId(order.id);
+    setSelectedOrderNumber(cleanOrderNumber(order.order_number));
     setIsDetailsModalOpen(true);
   };
 
@@ -221,7 +223,8 @@ const AllOrdersList = () => {
       </Card>
 
       <OrderDetailsModal
-        order={selectedOrder}
+        orderId={selectedOrderId || ''}
+        orderNumber={selectedOrderNumber}
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
       />
