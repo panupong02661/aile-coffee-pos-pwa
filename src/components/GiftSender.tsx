@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ interface Reward {
 
 interface Promotion {
   id: string;
-  name: string;
+  title: string;
   discount_value: number;
   discount_type: string;
   end_date: string;
@@ -140,7 +139,7 @@ const GiftSender = () => {
       
       const mappedPromotions = (data || []).map(promo => ({
         id: promo.id,
-        name: promo.title || promo.name || 'ไม่มีชื่อ',
+        title: promo.title || 'ไม่มีชื่อ',
         discount_value: promo.discount_value,
         discount_type: promo.discount_type || 'percentage',
         end_date: promo.end_date
@@ -228,7 +227,7 @@ const GiftSender = () => {
     const promotion = promotions.find(p => p.id === promotionId);
     if (promotion) {
       setSelectedPromotion(promotionId);
-      setGiftName(promotion.name);
+      setGiftName(promotion.title);
       setGiftValue(promotion.discount_value.toString());
       setGiftDescription(`ส่วนลด ${promotion.discount_value}${promotion.discount_type === 'percentage' ? '%' : ' บาท'}`);
       setExpiryDate(new Date(promotion.end_date).toISOString().split('T')[0]);
@@ -441,7 +440,7 @@ const GiftSender = () => {
                 <SelectContent>
                   {promotions.map((promotion) => (
                     <SelectItem key={promotion.id} value={promotion.id}>
-                      {promotion.name} (ลด {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : ' บาท'})
+                      {promotion.title} (ลด {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : ' บาท'})
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,8 +65,26 @@ const OnlineOrderManagement = () => {
 
       if (error) throw error;
 
-      setOrders(data || []);
-      calculateSummaries(data || []);
+      // Convert the data to match OnlineOrder interface
+      const convertedOrders: OnlineOrder[] = (data || []).map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        customer_name: order.customer_name || undefined,
+        customer_phone: order.customer_phone || undefined,
+        items: Array.isArray(order.items) ? order.items : [],
+        total_amount: order.total_amount,
+        order_status: order.order_status,
+        payment_status: order.payment_status,
+        payment_method: order.payment_method,
+        delivery_type: order.delivery_type,
+        delivery_address: order.delivery_address || undefined,
+        notes: order.notes || undefined,
+        created_at: order.created_at,
+        updated_at: order.updated_at
+      }));
+
+      setOrders(convertedOrders);
+      calculateSummaries(convertedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์');
