@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Bell, 
   MessageSquare, 
@@ -33,6 +34,8 @@ import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
 const NotificationPage = () => {
   const { toast } = useToast();
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
     onlineOrders: {
@@ -72,6 +75,244 @@ const NotificationPage = () => {
       message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
     }
   });
+
+  // ฟังก์ชันสำหรับดึงข้อมูลรายงานประจำวัน
+  const generateDailyReport = async () => {
+    try {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      // ดึงข้อมูลออเดอร์วันนี้
+      const { data: todayOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, total_amount, bill_discount, created_at')
+        .gte('created_at', startOfDay.toISOString());
+
+      if (ordersError) throw ordersError;
+
+      // ดึงข้อมูลรายการเมนูที่ขายวันนี้
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select(`
+          menu_item_name,
+          quantity,
+          total_price,
+          order:orders!inner(created_at)
+        `)
+        .gte('order.created_at', startOfDay.toISOString());
+
+      if (itemsError) throw itemsError;
+
+      // คำนวณสถิติ
+      const totalOrders = todayOrders?.length || 0;
+      const totalSales = todayOrders?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
+      const totalDiscount = todayOrders?.reduce((sum, order) => sum + (Number(order.bill_discount) || 0), 0) || 0;
+      const netSales = totalSales - totalDiscount;
+
+      // จัดกลุ่มเมนูและเรียงตามยอดขาย
+      const menuStats = orderItems?.reduce((acc: any, item) => {
+        const name = item.menu_item_name;
+        if (!acc[name]) {
+          acc[name] = { quantity: 0, totalSales: 0 };
+        }
+        acc[name].quantity += item.quantity;
+        acc[name].totalSales += Number(item.total_price) || 0;
+        return acc;
+      }, {}) || {};
+
+      const topMenus = Object.entries(menuStats)
+        .map(([name, stats]: [string, any]) => ({
+          name,
+          quantity: stats.quantity,
+          totalSales: stats.totalSales
+        }))
+        .sort((a, b) => b.totalSales - a.totalSales)
+        .slice(0, 10);
+
+      return {
+        date: today.toLocaleDateString('th-TH'),
+        time: today.toLocaleTimeString('th-TH'),
+        totalOrders,
+        totalSales,
+        totalDiscount,
+        netSales,
+        topMenus
+      };
+    } catch (error) {
+      console.error('Error generating daily report:', error);
+      throw error;
+    }
+  };
+
+  // ฟังก์ชันส่งรายงานไป Discord
+  const sendDiscordReport = async (reportData: any, webhookUrl: string) => {
+    const topMenusList = reportData.topMenus
+      .map((menu: any, index: number) => 
+        `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
+      )
+      .join('\n');
+
+    const embed = {
+      title: '📊 สรุปยอดขายประจำวัน',
+      description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
+      color: 0x00ff00,
+      fields: [
+        {
+          name: '📅 วันที่สร้างรายงาน',
+          value: `${reportData.date} เวลา ${reportData.time}`,
+          inline: true
+        },
+        {
+          name: '🛒 จำนวนออเดอร์ทั้งหมด',
+          value: `${reportData.totalOrders} รายการ`,
+          inline: true
+        },
+        {
+          name: '💰 ยอดขายรวม',
+          value: `${reportData.totalSales.toLocaleString()} บาท`,
+          inline: true
+        },
+        {
+          name: '💸 ส่วนลดรวม',
+          value: `${reportData.totalDiscount.toLocaleString()} บาท`,
+          inline: true
+        },
+        {
+          name: '💵 ยอดขายสุทธิ',
+          value: `${reportData.netSales.toLocaleString()} บาท`,
+          inline: true
+        },
+        {
+          name: '🏆 เมนูขายดี',
+          value: topMenusList || 'ไม่มีข้อมูล',
+          inline: false
+        }
+      ],
+      footer: {
+        text: 'ระบบแจ้งเตือนร้านอาหาร'
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: '📊 **รายงานประจำวัน - ส่งทันที**',
+        embeds: [embed]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Discord webhook failed: ${response.status}`);
+    }
+  };
+
+  // ฟังก์ชันส่งรายงานไป LINE (placeholder)
+  const sendLineReport = async (reportData: any, token: string) => {
+    // TODO: Implement LINE notification
+    console.log('Sending to LINE:', reportData);
+  };
+
+  // ฟังก์ชันส่งรายงานไป Telegram (placeholder)
+  const sendTelegramReport = async (reportData: any, token: string) => {
+    // TODO: Implement Telegram notification
+    console.log('Sending to Telegram:', reportData);
+  };
+
+  // ฟังก์ชันส่งรายงานไป Instagram (placeholder)
+  const sendInstagramReport = async (reportData: any, token: string) => {
+    // TODO: Implement Instagram notification
+    console.log('Sending to Instagram:', reportData);
+  };
+
+  // ฟังก์ชันส่งรายงานทันที
+  const handleSendReportNow = async () => {
+    setIsGeneratingReport(true);
+    
+    try {
+      // สร้างรายงาน
+      const reportData = await generateDailyReport();
+      
+      let sentCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      // ส่งไป Discord ถ้าเปิดใช้งาน
+      if (settings.dailyReports.platforms.discord.enabled && settings.dailyReports.platforms.discord.token) {
+        try {
+          await sendDiscordReport(reportData, settings.dailyReports.platforms.discord.token);
+          sentCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`Discord: ${error}`);
+        }
+      }
+
+      // ส่งไป LINE ถ้าเปิดใช้งาน
+      if (settings.dailyReports.platforms.line.enabled && settings.dailyReports.platforms.line.token) {
+        try {
+          await sendLineReport(reportData, settings.dailyReports.platforms.line.token);
+          sentCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`LINE: ${error}`);
+        }
+      }
+
+      // ส่งไป Telegram ถ้าเปิดใช้งาน
+      if (settings.dailyReports.platforms.telegram.enabled && settings.dailyReports.platforms.telegram.token) {
+        try {
+          await sendTelegramReport(reportData, settings.dailyReports.platforms.telegram.token);
+          sentCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`Telegram: ${error}`);
+        }
+      }
+
+      // ส่งไป Instagram ถ้าเปิดใช้งาน
+      if (settings.dailyReports.platforms.instagram.enabled && settings.dailyReports.platforms.instagram.token) {
+        try {
+          await sendInstagramReport(reportData, settings.dailyReports.platforms.instagram.token);
+          sentCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`Instagram: ${error}`);
+        }
+      }
+
+      // แสดงผลลัพธ์
+      if (sentCount > 0) {
+        toast({
+          title: 'ส่งรายงานสำเร็จ! ✅',
+          description: `ส่งรายงานไปยัง ${sentCount} แพลตฟอร์มแล้ว${errorCount > 0 ? ` (มีข้อผิดพลาด ${errorCount} แพลตฟอร์ม)` : ''}`,
+        });
+      } else {
+        toast({
+          title: 'ไม่สามารถส่งรายงานได้',
+          description: 'กรุณาตรวจสอบการตั้งค่าแพลตฟอร์มและ API Token',
+          variant: 'destructive'
+        });
+      }
+
+      if (errors.length > 0) {
+        console.error('Notification errors:', errors);
+      }
+
+    } catch (error) {
+      console.error('Error sending daily report:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถสร้างหรือส่งรายงานได้',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   const handleSaveSettings = () => {
     // บันทึกการตั้งค่า
@@ -395,14 +636,25 @@ const NotificationPage = () => {
           <TabsContent value="daily-reports">
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <BarChart className="w-6 h-6 text-blue-600" />
-                  <div>
-                    <CardTitle>รายงานประจำวัน</CardTitle>
-                    <CardDescription>
-                      ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
-                    </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <BarChart className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <CardTitle>รายงานประจำวัน</CardTitle>
+                      <CardDescription>
+                        ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
+                      </CardDescription>
+                    </div>
                   </div>
+                  <Button
+                    onClick={handleSendReportNow}
+                    disabled={isGeneratingReport}
+                    className="flex items-center gap-2"
+                    variant="outline"
+                  >
+                    <Send className="w-4 h-4" />
+                    {isGeneratingReport ? 'กำลังส่ง...' : 'ส่งสรุปทันที'}
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
