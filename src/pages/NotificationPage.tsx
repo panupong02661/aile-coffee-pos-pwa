@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,10 +55,10 @@ const NotificationPage = () => {
       enabled: true,
       time: '18:00',
       platforms: {
-        line: { enabled: true },
-        instagram: { enabled: false },
-        discord: { enabled: false },
-        telegram: { enabled: false }
+        line: { enabled: true, token: '' },
+        instagram: { enabled: false, token: '' },
+        discord: { enabled: false, token: '' },
+        telegram: { enabled: false, token: '' }
       },
       message: 'สรุปยอดขายประจำวัน {{date}}\nยอดขายรวม: {{totalSales}} บาท\nจำนวนออเดอร์: {{orderCount}} รายการ'
     },
@@ -67,10 +68,10 @@ const NotificationPage = () => {
       dayOfMonth: 1,
       time: '09:00',
       platforms: {
-        line: { enabled: true },
-        instagram: { enabled: false },
-        discord: { enabled: false },
-        telegram: { enabled: false }
+        line: { enabled: true, token: '' },
+        instagram: { enabled: false, token: '' },
+        discord: { enabled: false, token: '' },
+        telegram: { enabled: false, token: '' }
       },
       message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
     }
