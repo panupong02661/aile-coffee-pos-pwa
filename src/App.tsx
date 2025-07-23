@@ -39,12 +39,10 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <GlobalNotificationProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <GlobalNotificationProvider>
+            <BrowserRouter>
               <Routes>
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -73,10 +71,12 @@ function App() {
                 <Route path="/notify" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </GlobalNotificationProvider>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
+            </BrowserRouter>
+          </GlobalNotificationProvider>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
