@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { 
   Bell, 
   MessageSquare, 
@@ -26,8 +25,7 @@ import {
   Zap,
   Save,
   TestTube,
-  CheckCircle,
-  RefreshCw
+  CheckCircle
 } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
@@ -35,7 +33,6 @@ import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
 const NotificationPage = () => {
   const { toast } = useToast();
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
-  const [sendingReport, setSendingReport] = useState(false);
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
     onlineOrders: {
@@ -277,127 +274,6 @@ const NotificationPage = () => {
     </div>
   );
 
-  const handleSendDailyReportNow = async () => {
-    setSendingReport(true);
-    
-    try {
-      // ดึงข้อมูลสำหรับรายงานประจำวัน
-      const today = new Date().toISOString().split('T')[0];
-      const todayStart = new Date(today + 'T00:00:00.000Z');
-      const todayEnd = new Date(today + 'T23:59:59.999Z');
-
-      // ดึงออเดอร์ทั้งหมดของวันนี้
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            menu_item_name,
-            quantity,
-            total_price
-          )
-        `)
-        .gte('created_at', todayStart.toISOString())
-        .lte('created_at', todayEnd.toISOString());
-
-      if (ordersError) throw ordersError;
-
-      // ดึงออเดอร์ออนไลน์ของวันนี้
-      const { data: customerOrders, error: customerOrdersError } = await supabase
-        .from('customer_orders')
-        .select('*')
-        .gte('created_at', todayStart.toISOString())
-        .lte('created_at', todayEnd.toISOString());
-
-      if (customerOrdersError) throw customerOrdersError;
-
-      // รวมข้อมูลออเดอร์ทั้งหมด
-      const allOrders = [
-        ...(orders || []),
-        ...(customerOrders || [])
-      ];
-
-      const totalOrders = allOrders.length;
-      const totalSales = allOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-
-      // รวมรายการเมนูทั้งหมดและเรียงลำดับ
-      const menuItems = new Map();
-
-      // จากออเดอร์ POS
-      orders?.forEach(order => {
-        order.order_items?.forEach((item: any) => {
-          const key = item.menu_item_name;
-          if (menuItems.has(key)) {
-            const existing = menuItems.get(key);
-            existing.quantity += item.quantity;
-            existing.total += item.total_price;
-          } else {
-            menuItems.set(key, {
-              name: item.menu_item_name,
-              quantity: item.quantity,
-              total: item.total_price
-            });
-          }
-        });
-      });
-
-      // จากออเดอร์ออนไลน์
-      customerOrders?.forEach(order => {
-        const items = order.items as any[];
-        items?.forEach(item => {
-          const key = item.name;
-          if (menuItems.has(key)) {
-            const existing = menuItems.get(key);
-            existing.quantity += item.quantity;
-            existing.total += item.total_price;
-          } else {
-            menuItems.set(key, {
-              name: item.name,
-              quantity: item.quantity,
-              total: item.total_price
-            });
-          }
-        });
-      });
-
-      // เรียงลำดับเมนูตามจำนวนที่ขายได้มากไปน้อย
-      const topMenuItems = Array.from(menuItems.values())
-        .sort((a, b) => b.quantity - a.quantity);
-
-      const reportData = {
-        date: new Date().toLocaleDateString('th-TH'),
-        totalOrders,
-        totalSales,
-        topMenuItems
-      };
-
-      // ส่งรายงานผ่าน edge function
-      const { error: reportError } = await supabase.functions.invoke('send-notifications', {
-        body: {
-          type: 'daily_report',
-          data: reportData
-        }
-      });
-
-      if (reportError) throw reportError;
-
-      toast({
-        title: 'ส่งรายงานสำเร็จ! ✅',
-        description: `ส่งสรุปยอดขายประจำวัน ${reportData.date} ไปยังทุกแพลตฟอร์มแล้ว`,
-      });
-
-    } catch (error) {
-      console.error('Report error:', error);
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถส่งรายงานได้ กรุณาลองใหม่อีกครั้ง',
-        variant: 'destructive'
-      });
-    } finally {
-      setSendingReport(false);
-    }
-  };
-
   return (
     <Shell>
       <div className="container mx-auto p-6 max-w-6xl">
@@ -515,64 +391,21 @@ const NotificationPage = () => {
             </Card>
           </TabsContent>
 
-          {/* รายงานประจำวัน with enhanced send now button */}
+          {/* รายงานประจำวัน */}
           <TabsContent value="daily-reports">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <BarChart className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <CardTitle>รายงานประจำวัน</CardTitle>
-                      <CardDescription>
-                        ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด หรือส่งทันที
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handleSendDailyReportNow}
-                      disabled={sendingReport}
-                      className="flex items-center gap-2"
-                      variant="outline"
-                    >
-                      {sendingReport ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          กำลังส่ง...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          ส่งสรุปทันที
-                        </>
-                      )}
-                    </Button>
+                <div className="flex items-center gap-3">
+                  <BarChart className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <CardTitle>รายงานประจำวัน</CardTitle>
+                    <CardDescription>
+                      ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-blue-900 mb-1">ส่งรายงานทันที</h4>
-                      <p className="text-blue-700 text-sm mb-3">
-                        คลิกปุ่ม "ส่งสรุปทันที" เพื่อส่งรายงานประจำวันไปยัง LINE, Discord, Telegram และ Instagram ทันที
-                      </p>
-                      <div className="text-blue-700 text-sm">
-                        <strong>รายละเอียดรายงานจะมี:</strong>
-                        <ul className="list-disc list-inside mt-1 space-y-1">
-                          <li>วันที่และเวลาที่สร้างรายงาน</li>
-                          <li>จำนวนออเดอร์ทั้งหมดของวันนี้</li>
-                          <li>ยอดขายรวมของวันนี้</li>
-                          <li>รายการเมนูขายดี เรียงจากมากไปน้อย พร้อมจำนวนและยอด</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <Label htmlFor="daily-reports-enabled" className="text-base font-medium">
                     เปิดใช้งานรายงานประจำวัน
