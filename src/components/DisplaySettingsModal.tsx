@@ -13,7 +13,7 @@ interface DisplaySettingsModalProps {
   setGridColumns: (columns: number) => void;
   itemSize: 'small' | 'medium' | 'large';
   setItemSize: (size: 'small' | 'medium' | 'large') => void;
-  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'customer-online' | 'other';
+  page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
 }
 
 const DisplaySettingsModal = ({
@@ -34,9 +34,6 @@ const DisplaySettingsModal = ({
     } else if (page === 'pos') {
       localStorage.setItem('pos-grid-columns', gridColumns.toString());
       localStorage.setItem('pos-item-size', itemSize);
-    } else if (page === 'customer-online') {
-      localStorage.setItem('customer-online-grid-columns', gridColumns.toString());
-      localStorage.setItem('customer-online-item-size', itemSize);
     }
   }, [gridColumns, itemSize, page]);
 
