@@ -44,6 +44,11 @@ const AllOrdersList = () => {
     }
   };
 
+  // Filter out orders that have "TRIGGER" in the order number
+  const filteredOrders = orders.filter(order => 
+    !order.order_number.includes('TRIGGER')
+  );
+
   if (loading) {
     return (
       <Card>
@@ -67,7 +72,7 @@ const AllOrdersList = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               ไม่มีออเดอร์ในระบบ
             </div>
@@ -87,7 +92,7 @@ const AllOrdersList = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => {
+                  {filteredOrders.map((order) => {
                     const discountAmount = order.bill_discount || 0;
                     const netAmount = order.total_amount - discountAmount;
                     
