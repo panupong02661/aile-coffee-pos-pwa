@@ -7,8 +7,7 @@ import {
   Menu as MenuIcon, 
   Users, 
   FileText, 
-  Settings,
-  Bell
+  Settings 
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -20,7 +19,6 @@ const Sidebar = () => {
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'สมาชิก', icon: Users, path: '/members' },
     { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-    { id: 'notify', label: 'แจ้งเตือน', icon: Bell, path: '/notify' },
     { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
   ];
 
