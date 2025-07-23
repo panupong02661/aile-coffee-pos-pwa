@@ -232,16 +232,6 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
     }
   };
 
-  const getAddonGroupsForMenuItem = (menuItemId: string) => {
-    // Get addon groups for this specific menu item
-    return [];
-  };
-
-  const getAddonGroupsForCategory = (categoryId: string) => {
-    // Get addon groups for the category
-    return [];
-  };
-
   const handleMenuItemClick = (menuItem: any) => {
     console.log('Menu item clicked:', menuItem);
     
@@ -420,22 +410,33 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
       const pointsDiscount = calculatePointsDiscount();
       const totalAmount = calculateTotal();
 
-      // Create order
-      const { data: orderData, error: orderError } = await supabase
+      // Convert cart items to JSON-compatible format
+      const cartItemsJson = cart.map(item => ({
+        id: item.id,
+        menu_item: item.menu_item,
+        quantity: item.quantity,
+        selected_addons: item.selected_addons,
+        total_price: item.total_price
+      }));
+
+      // Create order with proper typing
+      const orderData = {
+        customer_id: currentUser?.id,
+        order_number: orderNumber,
+        items: cartItemsJson as any, // Cast to any to satisfy the Json type
+        subtotal: subtotal,
+        discount_amount: pointsDiscount,
+        total_amount: totalAmount,
+        payment_method: paymentMethod,
+        payment_status: paymentMethod === 'promptpay' ? 'pending' : 'completed',
+        order_status: 'pending',
+        delivery_type: 'pickup',
+        notes: notes
+      };
+
+      const { data: insertedOrder, error: orderError } = await supabase
         .from('customer_orders')
-        .insert({
-          customer_id: currentUser?.id,
-          order_number: orderNumber,
-          items: cart,
-          subtotal: subtotal,
-          discount_amount: pointsDiscount,
-          total_amount: totalAmount,
-          payment_method: paymentMethod,
-          payment_status: paymentMethod === 'promptpay' ? 'pending' : 'completed',
-          order_status: 'pending',
-          delivery_type: 'pickup',
-          notes: notes
-        })
+        .insert(orderData)
         .select()
         .single();
 
@@ -465,11 +466,11 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
       setPointsToUse(0);
 
       // Send notification
-      if (onOrderPlaced && orderData) {
+      if (onOrderPlaced && insertedOrder) {
         onOrderPlaced({
-          order_number: orderData.order_number,
+          order_number: insertedOrder.order_number,
           customer_name: currentUser?.full_name || 'ลูกค้า',
-          total: orderData.total_amount,
+          total: insertedOrder.total_amount,
           items: cart.map(item => ({
             name: item.menu_item.name,
             quantity: item.quantity,
