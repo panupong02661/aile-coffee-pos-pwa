@@ -95,9 +95,10 @@ const NotificationPage = () => {
 
   const fetchSettings = async () => {
     try {
+      // Query the correct notification_settings table that contains our JSONB columns
       const { data, error } = await supabase
         .from('notification_settings')
-        .select('*')
+        .select('online_orders, daily_reports, monthly_reports')
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -121,6 +122,7 @@ const NotificationPage = () => {
     try {
       setIsLoading(true);
       
+      // Use the correct notification_settings table
       const { error } = await supabase
         .from('notification_settings')
         .upsert({
@@ -394,7 +396,7 @@ const NotificationPage = () => {
                     rows={3}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {{orderNumber}}, {{customerName}}, {{amount}} เป็นตัวแปร
+                    ใช้ {'{'}{'{'} orderNumber{'}'}{'}'}การใช้ {'{'}{'{'} customerName{'}'}{'}'}การใช้ {'{'}{'{'} amount{'}'}{'}'}การใช้ เป็นตัวแปร
                   </p>
                 </div>
 
