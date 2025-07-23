@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Shell } from "@/components/Shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,9 +107,9 @@ const NotificationPage = () => {
 
       if (data) {
         setSettings({
-          online_orders: data.online_orders || settings.online_orders,
-          daily_reports: data.daily_reports || settings.daily_reports,
-          monthly_reports: data.monthly_reports || settings.monthly_reports
+          online_orders: (data.online_orders as any) || settings.online_orders,
+          daily_reports: (data.daily_reports as any) || settings.daily_reports,
+          monthly_reports: (data.monthly_reports as any) || settings.monthly_reports
         });
       }
     } catch (error) {
