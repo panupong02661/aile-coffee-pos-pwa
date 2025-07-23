@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,9 +28,11 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { Shell } from '@/components/Shell';
+import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
 
 const NotificationPage = () => {
   const { toast } = useToast();
+  const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
     onlineOrders: {
@@ -80,11 +81,79 @@ const NotificationPage = () => {
     });
   };
 
-  const handleTestNotification = (type: string, platform: string) => {
-    toast({
-      title: 'ส่งการทดสอบแล้ว',
-      description: `ทดสอบการแจ้งเตือน${type}ผ่าน ${platform}`,
-    });
+  const handleTestNotification = async (type: string, platform: string) => {
+    if (platform === 'Discord') {
+      // ทดสอบ Discord Webhook
+      const discordToken = settings.onlineOrders.platforms.discord.token;
+      if (!discordToken) {
+        toast({
+          title: 'ไม่พบ Webhook URL',
+          description: 'กรุณาใส่ Discord Webhook URL ก่อนทดสอบ',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      try {
+        const testMessage = {
+          content: '🧪 **ทดสอบการแจ้งเตือน**',
+          embeds: [{
+            title: '🔔 ทดสอบระบบแจ้งเตือนร้านอาหาร',
+            description: `การทดสอบ: ${type}`,
+            color: 0x00ff00, // สีเขียว
+            fields: [
+              {
+                name: '📅 วันที่',
+                value: new Date().toLocaleDateString('th-TH'),
+                inline: true
+              },
+              {
+                name: '⏰ เวลา',
+                value: new Date().toLocaleTimeString('th-TH'),
+                inline: true
+              }
+            ],
+            footer: {
+              text: 'ระบบแจ้งเตือนร้านอาหาร'
+            },
+            timestamp: new Date().toISOString()
+          }]
+        };
+
+        const response = await fetch(discordToken, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testMessage)
+        });
+
+        if (response.ok) {
+          toast({
+            title: 'ทดสอบสำเร็จ! ✅',
+            description: 'ข้อความทดสอบถูกส่งไปยัง Discord แล้ว',
+          });
+        } else {
+          const errorText = await response.text();
+          toast({
+            title: 'ทดสอบไม่สำเร็จ',
+            description: `Error: ${response.status} - ตรวจสอบ Webhook URL`,
+            variant: 'destructive'
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถเชื่อมต่อ Discord ได้ กรุณาตรวจสอบ URL',
+          variant: 'destructive'
+        });
+      }
+    } else {
+      toast({
+        title: 'ส่งการทดสอบแล้ว',
+        description: `ทดสอบการแจ้งเตือน${type}ผ่าน ${platform}`,
+      });
+    }
   };
 
   const PlatformSettings = ({ 
@@ -112,6 +181,36 @@ const NotificationPage = () => {
           telegram: 'Telegram'
         };
 
+        const getTokenLabel = (platform: string) => {
+          switch (platform) {
+            case 'discord':
+              return 'Discord Webhook URL';
+            case 'line':
+              return 'LINE Channel Access Token';
+            case 'telegram':
+              return 'Telegram Bot Token';
+            case 'instagram':
+              return 'Instagram API Token';
+            default:
+              return 'API Token';
+          }
+        };
+
+        const getTokenPlaceholder = (platform: string) => {
+          switch (platform) {
+            case 'discord':
+              return 'https://discord.com/api/webhooks/...';
+            case 'line':
+              return 'LINE Channel Access Token';
+            case 'telegram':
+              return 'Bot Token จาก @BotFather';
+            case 'instagram':
+              return 'Instagram API Token';
+            default:
+              return `${platformNames[platform as keyof typeof platformNames]} API Token`;
+          }
+        };
+
         return (
           <Card key={platform} className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -131,12 +230,24 @@ const NotificationPage = () => {
             {config.enabled && (
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor={`${type}-${platform}-token`}>API Token</Label>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor={`${type}-${platform}-token`}>{getTokenLabel(platform)}</Label>
+                    {platform === 'discord' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowDiscordGuide(!showDiscordGuide)}
+                        className="text-xs"
+                      >
+                        {showDiscordGuide ? 'ซ่อนคู่มือ' : 'ดูคู่มือ'}
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
                     <Input
                       id={`${type}-${platform}-token`}
-                      type="password"
-                      placeholder={`${platformNames[platform as keyof typeof platformNames]} API Token`}
+                      type={platform === 'discord' ? 'url' : 'password'}
+                      placeholder={getTokenPlaceholder(platform)}
                       value={config.token || ''}
                       onChange={(e) => onChange(platform, 'token', e.target.value)}
                     />
@@ -144,12 +255,17 @@ const NotificationPage = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleTestNotification(type, platformNames[platform as keyof typeof platformNames])}
+                      disabled={!config.token}
                     >
                       <TestTube className="w-4 h-4" />
                       ทดสอบ
                     </Button>
                   </div>
                 </div>
+                
+                {platform === 'discord' && showDiscordGuide && (
+                  <DiscordWebhookGuide />
+                )}
               </div>
             )}
           </Card>
