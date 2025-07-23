@@ -20,7 +20,7 @@ import {
   Upload,
   CheckCircle
 } from 'lucide-react';
-import QRCodeGenerator from '@/components/QRCodeGenerator';
+import QRCodePromptPay from '@/components/QRCodePromptPay';
 
 interface MenuItem {
   id: string;
@@ -780,7 +780,10 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
                   <CardTitle>QR Code สำหรับการโอนเงิน</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <QRCodeGenerator phoneNumber={shopSettings.phone || '0888888888'} amount={calculateTotal()} />
+                  <QRCodePromptPay 
+                    phoneNumber={shopSettings.phone || '0888888888'} 
+                    amount={calculateTotal()} 
+                  />
                   <p className="text-sm text-gray-500">
                     สแกน QR Code นี้เพื่อชำระเงินผ่าน Mobile Banking
                   </p>
