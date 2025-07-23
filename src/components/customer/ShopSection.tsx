@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,9 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('products')
+        .from('menu_items')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_available', true);
 
       if (error) {
         console.error('Error loading products:', error);
@@ -100,19 +101,15 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
     try {
       setIsLoading(true);
       
-      // Create order
+      // Create order with correct column names
       const { data, error } = await supabase
         .from('orders')
         .insert({
           member_id: currentUser?.id,
-          total: calculateTotal(),
-          items: cart.map(item => ({
-            product_id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
-          })),
-          status: 'pending'
+          total_amount: calculateTotal(),
+          items_count: cart.reduce((total, item) => total + item.quantity, 0),
+          payment_method: 'online',
+          order_source: 'customer_app'
         })
         .select()
         .single();
@@ -127,16 +124,34 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
         return;
       }
 
+      // Create order items
+      const orderItems = cart.map(item => ({
+        order_id: data.id,
+        menu_item_id: item.id,
+        menu_item_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+      }
+
       // Clear cart
       setCart([]);
       setOrderData(data);
 
-      // After successful order placement, send notification
+      // Send notification after successful order placement
       if (onOrderPlaced && data) {
         const notificationData = {
           order_number: data.order_number,
           customer_name: currentUser?.name || 'ลูกค้า',
-          total: data.total,
+          total: data.total_amount,
           items: cart.map(item => ({
             name: item.name,
             quantity: item.quantity,
@@ -144,7 +159,7 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
           }))
         };
         
-        // Call the notification function (don't await to avoid blocking UI)
+        // Call the notification function
         onOrderPlaced(notificationData);
       }
 
