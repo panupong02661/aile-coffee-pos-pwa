@@ -28,7 +28,7 @@ import {
   TestTube,
   CheckCircle
 } from 'lucide-react';
-import Shell from '@/components/Shell';
+import { Shell } from '@/components/Shell';
 
 const NotificationPage = () => {
   const { toast } = useToast();
@@ -241,7 +241,7 @@ const NotificationPage = () => {
                           className="min-h-[80px]"
                         />
                         <p className="text-sm text-gray-500 mt-1">
-                          ใช้ {{orderNumber}}, {{amount}}, {{customerName}} เป็นตัวแปร
+                          ใช้ {`{{orderNumber}}, {{amount}}, {{customerName}}`} เป็นตัวแปร
                         </p>
                       </div>
                     </div>
@@ -344,7 +344,7 @@ const NotificationPage = () => {
                         className="min-h-[100px]"
                       />
                       <p className="text-sm text-gray-500 mt-1">
-                        ใช้ {{date}}, {{totalSales}}, {{orderCount}} เป็นตัวแปร
+                        ใช้ {`{{date}}, {{totalSales}}, {{orderCount}}`} เป็นตัวแปร
                       </p>
                     </div>
 
@@ -472,7 +472,7 @@ const NotificationPage = () => {
                         className="min-h-[120px]"
                       />
                       <p className="text-sm text-gray-500 mt-1">
-                        ใช้ {{month}}, {{totalSales}}, {{target}}, {{growth}} เป็นตัวแปร
+                        ใช้ {`{{month}}, {{totalSales}}, {{target}}, {{growth}}`} เป็นตัวแปร
                       </p>
                     </div>
 
