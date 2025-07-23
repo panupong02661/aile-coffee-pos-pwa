@@ -41,8 +41,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <GlobalNotificationProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <GlobalNotificationProvider>
               <Routes>
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -71,8 +71,8 @@ function App() {
                 <Route path="/notify" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </GlobalNotificationProvider>
+            </GlobalNotificationProvider>
+          </BrowserRouter>
           <Toaster />
           <Sonner />
         </TooltipProvider>
