@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,7 @@ interface AddonGroup {
   id: string;
   name: string;
   is_required: boolean;
-  max_selections: number;
+  allow_multiple: boolean;
   addons: Addon[];
 }
 
@@ -66,6 +65,8 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [addonGroups, setAddonGroups] = useState<AddonGroup[]>([]);
+  const [menuAddonGroups, setMenuAddonGroups] = useState<any[]>([]);
+  const [categoryAddonGroups, setCategoryAddonGroups] = useState<any[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -126,32 +127,60 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
   }, [toast]);
 
   useEffect(() => {
-    const fetchAddonGroups = async () => {
-      const { data: addonGroupsData, error: addonGroupsError } = await supabase
-        .from('addon_groups')
-        .select(`
-          *,
-          addons (*)
-        `);
+    const fetchAddonData = async () => {
+      try {
+        // Fetch addon groups with their addons
+        const { data: addonGroupsData, error: addonGroupsError } = await supabase
+          .from('addon_groups')
+          .select(`
+            *,
+            addons (*)
+          `);
 
-      if (addonGroupsError) {
-        console.error('Error fetching addon groups:', addonGroupsError);
+        if (addonGroupsError) {
+          console.error('Error fetching addon groups:', addonGroupsError);
+          toast({
+            title: 'Error',
+            description: 'Failed to load addon groups.',
+            variant: 'destructive',
+          });
+        } else {
+          setAddonGroups(addonGroupsData || []);
+        }
+
+        // Fetch menu addon groups relationships
+        const { data: menuAddonGroupsData, error: menuAddonGroupsError } = await supabase
+          .from('menu_addon_groups')
+          .select('*');
+
+        if (menuAddonGroupsError) {
+          console.error('Error fetching menu addon groups:', menuAddonGroupsError);
+        } else {
+          setMenuAddonGroups(menuAddonGroupsData || []);
+        }
+
+        // Fetch category addon groups relationships
+        const { data: categoryAddonGroupsData, error: categoryAddonGroupsError } = await supabase
+          .from('category_addon_groups')
+          .select('*');
+
+        if (categoryAddonGroupsError) {
+          console.error('Error fetching category addon groups:', categoryAddonGroupsError);
+        } else {
+          setCategoryAddonGroups(categoryAddonGroupsData || []);
+        }
+
+      } catch (error) {
+        console.error('Error in fetchAddonData:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load addon groups.',
+          description: 'Failed to load addon data.',
           variant: 'destructive',
         });
-      } else {
-        // Map the data to include max_selections with a default value
-        const mappedGroups = (addonGroupsData || []).map(group => ({
-          ...group,
-          max_selections: 10 // Default value since it doesn't exist in DB type
-        }));
-        setAddonGroups(mappedGroups);
       }
     };
 
-    fetchAddonGroups();
+    fetchAddonData();
   }, [toast]);
 
   useEffect(() => {
@@ -191,13 +220,29 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
     fetchCustomerProfile();
   }, [user]);
 
+  const getAddonGroupsForMenuItem = (menuItem: MenuItem): AddonGroup[] => {
+    // First, check for direct menu item addon groups
+    const directMenuAddonGroupIds = menuAddonGroups
+      .filter(mag => mag.menu_item_id === menuItem.id)
+      .map(mag => mag.addon_group_id);
+
+    // Then, check for category-based addon groups
+    const categoryAddonGroupIds = categoryAddonGroups
+      .filter(cag => cag.category_id === menuItem.category_id)
+      .map(cag => cag.addon_group_id);
+
+    // Combine both and remove duplicates
+    const allAddonGroupIds = [...new Set([...directMenuAddonGroupIds, ...categoryAddonGroupIds])];
+
+    // Return the actual addon groups
+    return addonGroups.filter(ag => allAddonGroupIds.includes(ag.id));
+  };
+
   const handleAddToCart = (item: MenuItem) => {
     setSelectedItem(item);
     setSelectedAddons([]);
 
-    const itemAddonGroups = addonGroups.filter(group => {
-      return item.id === group.id;
-    });
+    const itemAddonGroups = getAddonGroupsForMenuItem(item);
 
     if (itemAddonGroups.length > 0) {
       setShowAddonModal(true);
@@ -588,21 +633,31 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
               <CardTitle>เลือก Add-ons สำหรับ {selectedItem.name}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {addonGroups.filter(group => group.id === selectedItem.id).map(group => (
+              {getAddonGroupsForMenuItem(selectedItem).map(group => (
                 <div key={group.id} className="space-y-2">
                   <Label>{group.name} {group.is_required && <span className="text-red-500">*</span>}</Label>
                   {group.addons.map(addon => (
                     <div key={addon.id} className="flex items-center justify-between">
                       <Label htmlFor={`addon-${addon.id}`} className="flex items-center space-x-2">
                         <Input
-                          type="checkbox"
+                          type={group.allow_multiple ? "checkbox" : "radio"}
                           id={`addon-${addon.id}`}
+                          name={group.allow_multiple ? undefined : `group-${group.id}`}
                           checked={selectedAddons.some(a => a.id === addon.id)}
                           onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedAddons(prev => [...prev, addon]);
+                            if (group.allow_multiple) {
+                              if (e.target.checked) {
+                                setSelectedAddons(prev => [...prev, addon]);
+                              } else {
+                                setSelectedAddons(prev => prev.filter(a => a.id !== addon.id));
+                              }
                             } else {
-                              setSelectedAddons(prev => prev.filter(a => a.id !== addon.id));
+                              if (e.target.checked) {
+                                setSelectedAddons(prev => [
+                                  ...prev.filter(a => a.addon_group_id !== group.id),
+                                  addon
+                                ]);
+                              }
                             }
                           }}
                         />
