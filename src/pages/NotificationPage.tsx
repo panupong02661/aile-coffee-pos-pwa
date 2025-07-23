@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -36,6 +35,7 @@ const NotificationPage = () => {
   const { toast } = useToast();
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
@@ -76,6 +76,114 @@ const NotificationPage = () => {
       message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
     }
   });
+
+  // โหลดการตั้งค่าจากฐานข้อมูล
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data: notificationSettings, error } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .single();
+
+        if (error) {
+          console.error('Error loading notification settings:', error);
+          return;
+        }
+
+        if (notificationSettings) {
+          console.log('Loaded notification settings:', notificationSettings);
+          
+          // แปลงข้อมูลจากฐานข้อมูลให้ตรงกับโครงสร้างใน state
+          const loadedSettings = {
+            onlineOrders: {
+              enabled: notificationSettings.online_orders?.enabled || false,
+              platforms: {
+                line: { 
+                  enabled: notificationSettings.online_orders?.platforms?.line?.enabled || false, 
+                  token: notificationSettings.online_orders?.platforms?.line?.token || '' 
+                },
+                instagram: { 
+                  enabled: notificationSettings.online_orders?.platforms?.instagram?.enabled || false, 
+                  token: notificationSettings.online_orders?.platforms?.instagram?.token || '' 
+                },
+                discord: { 
+                  enabled: notificationSettings.online_orders?.platforms?.discord?.enabled || false, 
+                  token: notificationSettings.online_orders?.platforms?.discord?.token || '' 
+                },
+                telegram: { 
+                  enabled: notificationSettings.online_orders?.platforms?.telegram?.enabled || false, 
+                  token: notificationSettings.online_orders?.platforms?.telegram?.token || '' 
+                }
+              },
+              instantNotification: true,
+              message: notificationSettings.online_orders?.message || 'มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
+            },
+            dailyReports: {
+              enabled: notificationSettings.daily_reports?.enabled || false,
+              time: notificationSettings.daily_reports?.time || '18:00',
+              platforms: {
+                line: { 
+                  enabled: notificationSettings.daily_reports?.platforms?.line?.enabled || false, 
+                  token: notificationSettings.daily_reports?.platforms?.line?.token || '' 
+                },
+                instagram: { 
+                  enabled: notificationSettings.daily_reports?.platforms?.instagram?.enabled || false, 
+                  token: notificationSettings.daily_reports?.platforms?.instagram?.token || '' 
+                },
+                discord: { 
+                  enabled: notificationSettings.daily_reports?.platforms?.discord?.enabled || false, 
+                  token: notificationSettings.daily_reports?.platforms?.discord?.token || '' 
+                },
+                telegram: { 
+                  enabled: notificationSettings.daily_reports?.platforms?.telegram?.enabled || false, 
+                  token: notificationSettings.daily_reports?.platforms?.telegram?.token || '' 
+                }
+              },
+              message: notificationSettings.daily_reports?.message || 'สรุปยอดขายประจำวัน {{date}}\nยอดขายรวม: {{totalSales}} บาท\nจำนวนออเดอร์: {{orderCount}} รายการ'
+            },
+            monthlyReports: {
+              enabled: notificationSettings.monthly_reports?.enabled || false,
+              dayOfMonth: notificationSettings.monthly_reports?.dayOfMonth || 1,
+              time: notificationSettings.monthly_reports?.time || '09:00',
+              platforms: {
+                line: { 
+                  enabled: notificationSettings.monthly_reports?.platforms?.line?.enabled || false, 
+                  token: notificationSettings.monthly_reports?.platforms?.line?.token || '' 
+                },
+                instagram: { 
+                  enabled: notificationSettings.monthly_reports?.platforms?.instagram?.enabled || false, 
+                  token: notificationSettings.monthly_reports?.platforms?.instagram?.token || '' 
+                },
+                discord: { 
+                  enabled: notificationSettings.monthly_reports?.platforms?.discord?.enabled || false, 
+                  token: notificationSettings.monthly_reports?.platforms?.discord?.token || '' 
+                },
+                telegram: { 
+                  enabled: notificationSettings.monthly_reports?.platforms?.telegram?.enabled || false, 
+                  token: notificationSettings.monthly_reports?.platforms?.telegram?.token || '' 
+                }
+              },
+              message: notificationSettings.monthly_reports?.message || 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
+            }
+          };
+
+          setSettings(loadedSettings);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดการตั้งค่าได้',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [toast]);
 
   // ฟังก์ชันสำหรับดึงข้อมูลรายงานประจำวัน
   const generateDailyReport = async () => {
@@ -207,7 +315,8 @@ const NotificationPage = () => {
     });
 
     if (!response.ok) {
-      throw new Error(`Discord webhook failed: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Discord webhook failed: ${response.status} - ${errorText}`);
     }
   };
 
@@ -244,10 +353,12 @@ const NotificationPage = () => {
       // ส่งไป Discord ถ้าเปิดใช้งาน
       if (settings.dailyReports.platforms.discord.enabled && settings.dailyReports.platforms.discord.token) {
         try {
+          console.log('Sending to Discord with token:', settings.dailyReports.platforms.discord.token);
           await sendDiscordReport(reportData, settings.dailyReports.platforms.discord.token);
           sentCount++;
         } catch (error) {
           errorCount++;
+          console.error('Discord error:', error);
           errors.push(`Discord: ${error}`);
         }
       }
@@ -315,14 +426,38 @@ const NotificationPage = () => {
     }
   };
 
-  const handleSaveSettings = () => {
-    // บันทึกการตั้งค่า
-    toast({
-      title: 'บันทึกการตั้งค่าสำเร็จ',
-      description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
-    });
+  // ฟังก์ชันบันทึกการตั้งค่า
+  const handleSaveSettings = async () => {
+    try {
+      // แปลงข้อมูลให้ตรงกับโครงสร้างฐานข้อมูล
+      const settingsToSave = {
+        online_orders: settings.onlineOrders,
+        daily_reports: settings.dailyReports,
+        monthly_reports: settings.monthlyReports
+      };
+
+      const { error } = await supabase
+        .from('notification_settings')
+        .update(settingsToSave)
+        .eq('id', '6b49a724-b7b7-48a9-ad81-bbe04fe87690'); // ใช้ ID ที่มีอยู่แล้ว
+
+      if (error) throw error;
+
+      toast({
+        title: 'บันทึกการตั้งค่าสำเร็จ',
+        description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกการตั้งค่าได้',
+        variant: 'destructive'
+      });
+    }
   };
 
+  // ฟังก์ชันทดสอบการแจ้งเตือน
   const handleTestNotification = async (type: string, platform: string) => {
     if (platform === 'Discord') {
       // ทดสอบ Discord Webhook
@@ -515,6 +650,21 @@ const NotificationPage = () => {
       })}
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <Shell>
+        <div className="container mx-auto p-6 max-w-6xl">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p>กำลังโหลดการตั้งค่า...</p>
+            </div>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
 
   return (
     <Shell>
