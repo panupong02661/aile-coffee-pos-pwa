@@ -118,28 +118,6 @@ const CustomerMobileApp: React.FC = () => {
     }
   };
 
-  const handleOrderPlaced = async (orderData: any) => {
-    try {
-      console.log('Sending order notification:', orderData);
-      
-      const { error } = await supabase.functions.invoke('send-notifications', {
-        body: {
-          type: 'order',
-          data: orderData
-        }
-      });
-
-      if (error) {
-        console.error('Error sending notification:', error);
-        // Don't show error to customer, just log it
-      } else {
-        console.log('Order notification sent successfully');
-      }
-    } catch (error) {
-      console.error('Error sending order notification:', error);
-    }
-  };
-
   useEffect(() => {
     const initializeApp = async () => {
       setIsLoading(true);
@@ -664,7 +642,7 @@ const CustomerMobileApp: React.FC = () => {
       case 'coupons':
         return <CouponsSection coupons={[]} />;
       case 'shop':
-        return <ShopSection currentUser={currentUser} onOrderPlaced={handleOrderPlaced} />;
+        return <ShopSection currentUser={currentUser} />;
       case 'history':
         return <HistorySection currentUser={currentUser} />;
       case 'stats':
