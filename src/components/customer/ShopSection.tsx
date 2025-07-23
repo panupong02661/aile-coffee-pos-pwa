@@ -97,14 +97,25 @@ const ShopSection: React.FC<ShopSectionProps> = ({ currentUser, onOrderPlaced })
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  const generateOrderNumber = () => {
+    const now = new Date();
+    const date = now.toISOString().split('T')[0].replace(/-/g, '');
+    const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `ORD-${date}${time}${random}`;
+  };
+
   const handlePlaceOrder = async () => {
     try {
       setIsLoading(true);
+      
+      const orderNumber = generateOrderNumber();
       
       // Create order with correct column names
       const { data, error } = await supabase
         .from('orders')
         .insert({
+          order_number: orderNumber,
           member_id: currentUser?.id,
           total_amount: calculateTotal(),
           items_count: cart.reduce((total, item) => total + item.quantity, 0),

@@ -578,7 +578,7 @@ const NotificationPage = () => {
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {{date}}, {{totalSales}}, {{orderCount}} เป็นตัวแปร
+                    ใช้ {'{'}{'{'} date{'}'}{'}'}, {'{'}{'{'} totalSales{'}'}{'}'}, {'{'}{'{'} orderCount{'}'}{'}'} เป็นตัวแปร
                   </p>
                 </div>
 
@@ -652,7 +652,7 @@ const NotificationPage = () => {
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {{month}}, {{totalSales}}, {{target}}, {{growth}} เป็นตัวแปร
+                    ใช้ {'{'}{'{'} month{'}'}{'}'}, {'{'}{'{'} totalSales{'}'}{'}'}, {'{'}{'{'} target{'}'}{'}'}, {'{'}{'{'} growth{'}'}{'}'} เป็นตัวแปร
                   </p>
                 </div>
 
