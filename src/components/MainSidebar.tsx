@@ -73,7 +73,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control', '/delivery-integration'
+    '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
+    '/notifications'
   ];
   
   const menuItems = [
@@ -139,7 +140,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
-    { id: 'notifications', label: 'ระบบแจ้งเตือน', icon: Bell, path: '/notifications' },
+    { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
     { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
     { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
@@ -148,7 +149,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
-    { id: 'line-notify', label: 'แจ้งเตือน LINE', icon: MessageCircle, path: '/line-notify' },
     { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
   ];
 
