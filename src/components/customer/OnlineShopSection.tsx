@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -145,7 +144,7 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
         // Map the data to include max_selections with a default value
         const mappedGroups = (addonGroupsData || []).map(group => ({
           ...group,
-          max_selections: group.max_selections || 10 // Default value
+          max_selections: 10 // Default value since it doesn't exist in DB type
         }));
         setAddonGroups(mappedGroups);
       }
@@ -781,7 +780,7 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
                   <CardTitle>QR Code สำหรับการโอนเงิน</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <QRCodeGenerator phone={shopSettings.phone || '0888888888'} amount={calculateTotal()} />
+                  <QRCodeGenerator phoneNumber={shopSettings.phone || '0888888888'} amount={calculateTotal()} />
                   <p className="text-sm text-gray-500">
                     สแกน QR Code นี้เพื่อชำระเงินผ่าน Mobile Banking
                   </p>
