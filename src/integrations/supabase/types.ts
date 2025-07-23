@@ -1731,8 +1731,11 @@ export type Database = {
       notification_settings: {
         Row: {
           created_at: string | null
+          daily_reports: Json | null
           duration: number | null
           id: string
+          monthly_reports: Json | null
+          online_orders: Json | null
           selected_sound_id: string | null
           sound_enabled: boolean | null
           updated_at: string | null
@@ -1740,8 +1743,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_reports?: Json | null
+          online_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -1749,8 +1755,11 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_reports?: Json | null
+          online_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -1999,6 +2008,7 @@ export type Database = {
           payment_method: string
           pickup_time: string | null
           receipt_image_url: string | null
+          status: string | null
           total_amount: number
           updated_at: string
         }
@@ -2015,6 +2025,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
         }
@@ -2031,6 +2042,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
         }

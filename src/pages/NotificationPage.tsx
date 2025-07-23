@@ -122,24 +122,51 @@ const NotificationPage = () => {
     try {
       setIsLoading(true);
       
-      // Use the correct notification_settings table
-      const { error } = await supabase
+      // First check if any record exists
+      const { data: existingData } = await supabase
         .from('notification_settings')
-        .upsert({
-          id: '00000000-0000-0000-0000-000000000000',
-          online_orders: settings.online_orders,
-          daily_reports: settings.daily_reports,
-          monthly_reports: settings.monthly_reports
-        });
+        .select('id')
+        .single();
 
-      if (error) {
-        console.error('Error saving settings:', error);
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถบันทึกการตั้งค่าได้',
-          variant: 'destructive',
-        });
-        return;
+      if (existingData) {
+        // Update existing record
+        const { error } = await supabase
+          .from('notification_settings')
+          .update({
+            online_orders: settings.online_orders,
+            daily_reports: settings.daily_reports,
+            monthly_reports: settings.monthly_reports
+          })
+          .eq('id', existingData.id);
+
+        if (error) {
+          console.error('Error updating settings:', error);
+          toast({
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ไม่สามารถบันทึกการตั้งค่าได้',
+            variant: 'destructive',
+          });
+          return;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('notification_settings')
+          .insert({
+            online_orders: settings.online_orders,
+            daily_reports: settings.daily_reports,
+            monthly_reports: settings.monthly_reports
+          });
+
+        if (error) {
+          console.error('Error inserting settings:', error);
+          toast({
+            title: 'เกิดข้อผิดพลาด',
+            description: 'ไม่สามารถบันทึกการตั้งค่าได้',
+            variant: 'destructive',
+          });
+          return;
+        }
       }
 
       toast({
@@ -396,7 +423,7 @@ const NotificationPage = () => {
                     rows={3}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {'{'}{'{'} orderNumber{'}'}{'}'}การใช้ {'{'}{'{'} customerName{'}'}{'}'}การใช้ {'{'}{'{'} amount{'}'}{'}'}การใช้ เป็นตัวแปร
+                    ใช้ orderNumber, customerName, amount เป็นตัวแปร
                   </p>
                 </div>
 
@@ -580,7 +607,7 @@ const NotificationPage = () => {
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {'{'}{'{'} date{'}'}{'}'}, {'{'}{'{'} totalSales{'}'}{'}'}, {'{'}{'{'} orderCount{'}'}{'}'} เป็นตัวแปร
+                    ใช้ date, totalSales, orderCount เป็นตัวแปร
                   </p>
                 </div>
 
@@ -654,7 +681,7 @@ const NotificationPage = () => {
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
-                    ใช้ {'{'}{'{'} month{'}'}{'}'}, {'{'}{'{'} totalSales{'}'}{'}'}, {'{'}{'{'} target{'}'}{'}'}, {'{'}{'{'} growth{'}'}{'}'} เป็นตัวแปร
+                    ใช้ month, totalSales, target, growth เป็นตัวแปร
                   </p>
                 </div>
 
