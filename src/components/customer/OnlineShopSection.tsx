@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,7 +142,12 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
           variant: 'destructive',
         });
       } else {
-        setAddonGroups(addonGroupsData || []);
+        // Map the data to include max_selections with a default value
+        const mappedGroups = (addonGroupsData || []).map(group => ({
+          ...group,
+          max_selections: group.max_selections || 10 // Default value
+        }));
+        setAddonGroups(mappedGroups);
       }
     };
 
@@ -201,8 +207,6 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
         menu_item: item,
         quantity: 1,
         selected_addons: [],
-        item_discount: 0,
-        item_discount_type: 'amount',
         total_price: item.price
       };
       setCartItems(prev => [...prev, newItem]);
@@ -226,8 +230,6 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
       menu_item: selectedItem,
       quantity: 1,
       selected_addons: selectedAddons,
-      item_discount: 0,
-      item_discount_type: 'amount',
       total_price: totalPrice
     };
 
@@ -284,7 +286,7 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
     }
   };
 
-  const handlePointsToUseChange = (value: number) => {
+  const handlePointsToUseChange = (value: string | number) => {
     if (!customerProfile) return;
 
     const maxPoints = customerProfile.points;
@@ -361,19 +363,26 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
         slipUrl = uploadData.path;
       }
 
+      // Convert cart items to JSON-compatible format
+      const orderItems = cartItems.map(item => ({
+        id: item.id,
+        menu_item_id: item.menu_item.id,
+        name: item.menu_item.name,
+        quantity: item.quantity,
+        unit_price: item.menu_item.price,
+        selected_addons: item.selected_addons.map(addon => ({
+          id: addon.id,
+          name: addon.name,
+          price: addon.price
+        })),
+        total_price: item.total_price
+      }));
+
       // บันทึกออเดอร์
       const orderData = {
         order_number: orderNumber,
         customer_id: customerProfile.id,
-        items: cartItems.map(item => ({
-          id: item.id,
-          menu_item_id: item.menu_item.id,
-          name: item.menu_item.name,
-          quantity: item.quantity,
-          unit_price: item.menu_item.price,
-          selected_addons: item.selected_addons,
-          total_price: item.total_price
-        })),
+        items: JSON.stringify(orderItems),
         subtotal,
         discount_amount: pointDiscount,
         total_amount: totalAmount,
@@ -772,7 +781,7 @@ const OnlineShopSection = ({ currentUser }: { currentUser?: any }) => {
                   <CardTitle>QR Code สำหรับการโอนเงิน</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <QRCodeGenerator phoneNumber={shopSettings.phone || '0888888888'} amount={calculateTotal()} />
+                  <QRCodeGenerator phone={shopSettings.phone || '0888888888'} amount={calculateTotal()} />
                   <p className="text-sm text-gray-500">
                     สแกน QR Code นี้เพื่อชำระเงินผ่าน Mobile Banking
                   </p>
