@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -29,10 +29,12 @@ import {
 } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
+import { supabase } from '@/integrations/supabase/client';
 
 const NotificationPage = () => {
   const { toast } = useToast();
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
     onlineOrders: {
@@ -73,12 +75,115 @@ const NotificationPage = () => {
     }
   });
 
-  const handleSaveSettings = () => {
-    // บันทึกการตั้งค่า
-    toast({
-      title: 'บันทึกการตั้งค่าสำเร็จ',
-      description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
-    });
+  // Load settings from database
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading settings:', error);
+        return;
+      }
+
+      if (data) {
+        setSettings({
+          onlineOrders: data.online_orders || settings.onlineOrders,
+          dailyReports: data.daily_reports || settings.dailyReports,
+          monthlyReports: data.monthly_reports || settings.monthlyReports
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase
+        .from('notification_settings')
+        .upsert({
+          online_orders: settings.onlineOrders,
+          daily_reports: settings.dailyReports,
+          monthly_reports: settings.monthlyReports
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'บันทึกการตั้งค่าสำเร็จ',
+        description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกการตั้งค่าได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendInstantDailyReport = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get today's sales data
+      const today = new Date().toISOString().split('T')[0];
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('total')
+        .gte('created_at', `${today}T00:00:00`)
+        .lt('created_at', `${today}T23:59:59`);
+
+      if (ordersError) {
+        throw ordersError;
+      }
+
+      const totalSales = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
+      const orderCount = orders?.length || 0;
+
+      // Send notification
+      const { error: notificationError } = await supabase.functions.invoke('send-notifications', {
+        body: {
+          type: 'daily_report',
+          data: {
+            totalSales,
+            orderCount
+          }
+        }
+      });
+
+      if (notificationError) {
+        throw notificationError;
+      }
+
+      toast({
+        title: 'ส่งรายงานสำเร็จ!',
+        description: `ส่งสรุปยอดขายวันนี้แล้ว (฿${totalSales}, ${orderCount} ออเดอร์)`,
+      });
+    } catch (error) {
+      console.error('Error sending instant report:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถส่งรายงานได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleTestNotification = async (type: string, platform: string) => {
@@ -395,14 +500,24 @@ const NotificationPage = () => {
           <TabsContent value="daily-reports">
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <BarChart className="w-6 h-6 text-blue-600" />
-                  <div>
-                    <CardTitle>รายงานประจำวัน</CardTitle>
-                    <CardDescription>
-                      ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
-                    </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <BarChart className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <CardTitle>รายงานประจำวัน</CardTitle>
+                      <CardDescription>
+                        ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
+                      </CardDescription>
+                    </div>
                   </div>
+                  <Button
+                    onClick={handleSendInstantDailyReport}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <Zap className="w-4 h-4" />
+                    ส่งสรุปทันที
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -624,9 +739,13 @@ const NotificationPage = () => {
 
         {/* ปุ่มบันทึก */}
         <div className="flex justify-end gap-3 pt-6">
-          <Button onClick={handleSaveSettings} className="flex items-center gap-2">
+          <Button 
+            onClick={handleSaveSettings} 
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
             <Save className="w-4 h-4" />
-            บันทึกการตั้งค่า
+            {isLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
           </Button>
         </div>
       </div>
