@@ -9,6 +9,15 @@ interface User {
   username: string;
   role: string;
   email?: string;
+  full_name?: string;
+  avatar_url?: string;
+}
+
+interface AuthResponse {
+  success: boolean;
+  message?: string;
+  user_id?: string;
+  role?: string;
 }
 
 export const useSecureAuth = () => {
@@ -74,10 +83,13 @@ export const useSecureAuth = () => {
         return false;
       }
 
-      if (!data.success) {
+      // Type assertion for the response data
+      const authResponse = data as AuthResponse;
+
+      if (!authResponse.success) {
         toast({
           title: 'การเข้าสู่ระบบล้มเหลว',
-          description: data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+          description: authResponse.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
           variant: 'destructive'
         });
 
@@ -96,9 +108,9 @@ export const useSecureAuth = () => {
 
       // Successful login
       const userData: User = {
-        id: data.user_id,
+        id: authResponse.user_id!,
         username: username,
-        role: data.role
+        role: authResponse.role!
       };
 
       setUser(userData);
@@ -107,7 +119,7 @@ export const useSecureAuth = () => {
       // Log successful login
       logSecurityEvent.mutate({
         event_type: 'login_success',
-        user_id: data.user_id,
+        user_id: authResponse.user_id!,
         details: {
           username: username,
           ip_address: await getClientIP(),
