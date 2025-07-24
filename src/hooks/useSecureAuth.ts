@@ -83,8 +83,8 @@ export const useSecureAuth = () => {
         return false;
       }
 
-      // Type assertion for the response data
-      const authResponse = data as AuthResponse;
+      // Safe type assertion for the response data
+      const authResponse = data as unknown as AuthResponse;
 
       if (!authResponse.success) {
         toast({

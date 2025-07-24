@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,6 @@ import { Beat, Blip, DigitalAlarm, Doorbell } from '@/components/icons';
 
 interface NotificationSettings {
   id: string;
-  shop_id: string;
   sound_enabled: boolean;
   volume: number;
   duration: number;
@@ -28,9 +28,9 @@ const NotificationPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: notificationSettings, isLoading, isError } = useQuery(
-    ['notificationSettings'],
-    async () => {
+  const { data: notificationSettings, isLoading, isError } = useQuery({
+    queryKey: ['notificationSettings'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
@@ -41,7 +41,7 @@ const NotificationPage = () => {
       }
       return data as NotificationSettings;
     }
-  );
+  });
 
   useEffect(() => {
     if (notificationSettings) {
@@ -49,8 +49,8 @@ const NotificationPage = () => {
     }
   }, [notificationSettings]);
 
-  const updateSettingsMutation = useMutation(
-    async (updates: Partial<NotificationSettings>) => {
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (updates: Partial<NotificationSettings>) => {
       if (!settings) {
         throw new Error('Settings not loaded');
       }
@@ -67,23 +67,21 @@ const NotificationPage = () => {
       }
       return data as NotificationSettings;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['notificationSettings']);
-        toast({
-          title: 'สำเร็จ',
-          description: 'บันทึกการตั้งค่าเรียบร้อย',
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'ผิดพลาด',
-          description: error.message,
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificationSettings'] });
+      toast({
+        title: 'สำเร็จ',
+        description: 'บันทึกการตั้งค่าเรียบร้อย',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'ผิดพลาด',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleSoundEnabledChange = (checked: boolean) => {
     if (settings) {
