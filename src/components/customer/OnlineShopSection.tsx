@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, Gift } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -526,7 +526,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
-  // Enhanced global notification trigger for all platforms (except customer page)
   const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
     try {
       console.log('📡 Triggering enhanced global order notification...');
@@ -1031,27 +1030,84 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
 
     setIsProcessing(true);
+    const orderNumber = generateOrderNumber();
     
     try {
-      // 🔔 PLAY NOTIFICATION SOUND IMMEDIATELY - DON'T WAIT FOR DATABASE
-      console.log('🔔 Playing immediate notification sound...');
-      try {
-        await playOrderSuccessNotification();
-        console.log('✅ Notification sound played successfully');
-      } catch (soundError) {
-        console.log('⚠️ Notification sound failed, continuing with order:', soundError);
-      }
-
-      // Show immediate success message to user
+      console.log('🚀 Starting optimized order processing...');
+      
+      // 1. IMMEDIATE NOTIFICATION - Send immediately before any database operations
+      console.log('📢 Sending immediate notifications...');
+      
+      // Show immediate feedback to user
       toast({ 
-        title: 'กำลังดำเนินการ...', 
-        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ และส่งแจ้งเตือนไปยังร้านค้า' 
+        title: '🔔 กำลังส่งแจ้งเตือน...', 
+        description: 'ระบบกำลังส่งแจ้งเตือนไปยังร้านค้าทันที' 
       });
 
-      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
-      const orderNumber = generateOrderNumber();
+      // Send notification to store systems immediately
+      try {
+        await onlineShopNotificationService.sendOrderNotification({
+          orderNumber,
+          totalAmount: finalAmount,
+          customerName: currentUser?.name,
+          customerPhone: currentUser?.phone,
+          items: cartItems.map(item => ({
+            name: item.menu_item.name,
+            quantity: item.quantity,
+            price: item.menu_item.price,
+            addons: item.selected_addons?.map(addon => ({
+              name: addon.name,
+              price: addon.price
+            })) || []
+          }))
+        });
+        
+        console.log('✅ Store notification sent successfully');
+        
+        // Show success notification
+        toast({ 
+          title: '✅ แจ้งเตือนส่งแล้ว!', 
+          description: 'ร้านค้าได้รับแจ้งเตือนออเดอร์ของคุณแล้ว' 
+        });
+        
+      } catch (notificationError) {
+        console.error('⚠️ Notification failed:', notificationError);
+        toast({ 
+          title: '⚠️ การแจ้งเตือนล้มเหลว', 
+          description: 'ไม่สามารถส่งแจ้งเตือนได้ แต่จะดำเนินการสั่งซื้อต่อไป' 
+        });
+      }
+
+      // 2. PLAY NOTIFICATION SOUND - Immediate feedback
+      console.log('🔊 Playing notification sound...');
+      try {
+        await playOrderSuccessNotification();
+        console.log('✅ Notification sound played');
+      } catch (soundError) {
+        console.log('⚠️ Sound failed:', soundError);
+      }
+
+      // 3. CLEAR UI IMMEDIATELY - Don't wait for database
+      console.log('🧹 Clearing UI...');
+      setCartItems([]);
+      setPickupTime('');
+      setCustomerNotes('');
+      setReceiptFile(null);
+      setShowPayment(false);
+      setQrCodeUrl('');
+      setPaymentMethod('qr');
+      setPointsToUse('');
       
-      // Start all database operations in background without waiting
+      // Show processing message
+      toast({ 
+        title: '💾 กำลังบันทึกข้อมูล...', 
+        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ในเบื้องหลัง' 
+      });
+
+      // 4. BACKGROUND DATABASE OPERATIONS - Non-blocking
+      console.log('💾 Starting background database operations...');
+      
+      // Start background processing without blocking UI
       setTimeout(async () => {
         try {
           let receiptUrl = null;
@@ -1062,6 +1118,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             }
           }
 
+          // Insert main order
           const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -1080,7 +1137,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
           if (orderError) throw orderError;
 
-          // Save order items
+          // Insert order items
           for (const item of cartItems) {
             const { data: orderItem, error: itemError } = await supabase
               .from('order_items')
@@ -1097,6 +1154,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             if (itemError) throw itemError;
 
+            // Insert addons if any
             if (item.selected_addons && item.selected_addons.length > 0) {
               const addonItems = item.selected_addons.map(addon => ({
                 order_id: order.id,
@@ -1163,52 +1221,60 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             }
           }
 
-          // 🔔 TRIGGER ENHANCED GLOBAL NOTIFICATION INCLUDING PLATFORM NOTIFICATIONS
-          await triggerGlobalOrderNotification(orderNumber, finalAmount);
+          // Insert customer order for additional tracking
+          await supabase
+            .from('customer_orders')
+            .insert({
+              customer_id: currentUser.id,
+              order_number: orderNumber,
+              total_amount: finalAmount,
+              items: cartItems.map(item => ({
+                name: item.menu_item.name,
+                quantity: item.quantity,
+                price: item.menu_item.price,
+                addons: item.selected_addons?.map(addon => ({
+                  name: addon.name,
+                  price: addon.price
+                })) || []
+              })),
+              subtotal: finalAmount,
+              payment_method: paymentMethod,
+              order_status: 'confirmed',
+              delivery_type: 'pickup',
+              notes: customerNotes
+            });
 
+          console.log('✅ All database operations completed successfully');
+          
           // Show final success message
           toast({ 
-            title: 'สั่งซื้อสำเร็จ!', 
-            description: `หมายเลขออเดอร์: ${orderNumber} และได้ส่งแจ้งเตือนไปยังร้านค้าแล้ว` 
+            title: '🎉 สั่งซื้อสำเร็จ!', 
+            description: `ออเดอร์ #${orderNumber} ได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด` 
           });
 
-          setTimeout(() => {
-            toast({ 
-              title: '✅ ขอบคุณครับ!', 
-              description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
-            });
-          }, 1000);
-
-        } catch (error: any) {
-          console.error('Background order processing error:', error);
+        } catch (dbError: any) {
+          console.error('❌ Background database error:', dbError);
           toast({ 
-            title: 'ข้อผิดพลาดในการบันทึก', 
-            description: error.message || 'ข้อมูลอาจไม่ได้รับการบันทึก กรุณาติดต่อเจ้าหน้าที่', 
+            title: '⚠️ ข้อผิดพลาดในการบันทึก', 
+            description: `การแจ้งเตือนส่งแล้ว แต่การบันทึกข้อมูลล้มเหลว: ${dbError.message}`, 
             variant: 'destructive' 
           });
         }
-      }, 100); // Start background process after 100ms
+      }, 100); // Start immediately but don't block UI
 
-      // Clear form immediately - don't wait for database
-      setCartItems([]);
-      setPickupTime('');
-      setCustomerNotes('');
-      setReceiptFile(null);
-      setShowPayment(false);
-      setQrCodeUrl('');
-      setPaymentMethod('qr');
-      setPointsToUse('');
+      console.log('🎯 Order processing optimized - UI cleared, notifications sent');
       
     } catch (error: any) {
-      console.error('Order submission error:', error);
+      console.error('❌ Critical order processing error:', error);
       toast({ 
-        title: 'ข้อผิดพลาด', 
-        description: error.message || 'ไม่สามารถสั่งซื้อได้', 
+        title: '❌ ข้อผิดพลาดร้ายแรง', 
+        description: error.message || 'ไม่สามารถดำเนินการสั่งซื้อได้', 
         variant: 'destructive' 
       });
     } finally {
       // Reset processing state quickly
       setIsProcessing(false);
+      console.log('✅ Order processing completed');
     }
   };
 
@@ -1533,10 +1599,17 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             <Button 
               onClick={submitOrder}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3"
               disabled={isProcessing || (paymentMethod === 'qr' && qrCodeUrl && !receiptFile)}
             >
-              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการชำระเงิน และส่งแจ้งเตือนไปยังร้านค้า'}
+              {isProcessing ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  กำลังส่งแจ้งเตือน...
+                </div>
+              ) : (
+                '🔔 ยืนยันและส่งแจ้งเตือนทันที'
+              )}
             </Button>
           </CardContent>
         </Card>
