@@ -128,9 +128,9 @@ const NotificationPage = () => {
       if (data) {
         // Parse JSONB data and map to settings state
         const parsedSettings = {
-          online_orders: data.online_orders || settings.online_orders,
-          daily_reports: data.daily_reports || settings.daily_reports,
-          monthly_reports: data.monthly_reports || settings.monthly_reports,
+          online_orders: (data as any).online_orders || settings.online_orders,
+          daily_reports: (data as any).daily_reports || settings.daily_reports,
+          monthly_reports: (data as any).monthly_reports || settings.monthly_reports,
           sound_enabled: data.sound_enabled ?? settings.sound_enabled,
           volume: data.volume ?? settings.volume,
           duration: data.duration ?? settings.duration,
@@ -214,7 +214,7 @@ const NotificationPage = () => {
         platforms: {
           ...prev[type].platforms,
           [platform]: {
-            ...prev[type].platforms[platform as keyof typeof prev[type].platforms],
+            ...(prev[type].platforms as any)[platform],
             token
           }
         }
@@ -230,7 +230,7 @@ const NotificationPage = () => {
         platforms: {
           ...prev[type].platforms,
           [platform]: {
-            ...prev[type].platforms[platform as keyof typeof prev[type].platforms],
+            ...(prev[type].platforms as any)[platform],
             enabled
           }
         }
