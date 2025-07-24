@@ -34,12 +34,18 @@ const NotificationPage = () => {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
-        .single();
+        .limit(1);
 
       if (error) {
         throw new Error(error.message);
       }
-      return data as NotificationSettings;
+      
+      // If no data found, return null instead of throwing error
+      if (!data || data.length === 0) {
+        return null;
+      }
+      
+      return data[0] as NotificationSettings;
     }
   });
 
@@ -107,7 +113,8 @@ const NotificationPage = () => {
 
   if (isLoading) return <div>กำลังโหลด...</div>;
   if (isError) return <div>มีข้อผิดพลาดเกิดขึ้น</div>;
-  if (!settings) return <div>ไม่พบการตั้งค่า</div>;
+  if (!notificationSettings) return <div>ไม่พบการตั้งค่า</div>;
+  if (!settings) return <div>กำลังโหลดการตั้งค่า...</div>;
 
   return (
     <div className="container mx-auto p-4">
