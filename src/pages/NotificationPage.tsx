@@ -1,48 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Bell, 
-  MessageSquare, 
-  Instagram, 
-  Send, 
-  Phone, 
-  Clock, 
-  Settings, 
-  Calendar,
-  ShoppingCart,
-  BarChart,
-  FileText,
-  Zap,
-  Save,
-  TestTube,
-  CheckCircle
-} from 'lucide-react';
-import { Shell } from '@/components/Shell';
-import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
+import { Bell, MessageSquare, Instagram, Music, Volume2, Upload } from 'lucide-react';
+
+interface NotificationSettings {
+  online_orders: {
+    enabled: boolean;
+    platforms: {
+      line: { enabled: boolean; token: string };
+      instagram: { enabled: boolean; token: string };
+      discord: { enabled: boolean; token: string };
+      telegram: { enabled: boolean; token: string };
+    };
+    instantNotification: boolean;
+    message: string;
+  };
+  daily_reports: {
+    enabled: boolean;
+    time: string;
+    message: string;
+    platforms: {
+      line: { enabled: boolean; token: string };
+      instagram: { enabled: boolean; token: string };
+      discord: { enabled: boolean; token: string };
+      telegram: { enabled: boolean; token: string };
+    };
+  };
+  monthly_reports: {
+    enabled: boolean;
+    time: string;
+    dayOfMonth: number;
+    message: string;
+    platforms: {
+      line: { enabled: boolean; token: string };
+      instagram: { enabled: boolean; token: string };
+      discord: { enabled: boolean; token: string };
+      telegram: { enabled: boolean; token: string };
+    };
+  };
+  sound_enabled: boolean;
+  volume: number;
+  duration: number;
+  selected_sound_id: string;
+}
+
+interface NotificationSound {
+  id: string;
+  name: string;
+  file_url: string;
+  is_active: boolean;
+}
 
 const NotificationPage = () => {
   const { toast } = useToast();
-  const [showDiscordGuide, setShowDiscordGuide] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [settings, setSettings] = useState({
-    // การแจ้งเตือนออเดอร์ออนไลน์
-    onlineOrders: {
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<NotificationSettings>({
+    online_orders: {
       enabled: true,
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: false, token: '' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
@@ -50,990 +74,875 @@ const NotificationPage = () => {
       instantNotification: true,
       message: 'มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
     },
-    // รายงานประจำวัน
-    dailyReports: {
+    daily_reports: {
       enabled: true,
       time: '18:00',
+      message: 'สรุปยอดขายประจำวัน {{date}}\nยอดขายรวม: {{totalSales}} บาท\nจำนวนออเดอร์: {{orderCount}} รายการ',
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: false, token: '' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
-      },
-      message: 'สรุปยอดขายประจำวัน {{date}}\nยอดขายรวม: {{totalSales}} บาท\nจำนวนออเดอร์: {{orderCount}} รายการ'
+      }
     },
-    // รายงานประจำเดือน
-    monthlyReports: {
+    monthly_reports: {
       enabled: true,
-      dayOfMonth: 1,
       time: '09:00',
+      dayOfMonth: 1,
+      message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%',
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: false, token: '' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
-      },
-      message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
-    }
+      }
+    },
+    sound_enabled: true,
+    volume: 0.8,
+    duration: 2,
+    selected_sound_id: ''
   });
 
-  // โหลดการตั้งค่าจากฐานข้อมูล
+  const [sounds, setSounds] = useState<NotificationSound[]>([]);
+  const [newSoundFile, setNewSoundFile] = useState<File | null>(null);
+  const [uploadingSounds, setUploadingSounds] = useState(false);
+
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const { data: notificationSettings, error } = await supabase
-          .from('notification_settings')
-          .select('*')
-          .single();
+    fetchNotificationSettings();
+    fetchNotificationSounds();
+  }, []);
 
-        if (error) {
-          console.error('Error loading notification settings:', error);
-          return;
-        }
-
-        if (notificationSettings) {
-          console.log('Loaded notification settings:', notificationSettings);
-          
-          // แปลงข้อมูลจากฐานข้อมูลให้ตรงกับโครงสร้างใน state
-          const loadedSettings = {
-            onlineOrders: {
-              enabled: notificationSettings.online_orders?.enabled || false,
-              platforms: {
-                line: { 
-                  enabled: notificationSettings.online_orders?.platforms?.line?.enabled || false, 
-                  token: notificationSettings.online_orders?.platforms?.line?.token || '' 
-                },
-                instagram: { 
-                  enabled: notificationSettings.online_orders?.platforms?.instagram?.enabled || false, 
-                  token: notificationSettings.online_orders?.platforms?.instagram?.token || '' 
-                },
-                discord: { 
-                  enabled: notificationSettings.online_orders?.platforms?.discord?.enabled || false, 
-                  token: notificationSettings.online_orders?.platforms?.discord?.token || '' 
-                },
-                telegram: { 
-                  enabled: notificationSettings.online_orders?.platforms?.telegram?.enabled || false, 
-                  token: notificationSettings.online_orders?.platforms?.telegram?.token || '' 
-                }
-              },
-              instantNotification: true,
-              message: notificationSettings.online_orders?.message || 'มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
-            },
-            dailyReports: {
-              enabled: notificationSettings.daily_reports?.enabled || false,
-              time: notificationSettings.daily_reports?.time || '18:00',
-              platforms: {
-                line: { 
-                  enabled: notificationSettings.daily_reports?.platforms?.line?.enabled || false, 
-                  token: notificationSettings.daily_reports?.platforms?.line?.token || '' 
-                },
-                instagram: { 
-                  enabled: notificationSettings.daily_reports?.platforms?.instagram?.enabled || false, 
-                  token: notificationSettings.daily_reports?.platforms?.instagram?.token || '' 
-                },
-                discord: { 
-                  enabled: notificationSettings.daily_reports?.platforms?.discord?.enabled || false, 
-                  token: notificationSettings.daily_reports?.platforms?.discord?.token || '' 
-                },
-                telegram: { 
-                  enabled: notificationSettings.daily_reports?.platforms?.telegram?.enabled || false, 
-                  token: notificationSettings.daily_reports?.platforms?.telegram?.token || '' 
-                }
-              },
-              message: notificationSettings.daily_reports?.message || 'สรุปยอดขายประจำวัน {{date}}\nยอดขายรวม: {{totalSales}} บาท\nจำนวนออเดอร์: {{orderCount}} รายการ'
-            },
-            monthlyReports: {
-              enabled: notificationSettings.monthly_reports?.enabled || false,
-              dayOfMonth: notificationSettings.monthly_reports?.dayOfMonth || 1,
-              time: notificationSettings.monthly_reports?.time || '09:00',
-              platforms: {
-                line: { 
-                  enabled: notificationSettings.monthly_reports?.platforms?.line?.enabled || false, 
-                  token: notificationSettings.monthly_reports?.platforms?.line?.token || '' 
-                },
-                instagram: { 
-                  enabled: notificationSettings.monthly_reports?.platforms?.instagram?.enabled || false, 
-                  token: notificationSettings.monthly_reports?.platforms?.instagram?.token || '' 
-                },
-                discord: { 
-                  enabled: notificationSettings.monthly_reports?.platforms?.discord?.enabled || false, 
-                  token: notificationSettings.monthly_reports?.platforms?.discord?.token || '' 
-                },
-                telegram: { 
-                  enabled: notificationSettings.monthly_reports?.platforms?.telegram?.enabled || false, 
-                  token: notificationSettings.monthly_reports?.platforms?.telegram?.token || '' 
-                }
-              },
-              message: notificationSettings.monthly_reports?.message || 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
-            }
-          };
-
-          setSettings(loadedSettings);
-        }
-      } catch (error) {
-        console.error('Error loading settings:', error);
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถโหลดการตั้งค่าได้',
-          variant: 'destructive'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSettings();
-  }, [toast]);
-
-  // ฟังก์ชันสำหรับดึงข้อมูลรายงานประจำวัน
-  const generateDailyReport = async () => {
+  const fetchNotificationSettings = async () => {
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
-      // ดึงข้อมูลออเดอร์วันนี้
-      const { data: todayOrders, error: ordersError } = await supabase
-        .from('orders')
-        .select('id, total_amount, bill_discount, created_at')
-        .gte('created_at', startOfDay.toISOString());
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
 
-      if (ordersError) throw ordersError;
+      if (error) {
+        console.error('Error fetching notification settings:', error);
+        return;
+      }
 
-      // ดึงข้อมูลรายการเมนูที่ขายวันนี้
-      const { data: orderItems, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          menu_item_name,
-          quantity,
-          total_price,
-          order:orders!inner(created_at)
-        `)
-        .gte('order.created_at', startOfDay.toISOString());
+      if (data) {
+        // Parse JSONB data and map to settings state
+        const parsedSettings = {
+          online_orders: data.online_orders || settings.online_orders,
+          daily_reports: data.daily_reports || settings.daily_reports,
+          monthly_reports: data.monthly_reports || settings.monthly_reports,
+          sound_enabled: data.sound_enabled ?? settings.sound_enabled,
+          volume: data.volume ?? settings.volume,
+          duration: data.duration ?? settings.duration,
+          selected_sound_id: data.selected_sound_id || settings.selected_sound_id
+        };
 
-      if (itemsError) throw itemsError;
-
-      // คำนวณสถิติ
-      const totalOrders = todayOrders?.length || 0;
-      const totalSales = todayOrders?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
-      const totalDiscount = todayOrders?.reduce((sum, order) => sum + (Number(order.bill_discount) || 0), 0) || 0;
-      const netSales = totalSales - totalDiscount;
-
-      // จัดกลุ่มเมนูและเรียงตามยอดขาย
-      const menuStats = orderItems?.reduce((acc: any, item) => {
-        const name = item.menu_item_name;
-        if (!acc[name]) {
-          acc[name] = { quantity: 0, totalSales: 0 };
-        }
-        acc[name].quantity += item.quantity;
-        acc[name].totalSales += Number(item.total_price) || 0;
-        return acc;
-      }, {}) || {};
-
-      const topMenus = Object.entries(menuStats)
-        .map(([name, stats]: [string, any]) => ({
-          name,
-          quantity: stats.quantity,
-          totalSales: stats.totalSales
-        }))
-        .sort((a, b) => b.totalSales - a.totalSales)
-        .slice(0, 10);
-
-      return {
-        date: today.toLocaleDateString('th-TH'),
-        time: today.toLocaleTimeString('th-TH'),
-        totalOrders,
-        totalSales,
-        totalDiscount,
-        netSales,
-        topMenus
-      };
+        setSettings(parsedSettings);
+      }
     } catch (error) {
-      console.error('Error generating daily report:', error);
-      throw error;
-    }
-  };
-
-  // ฟังก์ชันส่งรายงานไป Discord
-  const sendDiscordReport = async (reportData: any, webhookUrl: string) => {
-    const topMenusList = reportData.topMenus
-      .map((menu: any, index: number) => 
-        `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
-      )
-      .join('\n');
-
-    const embed = {
-      title: '📊 สรุปยอดขายประจำวัน',
-      description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
-      color: 0x00ff00,
-      fields: [
-        {
-          name: '📅 วันที่สร้างรายงาน',
-          value: `${reportData.date} เวลา ${reportData.time}`,
-          inline: true
-        },
-        {
-          name: '🛒 จำนวนออเดอร์ทั้งหมด',
-          value: `${reportData.totalOrders} รายการ`,
-          inline: true
-        },
-        {
-          name: '💰 ยอดขายรวม',
-          value: `${reportData.totalSales.toLocaleString()} บาท`,
-          inline: true
-        },
-        {
-          name: '💸 ส่วนลดรวม',
-          value: `${reportData.totalDiscount.toLocaleString()} บาท`,
-          inline: true
-        },
-        {
-          name: '💵 ยอดขายสุทธิ',
-          value: `${reportData.netSales.toLocaleString()} บาท`,
-          inline: true
-        },
-        {
-          name: '🏆 เมนูขายดี',
-          value: topMenusList || 'ไม่มีข้อมูล',
-          inline: false
-        }
-      ],
-      footer: {
-        text: 'ระบบแจ้งเตือนร้านอาหาร'
-      },
-      timestamp: new Date().toISOString()
-    };
-
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: '📊 **รายงานประจำวัน - ส่งทันที**',
-        embeds: [embed]
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Discord webhook failed: ${response.status} - ${errorText}`);
-    }
-  };
-
-  // ฟังก์ชันส่งรายงานไป LINE (placeholder)
-  const sendLineReport = async (reportData: any, token: string) => {
-    // TODO: Implement LINE notification
-    console.log('Sending to LINE:', reportData);
-  };
-
-  // ฟังก์ชันส่งรายงานไป Telegram (placeholder)
-  const sendTelegramReport = async (reportData: any, token: string) => {
-    // TODO: Implement Telegram notification
-    console.log('Sending to Telegram:', reportData);
-  };
-
-  // ฟังก์ชันส่งรายงานไป Instagram (placeholder)
-  const sendInstagramReport = async (reportData: any, token: string) => {
-    // TODO: Implement Instagram notification
-    console.log('Sending to Instagram:', reportData);
-  };
-
-  // ฟังก์ชันส่งรายงานทันที
-  const handleSendReportNow = async () => {
-    setIsGeneratingReport(true);
-    
-    try {
-      // สร้างรายงาน
-      const reportData = await generateDailyReport();
-      
-      let sentCount = 0;
-      let errorCount = 0;
-      const errors: string[] = [];
-
-      // ส่งไป Discord ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.discord.enabled && settings.dailyReports.platforms.discord.token) {
-        try {
-          console.log('Sending to Discord with token:', settings.dailyReports.platforms.discord.token);
-          await sendDiscordReport(reportData, settings.dailyReports.platforms.discord.token);
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          console.error('Discord error:', error);
-          errors.push(`Discord: ${error}`);
-        }
-      }
-
-      // ส่งไป LINE ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.line.enabled && settings.dailyReports.platforms.line.token) {
-        try {
-          await sendLineReport(reportData, settings.dailyReports.platforms.line.token);
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(`LINE: ${error}`);
-        }
-      }
-
-      // ส่งไป Telegram ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.telegram.enabled && settings.dailyReports.platforms.telegram.token) {
-        try {
-          await sendTelegramReport(reportData, settings.dailyReports.platforms.telegram.token);
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(`Telegram: ${error}`);
-        }
-      }
-
-      // ส่งไป Instagram ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.instagram.enabled && settings.dailyReports.platforms.instagram.token) {
-        try {
-          await sendInstagramReport(reportData, settings.dailyReports.platforms.instagram.token);
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(`Instagram: ${error}`);
-        }
-      }
-
-      // แสดงผลลัพธ์
-      if (sentCount > 0) {
-        toast({
-          title: 'ส่งรายงานสำเร็จ! ✅',
-          description: `ส่งรายงานไปยัง ${sentCount} แพลตฟอร์มแล้ว${errorCount > 0 ? ` (มีข้อผิดพลาด ${errorCount} แพลตฟอร์ม)` : ''}`,
-        });
-      } else {
-        toast({
-          title: 'ไม่สามารถส่งรายงานได้',
-          description: 'กรุณาตรวจสอบการตั้งค่าแพลตฟอร์มและ API Token',
-          variant: 'destructive'
-        });
-      }
-
-      if (errors.length > 0) {
-        console.error('Notification errors:', errors);
-      }
-
-    } catch (error) {
-      console.error('Error sending daily report:', error);
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถสร้างหรือส่งรายงานได้',
-        variant: 'destructive'
-      });
+      console.error('Error fetching notification settings:', error);
     } finally {
-      setIsGeneratingReport(false);
+      setLoading(false);
     }
   };
 
-  // ฟังก์ชันบันทึกการตั้งค่า
-  const handleSaveSettings = async () => {
+  const fetchNotificationSounds = async () => {
     try {
-      // แปลงข้อมูลให้ตรงกับโครงสร้างฐานข้อมูล
-      const settingsToSave = {
-        online_orders: settings.onlineOrders,
-        daily_reports: settings.dailyReports,
-        monthly_reports: settings.monthlyReports
+      const { data, error } = await supabase
+        .from('notification_sounds')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching sounds:', error);
+        return;
+      }
+
+      setSounds(data || []);
+    } catch (error) {
+      console.error('Error fetching sounds:', error);
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    try {
+      // Prepare data for update
+      const updateData = {
+        online_orders: settings.online_orders,
+        daily_reports: settings.daily_reports,
+        monthly_reports: settings.monthly_reports,
+        sound_enabled: settings.sound_enabled,
+        volume: settings.volume,
+        duration: settings.duration,
+        selected_sound_id: settings.selected_sound_id,
+        updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase
         .from('notification_settings')
-        .update(settingsToSave)
-        .eq('id', '6b49a724-b7b7-48a9-ad81-bbe04fe87690'); // ใช้ ID ที่มีอยู่แล้ว
+        .upsert(updateData, { onConflict: 'id' });
 
-      if (error) throw error;
-
-      toast({
-        title: 'บันทึกการตั้งค่าสำเร็จ',
-        description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
-      });
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถบันทึกการตั้งค่าได้',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // ฟังก์ชันทดสอบการแจ้งเตือน
-  const handleTestNotification = async (type: string, platform: string) => {
-    if (platform === 'Discord') {
-      // ทดสอบ Discord Webhook
-      const discordToken = settings.onlineOrders.platforms.discord.token;
-      if (!discordToken) {
+      if (error) {
+        console.error('Error saving notification settings:', error);
         toast({
-          title: 'ไม่พบ Webhook URL',
-          description: 'กรุณาใส่ Discord Webhook URL ก่อนทดสอบ',
+          title: 'ข้อผิดพลาด',
+          description: 'ไม่สามารถบันทึกการตั้งค่าได้',
           variant: 'destructive'
         });
         return;
       }
 
-      try {
-        const testMessage = {
-          content: '🧪 **ทดสอบการแจ้งเตือน**',
-          embeds: [{
-            title: '🔔 ทดสอบระบบแจ้งเตือนร้านอาหาร',
-            description: `การทดสอบ: ${type}`,
-            color: 0x00ff00, // สีเขียว
-            fields: [
-              {
-                name: '📅 วันที่',
-                value: new Date().toLocaleDateString('th-TH'),
-                inline: true
-              },
-              {
-                name: '⏰ เวลา',
-                value: new Date().toLocaleTimeString('th-TH'),
-                inline: true
-              }
-            ],
-            footer: {
-              text: 'ระบบแจ้งเตือนร้านอาหาร'
-            },
-            timestamp: new Date().toISOString()
-          }]
-        };
-
-        const response = await fetch(discordToken, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(testMessage)
-        });
-
-        if (response.ok) {
-          toast({
-            title: 'ทดสอบสำเร็จ! ✅',
-            description: 'ข้อความทดสอบถูกส่งไปยัง Discord แล้ว',
-          });
-        } else {
-          const errorText = await response.text();
-          toast({
-            title: 'ทดสอบไม่สำเร็จ',
-            description: `Error: ${response.status} - ตรวจสอบ Webhook URL`,
-            variant: 'destructive'
-          });
-        }
-      } catch (error) {
-        toast({
-          title: 'เกิดข้อผิดพลาด',
-          description: 'ไม่สามารถเชื่อมต่อ Discord ได้ กรุณาตรวจสอบ URL',
-          variant: 'destructive'
-        });
-      }
-    } else {
       toast({
-        title: 'ส่งการทดสอบแล้ว',
-        description: `ทดสอบการแจ้งเตือน${type}ผ่าน ${platform}`,
+        title: 'สำเร็จ',
+        description: 'บันทึกการตั้งค่าเรียบร้อยแล้ว'
+      });
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'เกิดข้อผิดพลาดในการบันทึกการตั้งค่า',
+        variant: 'destructive'
       });
     }
   };
 
-  const PlatformSettings = ({ 
-    type, 
-    platforms, 
-    onChange 
-  }: { 
-    type: string;
-    platforms: any;
-    onChange: (platform: string, field: string, value: any) => void;
-  }) => (
-    <div className="space-y-4">
-      {Object.entries(platforms).map(([platform, config]: [string, any]) => {
-        const platformIcons = {
-          line: MessageSquare,
-          instagram: Instagram,
-          discord: Send,
-          telegram: Phone
-        };
-        const Icon = platformIcons[platform as keyof typeof platformIcons];
-        const platformNames = {
-          line: 'LINE',
-          instagram: 'Instagram',
-          discord: 'Discord',
-          telegram: 'Telegram'
-        };
-
-        const getTokenLabel = (platform: string) => {
-          switch (platform) {
-            case 'discord':
-              return 'Discord Webhook URL';
-            case 'line':
-              return 'LINE Channel Access Token';
-            case 'telegram':
-              return 'Telegram Bot Token';
-            case 'instagram':
-              return 'Instagram API Token';
-            default:
-              return 'API Token';
+  const updatePlatformToken = (type: 'online_orders' | 'daily_reports' | 'monthly_reports', platform: string, token: string) => {
+    setSettings(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        platforms: {
+          ...prev[type].platforms,
+          [platform]: {
+            ...prev[type].platforms[platform as keyof typeof prev[type].platforms],
+            token
           }
-        };
+        }
+      }
+    }));
+  };
 
-        const getTokenPlaceholder = (platform: string) => {
-          switch (platform) {
-            case 'discord':
-              return 'https://discord.com/api/webhooks/...';
-            case 'line':
-              return 'LINE Channel Access Token';
-            case 'telegram':
-              return 'Bot Token จาก @BotFather';
-            case 'instagram':
-              return 'Instagram API Token';
-            default:
-              return `${platformNames[platform as keyof typeof platformNames]} API Token`;
+  const updatePlatformEnabled = (type: 'online_orders' | 'daily_reports' | 'monthly_reports', platform: string, enabled: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        platforms: {
+          ...prev[type].platforms,
+          [platform]: {
+            ...prev[type].platforms[platform as keyof typeof prev[type].platforms],
+            enabled
           }
-        };
+        }
+      }
+    }));
+  };
 
-        return (
-          <Card key={platform} className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Icon className="w-5 h-5" />
-                <Label className="font-medium">{platformNames[platform as keyof typeof platformNames]}</Label>
-                <Badge variant={config.enabled ? "default" : "secondary"}>
-                  {config.enabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                </Badge>
-              </div>
-              <Switch
-                checked={config.enabled}
-                onCheckedChange={(checked) => onChange(platform, 'enabled', checked)}
-              />
-            </div>
-            
-            {config.enabled && (
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <Label htmlFor={`${type}-${platform}-token`}>{getTokenLabel(platform)}</Label>
-                    {platform === 'discord' && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowDiscordGuide(!showDiscordGuide)}
-                        className="text-xs"
-                      >
-                        {showDiscordGuide ? 'ซ่อนคู่มือ' : 'ดูคู่มือ'}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id={`${type}-${platform}-token`}
-                      type={platform === 'discord' ? 'url' : 'password'}
-                      placeholder={getTokenPlaceholder(platform)}
-                      value={config.token || ''}
-                      onChange={(e) => onChange(platform, 'token', e.target.value)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleTestNotification(type, platformNames[platform as keyof typeof platformNames])}
-                      disabled={!config.token}
-                    >
-                      <TestTube className="w-4 h-4" />
-                      ทดสอบ
-                    </Button>
-                  </div>
-                </div>
-                
-                {platform === 'discord' && showDiscordGuide && (
-                  <DiscordWebhookGuide />
-                )}
-              </div>
-            )}
-          </Card>
-        );
-      })}
-    </div>
-  );
+  const uploadSoundFile = async () => {
+    if (!newSoundFile) return;
 
-  if (isLoading) {
+    setUploadingSounds(true);
+    try {
+      const fileName = `${Date.now()}_${newSoundFile.name}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('notification-sounds')
+        .upload(fileName, newSoundFile);
+
+      if (uploadError) {
+        console.error('Error uploading sound:', uploadError);
+        toast({
+          title: 'ข้อผิดพลาด',
+          description: 'ไม่สามารถอัปโหลดไฟล์เสียงได้',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('notification-sounds')
+        .getPublicUrl(fileName);
+
+      const { error: dbError } = await supabase
+        .from('notification_sounds')
+        .insert({
+          name: newSoundFile.name.replace(/\.[^/.]+$/, ''),
+          file_url: urlData.publicUrl,
+          is_active: true
+        });
+
+      if (dbError) {
+        console.error('Error saving sound to database:', dbError);
+        toast({
+          title: 'ข้อผิดพลาด',
+          description: 'ไม่สามารถบันทึกข้อมูลเสียงได้',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      toast({
+        title: 'สำเร็จ',
+        description: 'อัปโหลดเสียงแจ้งเตือนแล้ว'
+      });
+
+      setNewSoundFile(null);
+      fetchNotificationSounds();
+    } catch (error) {
+      console.error('Error uploading sound:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์',
+        variant: 'destructive'
+      });
+    } finally {
+      setUploadingSounds(false);
+    }
+  };
+
+  const testNotification = async (platform: string, token: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('send-notification', {
+        body: {
+          platform,
+          token,
+          message: 'ทดสอบการแจ้งเตือน - ระบบทำงานปกติ'
+        }
+      });
+
+      if (error) {
+        console.error('Test notification error:', error);
+        toast({
+          title: 'ข้อผิดพลาด',
+          description: `ไม่สามารถส่งการแจ้งเตือนไปยัง ${platform} ได้`,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      toast({
+        title: 'สำเร็จ',
+        description: `ส่งการแจ้งเตือนไปยัง ${platform} แล้ว`
+      });
+    } catch (error) {
+      console.error('Test notification error:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: `เกิดข้อผิดพลาดในการส่งการแจ้งเตือนไปยัง ${platform}`,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const playTestSound = (soundUrl: string) => {
+    try {
+      const audio = new Audio(soundUrl);
+      audio.volume = settings.volume;
+      audio.play();
+    } catch (error) {
+      console.error('Error playing sound:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถเล่นเสียงได้',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  if (loading) {
     return (
-      <Shell>
-        <div className="container mx-auto p-6 max-w-6xl">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p>กำลังโหลดการตั้งค่า...</p>
-            </div>
-          </div>
-        </div>
-      </Shell>
+      <div className="p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+        <p className="text-center mt-2">กำลังโหลดการตั้งค่า...</p>
+      </div>
     );
   }
 
   return (
-    <Shell>
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Bell className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">ระบบแจ้งเตือน</h1>
-            <p className="text-gray-600">จัดการการแจ้งเตือนผ่าน LINE, Instagram, Discord และ Telegram</p>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">ระบบแจ้งเตือน</h1>
+        <Button onClick={saveNotificationSettings} className="bg-orange-500 hover:bg-orange-600">
+          บันทึกการตั้งค่า
+        </Button>
+      </div>
+
+      {/* Online Orders Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            แจ้งเตือนออเดอร์ออนไลน์
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={settings.online_orders.enabled}
+              onCheckedChange={(enabled) => 
+                setSettings(prev => ({ ...prev, online_orders: { ...prev.online_orders, enabled } }))
+              }
+            />
+            <Label>เปิดการแจ้งเตือน</Label>
           </div>
-        </div>
 
-        <Tabs defaultValue="online-orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="online-orders" className="flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4" />
-              ออเดอร์ออนไลน์
-            </TabsTrigger>
-            <TabsTrigger value="daily-reports" className="flex items-center gap-2">
-              <BarChart className="w-4 h-4" />
-              รายงานประจำวัน
-            </TabsTrigger>
-            <TabsTrigger value="monthly-reports" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              รายงานประจำเดือน
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={settings.online_orders.instantNotification}
+              onCheckedChange={(instantNotification) => 
+                setSettings(prev => ({ ...prev, online_orders: { ...prev.online_orders, instantNotification } }))
+              }
+            />
+            <Label>แจ้งเตือนทันทีเมื่อมีออเดอร์ใหม่</Label>
+          </div>
 
-          {/* การแจ้งเตือนออเดอร์ออนไลน์ */}
-          <TabsContent value="online-orders">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <ShoppingCart className="w-6 h-6 text-green-600" />
-                    <div>
-                      <CardTitle>การแจ้งเตือนออเดอร์ออนไลน์</CardTitle>
-                      <CardDescription>
-                        แจ้งเตือนทันทีเมื่อมีออเดอร์ออนไลน์เข้ามาใหม่
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-orange-500" />
-                    <Badge variant="outline">ส่งทันที</Badge>
-                  </div>
+          <div>
+            <Label>ข้อความแจ้งเตือน</Label>
+            <Textarea
+              value={settings.online_orders.message}
+              onChange={(e) => 
+                setSettings(prev => ({ ...prev, online_orders: { ...prev.online_orders, message: e.target.value } }))
+              }
+              placeholder="มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">แพลตฟอร์มการแจ้งเตือน</h3>
+            
+            {/* LINE */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <Label>LINE</Label>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="online-orders-enabled" className="text-base font-medium">
-                    เปิดใช้งานการแจ้งเตือนออเดอร์ออนไลน์
-                  </Label>
+                <div className="flex items-center space-x-2">
                   <Switch
-                    id="online-orders-enabled"
-                    checked={settings.onlineOrders.enabled}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        onlineOrders: { ...prev.onlineOrders, enabled: checked }
-                      }))
-                    }
+                    checked={settings.online_orders.platforms.line.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('online_orders', 'line', enabled)}
                   />
-                </div>
-
-                {settings.onlineOrders.enabled && (
-                  <>
-                    <Separator />
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="online-message">ข้อความแจ้งเตือน</Label>
-                        <Textarea
-                          id="online-message"
-                          value={settings.onlineOrders.message}
-                          onChange={(e) =>
-                            setSettings(prev => ({
-                              ...prev,
-                              onlineOrders: { ...prev.onlineOrders, message: e.target.value }
-                            }))
-                          }
-                          placeholder="ข้อความที่จะส่งเมื่อมีออเดอร์ใหม่"
-                          className="min-h-[80px]"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          ใช้ {`{{orderNumber}}, {{amount}}, {{customerName}}`} เป็นตัวแปร
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator />
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
-                      <PlatformSettings
-                        type="ออเดอร์ออนไลน์"
-                        platforms={settings.onlineOrders.platforms}
-                        onChange={(platform, field, value) =>
-                          setSettings(prev => ({
-                            ...prev,
-                            onlineOrders: {
-                              ...prev.onlineOrders,
-                              platforms: {
-                                ...prev.onlineOrders.platforms,
-                                [platform]: {
-                                  ...prev.onlineOrders.platforms[platform as keyof typeof prev.onlineOrders.platforms],
-                                  [field]: value
-                                }
-                              }
-                            }
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* รายงานประจำวัน */}
-          <TabsContent value="daily-reports">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <BarChart className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <CardTitle>รายงานประจำวัน</CardTitle>
-                      <CardDescription>
-                        ส่งสรุปยอดขายประจำวันในเวลาที่กำหนด
-                      </CardDescription>
-                    </div>
-                  </div>
                   <Button
-                    onClick={handleSendReportNow}
-                    disabled={isGeneratingReport}
-                    className="flex items-center gap-2"
                     variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('line', settings.online_orders.platforms.line.token)}
+                    disabled={!settings.online_orders.platforms.line.enabled || !settings.online_orders.platforms.line.token}
                   >
-                    <Send className="w-4 h-4" />
-                    {isGeneratingReport ? 'กำลังส่ง...' : 'ส่งสรุปทันที'}
+                    ทดสอบ
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="daily-reports-enabled" className="text-base font-medium">
-                    เปิดใช้งานรายงานประจำวัน
-                  </Label>
+              </div>
+              <Input
+                placeholder="LINE Bot Token"
+                value={settings.online_orders.platforms.line.token}
+                onChange={(e) => updatePlatformToken('online_orders', 'line', e.target.value)}
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Instagram className="w-5 h-5 text-purple-500" />
+                  <Label>Instagram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
                   <Switch
-                    id="daily-reports-enabled"
-                    checked={settings.dailyReports.enabled}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        dailyReports: { ...prev.dailyReports, enabled: checked }
-                      }))
-                    }
+                    checked={settings.online_orders.platforms.instagram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('online_orders', 'instagram', enabled)}
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('instagram', settings.online_orders.platforms.instagram.token)}
+                    disabled={!settings.online_orders.platforms.instagram.enabled || !settings.online_orders.platforms.instagram.token}
+                  >
+                    ทดสอบ
+                  </Button>
                 </div>
+              </div>
+              <Input
+                placeholder="Instagram Access Token"
+                value={settings.online_orders.platforms.instagram.token}
+                onChange={(e) => updatePlatformToken('online_orders', 'instagram', e.target.value)}
+              />
+            </div>
 
-                {settings.dailyReports.enabled && (
-                  <>
-                    <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="daily-time">เวลาส่งรายงาน</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Clock className="w-4 h-4 text-gray-500" />
-                          <Input
-                            id="daily-time"
-                            type="time"
-                            value={settings.dailyReports.time}
-                            onChange={(e) =>
-                              setSettings(prev => ({
-                                ...prev,
-                                dailyReports: { ...prev.dailyReports, time: e.target.value }
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="daily-message">เทมเพลตข้อความ</Label>
-                      <Textarea
-                        id="daily-message"
-                        value={settings.dailyReports.message}
-                        onChange={(e) =>
-                          setSettings(prev => ({
-                            ...prev,
-                            dailyReports: { ...prev.dailyReports, message: e.target.value }
-                          }))
-                        }
-                        placeholder="เทมเพลตข้อความรายงานประจำวัน"
-                        className="min-h-[100px]"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        ใช้ {`{{date}}, {{totalSales}}, {{orderCount}}`} เป็นตัวแปร
-                      </p>
-                    </div>
-
-                    <Separator />
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
-                      <PlatformSettings
-                        type="รายงานประจำวัน"
-                        platforms={settings.dailyReports.platforms}
-                        onChange={(platform, field, value) =>
-                          setSettings(prev => ({
-                            ...prev,
-                            dailyReports: {
-                              ...prev.dailyReports,
-                              platforms: {
-                                ...prev.dailyReports.platforms,
-                                [platform]: {
-                                  ...prev.dailyReports.platforms[platform as keyof typeof prev.dailyReports.platforms],
-                                  [field]: value
-                                }
-                              }
-                            }
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* รายงานประจำเดือน */}
-          <TabsContent value="monthly-reports">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-purple-600" />
-                  <div>
-                    <CardTitle>รายงานประจำเดือน</CardTitle>
-                    <CardDescription>
-                      ส่งสรุปยอดขายประจำเดือนในวันและเวลาที่กำหนด
-                    </CardDescription>
-                  </div>
+            {/* Discord */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
+                  <Label>Discord</Label>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="monthly-reports-enabled" className="text-base font-medium">
-                    เปิดใช้งานรายงานประจำเดือน
-                  </Label>
+                <div className="flex items-center space-x-2">
                   <Switch
-                    id="monthly-reports-enabled"
-                    checked={settings.monthlyReports.enabled}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        monthlyReports: { ...prev.monthlyReports, enabled: checked }
-                      }))
-                    }
+                    checked={settings.online_orders.platforms.discord.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('online_orders', 'discord', enabled)}
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('discord', settings.online_orders.platforms.discord.token)}
+                    disabled={!settings.online_orders.platforms.discord.enabled || !settings.online_orders.platforms.discord.token}
+                  >
+                    ทดสอบ
+                  </Button>
                 </div>
+              </div>
+              <Input
+                placeholder="Discord Webhook URL"
+                value={settings.online_orders.platforms.discord.token}
+                onChange={(e) => updatePlatformToken('online_orders', 'discord', e.target.value)}
+              />
+            </div>
 
-                {settings.monthlyReports.enabled && (
-                  <>
-                    <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="monthly-day">วันที่ส่งรายงาน</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <Select
-                            value={settings.monthlyReports.dayOfMonth.toString()}
-                            onValueChange={(value) =>
-                              setSettings(prev => ({
-                                ...prev,
-                                monthlyReports: { ...prev.monthlyReports, dayOfMonth: parseInt(value) }
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="เลือกวันที่" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
-                                <SelectItem key={day} value={day.toString()}>
-                                  วันที่ {day}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="monthly-time">เวลาส่งรายงาน</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Clock className="w-4 h-4 text-gray-500" />
-                          <Input
-                            id="monthly-time"
-                            type="time"
-                            value={settings.monthlyReports.time}
-                            onChange={(e) =>
-                              setSettings(prev => ({
-                                ...prev,
-                                monthlyReports: { ...prev.monthlyReports, time: e.target.value }
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
+            {/* Telegram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                  <Label>Telegram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.online_orders.platforms.telegram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('online_orders', 'telegram', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('telegram', settings.online_orders.platforms.telegram.token)}
+                    disabled={!settings.online_orders.platforms.telegram.enabled || !settings.online_orders.platforms.telegram.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Telegram Bot Token"
+                value={settings.online_orders.platforms.telegram.token}
+                onChange={(e) => updatePlatformToken('online_orders', 'telegram', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sound Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Volume2 className="w-5 h-5" />
+            การตั้งค่าเสียง
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={settings.sound_enabled}
+              onCheckedChange={(sound_enabled) => setSettings(prev => ({ ...prev, sound_enabled }))}
+            />
+            <Label>เปิดเสียงแจ้งเตือน</Label>
+          </div>
+
+          <div>
+            <Label>ระดับเสียง: {Math.round(settings.volume * 100)}%</Label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={settings.volume}
+              onChange={(e) => setSettings(prev => ({ ...prev, volume: parseFloat(e.target.value) }))}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <Label>ระยะเวลาเล่น (วินาที)</Label>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              value={settings.duration}
+              onChange={(e) => setSettings(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+            />
+          </div>
+
+          <div>
+            <Label>เสียงแจ้งเตือน</Label>
+            <Select value={settings.selected_sound_id} onValueChange={(selected_sound_id) => setSettings(prev => ({ ...prev, selected_sound_id }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกเสียงแจ้งเตือน" />
+              </SelectTrigger>
+              <SelectContent>
+                {sounds.map(sound => (
+                  <SelectItem key={sound.id} value={sound.id}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{sound.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          playTestSound(sound.file_url);
+                        }}
+                      >
+                        เล่น
+                      </Button>
                     </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                    <div>
-                      <Label htmlFor="monthly-message">เทมเพลตข้อความ</Label>
-                      <Textarea
-                        id="monthly-message"
-                        value={settings.monthlyReports.message}
-                        onChange={(e) =>
-                          setSettings(prev => ({
-                            ...prev,
-                            monthlyReports: { ...prev.monthlyReports, message: e.target.value }
-                          }))
-                        }
-                        placeholder="เทมเพลตข้อความรายงานประจำเดือน"
-                        className="min-h-[120px]"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        ใช้ {`{{month}}, {{totalSales}}, {{target}}, {{growth}}`} เป็นตัวแปร
-                      </p>
-                    </div>
+          <Separator />
 
-                    <Separator />
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
-                      <PlatformSettings
-                        type="รายงานประจำเดือน"
-                        platforms={settings.monthlyReports.platforms}
-                        onChange={(platform, field, value) =>
-                          setSettings(prev => ({
-                            ...prev,
-                            monthlyReports: {
-                              ...prev.monthlyReports,
-                              platforms: {
-                                ...prev.monthlyReports.platforms,
-                                [platform]: {
-                                  ...prev.monthlyReports.platforms[platform as keyof typeof prev.monthlyReports.platforms],
-                                  [field]: value
-                                }
-                              }
-                            }
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          <div>
+            <Label>อัปโหลดเสียงแจ้งเตือนใหม่</Label>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => setNewSoundFile(e.target.files?.[0] || null)}
+              />
+              <Button
+                onClick={uploadSoundFile}
+                disabled={!newSoundFile || uploadingSounds}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {uploadingSounds ? 'กำลังอัปโหลด...' : 'อัปโหลด'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* ปุ่มบันทึก */}
-        <div className="flex justify-end gap-3 pt-6">
-          <Button onClick={handleSaveSettings} className="flex items-center gap-2">
-            <Save className="w-4 h-4" />
-            บันทึกการตั้งค่า
-          </Button>
-        </div>
-      </div>
-    </Shell>
+      {/* Daily Reports Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Music className="w-5 h-5" />
+            การตั้งค่าสรุปยอดขายรายวัน
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={settings.daily_reports.enabled}
+              onCheckedChange={(enabled) => setSettings(prev => ({ ...prev, daily_reports: { ...prev.daily_reports, enabled } }))}
+            />
+            <Label>เปิดการแจ้งเตือนรายวัน</Label>
+          </div>
+
+          <div>
+            <Label>เวลาส่งรายงาน</Label>
+            <Input
+              type="time"
+              value={settings.daily_reports.time}
+              onChange={(e) => setSettings(prev => ({ ...prev, daily_reports: { ...prev.daily_reports, time: e.target.value } }))}
+            />
+          </div>
+
+          <div>
+            <Label>ข้อความรายงาน</Label>
+            <Textarea
+              value={settings.daily_reports.message}
+              onChange={(e) => setSettings(prev => ({ ...prev, daily_reports: { ...prev.daily_reports, message: e.target.value } }))}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">แพลตฟอร์มการแจ้งเตือน</h3>
+            
+            {/* LINE */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <Label>LINE</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.daily_reports.platforms.line.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('daily_reports', 'line', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('line', settings.daily_reports.platforms.line.token)}
+                    disabled={!settings.daily_reports.platforms.line.enabled || !settings.daily_reports.platforms.line.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="LINE Bot Token"
+                value={settings.daily_reports.platforms.line.token}
+                onChange={(e) => updatePlatformToken('daily_reports', 'line', e.target.value)}
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Instagram className="w-5 h-5 text-purple-500" />
+                  <Label>Instagram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.daily_reports.platforms.instagram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('daily_reports', 'instagram', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('instagram', settings.daily_reports.platforms.instagram.token)}
+                    disabled={!settings.daily_reports.platforms.instagram.enabled || !settings.daily_reports.platforms.instagram.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Instagram Access Token"
+                value={settings.daily_reports.platforms.instagram.token}
+                onChange={(e) => updatePlatformToken('daily_reports', 'instagram', e.target.value)}
+              />
+            </div>
+
+            {/* Discord */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
+                  <Label>Discord</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.daily_reports.platforms.discord.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('daily_reports', 'discord', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('discord', settings.daily_reports.platforms.discord.token)}
+                    disabled={!settings.daily_reports.platforms.discord.enabled || !settings.daily_reports.platforms.discord.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Discord Webhook URL"
+                value={settings.daily_reports.platforms.discord.token}
+                onChange={(e) => updatePlatformToken('daily_reports', 'discord', e.target.value)}
+              />
+            </div>
+
+            {/* Telegram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                  <Label>Telegram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.daily_reports.platforms.telegram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('daily_reports', 'telegram', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('telegram', settings.daily_reports.platforms.telegram.token)}
+                    disabled={!settings.daily_reports.platforms.telegram.enabled || !settings.daily_reports.platforms.telegram.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Telegram Bot Token"
+                value={settings.daily_reports.platforms.telegram.token}
+                onChange={(e) => updatePlatformToken('daily_reports', 'telegram', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Reports Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Music className="w-5 h-5" />
+            การตั้งค่าสรุปยอดขายรายเดือน
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={settings.monthly_reports.enabled}
+              onCheckedChange={(enabled) => setSettings(prev => ({ ...prev, monthly_reports: { ...prev.monthly_reports, enabled } }))}
+            />
+            <Label>เปิดการแจ้งเตือนรายเดือน</Label>
+          </div>
+
+          <div>
+            <Label>เวลาส่งรายงาน</Label>
+            <Input
+              type="time"
+              value={settings.monthly_reports.time}
+              onChange={(e) => setSettings(prev => ({ ...prev, monthly_reports: { ...prev.monthly_reports, time: e.target.value } }))}
+            />
+          </div>
+
+          <div>
+            <Label>วันที่ส่งรายงาน (วันในเดือน)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={31}
+              value={settings.monthly_reports.dayOfMonth}
+              onChange={(e) => setSettings(prev => ({ ...prev, monthly_reports: { ...prev.monthly_reports, dayOfMonth: parseInt(e.target.value) } }))}
+            />
+          </div>
+
+          <div>
+            <Label>ข้อความรายงาน</Label>
+            <Textarea
+              value={settings.monthly_reports.message}
+              onChange={(e) => setSettings(prev => ({ ...prev, monthly_reports: { ...prev.monthly_reports, message: e.target.value } }))}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium">แพลตฟอร์มการแจ้งเตือน</h3>
+            
+            {/* LINE */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <Label>LINE</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.monthly_reports.platforms.line.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('monthly_reports', 'line', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('line', settings.monthly_reports.platforms.line.token)}
+                    disabled={!settings.monthly_reports.platforms.line.enabled || !settings.monthly_reports.platforms.line.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="LINE Bot Token"
+                value={settings.monthly_reports.platforms.line.token}
+                onChange={(e) => updatePlatformToken('monthly_reports', 'line', e.target.value)}
+              />
+            </div>
+
+            {/* Instagram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Instagram className="w-5 h-5 text-purple-500" />
+                  <Label>Instagram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.monthly_reports.platforms.instagram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('monthly_reports', 'instagram', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('instagram', settings.monthly_reports.platforms.instagram.token)}
+                    disabled={!settings.monthly_reports.platforms.instagram.enabled || !settings.monthly_reports.platforms.instagram.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Instagram Access Token"
+                value={settings.monthly_reports.platforms.instagram.token}
+                onChange={(e) => updatePlatformToken('monthly_reports', 'instagram', e.target.value)}
+              />
+            </div>
+
+            {/* Discord */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-500" />
+                  <Label>Discord</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.monthly_reports.platforms.discord.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('monthly_reports', 'discord', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('discord', settings.monthly_reports.platforms.discord.token)}
+                    disabled={!settings.monthly_reports.platforms.discord.enabled || !settings.monthly_reports.platforms.discord.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Discord Webhook URL"
+                value={settings.monthly_reports.platforms.discord.token}
+                onChange={(e) => updatePlatformToken('monthly_reports', 'discord', e.target.value)}
+              />
+            </div>
+
+            {/* Telegram */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                  <Label>Telegram</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.monthly_reports.platforms.telegram.enabled}
+                    onCheckedChange={(enabled) => updatePlatformEnabled('monthly_reports', 'telegram', enabled)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testNotification('telegram', settings.monthly_reports.platforms.telegram.token)}
+                    disabled={!settings.monthly_reports.platforms.telegram.enabled || !settings.monthly_reports.platforms.telegram.token}
+                  >
+                    ทดสอบ
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Telegram Bot Token"
+                value={settings.monthly_reports.platforms.telegram.token}
+                onChange={(e) => updatePlatformToken('monthly_reports', 'telegram', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

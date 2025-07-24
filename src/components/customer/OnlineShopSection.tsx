@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
 import AddonModal from '@/components/AddonModal';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
+import { onlineShopNotificationService } from './OnlineShopNotificationService';
 
 interface MenuItem {
   id: string;
@@ -251,7 +252,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             // Use navigator.vibrate() separately from Notification
             if ('vibrate' in navigator) {
-              navigator.vibrate([200, 100, 200, 100, 200]);
+              navigator.vibrate([200, 100, 200]);
             }
 
             // Auto-close after 7 seconds
@@ -530,6 +531,23 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     try {
       console.log('📡 Triggering enhanced global order notification...');
       
+      // Use the notification service to send notifications to all platforms
+      await onlineShopNotificationService.sendOrderNotification({
+        orderNumber,
+        totalAmount,
+        customerName: currentUser?.name,
+        customerPhone: currentUser?.phone,
+        items: cartItems.map(item => ({
+          name: item.menu_item.name,
+          quantity: item.quantity,
+          price: item.menu_item.price,
+          addons: item.selected_addons?.map(addon => ({
+            name: addon.name,
+            price: addon.price
+          })) || []
+        }))
+      });
+
       // Insert into customer_orders table for useOrderNotifications hook
       const { error: customerOrderError } = await supabase
         .from('customer_orders')
@@ -1027,7 +1045,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       // Show immediate success message to user
       toast({ 
         title: 'กำลังดำเนินการ...', 
-        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ' 
+        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ และส่งแจ้งเตือนไปยังร้านค้า' 
       });
 
       // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
@@ -1145,13 +1163,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             }
           }
 
-          // Trigger enhanced global notification AFTER order is saved
+          // 🔔 TRIGGER ENHANCED GLOBAL NOTIFICATION INCLUDING PLATFORM NOTIFICATIONS
           await triggerGlobalOrderNotification(orderNumber, finalAmount);
 
           // Show final success message
           toast({ 
             title: 'สั่งซื้อสำเร็จ!', 
-            description: `หมายเลขออเดอร์: ${orderNumber}` 
+            description: `หมายเลขออเดอร์: ${orderNumber} และได้ส่งแจ้งเตือนไปยังร้านค้าแล้ว` 
           });
 
           setTimeout(() => {
@@ -1515,10 +1533,10 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
             <Button 
               onClick={submitOrder}
-              className="w-full"
+              className="w-full bg-orange-500 hover:bg-orange-600"
               disabled={isProcessing || (paymentMethod === 'qr' && qrCodeUrl && !receiptFile)}
             >
-              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการชำระเงิน และส่งแจ้งเตือนไปยังร้านค้า'}
             </Button>
           </CardContent>
         </Card>
