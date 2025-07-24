@@ -7,9 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Bell, MessageSquare, Instagram, Music, Volume2, Upload } from 'lucide-react';
+import { Bell, MessageSquare, Instagram, Music, Volume2, Upload, Calendar, BarChart3 } from 'lucide-react';
 
 interface NotificationSettings {
   online_orders: {
@@ -367,8 +368,28 @@ const NotificationPage = () => {
         </Button>
       </div>
 
-      {/* Online Orders Notifications */}
-      <Card>
+      <Tabs defaultValue="online-orders" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="online-orders" className="flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            แจ้งเตือนออเดอร์ออนไลน์
+          </TabsTrigger>
+          <TabsTrigger value="sound-settings" className="flex items-center gap-2">
+            <Volume2 className="w-4 h-4" />
+            การตั้งค่าเสียง
+          </TabsTrigger>
+          <TabsTrigger value="daily-reports" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            สรุปยอดขายรายวัน
+          </TabsTrigger>
+          <TabsTrigger value="monthly-reports" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            สรุปยอดขายรายเดือน
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="online-orders">
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
@@ -526,11 +547,12 @@ const NotificationPage = () => {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+         </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Sound Settings */}
-      <Card>
+        <TabsContent value="sound-settings">
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Volume2 className="w-5 h-5" />
@@ -618,10 +640,11 @@ const NotificationPage = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      {/* Daily Reports Settings */}
-      <Card>
+        <TabsContent value="daily-reports">
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Music className="w-5 h-5" />
@@ -774,10 +797,11 @@ const NotificationPage = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      {/* Monthly Reports Settings */}
-      <Card>
+        <TabsContent value="monthly-reports">
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Music className="w-5 h-5" />
@@ -941,7 +965,9 @@ const NotificationPage = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
