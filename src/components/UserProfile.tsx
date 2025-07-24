@@ -4,22 +4,10 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-interface UserType {
-  id: string;
-  username: string;
-  role: string;
-  email?: string;
-  full_name?: string;
-  avatar_url?: string;
-}
-
 const UserProfile = () => {
   const { user, logout } = useAuth();
 
   if (!user) return null;
-
-  // Type-safe user with proper interface
-  const typedUser = user as UserType;
 
   const getLevelBadgeColor = (role: string) => {
     switch (role) {
@@ -43,24 +31,24 @@ const UserProfile = () => {
     <div className="p-4 border-b border-coffee-200 bg-coffee-50">
       <div className="flex items-center space-x-3 mb-3">
         <Avatar className="w-12 h-12 border-2 border-coffee-300">
-          <AvatarImage src={typedUser.avatar_url} alt={typedUser.full_name || typedUser.username} />
+          <AvatarImage src={user.avatar_url} alt={user.full_name || user.username} />
           <AvatarFallback className="bg-coffee-600 text-white">
             <User className="w-6 h-6" />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-coffee-800 truncate">
-            {typedUser.full_name || typedUser.username}
+            {user.full_name || user.username}
           </p>
-          <p className="text-xs text-coffee-600">@{typedUser.username}</p>
+          <p className="text-xs text-coffee-600">@{user.username}</p>
         </div>
       </div>
       
       <div className="flex items-center justify-between">
         <span 
-          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeColor(typedUser.role)}`}
+          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeColor(user.role)}`}
         >
-          {getLevelDisplayName(typedUser.role)}
+          {getLevelDisplayName(user.role)}
         </span>
         
         <Button

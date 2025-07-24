@@ -93,12 +93,3 @@ export interface MenuIngredient {
   ingredient_id: string;
   quantity_needed: number;
 }
-
-export interface User {
-  id: string;
-  username: string;
-  role: string;
-  email?: string;
-  full_name?: string;
-  avatar_url?: string;
-}
