@@ -28,8 +28,12 @@ interface Member {
 }
 
 const POS = () => {
+  console.log('🚀 POS Component Started');
+  
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
+  
+  console.log('📱 isMobile:', isMobile);
   
   // Initialize order notifications for iPad compatibility
   const { playBellSound, initializeAudio } = useOrderNotifications();
@@ -43,6 +47,9 @@ const POS = () => {
     const saved = localStorage.getItem('pos-item-size');
     return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
   });
+  
+  console.log('⚙️ Grid settings:', { gridColumns, itemSize });
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
@@ -69,6 +76,8 @@ const POS = () => {
     restoreCart
   } = useCart();
 
+  console.log('🛒 Cart items count:', cartItems.length);
+
   const { 
     categories, 
     menuItems, 
@@ -78,8 +87,16 @@ const POS = () => {
     getAddonGroupsForCategory 
   } = useSupabaseData();
 
+  console.log('📊 Data status:', {
+    loading,
+    categoriesCount: categories.length,
+    menuItemsCount: menuItems.length,
+    addonsCount: addons.length
+  });
+
   // ปรับ grid columns สำหรับมือถือ
   useEffect(() => {
+    console.log('📱 Mobile effect triggered:', isMobile);
     if (isMobile) {
       setGridColumns(3); 
       setItemSize('small'); 
@@ -118,6 +135,8 @@ const POS = () => {
     }))
   ];
 
+  console.log('🏷️ Converted categories:', convertedCategories.length);
+
   // Convert database menu items to the format expected by components
   const convertedMenuItems = menuItems.map(item => ({
     id: item.id,
@@ -130,9 +149,16 @@ const POS = () => {
     calculated_cost: Number(item.cost_price)
   }));
 
+  console.log('🍽️ Converted menu items:', convertedMenuItems.length);
+
   const filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
+
+  console.log('🔍 Filtered menu items:', {
+    selectedCategory,
+    filteredCount: filteredMenuItems.length
+  });
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -290,23 +316,18 @@ const POS = () => {
   };
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  console.log('🛒 Total items in cart:', totalItems);
 
   if (loading) {
-    console.log('🔄 POS loading data...');
+    console.log('🔄 POS is loading, showing loading screen');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground">กำลังโหลดข้อมูล...</div>
+        <div className="text-foreground text-xl">กำลังโหลดข้อมูล...</div>
       </div>
     );
   }
 
-  // Debug logging
-  console.log('🎯 POS rendering with:', {
-    categoriesLength: categories.length,
-    menuItemsLength: menuItems.length,
-    convertedCategoriesLength: convertedCategories.length,
-    filteredMenuItemsLength: filteredMenuItems.length
-  });
+  console.log('🎯 POS about to render main UI');
 
   return (
     <div 
