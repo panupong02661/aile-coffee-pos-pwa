@@ -301,7 +301,7 @@ export const useOrderNotifications = () => {
           schema: 'public',
           table: 'orders'
         },
-        (payload) => {
+        async (payload) => {
           console.log('🔔 New order received:', payload.new);
           
           const order = payload.new as any;
@@ -319,6 +319,37 @@ export const useOrderNotifications = () => {
               description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
               duration: 10000,
             });
+            
+            // Send notification to external platforms via Edge Function
+            try {
+              console.log('📡 Sending notification to external platforms...');
+              
+              const { data, error } = await supabase.functions.invoke('send-order-notification', {
+                body: {
+                  orderData: {
+                    id: order.id,
+                    order_number: order.order_number,
+                    total_amount: order.total_amount,
+                    items_count: order.items_count || 1,
+                    member_id: order.member_id,
+                    payment_method: order.payment_method,
+                    order_source: order.order_source,
+                    status: order.status,
+                    created_at: order.created_at,
+                    customer_name: order.customer_name,
+                    customer_phone: order.customer_phone
+                  }
+                }
+              });
+
+              if (error) {
+                console.error('❌ Failed to send external notifications:', error);
+              } else {
+                console.log('✅ External notifications sent successfully:', data);
+              }
+            } catch (error) {
+              console.error('❌ Error calling send-order-notification function:', error);
+            }
             
             console.log('📱 Enhanced notification sequence complete');
           }
