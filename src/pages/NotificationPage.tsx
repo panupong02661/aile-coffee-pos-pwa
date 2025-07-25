@@ -90,9 +90,9 @@ const NotificationPage = () => {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
 
@@ -119,10 +119,14 @@ const NotificationPage = () => {
     try {
       setIsSaving(true);
       
-      const { data: existingData } = await supabase
+      const { data: existingData, error: selectError } = await supabase
         .from('notification_settings')
         .select('id')
-        .single();
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('Error checking existing data:', selectError);
+      }
 
       const settingsData = {
         online_orders: settings.onlineOrders,
@@ -132,7 +136,7 @@ const NotificationPage = () => {
       };
 
       let result;
-      if (existingData) {
+      if (existingData?.id) {
         result = await supabase
           .from('notification_settings')
           .update(settingsData)
@@ -142,7 +146,6 @@ const NotificationPage = () => {
           .from('notification_settings')
           .insert({
             ...settingsData,
-            id: crypto.randomUUID(),
             sound_enabled: true,
             volume: 0.5,
             duration: 5
