@@ -24,8 +24,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('🔔 send-order-notification function called');
+  console.log('🔔 send-order-notification function called at:', new Date().toISOString());
   console.log('📦 Request method:', req.method);
+  console.log('📦 Request URL:', req.url);
   console.log('📦 Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
 
   try {
