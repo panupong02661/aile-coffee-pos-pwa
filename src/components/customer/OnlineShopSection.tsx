@@ -531,7 +531,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       console.log('📡 Triggering enhanced global order notification...');
       
       // Insert into customer_orders table for useOrderNotifications hook
-      const { error: customerOrderError } = await supabase
+      const { data: insertedOrder, error: customerOrderError } = await supabase
         .from('customer_orders')
         .insert({
           customer_id: currentUser.id,
@@ -551,12 +551,43 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           order_status: 'confirmed',
           delivery_type: 'pickup',
           notes: customerNotes
-        });
+        })
+        .select()
+        .single();
 
       if (customerOrderError) {
         console.error('Failed to trigger customer_orders notification:', customerOrderError);
       } else {
         console.log('✅ customer_orders notification triggered successfully');
+        
+        // Call edge function to send notifications
+        try {
+          const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+            body: {
+              orderData: {
+                order_number: orderNumber,
+                total_amount: totalAmount,
+                customer_name: currentUser.full_name,
+                customer_phone: currentUser.phone,
+                payment_method: paymentMethod,
+                order_status: 'confirmed',
+                items: cartItems.map(item => ({
+                  name: item.menu_item.name,
+                  quantity: item.quantity,
+                  price: item.menu_item.price
+                }))
+              }
+            }
+          });
+
+          if (edgeFunctionError) {
+            console.error('❌ Failed to send order notifications:', edgeFunctionError);
+          } else {
+            console.log('✅ Order notifications sent successfully:', notificationResult);
+          }
+        } catch (notificationError) {
+          console.error('❌ Error calling notification edge function:', notificationError);
+        }
       }
 
       // Also insert into orders table for GlobalNotificationProvider
