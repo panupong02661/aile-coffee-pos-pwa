@@ -294,8 +294,8 @@ const POS = () => {
   if (loading) {
     console.log('🔄 POS loading data...');
     return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">กำลังโหลดข้อมูล...</div>
       </div>
     );
   }
@@ -310,7 +310,7 @@ const POS = () => {
 
   return (
     <div 
-      className="h-screen bg-cream-50 flex overflow-hidden" 
+      className="h-screen bg-background flex overflow-hidden" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -323,10 +323,10 @@ const POS = () => {
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Header */}
-        <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
+        <div className={`flex-shrink-0 bg-background sticky top-0 z-10 ${
           isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
         }`}>
-          <Header 
+          <Header
             onToggleSidebar={handleToggleSidebar}
             onMemberClick={handleMemberClick}
             categories={convertedCategories}
@@ -369,7 +369,7 @@ const POS = () => {
         }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-white rounded-lg border border-coffee-200">
+            <div className="h-full bg-card rounded-lg border border-border">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-2' : 'p-4'
               }`} style={{ scrollbarWidth: 'thin' }}>
@@ -424,7 +424,7 @@ const POS = () => {
           <div className="fixed bottom-4 right-4 z-20">
             <Button
               onClick={() => setIsMobileCartOpen(true)}
-              className="w-14 h-14 rounded-full bg-coffee-600 hover:bg-coffee-700 shadow-lg relative"
+              className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg relative"
               size="sm"
             >
               <ShoppingCart className="w-6 h-6" />
