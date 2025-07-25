@@ -299,50 +299,29 @@ export const useOrderNotifications = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'customer_orders'
+          table: 'orders'
         },
         (payload) => {
-          console.log('🔔 New customer order received:', payload.new);
+          console.log('🔔 New order received:', payload.new);
           
           const order = payload.new as any;
           
-          // Play enhanced notification sound immediately
-          playBellSound();
-          
-          // Show toast notification
-          toast({
-            title: '🔔 มีออเดอร์ออนไลน์ใหม่!',
-            description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
-            duration: 10000,
-          });
-          
-          console.log('📱 Enhanced notification sequence complete');
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-          filter: 'order_source=eq.online'
-        },
-        (payload) => {
-          console.log('🔔 New online order received:', payload.new);
-          
-          const order = payload.new as any;
-          
-          // Play enhanced notification sound immediately
-          playBellSound();
-          
-          // Show toast notification
-          toast({
-            title: '🔔 มีออเดอร์ออนไลน์ใหม่!',
-            description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
-            duration: 10000,
-          });
-          
-          console.log('📱 Enhanced notification sequence complete');
+          // Only handle online orders
+          if (order.order_source === 'online') {
+            console.log('🔔 Processing online order notification');
+            
+            // Play enhanced notification sound immediately
+            playBellSound();
+            
+            // Show toast notification
+            toast({
+              title: '🔔 มีออเดอร์ออนไลน์ใหม่!',
+              description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
+              duration: 10000,
+            });
+            
+            console.log('📱 Enhanced notification sequence complete');
+          }
         }
       )
       .subscribe();
