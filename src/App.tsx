@@ -51,7 +51,13 @@ function App() {
                 </div>
               }>
                 <Routes>
-                  <Route path="/" element={<POS />} />
+                  <Route path="/" element={
+                    <div style={{ padding: '20px', background: 'lightblue' }}>
+                      <h1>🚀 Test Page - React Working!</h1>
+                      <p>If you see this, React is working. Now loading POS...</p>
+                      <POS />
+                    </div>
+                  } />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/menu" element={<MenuManagement />} />
                   <Route path="/members" element={<MemberManagement />} />
