@@ -291,9 +291,15 @@ export const useOrderNotifications = () => {
   // Enhanced real-time order listening
   useEffect(() => {
     console.log('👂 Setting up enhanced iOS-compatible real-time order notifications...');
+    console.log('🔍 Supabase client status:', !!supabase);
     
     const channel = supabase
-      .channel('enhanced-orders-notifications')
+      .channel('enhanced-orders-notifications', {
+        config: {
+          broadcast: { self: true },
+          presence: { key: 'order-notifications' }
+        }
+      })
       .on(
         'postgres_changes',
         {
