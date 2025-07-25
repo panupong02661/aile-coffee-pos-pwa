@@ -300,10 +300,13 @@ const POS = () => {
     );
   }
 
-  console.log('🎯 POS data loaded - Categories:', categories.length, 'Menu Items:', menuItems.length);
-  console.log('🎯 Converted categories:', convertedCategories);
-  console.log('🎯 Converted menu items:', convertedMenuItems);
-  console.log('🎯 Filtered menu items:', filteredMenuItems.length);
+  // Debug logging
+  console.log('🎯 POS rendering with:', {
+    categoriesLength: categories.length,
+    menuItemsLength: menuItems.length,
+    convertedCategoriesLength: convertedCategories.length,
+    filteredMenuItemsLength: filteredMenuItems.length
+  });
 
   return (
     <div 
