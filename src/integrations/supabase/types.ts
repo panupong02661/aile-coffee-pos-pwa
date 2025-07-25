@@ -1731,8 +1731,11 @@ export type Database = {
       notification_settings: {
         Row: {
           created_at: string | null
+          daily_reports: Json | null
           duration: number | null
           id: string
+          monthly_reports: Json | null
+          online_orders: Json | null
           selected_sound_id: string | null
           sound_enabled: boolean | null
           updated_at: string | null
@@ -1740,8 +1743,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_reports?: Json | null
+          online_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -1749,8 +1755,11 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_reports?: Json | null
+          online_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -1999,6 +2008,7 @@ export type Database = {
           payment_method: string
           pickup_time: string | null
           receipt_image_url: string | null
+          status: string | null
           total_amount: number
           updated_at: string
         }
@@ -2015,6 +2025,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
         }
@@ -2031,6 +2042,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
         }
@@ -3042,24 +3054,36 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          failed_login_attempts: number | null
           id: string
+          last_login: string | null
+          locked_until: string | null
           password_hash: string
+          password_salt: string | null
           role: string
           updated_at: string
           username: string
         }
         Insert: {
           created_at?: string
+          failed_login_attempts?: number | null
           id?: string
+          last_login?: string | null
+          locked_until?: string | null
           password_hash: string
+          password_salt?: string | null
           role?: string
           updated_at?: string
           username: string
         }
         Update: {
           created_at?: string
+          failed_login_attempts?: number | null
           id?: string
+          last_login?: string | null
+          locked_until?: string | null
           password_hash?: string
+          password_salt?: string | null
           role?: string
           updated_at?: string
           username?: string
@@ -3071,6 +3095,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_user: {
+        Args: { username_input: string; password_input: string }
+        Returns: Json
+      }
       calculate_menu_cost: {
         Args: { menu_id: string }
         Returns: number
@@ -3120,6 +3148,10 @@ export type Database = {
           shortage: number
         }[]
       }
+      hash_password: {
+        Args: { password: string }
+        Returns: Json
+      }
       restore_stock_for_cancelled_order: {
         Args: { order_id_param: string }
         Returns: Json
@@ -3134,6 +3166,10 @@ export type Database = {
         }[]
       }
       validate_input: {
+        Args: { input_text: string; input_type?: string }
+        Returns: boolean
+      }
+      validate_input_secure: {
         Args: { input_text: string; input_type?: string }
         Returns: boolean
       }
