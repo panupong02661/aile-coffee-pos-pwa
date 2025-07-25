@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -36,6 +36,8 @@ const NotificationPage = () => {
   const { toast } = useToast();
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [settings, setSettings] = useState({
     // การแจ้งเตือนออเดอร์ออนไลน์
@@ -76,6 +78,96 @@ const NotificationPage = () => {
       message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
     }
   });
+
+  // โหลดข้อมูลการตั้งค่าจากฐานข้อมูล
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setSettings({
+          onlineOrders: (data as any).online_orders || settings.onlineOrders,
+          dailyReports: (data as any).daily_reports || settings.dailyReports,
+          monthlyReports: (data as any).monthly_reports || settings.monthlyReports
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        title: 'ไม่สามารถโหลดการตั้งค่าได้',
+        description: 'กรุณาลองใหม่อีกครั้ง',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      setIsSaving(true);
+      
+      const { data: existingData } = await supabase
+        .from('notification_settings')
+        .select('id')
+        .single();
+
+      const settingsData = {
+        online_orders: settings.onlineOrders,
+        daily_reports: settings.dailyReports,
+        monthly_reports: settings.monthlyReports,
+        updated_at: new Date().toISOString()
+      };
+
+      let result;
+      if (existingData) {
+        result = await supabase
+          .from('notification_settings')
+          .update(settingsData)
+          .eq('id', existingData.id);
+      } else {
+        result = await supabase
+          .from('notification_settings')
+          .insert({
+            ...settingsData,
+            id: crypto.randomUUID(),
+            sound_enabled: true,
+            volume: 0.5,
+            duration: 5
+          });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast({
+        title: 'บันทึกการตั้งค่าสำเร็จ ✅',
+        description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'ไม่สามารถบันทึกการตั้งค่าได้',
+        description: 'กรุณาลองใหม่อีกครั้ง',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // ฟังก์ชันสำหรับดึงข้อมูลรายงานประจำวัน
   const generateDailyReport = async () => {
@@ -316,11 +408,7 @@ const NotificationPage = () => {
   };
 
   const handleSaveSettings = () => {
-    // บันทึกการตั้งค่า
-    toast({
-      title: 'บันทึกการตั้งค่าสำเร็จ',
-      description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
-    });
+    saveSettings();
   };
 
   const handleTestNotification = async (type: string, platform: string) => {
@@ -877,9 +965,13 @@ const NotificationPage = () => {
 
         {/* ปุ่มบันทึก */}
         <div className="flex justify-end gap-3 pt-6">
-          <Button onClick={handleSaveSettings} className="flex items-center gap-2">
+          <Button 
+            onClick={handleSaveSettings} 
+            disabled={isSaving || isLoading}
+            className="flex items-center gap-2"
+          >
             <Save className="w-4 h-4" />
-            บันทึกการตั้งค่า
+            {isSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
           </Button>
         </div>
       </div>
