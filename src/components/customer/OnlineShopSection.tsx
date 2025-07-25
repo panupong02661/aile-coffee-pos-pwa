@@ -528,7 +528,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   // Enhanced global notification trigger for all platforms (except customer page)
   const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
     try {
-      console.log('📡 Triggering enhanced global order notification...');
+      console.log('📡 Triggering enhanced global order notification...', { orderNumber, totalAmount });
       
       // Insert into customer_orders table for useOrderNotifications hook
       const { data: insertedOrder, error: customerOrderError } = await supabase
@@ -562,31 +562,55 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         
         // Call edge function to send notifications
         try {
+          console.log('🚀 Calling send-order-notification edge function...');
+          
+          const orderData = {
+            order_number: orderNumber,
+            total_amount: totalAmount,
+            customer_name: currentUser.full_name,
+            customer_phone: currentUser.phone,
+            payment_method: paymentMethod,
+            order_status: 'confirmed',
+            items: cartItems.map(item => ({
+              name: item.menu_item.name,
+              quantity: item.quantity,
+              price: item.menu_item.price
+            }))
+          };
+          
+          console.log('📦 Order data being sent to edge function:', orderData);
+          
           const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
-            body: {
-              orderData: {
-                order_number: orderNumber,
-                total_amount: totalAmount,
-                customer_name: currentUser.full_name,
-                customer_phone: currentUser.phone,
-                payment_method: paymentMethod,
-                order_status: 'confirmed',
-                items: cartItems.map(item => ({
-                  name: item.menu_item.name,
-                  quantity: item.quantity,
-                  price: item.menu_item.price
-                }))
-              }
-            }
+            body: { orderData }
           });
 
           if (edgeFunctionError) {
             console.error('❌ Failed to send order notifications:', edgeFunctionError);
+            
+            // Show user notification about edge function error
+            toast({
+              title: 'การแจ้งเตือนล้มเหลว',
+              description: 'ไม่สามารถส่งการแจ้งเตือนได้ แต่ออเดอร์ถูกบันทึกเรียบร้อยแล้ว',
+              variant: 'destructive'
+            });
           } else {
             console.log('✅ Order notifications sent successfully:', notificationResult);
+            
+            // Show success notification to user
+            toast({
+              title: 'แจ้งเตือนสำเร็จ',
+              description: 'ส่งการแจ้งเตือนไปยังแพลตฟอร์มที่เปิดใช้งานแล้ว',
+            });
           }
         } catch (notificationError) {
           console.error('❌ Error calling notification edge function:', notificationError);
+          
+          // Show user notification about edge function error
+          toast({
+            title: 'ข้อผิดพลาดในการแจ้งเตือน',
+            description: 'เกิดข้อผิดพลาดในการส่งการแจ้งเตือน',
+            variant: 'destructive'
+          });
         }
       }
 
