@@ -56,22 +56,28 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
+  const setupRef = useRef(false);
+
   useEffect(() => {
+    // Prevent multiple setup calls
+    if (setupRef.current) {
+      console.log('🚫 GlobalNotificationProvider already setup, skipping...');
+      return;
+    }
+    
     // Don't show notifications on customer mobile app page
     if (isCustomerMobileApp) {
       console.log('📱 Customer mobile app detected, notifications disabled');
       return;
     }
 
-    console.log('🔔 Setting up GlobalNotificationProvider (secondary sync only)...');
-    console.log('🍎 iOS detected:', isIOS);
+    setupRef.current = true;
+    console.log('🔔 Setting up GlobalNotificationProvider (simplified)...');
     
-    // Load notification settings and sounds
+    // Load minimal notification data ONCE
     loadNotificationData();
     
-    // Setup ONLY cross-device notification sync channel (ไม่ฟัง orders table แล้ว)
-    console.log('📡 Setting up cross-device sync only...');
-    
+    // Setup ONLY essential cross-device sync
     const syncChannel = supabase
       .channel('enhanced-notification-sync')
       .on('broadcast', { event: 'dismiss-notification' }, () => {
@@ -79,95 +85,34 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setShowOrderAlert(false);
         setNewOrder(null);
       })
-      .on('broadcast', { event: 'new-order-notification' }, async (payload) => {
-        console.log('📡 Received enhanced cross-device order notification:', payload);
-        const orderData = payload.payload;
-        
-        // Show notification on this device too
-        setNewOrder({
-          id: orderData.orderId,
-          order_number: orderData.orderNumber,
-          total_amount: orderData.totalAmount,
-          items: orderData.items || [],
-          customer_profiles: orderData.customerInfo
-        });
-        setShowOrderAlert(true);
-        
-        // Enhanced iOS notification handling
-        if (isIOS) {
-          console.log('🍎 Triggering iOS notification from broadcast');
-          await triggerIOSNotification({
-            orderNumber: orderData.orderNumber,
-            totalAmount: orderData.totalAmount,
-            items: orderData.items || []
-          });
-        } else {
-          // Play enhanced sound on non-iOS devices
-          console.log('🔊 About to call enhanced playNotificationSound from broadcast');
-          try {
-            await playEnhancedNotificationSound();
-          } catch (soundError) {
-            console.log('🔊 Broadcast sound play error:', soundError);
-            createEnhancedBeepSound();
-          }
-        }
-        
-        // Show toast
-        toast.success('มีออเดอร์ออนไลน์ใหม่!', {
-          description: `ออเดอร์ #${orderData.orderNumber} - ฿${orderData.totalAmount}`,
-          duration: 15000,
-          action: {
-            label: 'ดูรายละเอียด',
-            onClick: () => {
-              handleDismiss();
-              navigate('/online-orders');
-            }
-          }
-        });
-      })
-      .on('broadcast', { event: 'new-order-immediate' }, async (payload) => {
-        console.log('📡 Received immediate order notification:', payload);
-        const orderData = payload.payload;
-        
-        // Enhanced iOS immediate notification
-        if (isIOS) {
-          console.log('🍎 Triggering immediate iOS notification');
-          await triggerIOSNotification({
-            orderNumber: orderData.orderNumber,
-            totalAmount: orderData.totalAmount,
-            items: orderData.items || []
-          });
-        } else {
-          // Immediate notification response for non-iOS
-          await playEnhancedNotificationSound();
-        }
-        
-        toast.success('🔔 ออเดอร์ใหม่เข้ามาทันที!', {
-          description: `${orderData.orderNumber} - ฿${orderData.totalAmount}`,
-          duration: 8000
-        });
-      })
       .subscribe((status) => {
-        console.log('📡 Enhanced sync subscription status:', status);
+        console.log('📡 Sync subscription status:', status);
       });
 
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up GlobalNotificationProvider subscriptions...');
+      console.log('🧹 Cleaning up GlobalNotificationProvider...');
+      setupRef.current = false;
       supabase.removeChannel(syncChannel);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, [navigate, isCustomerMobileApp, isIOS, triggerIOSNotification]);
+  }, [isCustomerMobileApp]); // Remove navigate and other dependencies
 
   const loadNotificationData = async () => {
+    // Only load once per session
+    if (notificationSounds.length > 0) {
+      console.log('🚫 Notification data already loaded, skipping...');
+      return;
+    }
+    
     try {
       console.log('🔊 Loading notification data...');
       
-      // Load settings
+      // Load only settings (skip sounds to reduce requests)
       const { data: settings } = await supabase
         .from('notification_settings')
         .select('*')
@@ -184,16 +129,18 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
       }
 
-      // Load all sounds (both active and inactive for proper selection display)
-      const { data: sounds } = await supabase
-        .from('notification_sounds')
-        .select('*')
-        .order('created_at');
+      // Only load sounds if needed for notifications (not for POS page)
+      if (location.pathname !== '/') {
+        const { data: sounds } = await supabase
+          .from('notification_sounds')
+          .select('*')
+          .order('created_at')
+          .limit(5); // Limit to reduce requests
 
-      console.log('🔊 Loaded sounds:', sounds);
-
-      if (sounds && sounds.length > 0) {
-        setNotificationSounds(sounds);
+        console.log('🔊 Loaded sounds:', sounds);
+        if (sounds && sounds.length > 0) {
+          setNotificationSounds(sounds);
+        }
       }
     } catch (error) {
       console.error('❌ Error loading notification data:', error);

@@ -292,12 +292,15 @@ const POS = () => {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (loading) {
+    console.log('🔄 POS loading data...');
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
       </div>
     );
   }
+
+  console.log('🎯 POS data loaded - Categories:', categories.length, 'Menu Items:', menuItems.length);
 
   return (
     <div 
