@@ -309,6 +309,7 @@ export const useOrderNotifications = () => {
         },
         async (payload) => {
           console.log('🔔 New order received:', payload.new);
+          console.log('📊 Order data:', JSON.stringify(payload.new, null, 2));
           
           const order = payload.new as any;
           
@@ -317,7 +318,7 @@ export const useOrderNotifications = () => {
             console.log('🔔 Processing online order notification');
             
             // Play enhanced notification sound immediately
-            playBellSound();
+            await playBellSound();
             
             // Show toast notification
             toast({
@@ -358,10 +359,17 @@ export const useOrderNotifications = () => {
             }
             
             console.log('📱 Enhanced notification sequence complete');
+          } else {
+            console.log(`ℹ️ Skipping notification for non-online order: ${order.order_source}`);
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('📡 Enhanced subscription status:', status);
+        if (err) {
+          console.error('❌ Enhanced subscription error:', err);
+        }
+      });
 
     console.log('✅ Enhanced iOS-compatible real-time notifications active');
 
