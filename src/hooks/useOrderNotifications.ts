@@ -294,12 +294,7 @@ export const useOrderNotifications = () => {
     console.log('🔍 Supabase client status:', !!supabase);
     
     const channel = supabase
-      .channel('enhanced-orders-notifications', {
-        config: {
-          broadcast: { self: true },
-          presence: { key: 'order-notifications' }
-        }
-      })
+      .channel('enhanced-orders-notifications')
       .on(
         'postgres_changes',
         {
@@ -343,8 +338,7 @@ export const useOrderNotifications = () => {
                     order_source: order.order_source,
                     status: order.status,
                     created_at: order.created_at,
-                    customer_name: order.customer_name,
-                    customer_phone: order.customer_phone
+                    customer_notes: order.customer_notes
                   }
                 }
               });
