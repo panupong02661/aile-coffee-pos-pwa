@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Bell, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIOSNotificationService } from '@/hooks/useIOSNotificationService';
+import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 
 interface OnlineOrder {
   id: string;
@@ -48,6 +49,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification, playIOSNotificationSound } = useIOSNotificationService();
+  
+  // Use main order notifications hook
+  const { playBellSound, stopBellSound, initializeAudio } = useOrderNotifications();
 
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
@@ -59,54 +63,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    console.log('🔔 Setting up enhanced notification system...');
+    console.log('🔔 Setting up GlobalNotificationProvider (secondary sync only)...');
     console.log('🍎 iOS detected:', isIOS);
     
     // Load notification settings and sounds
     loadNotificationData();
     
-    // Setup realtime subscription for new orders with enhanced iOS support
-    console.log('📡 Setting up enhanced realtime subscription...');
+    // Setup ONLY cross-device notification sync channel (ไม่ฟัง orders table แล้ว)
+    console.log('📡 Setting up cross-device sync only...');
     
-    const orderChannel = supabase
-      .channel('enhanced-online-orders-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders'
-        },
-        async (payload) => {
-          console.log('🔔 New order detected:', payload);
-          // Only handle online orders
-          if (payload.new?.order_source === 'online') {
-            await handleNewOrder(payload.new);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'customer_orders'
-        },
-        async (payload) => {
-          console.log('🔔 New customer order detected:', payload);
-          await handleNewCustomerOrder(payload.new);
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Enhanced order subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to enhanced order notifications');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error subscribing to enhanced order notifications');
-        }
-      });
-
-    // Setup cross-device notification sync channel with iOS support
     const syncChannel = supabase
       .channel('enhanced-notification-sync')
       .on('broadcast', { event: 'dismiss-notification' }, () => {
@@ -189,8 +154,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up enhanced notification subscriptions...');
-      supabase.removeChannel(orderChannel);
+      console.log('🧹 Cleaning up GlobalNotificationProvider subscriptions...');
       supabase.removeChannel(syncChannel);
       if (audioRef.current) {
         audioRef.current.pause();

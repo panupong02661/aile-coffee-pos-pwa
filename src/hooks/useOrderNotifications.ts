@@ -1,14 +1,14 @@
 
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const useOrderNotifications = () => {
-  const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isIOSRef = useRef(false);
+  const notificationChannelRef = useRef<any>(null);
 
   // Detect iOS
   useEffect(() => {
@@ -315,11 +315,16 @@ export const useOrderNotifications = () => {
             // Play enhanced notification sound immediately
             await playBellSound();
             
-            // Show toast notification
-            toast({
-              title: '🔔 มีออเดอร์ออนไลน์ใหม่!',
+            // Show toast notification (ใช้ sonner)
+            toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
               description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
               duration: 10000,
+              action: {
+                label: 'ดูรายละเอียด',
+                onClick: () => {
+                  window.location.href = '/online-orders';
+                }
+              }
             });
             
             // Send notification to external platforms via Edge Function
@@ -372,7 +377,7 @@ export const useOrderNotifications = () => {
       supabase.removeChannel(channel);
       stopBellSound();
     };
-  }, [toast]);
+  }, []);
 
   return {
     playBellSound,
