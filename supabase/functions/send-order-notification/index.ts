@@ -36,6 +36,15 @@ Deno.serve(async (req) => {
     const { orderData } = body;
     console.log('🔔 Processing order notification:', orderData);
 
+    // CRITICAL: Filter out test/trigger orders
+    if (orderData.order_number && orderData.order_number.includes('-TRIGGER')) {
+      console.log('🚫 Skipping trigger/test order notification:', orderData.order_number);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Test/trigger order ignored' }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

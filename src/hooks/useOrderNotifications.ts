@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -257,6 +256,12 @@ export const useOrderNotifications = () => {
         },
         async (payload) => {
           const order = payload.new as any;
+          
+          // CRITICAL: Filter out test/trigger orders
+          if (order.order_number && order.order_number.includes('-TRIGGER')) {
+            console.log(`🚫 SINGLETON - Skipping trigger/test order: ${order.order_number}`);
+            return;
+          }
           
           // CRITICAL: Prevent duplicate processing with global tracking
           if (globalProcessedOrders.has(order.id)) {

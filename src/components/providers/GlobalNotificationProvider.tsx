@@ -91,6 +91,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         async (payload) => {
           const order = payload.new as any;
           
+          // CRITICAL: Filter out test/trigger orders
+          if (order.order_number && order.order_number.includes('-TRIGGER')) {
+            console.log(`🚫 UI SINGLETON - Skipping trigger/test order: ${order.order_number}`);
+            return;
+          }
+          
           // Only handle online orders for UI display
           if (order.order_source === 'online') {
             console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
@@ -291,7 +297,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                         <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
                           • {itemText}
                           <span className="float-right font-medium">
-                            ฿{newOrder.order_items[index].total_price.toFixed(2)}
+                            ฿{newOrder.order_items![index].total_price.toFixed(2)}
                           </span>
                         </div>
                       ))}
