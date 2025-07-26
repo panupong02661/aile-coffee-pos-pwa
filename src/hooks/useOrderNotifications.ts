@@ -12,7 +12,6 @@ export const useOrderNotifications = () => {
   const isSubscribedRef = useRef(false);
   const isSetupRef = useRef(false);
   const processedOrdersRef = useRef(new Set<string>());
-  const notificationLockRef = useRef(new Set<string>()); // เพิ่ม notification lock
 
   // Detect iOS
   useEffect(() => {
@@ -226,22 +225,22 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // ปรับปรุงระบบ notification ให้ส่งเพียงครั้งเดียว
+  // FIXED: Single notification per order with unique channel and proper cleanup
   useEffect(() => {
-    // ป้องกันการ setup หลายครั้ง
+    // Prevent multiple setup calls
     if (isSetupRef.current || isSubscribedRef.current) {
-      console.log('🚫 Order notifications already setup, preventing duplicate setup');
+      console.log('🚫 Order notifications already setup, skipping...');
       return;
     }
 
-    console.log('🔧 Setting up MASTER order notifications controller...');
     isSetupRef.current = true;
+    console.log('👂 Setting up SINGLE order notifications instance...');
     
-    // สร้าง unique channel ที่มี timestamp เพื่อป้องกันความซ้ำ
-    const masterId = `master-notifications-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Create unique channel name to prevent conflicts
+    const uniqueChannelName = `orders-single-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
-      .channel(masterId)
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -251,121 +250,101 @@ export const useOrderNotifications = () => {
         },
         async (payload) => {
           const order = payload.new as any;
-          const orderId = order.id;
           
-          console.log('🔔 MASTER: New order detected:', order.order_number);
-          
-          // Triple lock mechanism เพื่อป้องกันการซ้ำ
-          if (processedOrdersRef.current.has(orderId)) {
-            console.log('🚫 MASTER: Order already processed (Set 1):', orderId);
+          // CRITICAL: Prevent duplicate processing
+          if (processedOrdersRef.current.has(order.id)) {
+            console.log('🚫 Order already processed, skipping:', order.id);
             return;
           }
           
-          if (notificationLockRef.current.has(orderId)) {
-            console.log('🚫 MASTER: Order locked for processing (Set 2):', orderId);
-            return;
-          }
+          // Add order to processed set IMMEDIATELY
+          processedOrdersRef.current.add(order.id);
           
-          // Lock ทันทีเพื่อป้องกันการเข้าถึงซ้ำ
-          notificationLockRef.current.add(orderId);
-          processedOrdersRef.current.add(orderId);
+          console.log('🔔 Processing NEW order (SINGLE):', order.order_number);
           
-          try {
-            // ตรวจสอบว่าเป็น online order เท่านั้น
-            if (order.order_source === 'online') {
-              console.log('📦 MASTER: Processing online order notification ONCE:', order.order_number);
-              
-              // เล่นเสียงแจ้งเตือนเพียงครั้งเดียว
-              await playBellSound();
-              
-              // แสดง toast เพียงครั้งเดียว
-              toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
-                duration: 10000,
-                action: {
-                  label: 'ดูรายละเอียด',
-                  onClick: () => {
-                    window.location.href = '/online-orders';
+          // Only process online orders
+          if (order.order_source === 'online') {
+            console.log('🔔 Processing online order notification:', order.order_number);
+            
+            // Play sound
+            await playBellSound();
+            
+            // Show toast notification (SINGLE)
+            toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
+              description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
+              duration: 10000,
+              action: {
+                label: 'ดูรายละเอียด',
+                onClick: () => {
+                  window.location.href = '/online-orders';
+                }
+              }
+            });
+            
+            // Send external notification (ONCE)
+            try {
+              const { data, error } = await supabase.functions.invoke('send-order-notification', {
+                body: {
+                  orderData: {
+                    id: order.id,
+                    order_number: order.order_number,
+                    total_amount: order.total_amount,
+                    items_count: order.items_count || 1,
+                    member_id: order.member_id,
+                    payment_method: order.payment_method,
+                    order_source: order.order_source,
+                    status: order.status,
+                    created_at: order.created_at,
+                    customer_notes: order.customer_notes
                   }
                 }
               });
-              
-              // ส่ง external notification เพียงครั้งเดียว
-              try {
-                const { data, error } = await supabase.functions.invoke('send-order-notification', {
-                  body: {
-                    orderData: {
-                      id: order.id,
-                      order_number: order.order_number,
-                      total_amount: order.total_amount,
-                      items_count: order.items_count || 1,
-                      member_id: order.member_id,
-                      payment_method: order.payment_method,
-                      order_source: order.order_source,
-                      status: order.status,
-                      created_at: order.created_at,
-                      customer_notes: order.customer_notes
-                    }
-                  }
-                });
 
-                if (error) {
-                  console.error('❌ MASTER: External notification failed:', error);
-                } else {
-                  console.log('✅ MASTER: External notification sent ONCE successfully');
-                }
-              } catch (error) {
-                console.error('❌ MASTER: Error calling notification function:', error);
+              if (error) {
+                console.error('❌ Failed to send external notifications:', error);
+              } else {
+                console.log('✅ External notifications sent successfully (ONCE)');
               }
-              
-              console.log('✅ MASTER: Order notification processed successfully ONCE');
-            } else {
-              console.log('⚠️ MASTER: Skipping non-online order:', order.order_source);
+            } catch (error) {
+              console.error('❌ Error calling send-order-notification function:', error);
             }
             
-          } finally {
-            // ปลดล็อกหลังจาก 5 วินาที และเคลียร์จากเซ็ตหลังจาก 10 นาที
-            setTimeout(() => {
-              notificationLockRef.current.delete(orderId);
-              console.log('🔓 MASTER: Unlocked order:', orderId);
-            }, 5000);
-            
-            setTimeout(() => {
-              processedOrdersRef.current.delete(orderId);
-              console.log('🧹 MASTER: Cleaned up order from memory:', orderId);
-            }, 10 * 60 * 1000);
+            console.log('📱 Order notification processed successfully (SINGLE)');
           }
+          
+          // Clean up processed order after 10 minutes
+          setTimeout(() => {
+            processedOrdersRef.current.delete(order.id);
+          }, 10 * 60 * 1000);
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 MASTER Subscription status:', status);
+        console.log('📡 SINGLE Subscription status:', status);
         if (err) {
-          console.error('❌ MASTER Subscription error:', err);
+          console.error('❌ SINGLE Subscription error:', err);
         }
         
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
-          console.log('✅ MASTER Order notifications active - NO DUPLICATES');
+          console.log('✅ SINGLE Order notifications subscription active');
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('🧹 MASTER: Cleaning up notification system...');
+      console.log('🔄 Cleaning up SINGLE order notifications...');
       isSetupRef.current = false;
       isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
-      notificationLockRef.current.clear();
       
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-        console.log('✅ MASTER: Channel removed');
       }
       stopBellSound();
     };
-  }, []); // Empty dependency เพื่อให้รันเพียงครั้งเดียว
+  }, []);
 
   return {
     playBellSound,
