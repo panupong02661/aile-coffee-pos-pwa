@@ -3,15 +3,18 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Global singleton flags to prevent multiple instances
+let globalNotificationInstance: any = null;
+let isGlobalSetup = false;
+let globalProcessedOrders = new Set<string>();
+let globalChannelRef: any = null;
+
 export const useOrderNotifications = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isIOSRef = useRef(false);
-  const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
-  const isSetupRef = useRef(false);
-  const processedOrdersRef = useRef(new Set<string>());
+  const instanceIdRef = useRef<string>(`${Date.now()}-${Math.random()}`);
 
   // Detect iOS
   useEffect(() => {
@@ -37,7 +40,7 @@ export const useOrderNotifications = () => {
         console.log('✅ AudioContext initialized for iOS');
       }
       
-      // Try to create enhanced audio element for iOS
+      // Create enhanced audio element for iOS
       const audio = new Audio();
       
       // iOS-specific attributes
@@ -191,7 +194,6 @@ export const useOrderNotifications = () => {
       }
       
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        // Note: We don't close the AudioContext as it might be needed again
         console.log('🔇 AudioContext notifications stopped');
       }
     } catch (error) {
@@ -225,22 +227,27 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // FIXED: Single notification per order with unique channel and proper cleanup
+  // SINGLETON PATTERN: Single notification subscription per application
   useEffect(() => {
-    // Prevent multiple setup calls
-    if (isSetupRef.current || isSubscribedRef.current) {
-      console.log('🚫 Order notifications already setup, skipping...');
+    // Check if this instance should be the global singleton
+    const shouldBeSingleton = !globalNotificationInstance || !isGlobalSetup;
+    
+    if (!shouldBeSingleton) {
+      console.log(`🚫 Instance ${instanceIdRef.current} - Singleton already exists, skipping setup`);
       return;
     }
 
-    isSetupRef.current = true;
-    console.log('👂 Setting up SINGLE order notifications instance...');
+    // Claim singleton status
+    globalNotificationInstance = instanceIdRef.current;
+    isGlobalSetup = true;
     
-    // Create unique channel name to prevent conflicts
-    const uniqueChannelName = `orders-single-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`🏆 Instance ${instanceIdRef.current} - Claimed SINGLETON status for order notifications`);
+    
+    // Create unique channel name for this singleton instance
+    const singletonChannelName = `orders-singleton-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
-      .channel(uniqueChannelName)
+      .channel(singletonChannelName)
       .on(
         'postgres_changes',
         {
@@ -251,22 +258,22 @@ export const useOrderNotifications = () => {
         async (payload) => {
           const order = payload.new as any;
           
-          // CRITICAL: Prevent duplicate processing
-          if (processedOrdersRef.current.has(order.id)) {
-            console.log('🚫 Order already processed, skipping:', order.id);
+          // CRITICAL: Prevent duplicate processing with global tracking
+          if (globalProcessedOrders.has(order.id)) {
+            console.log(`🚫 SINGLETON - Order ${order.id} already processed globally, skipping`);
             return;
           }
           
-          // Add order to processed set IMMEDIATELY
-          processedOrdersRef.current.add(order.id);
+          // Add order to global processed set IMMEDIATELY
+          globalProcessedOrders.add(order.id);
           
-          console.log('🔔 Processing NEW order (SINGLE):', order.order_number);
+          console.log(`🔔 SINGLETON - Processing NEW order: ${order.order_number} (ID: ${order.id})`);
           
           // Only process online orders
           if (order.order_source === 'online') {
-            console.log('🔔 Processing online order notification:', order.order_number);
+            console.log(`📱 SINGLETON - Processing online order notification: ${order.order_number}`);
             
-            // Play sound
+            // Play sound notification
             await playBellSound();
             
             // Show toast notification (SINGLE)
@@ -281,7 +288,7 @@ export const useOrderNotifications = () => {
               }
             });
             
-            // Send external notification (ONCE)
+            // Send external notification (ONCE per singleton)
             try {
               const { data, error } = await supabase.functions.invoke('send-order-notification', {
                 body: {
@@ -301,54 +308,66 @@ export const useOrderNotifications = () => {
               });
 
               if (error) {
-                console.error('❌ Failed to send external notifications:', error);
+                console.error('❌ SINGLETON - Failed to send external notifications:', error);
               } else {
-                console.log('✅ External notifications sent successfully (ONCE)');
+                console.log('✅ SINGLETON - External notifications sent successfully');
               }
             } catch (error) {
-              console.error('❌ Error calling send-order-notification function:', error);
+              console.error('❌ SINGLETON - Error calling send-order-notification function:', error);
             }
             
-            console.log('📱 Order notification processed successfully (SINGLE)');
+            console.log(`📱 SINGLETON - Order notification processed successfully for: ${order.order_number}`);
+          } else {
+            console.log(`📝 SINGLETON - Non-online order ignored: ${order.order_number} (source: ${order.order_source})`);
           }
           
-          // Clean up processed order after 10 minutes
+          // Clean up processed order after 10 minutes to prevent memory leak
           setTimeout(() => {
-            processedOrdersRef.current.delete(order.id);
+            globalProcessedOrders.delete(order.id);
+            console.log(`🗑️ SINGLETON - Cleaned up processed order: ${order.id}`);
           }, 10 * 60 * 1000);
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 SINGLE Subscription status:', status);
+        console.log(`📡 SINGLETON - Subscription status: ${status}`);
         if (err) {
-          console.error('❌ SINGLE Subscription error:', err);
+          console.error('❌ SINGLETON - Subscription error:', err);
         }
         
         if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-          console.log('✅ SINGLE Order notifications subscription active');
+          console.log('✅ SINGLETON - Order notifications subscription ACTIVE');
+        } else if (status === 'TIMED_OUT') {
+          console.log('⏰ SINGLETON - Subscription timed out, will retry automatically');
         }
       });
 
-    channelRef.current = channel;
+    globalChannelRef = channel;
 
     return () => {
-      console.log('🔄 Cleaning up SINGLE order notifications...');
-      isSetupRef.current = false;
-      isSubscribedRef.current = false;
-      processedOrdersRef.current.clear();
+      console.log(`🧹 SINGLETON - Cleanup for instance: ${instanceIdRef.current}`);
       
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      // Only cleanup if this instance is the current singleton
+      if (globalNotificationInstance === instanceIdRef.current) {
+        console.log('🧹 SINGLETON - Releasing singleton status and cleaning up');
+        
+        isGlobalSetup = false;
+        globalNotificationInstance = null;
+        globalProcessedOrders.clear();
+        
+        if (globalChannelRef) {
+          supabase.removeChannel(globalChannelRef);
+          globalChannelRef = null;
+        }
+        
+        stopBellSound();
       }
-      stopBellSound();
     };
   }, []);
 
   return {
     playBellSound,
     stopBellSound,
-    initializeAudio
+    initializeAudio,
+    instanceId: instanceIdRef.current
   };
 };

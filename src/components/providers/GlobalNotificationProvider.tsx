@@ -19,28 +19,18 @@ interface OnlineOrder {
   };
 }
 
-interface NotificationSettings {
-  sound_enabled: boolean;
-  selected_sound_id?: string;
-  volume: number;
-  duration: number;
-}
+// Global UI state management
+let globalUIProcessedOrders = new Set<string>();
+let globalUIInstance: string | null = null;
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    sound_enabled: true,
-    volume: 0.8,
-    duration: 2
-  });
   
   const notificationChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const isSubscribedRef = useRef(false);
-  const setupRef = useRef(false);
-  const processedOrdersRef = useRef(new Set<string>());
+  const instanceIdRef = useRef<string>(`ui-${Date.now()}-${Math.random()}`);
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
@@ -49,84 +39,110 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
   useEffect(() => {
-    // CRITICAL: Prevent duplicate setup - only setup once globally
-    if (setupRef.current || isCustomerMobileApp || isSubscribedRef.current) {
-      console.log('🚫 GlobalNotificationProvider already setup or on customer app, skipping...');
+    // Skip setup on customer mobile app
+    if (isCustomerMobileApp) {
+      console.log('🚫 GlobalNotificationProvider - Skipping setup on customer mobile app');
       return;
     }
+
+    // Singleton pattern for UI notifications
+    if (globalUIInstance) {
+      console.log(`🚫 GlobalNotificationProvider - UI singleton already exists: ${globalUIInstance}`);
+      return;
+    }
+
+    // Claim UI singleton status
+    globalUIInstance = instanceIdRef.current;
+    console.log(`🎯 GlobalNotificationProvider - Claimed UI SINGLETON: ${instanceIdRef.current}`);
     
-    setupRef.current = true;
-    console.log('🔔 Setting up SINGLE GlobalNotificationProvider instance...');
-    
-    // Load notification settings
-    loadNotificationSettings();
-    
-    // Setup SINGLE cross-device sync channel
-    const uniqueSyncChannelName = `global-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Setup UI-specific cross-device sync channel
+    const uiSyncChannelName = `ui-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const syncChannel = supabase
-      .channel(uniqueSyncChannelName)
+      .channel(uiSyncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
-        console.log('📡 Received dismiss broadcast');
+        console.log('📡 UI SINGLETON - Received dismiss broadcast');
         setShowOrderAlert(false);
         setNewOrder(null);
       })
+      .on('broadcast', { event: 'new-order-ui' }, async (payload) => {
+        console.log('📡 UI SINGLETON - Received new order UI broadcast:', payload.payload);
+        await handleNewOrderUI(payload.payload);
+      })
       .subscribe((status) => {
-        console.log('📡 Global Sync subscription status:', status);
+        console.log(`📡 UI SINGLETON - Sync subscription status: ${status}`);
         if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-          console.log('✅ SINGLE Global sync subscription active');
+          console.log('✅ UI SINGLETON - Cross-device sync active');
         }
       });
 
     notificationChannelRef.current = syncChannel;
 
+    // Listen for new orders from the main notification system
+    const orderChannel = supabase
+      .channel(`ui-order-listener-${instanceIdRef.current}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        async (payload) => {
+          const order = payload.new as any;
+          
+          // Only handle online orders for UI display
+          if (order.order_source === 'online') {
+            console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
+            
+            // Broadcast to sync channel for cross-device UI sync
+            if (notificationChannelRef.current) {
+              notificationChannelRef.current.send({
+                type: 'broadcast',
+                event: 'new-order-ui',
+                payload: {
+                  orderId: order.id,
+                  orderNumber: order.order_number,
+                  totalAmount: order.total_amount,
+                  memberId: order.member_id
+                }
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      console.log('🧹 Cleaning up SINGLE GlobalNotificationProvider...');
-      setupRef.current = false;
-      isSubscribedRef.current = false;
-      processedOrdersRef.current.clear();
+      console.log(`🧹 UI SINGLETON - Cleanup for: ${instanceIdRef.current}`);
+      
+      // Only cleanup if this is the current UI singleton
+      if (globalUIInstance === instanceIdRef.current) {
+        console.log('🧹 UI SINGLETON - Releasing UI singleton status');
+        globalUIInstance = null;
+        globalUIProcessedOrders.clear();
+      }
       
       if (notificationChannelRef.current) {
         supabase.removeChannel(notificationChannelRef.current);
         notificationChannelRef.current = null;
       }
+      
+      supabase.removeChannel(orderChannel);
     };
   }, [isCustomerMobileApp]);
 
-  const loadNotificationSettings = async () => {
+  const handleNewOrderUI = async (orderData: any) => {
     try {
-      console.log('🔊 Loading notification settings...');
-      
-      const { data: settings } = await supabase
-        .from('notification_settings')
-        .select('*')
-        .single();
-
-      if (settings) {
-        setNotificationSettings({
-          sound_enabled: settings.sound_enabled ?? true,
-          selected_sound_id: settings.selected_sound_id || undefined,
-          volume: settings.volume ?? 0.8,
-          duration: settings.duration ?? 2
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error loading notification settings:', error);
-    }
-  };
-
-  const handleNewOrder = async (orderData: any) => {
-    try {
-      // CRITICAL: Prevent duplicate UI processing
-      if (processedOrdersRef.current.has(orderData.id)) {
-        console.log('🚫 Order already processed in GLOBAL UI, skipping:', orderData.id);
+      // Prevent duplicate UI processing
+      if (globalUIProcessedOrders.has(orderData.orderId)) {
+        console.log(`🚫 UI SINGLETON - Order ${orderData.orderId} already processed for UI, skipping`);
         return;
       }
       
-      processedOrdersRef.current.add(orderData.id);
-      console.log('🔔 Processing new order for SINGLE UI display:', orderData.order_number);
+      globalUIProcessedOrders.add(orderData.orderId);
+      console.log(`🎯 UI SINGLETON - Processing order for UI display: ${orderData.orderNumber}`);
       
-      // Fetch complete order data
+      // Fetch complete order data for UI
       const { data: completeOrder, error } = await supabase
         .from('orders')
         .select(`
@@ -136,11 +152,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             phone
           )
         `)
-        .eq('id', orderData.id)
+        .eq('id', orderData.orderId)
         .single();
 
       if (error) {
-        console.error('❌ Error fetching complete order details:', error);
+        console.error('❌ UI SINGLETON - Error fetching complete order details:', error);
         return;
       }
 
@@ -161,7 +177,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         
         // Enhanced iOS notification
         if (isIOS) {
-          console.log('🍎 Triggering iOS notification');
+          console.log('🍎 UI SINGLETON - Triggering iOS notification');
           await triggerIOSNotification({
             orderNumber: completeOrder.order_number,
             totalAmount: completeOrder.total_amount,
@@ -169,26 +185,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        // Broadcast notification to other devices (ONCE)
-        if (notificationChannelRef.current) {
-          notificationChannelRef.current.send({
-            type: 'broadcast',
-            event: 'new-order-notification',
-            payload: {
-              orderId: completeOrder.id,
-              orderNumber: completeOrder.order_number,
-              totalAmount: completeOrder.total_amount
-            }
-          });
-        }
-        
-        // Clean up processed order after 10 minutes
-        setTimeout(() => {
-          processedOrdersRef.current.delete(orderData.id);
-        }, 10 * 60 * 1000);
+        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number}`);
       }
+      
+      // Clean up UI processed order after 10 minutes
+      setTimeout(() => {
+        globalUIProcessedOrders.delete(orderData.orderId);
+        console.log(`🗑️ UI SINGLETON - Cleaned up UI processed order: ${orderData.orderId}`);
+      }, 10 * 60 * 1000);
+      
     } catch (error) {
-      console.error('❌ Error processing new order notification:', error);
+      console.error('❌ UI SINGLETON - Error processing new order UI notification:', error);
     }
   };
 
