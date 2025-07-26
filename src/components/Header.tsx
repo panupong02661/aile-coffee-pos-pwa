@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -108,22 +109,26 @@ const Header = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Inline Member Display */}
+          {/* Enhanced Member Display - 2 lines as requested */}
           {selectedMember && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-white border border-coffee-200 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-coffee-200 rounded-lg shadow-sm mr-2">
               <div className="flex flex-col gap-0">
+                {/* Line 1: Name and Tier */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-coffee-800">{selectedMember.name}</span>
-                  <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-1 py-0`}>
+                  <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-1.5 py-0.5`}>
                     <span className="flex items-center gap-1">
                       {getTierIcon(selectedMember.tier)}
                       {getTierName(selectedMember.tier)}
                     </span>
                   </Badge>
                 </div>
-                <span className="text-xs font-bold text-coffee-600">
-                  {selectedMember.points.toLocaleString()} แต้ม
-                </span>
+                {/* Line 2: Points */}
+                <div className="flex items-center">
+                  <span className="text-xs font-bold text-coffee-600">
+                    {selectedMember.points.toLocaleString()} แต้ม
+                  </span>
+                </div>
               </div>
               <Button
                 variant="ghost"
@@ -181,3 +186,4 @@ const Header = ({
 };
 
 export default Header;
+

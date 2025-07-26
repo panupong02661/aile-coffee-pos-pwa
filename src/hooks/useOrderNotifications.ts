@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,6 +9,8 @@ export const useOrderNotifications = () => {
   const isIOSRef = useRef(false);
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
+  const isSetupRef = useRef(false); // เพิ่ม flag เพื่อป้องกันการ setup หลายครั้ง
+  const processedOrdersRef = useRef(new Set<string>()); // เก็บ ID ของออเดอร์ที่ประมวลผลแล้ว
 
   // Detect iOS
   useEffect(() => {
@@ -289,19 +290,19 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // Fixed real-time order listening with proper subscription management
+  // Fixed real-time order listening with duplicate prevention
   useEffect(() => {
-    // Prevent multiple subscriptions
-    if (isSubscribedRef.current) {
-      console.log('🚫 Already subscribed, skipping...');
+    // ป้องกันการ setup หลายครั้ง
+    if (isSetupRef.current || isSubscribedRef.current) {
+      console.log('🚫 Order notifications already setup, skipping...');
       return;
     }
 
-    console.log('👂 Setting up enhanced iOS-compatible real-time order notifications...');
-    console.log('🔍 Supabase client status:', !!supabase);
+    isSetupRef.current = true;
+    console.log('👂 Setting up order notifications (single instance)...');
     
-    // Create a unique channel name to avoid conflicts
-    const channelName = `enhanced-orders-notifications-${Date.now()}`;
+    // สร้างชื่อ channel ที่ไม่ซ้ำกัน
+    const channelName = `orders-notifications-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
       .channel(channelName)
@@ -313,19 +314,27 @@ export const useOrderNotifications = () => {
           table: 'orders'
         },
         async (payload) => {
-          console.log('🔔 New order received:', payload.new);
-          console.log('📊 Order data:', JSON.stringify(payload.new, null, 2));
-          
           const order = payload.new as any;
           
-          // Only handle online orders
+          // ป้องกันการประมวลผลออเดอร์ซ้ำ
+          if (processedOrdersRef.current.has(order.id)) {
+            console.log('🚫 Order already processed, skipping:', order.id);
+            return;
+          }
+          
+          // เพิ่ม order ID เข้าไปใน processed set
+          processedOrdersRef.current.add(order.id);
+          
+          console.log('🔔 New order received (unique):', order.order_number);
+          
+          // ประมวลผลเฉพาะออเดอร์ออนไลน์เท่านั้น
           if (order.order_source === 'online') {
-            console.log('🔔 Processing online order notification');
+            console.log('🔔 Processing online order notification:', order.order_number);
             
-            // Play enhanced notification sound immediately
+            // เล่นเสียงแจ้งเตือน
             await playBellSound();
             
-            // Show toast notification (ใช้ sonner)
+            // แสดง toast notification
             toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
               description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
               duration: 10000,
@@ -337,10 +346,8 @@ export const useOrderNotifications = () => {
               }
             });
             
-            // Send notification to external platforms via Edge Function
+            // ส่งแจ้งเตือนไปยังแพลตฟอร์มภายนอก (เพียงครั้งเดียว)
             try {
-              console.log('📡 Sending notification to external platforms...');
-              
               const { data, error } = await supabase.functions.invoke('send-order-notification', {
                 body: {
                   orderData: {
@@ -361,42 +368,48 @@ export const useOrderNotifications = () => {
               if (error) {
                 console.error('❌ Failed to send external notifications:', error);
               } else {
-                console.log('✅ External notifications sent successfully:', data);
+                console.log('✅ External notifications sent successfully');
               }
             } catch (error) {
               console.error('❌ Error calling send-order-notification function:', error);
             }
             
-            console.log('📱 Enhanced notification sequence complete');
-          } else {
-            console.log(`ℹ️ Skipping notification for non-online order: ${order.order_source}`);
+            console.log('📱 Order notification processed successfully');
           }
+          
+          // ลบ order ID ออกจาก processed set หลังจาก 5 นาที เพื่อป้องกัน memory leak
+          setTimeout(() => {
+            processedOrdersRef.current.delete(order.id);
+          }, 5 * 60 * 1000);
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 Enhanced subscription status:', status);
+        console.log('📡 Subscription status:', status);
         if (err) {
-          console.error('❌ Enhanced subscription error:', err);
+          console.error('❌ Subscription error:', err);
         }
         
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
+          console.log('✅ Order notifications subscription active');
         }
       });
 
     channelRef.current = channel;
-    console.log('✅ Enhanced iOS-compatible real-time notifications active');
 
     return () => {
-      console.log('🔄 Cleaning up enhanced order notifications...');
+      console.log('🔄 Cleaning up order notifications...');
+      isSetupRef.current = false;
       isSubscribedRef.current = false;
+      processedOrdersRef.current.clear();
+      
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       stopBellSound();
     };
-  }, []); // Empty dependency array to ensure this runs only once
+  }, []); // Empty dependency array เพื่อให้ทำงานเพียงครั้งเดียว
 
   return {
     playBellSound,
