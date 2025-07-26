@@ -19,6 +19,22 @@ const CategoryFilter = ({
   const headerStyle = variant === 'header';
   const isMobile = useIsMobile();
   
+  console.log('🏷️ CategoryFilter rendering:', {
+    categoriesCount: categories?.length || 0,
+    selectedCategory,
+    variant,
+    isMobile
+  });
+  
+  if (!categories || categories.length === 0) {
+    console.log('⚠️ No categories to display');
+    return (
+      <div className={`${headerStyle ? '' : 'mb-6'}`}>
+        <div className="text-muted-foreground text-sm">ไม่พบหมวดหมู่</div>
+      </div>
+    );
+  }
+  
   return (
     <div className={`${headerStyle ? '' : 'mb-6'}`}>
       <div className="flex gap-2 flex-wrap">
@@ -31,11 +47,11 @@ const CategoryFilter = ({
             className={`${
               selectedCategory === category.id
                 ? headerStyle 
-                  ? 'bg-coffee-500 hover:bg-coffee-400 text-white border-coffee-400'
-                  : 'bg-coffee-600 hover:bg-coffee-700 text-white'
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground border-primary'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 : headerStyle
-                  ? 'border-coffee-300 text-white hover:bg-coffee-500 bg-coffee-600/20'
-                  : 'border-coffee-300 text-coffee-700 hover:bg-coffee-50'
+                  ? 'border-border text-foreground hover:bg-accent bg-background/20'
+                  : 'border-border text-foreground hover:bg-accent'
             } transition-all duration-200 ${
               isMobile && headerStyle ? 'text-sm px-3 py-1.5' : ''
             }`}
