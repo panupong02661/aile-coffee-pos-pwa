@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
@@ -8,10 +8,12 @@ import CancelledOrdersList from '@/components/CancelledOrdersList';
 import AllOrdersList from '@/components/AllOrdersList';
 import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { dailyData, monthlyData, loading } = useDashboardStats();
+  const { dailyData, monthlyData, loading, refreshData } = useDashboardStats();
+  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -20,6 +22,40 @@ const Reports = () => {
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
   };
+
+  // Auto-refresh data every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData();
+      setLastRefresh(new Date());
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  // Listen for real-time order updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('reports-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => {
+          console.log('📊 Real-time order update detected, refreshing reports data...');
+          refreshData();
+          setLastRefresh(new Date());
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshData]);
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
@@ -46,7 +82,12 @@ const Reports = () => {
 
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-coffee-800">รายงาน</h1>
-            <p className="text-coffee-600 mt-2">รายงานยอดขายและข้อมูลต่างๆ ของร้าน</p>
+            <p className="text-coffee-600 mt-2">
+              รายงานยอดขายและข้อมูลต่างๆ ของร้าน 
+              <span className="text-sm text-green-600 ml-2">
+                🔄 อัปเดตล่าสุด: {lastRefresh.toLocaleTimeString('th-TH')}
+              </span>
+            </p>
           </div>
 
           <Tabs defaultValue="all-orders" className="space-y-4">

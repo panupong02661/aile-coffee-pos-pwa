@@ -279,7 +279,10 @@ export const useOrderNotifications = () => {
             console.log(`📱 SINGLETON - Processing online order notification: ${order.order_number}`);
             
             try {
-              // Fetch complete order details including items and customer info
+              // Wait a moment for order items to be inserted
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Fetch complete order details including ALL items and customer info
               const { data: completeOrder, error: orderError } = await supabase
                 .from('orders')
                 .select(`
@@ -303,8 +306,10 @@ export const useOrderNotifications = () => {
               if (orderError) {
                 console.error('❌ Error fetching complete order details:', orderError);
               } else if (completeOrder) {
-                // Format order items for display
-                const orderItemsText = completeOrder.order_items.map((item: any) => {
+                console.log(`📋 SINGLETON - Found ${completeOrder.order_items?.length || 0} items for order ${completeOrder.order_number}`);
+                
+                // Format order items for display - SHOW ALL ITEMS
+                const orderItemsText = (completeOrder.order_items || []).map((item: any) => {
                   let itemText = `${item.menu_item_name} x${item.quantity}`;
                   
                   // Add addon details if present
@@ -324,9 +329,9 @@ export const useOrderNotifications = () => {
                 // Play sound notification
                 await playBellSound();
                 
-                // Show detailed toast notification
+                // Show detailed toast notification with ALL items
                 toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ:\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
+                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ (${completeOrder.order_items?.length || 0} เมนู):\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
                   duration: 15000,
                   action: {
                     label: 'ดูรายละเอียด',
@@ -336,14 +341,14 @@ export const useOrderNotifications = () => {
                   }
                 });
 
-                // Send external notification with detailed order info
+                // Send external notification with detailed order info including ALL items
                 const { data, error } = await supabase.functions.invoke('send-order-notification', {
                   body: {
                     orderData: {
                       id: completeOrder.id,
                       order_number: completeOrder.order_number,
                       total_amount: completeOrder.total_amount,
-                      items_count: completeOrder.order_items.length,
+                      items_count: completeOrder.order_items?.length || 0,
                       member_id: completeOrder.member_id,
                       payment_method: completeOrder.payment_method,
                       order_source: completeOrder.order_source,
@@ -352,7 +357,7 @@ export const useOrderNotifications = () => {
                       customer_notes: completeOrder.customer_notes,
                       customer_name: completeOrder.members?.name || 'ลูกค้าทั่วไป',
                       customer_phone: completeOrder.members?.phone || '',
-                      order_items: completeOrder.order_items
+                      order_items: completeOrder.order_items || []
                     }
                   }
                 });

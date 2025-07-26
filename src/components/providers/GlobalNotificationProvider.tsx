@@ -101,6 +101,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           if (order.order_source === 'online') {
             console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
             
+            // Wait for order items to be inserted
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
             // Broadcast to sync channel for cross-device UI sync
             if (notificationChannelRef.current) {
               notificationChannelRef.current.send({
@@ -149,7 +152,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       globalUIProcessedOrders.add(orderData.orderId);
       console.log(`🎯 UI SINGLETON - Processing order for UI display: ${orderData.orderNumber}`);
       
-      // Fetch complete order data for UI with items
+      // Fetch complete order data for UI with ALL items
       const { data: completeOrder, error } = await supabase
         .from('orders')
         .select(`
@@ -176,6 +179,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
 
       if (completeOrder) {
+        console.log(`📋 UI SINGLETON - Fetched order with ${completeOrder.order_items?.length || 0} items`);
+        
         const orderForNotification: OnlineOrder = {
           id: completeOrder.id,
           order_number: completeOrder.order_number,
@@ -201,7 +206,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number}`);
+        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items?.length || 0} items`);
       }
       
       // Clean up UI processed order after 10 minutes
@@ -250,7 +255,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <>
       {children}
       
-      {/* Enhanced Order Alert Dialog with detailed items */}
+      {/* Enhanced Order Alert Dialog with ALL detailed items */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="sm:max-w-md border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
           <DialogHeader>
@@ -288,11 +293,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   </div>
                 )}
                 
-                {/* Order Items Details */}
+                {/* Show ALL Order Items Details */}
                 {newOrder.order_items && newOrder.order_items.length > 0 && (
                   <div className="mb-4 pb-4 border-b border-orange-200">
-                    <p className="text-lg font-semibold text-orange-700 mb-2">🍽️ รายการสั่งซื้อ:</p>
-                    <div className="space-y-2">
+                    <p className="text-lg font-semibold text-orange-700 mb-2">
+                      🍽️ รายการสั่งซื้อ ({newOrder.order_items.length} เมนู):
+                    </p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                       {formatOrderItems(newOrder.order_items).map((itemText, index) => (
                         <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
                           • {itemText}
