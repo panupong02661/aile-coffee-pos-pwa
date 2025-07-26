@@ -41,6 +41,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isSubscribedRef = useRef(false);
   const setupRef = useRef(false);
   const processedOrdersRef = useRef(new Set<string>());
+  const uiLockRef = useRef(new Set<string>()); // เพิ่ม UI lock
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
@@ -49,42 +50,47 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
   useEffect(() => {
-    // CRITICAL: Prevent duplicate setup - only setup once globally
+    // ป้องกันการ setup UI หลายครั้ง - DISABLED เพื่อให้ useOrderNotifications เป็น master
     if (setupRef.current || isCustomerMobileApp || isSubscribedRef.current) {
-      console.log('🚫 GlobalNotificationProvider already setup or on customer app, skipping...');
+      console.log('🚫 GlobalNotificationProvider: UI system disabled - useOrderNotifications is MASTER');
       return;
     }
     
+    console.log('⚠️ GlobalNotificationProvider: DISABLED - useOrderNotifications handles ALL notifications');
     setupRef.current = true;
-    console.log('🔔 Setting up SINGLE GlobalNotificationProvider instance...');
     
-    // Load notification settings
+    // Load notification settings only
     loadNotificationSettings();
     
-    // Setup SINGLE cross-device sync channel
-    const uniqueSyncChannelName = `global-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // สร้างเพียง sync channel สำหรับการซิงค์ UI เท่านั้น (ไม่ฟัง order notifications)
+    const uiSyncChannelName = `ui-sync-only-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const syncChannel = supabase
-      .channel(uniqueSyncChannelName)
+      .channel(uiSyncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
-        console.log('📡 Received dismiss broadcast');
+        console.log('📡 UI: Received dismiss broadcast');
         setShowOrderAlert(false);
         setNewOrder(null);
       })
+      .on('broadcast', { event: 'show-order-ui' }, (payload) => {
+        console.log('📡 UI: Received show order UI broadcast', payload);
+        handleNewOrderUI(payload.payload);
+      })
       .subscribe((status) => {
-        console.log('📡 Global Sync subscription status:', status);
+        console.log('📡 UI Sync subscription status:', status);
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
-          console.log('✅ SINGLE Global sync subscription active');
+          console.log('✅ UI sync subscription active (NO order listening)');
         }
       });
 
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up SINGLE GlobalNotificationProvider...');
+      console.log('🧹 UI: Cleaning up UI sync only...');
       setupRef.current = false;
       isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
+      uiLockRef.current.clear();
       
       if (notificationChannelRef.current) {
         supabase.removeChannel(notificationChannelRef.current);
@@ -115,81 +121,97 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const handleNewOrder = async (orderData: any) => {
+  const handleNewOrderUI = async (orderData: any) => {
     try {
-      // CRITICAL: Prevent duplicate UI processing
-      if (processedOrdersRef.current.has(orderData.id)) {
-        console.log('🚫 Order already processed in GLOBAL UI, skipping:', orderData.id);
+      const orderId = orderData.id || orderData.orderId;
+      
+      // UI lock เพื่อป้องกันการแสดง UI ซ้ำ
+      if (uiLockRef.current.has(orderId)) {
+        console.log('🚫 UI: Order UI already shown, skipping:', orderId);
         return;
       }
       
-      processedOrdersRef.current.add(orderData.id);
-      console.log('🔔 Processing new order for SINGLE UI display:', orderData.order_number);
-      
-      // Fetch complete order data
-      const { data: completeOrder, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          members (
-            name,
-            phone
-          )
-        `)
-        .eq('id', orderData.id)
-        .single();
-
-      if (error) {
-        console.error('❌ Error fetching complete order details:', error);
+      if (processedOrdersRef.current.has(orderId)) {
+        console.log('🚫 UI: Order UI already processed, skipping:', orderId);
         return;
       }
+      
+      uiLockRef.current.add(orderId);
+      processedOrdersRef.current.add(orderId);
+      
+      console.log('🖥️ UI: Showing order UI for:', orderData.orderNumber || orderData.order_number);
+      
+      // Fetch complete order data if needed
+      if (!orderData.members && orderData.id) {
+        const { data: completeOrder, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            members (
+              name,
+              phone
+            )
+          `)
+          .eq('id', orderData.id)
+          .single();
 
-      if (completeOrder) {
-        const orderForNotification: OnlineOrder = {
-          id: completeOrder.id,
-          order_number: completeOrder.order_number,
-          total_amount: completeOrder.total_amount,
-          items: [],
-          customer_profiles: completeOrder.members ? {
-            full_name: completeOrder.members.name,
-            phone: completeOrder.members.phone
-          } : undefined
-        };
-        
-        setNewOrder(orderForNotification);
-        setShowOrderAlert(true);
-        
-        // Enhanced iOS notification
-        if (isIOS) {
-          console.log('🍎 Triggering iOS notification');
-          await triggerIOSNotification({
-            orderNumber: completeOrder.order_number,
-            totalAmount: completeOrder.total_amount,
-            items: []
-          });
+        if (!error && completeOrder) {
+          orderData = completeOrder;
         }
-        
-        // Broadcast notification to other devices (ONCE)
-        if (notificationChannelRef.current) {
-          notificationChannelRef.current.send({
-            type: 'broadcast',
-            event: 'new-order-notification',
-            payload: {
-              orderId: completeOrder.id,
-              orderNumber: completeOrder.order_number,
-              totalAmount: completeOrder.total_amount
-            }
-          });
-        }
-        
-        // Clean up processed order after 10 minutes
-        setTimeout(() => {
-          processedOrdersRef.current.delete(orderData.id);
-        }, 10 * 60 * 1000);
       }
+
+      const orderForNotification: OnlineOrder = {
+        id: orderData.id || orderId,
+        order_number: orderData.order_number || orderData.orderNumber,
+        total_amount: orderData.total_amount || orderData.totalAmount,
+        items: orderData.items || [],
+        customer_profiles: orderData.members ? {
+          full_name: orderData.members.name,
+          phone: orderData.members.phone
+        } : undefined
+      };
+      
+      setNewOrder(orderForNotification);
+      setShowOrderAlert(true);
+      
+      // Enhanced iOS notification for UI
+      if (isIOS) {
+        console.log('🍎 UI: Triggering iOS UI notification');
+        await triggerIOSNotification({
+          orderNumber: orderForNotification.order_number,
+          totalAmount: orderForNotification.total_amount,
+          items: orderForNotification.items
+        });
+      }
+      
+      // Broadcast UI update to other devices
+      if (notificationChannelRef.current) {
+        notificationChannelRef.current.send({
+          type: 'broadcast',
+          event: 'new-order-ui-shown',
+          payload: {
+            orderId: orderForNotification.id,
+            orderNumber: orderForNotification.order_number,
+            totalAmount: orderForNotification.total_amount
+          }
+        });
+      }
+      
+      // Cleanup locks
+      setTimeout(() => {
+        uiLockRef.current.delete(orderId);
+        processedOrdersRef.current.delete(orderId);
+      }, 10 * 60 * 1000);
+      
     } catch (error) {
-      console.error('❌ Error processing new order notification:', error);
+      console.error('❌ UI: Error processing order UI notification:', error);
     }
+  };
+
+  const handleNewOrder = async (orderData: any) => {
+    // เปลี่ยนให้เรียก handleNewOrderUI แทน
+    console.log('📞 UI: Redirecting to handleNewOrderUI');
+    await handleNewOrderUI(orderData);
   };
 
   const handleDismiss = () => {
@@ -213,7 +235,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <>
       {children}
       
-      {/* Order Alert Dialog */}
+      {/* Order Alert Dialog - เหลือเพียง UI เท่านั้น */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="sm:max-w-md border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
           <DialogHeader>
