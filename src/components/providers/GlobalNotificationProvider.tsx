@@ -26,9 +26,6 @@ interface NotificationSettings {
   duration: number;
 }
 
-// Global flag to prevent multiple UI providers
-let globalUIProviderActive = false;
-
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
@@ -41,6 +38,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const notificationChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isSubscribedRef = useRef(false);
+  const setupRef = useRef(false);
   const processedOrdersRef = useRef(new Set<string>());
 
   // Use iOS notification service
@@ -50,20 +49,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
   useEffect(() => {
-    // Prevent multiple UI providers
-    if (globalUIProviderActive || isCustomerMobileApp) {
-      console.log('🚫 GlobalNotificationProvider UI already setup or on customer app, skipping...');
+    // CRITICAL: Prevent duplicate setup - only setup once globally
+    if (setupRef.current || isCustomerMobileApp || isSubscribedRef.current) {
+      console.log('🚫 GlobalNotificationProvider already setup or on customer app, skipping...');
       return;
     }
     
-    globalUIProviderActive = true;
-    console.log('🔔 Setting up UI-only GlobalNotificationProvider...');
+    setupRef.current = true;
+    console.log('🔔 Setting up SINGLE GlobalNotificationProvider instance...');
     
     // Load notification settings
     loadNotificationSettings();
     
-    // Setup UI-only sync channel for cross-device communication
-    const uniqueSyncChannelName = `ui-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Setup SINGLE cross-device sync channel
+    const uniqueSyncChannelName = `global-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const syncChannel = supabase
       .channel(uniqueSyncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
@@ -71,22 +70,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setShowOrderAlert(false);
         setNewOrder(null);
       })
-      .on('broadcast', { event: 'new-order-ui' }, (payload) => {
-        console.log('📡 Received new order UI broadcast:', payload);
-        handleNewOrderUI(payload.payload);
-      })
       .subscribe((status) => {
-        console.log('📡 UI Sync subscription status:', status);
+        console.log('📡 Global Sync subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          console.log('✅ UI sync subscription active');
+          isSubscribedRef.current = true;
+          console.log('✅ SINGLE Global sync subscription active');
         }
       });
 
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up UI GlobalNotificationProvider...');
-      globalUIProviderActive = false;
+      console.log('🧹 Cleaning up SINGLE GlobalNotificationProvider...');
+      setupRef.current = false;
+      isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
       
       if (notificationChannelRef.current) {
@@ -118,16 +115,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const handleNewOrderUI = async (orderData: any) => {
+  const handleNewOrder = async (orderData: any) => {
     try {
       // CRITICAL: Prevent duplicate UI processing
       if (processedOrdersRef.current.has(orderData.id)) {
-        console.log('🚫 Order already processed in UI, skipping:', orderData.id);
+        console.log('🚫 Order already processed in GLOBAL UI, skipping:', orderData.id);
         return;
       }
       
       processedOrdersRef.current.add(orderData.id);
-      console.log('🔔 Processing new order for UI display:', orderData.order_number);
+      console.log('🔔 Processing new order for SINGLE UI display:', orderData.order_number);
       
       // Fetch complete order data
       const { data: completeOrder, error } = await supabase
@@ -172,10 +169,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        // Clean up processed order after 5 minutes
+        // Broadcast notification to other devices (ONCE)
+        if (notificationChannelRef.current) {
+          notificationChannelRef.current.send({
+            type: 'broadcast',
+            event: 'new-order-notification',
+            payload: {
+              orderId: completeOrder.id,
+              orderNumber: completeOrder.order_number,
+              totalAmount: completeOrder.total_amount
+            }
+          });
+        }
+        
+        // Clean up processed order after 10 minutes
         setTimeout(() => {
           processedOrdersRef.current.delete(orderData.id);
-        }, 5 * 60 * 1000);
+        }, 10 * 60 * 1000);
       }
     } catch (error) {
       console.error('❌ Error processing new order notification:', error);

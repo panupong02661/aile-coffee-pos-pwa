@@ -3,14 +3,14 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Global singleton to prevent multiple instances
-let globalNotificationInstance: any = null;
-
 export const useOrderNotifications = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isIOSRef = useRef(false);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  const isSetupRef = useRef(false);
   const processedOrdersRef = useRef(new Set<string>());
 
   // Detect iOS
@@ -225,21 +225,19 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // SINGLETON: Only create one global notification instance
+  // FIXED: Single notification per order with unique channel and proper cleanup
   useEffect(() => {
-    // Prevent multiple instances
-    if (globalNotificationInstance) {
-      console.log('🚫 Order notifications already active globally, skipping...');
+    // Prevent multiple setup calls
+    if (isSetupRef.current || isSubscribedRef.current) {
+      console.log('🚫 Order notifications already setup, skipping...');
       return;
     }
 
-    console.log('🔔 Setting up GLOBAL SINGLETON order notifications...');
+    isSetupRef.current = true;
+    console.log('👂 Setting up SINGLE order notifications instance...');
     
-    // Mark this instance as the global one
-    globalNotificationInstance = true;
-    
-    // Create unique channel name
-    const uniqueChannelName = `orders-global-singleton-${Date.now()}`;
+    // Create unique channel name to prevent conflicts
+    const uniqueChannelName = `orders-single-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
       .channel(uniqueChannelName)
@@ -253,20 +251,20 @@ export const useOrderNotifications = () => {
         async (payload) => {
           const order = payload.new as any;
           
-          // CRITICAL: Prevent duplicate processing with unique ID check
+          // CRITICAL: Prevent duplicate processing
           if (processedOrdersRef.current.has(order.id)) {
-            console.log('🚫 Order already processed by SINGLETON, skipping:', order.id);
+            console.log('🚫 Order already processed, skipping:', order.id);
             return;
           }
           
           // Add order to processed set IMMEDIATELY
           processedOrdersRef.current.add(order.id);
           
-          console.log('🔔 Processing NEW order (SINGLETON ONLY):', order.order_number);
+          console.log('🔔 Processing NEW order (SINGLE):', order.order_number);
           
           // Only process online orders
           if (order.order_source === 'online') {
-            console.log('🔔 Processing online order notification (SINGLETON):', order.order_number);
+            console.log('🔔 Processing online order notification:', order.order_number);
             
             // Play sound
             await playBellSound();
@@ -305,39 +303,44 @@ export const useOrderNotifications = () => {
               if (error) {
                 console.error('❌ Failed to send external notifications:', error);
               } else {
-                console.log('✅ External notifications sent successfully (SINGLETON)');
+                console.log('✅ External notifications sent successfully (ONCE)');
               }
             } catch (error) {
               console.error('❌ Error calling send-order-notification function:', error);
             }
             
-            console.log('📱 Order notification processed successfully (SINGLETON)');
+            console.log('📱 Order notification processed successfully (SINGLE)');
           }
           
-          // Clean up processed order after 5 minutes
+          // Clean up processed order after 10 minutes
           setTimeout(() => {
             processedOrdersRef.current.delete(order.id);
-          }, 5 * 60 * 1000);
+          }, 10 * 60 * 1000);
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 SINGLETON Subscription status:', status);
+        console.log('📡 SINGLE Subscription status:', status);
         if (err) {
-          console.error('❌ SINGLETON Subscription error:', err);
+          console.error('❌ SINGLE Subscription error:', err);
         }
         
         if (status === 'SUBSCRIBED') {
-          console.log('✅ SINGLETON Order notifications subscription active');
+          isSubscribedRef.current = true;
+          console.log('✅ SINGLE Order notifications subscription active');
         }
       });
 
+    channelRef.current = channel;
+
     return () => {
-      console.log('🔄 Cleaning up SINGLETON order notifications...');
-      globalNotificationInstance = null;
+      console.log('🔄 Cleaning up SINGLE order notifications...');
+      isSetupRef.current = false;
+      isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
       
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
       stopBellSound();
     };

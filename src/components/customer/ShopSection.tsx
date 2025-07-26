@@ -3,10 +3,10 @@ import React from 'react';
 import OnlineShopSection from './OnlineShopSection';
 
 interface ShopSectionProps {
-  currentUser: any;
+  currentUser?: any;
 }
 
-const ShopSection: React.FC<ShopSectionProps> = ({ currentUser }) => {
+const ShopSection = ({ currentUser }: ShopSectionProps) => {
   return <OnlineShopSection currentUser={currentUser} />;
 };
 
