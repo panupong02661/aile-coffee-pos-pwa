@@ -17,6 +17,7 @@ interface OnlineOrder {
     full_name: string;
     phone: string;
   };
+  order_items?: any[];
 }
 
 // Global UI state management
@@ -142,7 +143,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       globalUIProcessedOrders.add(orderData.orderId);
       console.log(`🎯 UI SINGLETON - Processing order for UI display: ${orderData.orderNumber}`);
       
-      // Fetch complete order data for UI
+      // Fetch complete order data for UI with items
       const { data: completeOrder, error } = await supabase
         .from('orders')
         .select(`
@@ -150,6 +151,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           members (
             name,
             phone
+          ),
+          order_items (
+            id,
+            menu_item_name,
+            quantity,
+            unit_price,
+            total_price,
+            selected_addons
           )
         `)
         .eq('id', orderData.orderId)
@@ -165,7 +174,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           id: completeOrder.id,
           order_number: completeOrder.order_number,
           total_amount: completeOrder.total_amount,
-          items: [],
+          items: completeOrder.order_items || [],
+          order_items: completeOrder.order_items || [],
           customer_profiles: completeOrder.members ? {
             full_name: completeOrder.members.name,
             phone: completeOrder.members.phone
@@ -181,7 +191,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           await triggerIOSNotification({
             orderNumber: completeOrder.order_number,
             totalAmount: completeOrder.total_amount,
-            items: []
+            items: completeOrder.order_items || []
           });
         }
         
@@ -216,11 +226,25 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     navigate('/online-orders');
   };
 
+  const formatOrderItems = (items: any[]) => {
+    return items.map((item) => {
+      let itemText = `${item.menu_item_name} x${item.quantity}`;
+      
+      // Add addon details if present
+      if (item.selected_addons && item.selected_addons.length > 0) {
+        const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
+        itemText += ` (${addons})`;
+      }
+      
+      return itemText;
+    });
+  };
+
   return (
     <>
       {children}
       
-      {/* Order Alert Dialog */}
+      {/* Enhanced Order Alert Dialog with detailed items */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
         <DialogContent className="sm:max-w-md border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
           <DialogHeader>
@@ -246,11 +270,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 <p className="font-bold text-2xl text-orange-700 mb-2">
                   📋 ออเดอร์ #{newOrder.order_number}
                 </p>
-                <p className="text-3xl font-bold text-orange-600 mt-3">
-                  💰 ฿{newOrder.total_amount.toFixed(2)}
-                </p>
+                
                 {newOrder.customer_profiles && (
-                  <div className="mt-4 pt-4 border-t border-orange-200">
+                  <div className="mb-4 pb-4 border-b border-orange-200">
                     <p className="text-base text-gray-700 font-medium">
                       👤 ลูกค้า: {newOrder.customer_profiles.full_name}
                     </p>
@@ -259,6 +281,27 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     </p>
                   </div>
                 )}
+                
+                {/* Order Items Details */}
+                {newOrder.order_items && newOrder.order_items.length > 0 && (
+                  <div className="mb-4 pb-4 border-b border-orange-200">
+                    <p className="text-lg font-semibold text-orange-700 mb-2">🍽️ รายการสั่งซื้อ:</p>
+                    <div className="space-y-2">
+                      {formatOrderItems(newOrder.order_items).map((itemText, index) => (
+                        <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
+                          • {itemText}
+                          <span className="float-right font-medium">
+                            ฿{newOrder.order_items[index].total_price.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-3xl font-bold text-orange-600 mt-3">
+                  💰 รวม: ฿{newOrder.total_amount.toFixed(2)}
+                </p>
               </div>
               
               <div className="flex gap-3">

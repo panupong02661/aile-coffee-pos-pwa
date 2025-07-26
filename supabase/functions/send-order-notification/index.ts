@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
 
 const corsHeaders = {
@@ -27,7 +28,6 @@ Deno.serve(async (req) => {
   console.log('🔔 send-order-notification function called at:', new Date().toISOString());
   console.log('📦 Request method:', req.method);
   console.log('📦 Request URL:', req.url);
-  console.log('📦 Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
 
   try {
     const body = await req.json();
@@ -85,6 +85,22 @@ Deno.serve(async (req) => {
 
     console.log('💬 Prepared message:', message);
 
+    // Format order items for notification
+    let orderItemsText = '';
+    if (orderData.order_items && orderData.order_items.length > 0) {
+      orderItemsText = orderData.order_items.map((item: any) => {
+        let itemText = `${item.menu_item_name} x${item.quantity}`;
+        
+        // Add addon details if present
+        if (item.selected_addons && item.selected_addons.length > 0) {
+          const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
+          itemText += ` (${addons})`;
+        }
+        
+        return itemText;
+      }).join('\n');
+    }
+
     const results = [];
     
     // Send notifications to enabled platforms
@@ -94,7 +110,8 @@ Deno.serve(async (req) => {
         const result = await sendDiscordNotification(
           onlineOrderSettings.platforms.discord.token,
           message,
-          orderData
+          orderData,
+          orderItemsText
         );
         results.push({ platform: 'Discord', success: true, result });
         console.log('✅ Discord notification sent successfully');
@@ -112,7 +129,8 @@ Deno.serve(async (req) => {
         const result = await sendLineNotification(
           onlineOrderSettings.platforms.line.token,
           message,
-          orderData
+          orderData,
+          orderItemsText
         );
         results.push({ platform: 'LINE', success: true, result });
         console.log('✅ LINE notification sent successfully');
@@ -130,7 +148,8 @@ Deno.serve(async (req) => {
         const result = await sendTelegramNotification(
           onlineOrderSettings.platforms.telegram.token,
           message,
-          orderData
+          orderData,
+          orderItemsText
         );
         results.push({ platform: 'Telegram', success: true, result });
         console.log('✅ Telegram notification sent successfully');
@@ -148,7 +167,8 @@ Deno.serve(async (req) => {
         const result = await sendInstagramNotification(
           onlineOrderSettings.platforms.instagram.token,
           message,
-          orderData
+          orderData,
+          orderItemsText
         );
         results.push({ platform: 'Instagram', success: true, result });
         console.log('✅ Instagram notification sent successfully');
@@ -189,46 +209,58 @@ Deno.serve(async (req) => {
   }
 });
 
-// Discord notification function
-async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any) {
+// Discord notification function with detailed order items
+async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string) {
   console.log('🔵 Sending Discord notification to:', webhookUrl);
   
+  // Create fields for Discord embed
+  const fields = [
+    {
+      name: '📋 หมายเลขออเดอร์',
+      value: orderData.order_number,
+      inline: true
+    },
+    {
+      name: '💰 ยอดรวม',
+      value: `${orderData.total_amount.toLocaleString()} บาท`,
+      inline: true
+    },
+    {
+      name: '👤 ลูกค้า',
+      value: orderData.customer_name || 'ไม่ระบุ',
+      inline: true
+    },
+    {
+      name: '📞 เบอร์โทร',
+      value: orderData.customer_phone || 'ไม่ระบุ',
+      inline: true
+    },
+    {
+      name: '💳 วิธีชำระเงิน',
+      value: orderData.payment_method || 'ไม่ระบุ',
+      inline: true
+    },
+    {
+      name: '📦 สถานะ',
+      value: orderData.order_status || 'รอดำเนินการ',
+      inline: true
+    }
+  ];
+
+  // Add order items if available
+  if (orderItemsText) {
+    fields.push({
+      name: '🍽️ รายการสั่งซื้อ',
+      value: orderItemsText.substring(0, 1024), // Discord field value limit
+      inline: false
+    });
+  }
+
   const embed = {
     title: '🛒 ออเดอร์ออนไลน์ใหม่!',
     description: message,
     color: 0x00ff00, // สีเขียว
-    fields: [
-      {
-        name: '📋 หมายเลขออเดอร์',
-        value: orderData.order_number,
-        inline: true
-      },
-      {
-        name: '💰 ยอดรวม',
-        value: `${orderData.total_amount.toLocaleString()} บาท`,
-        inline: true
-      },
-      {
-        name: '👤 ลูกค้า',
-        value: orderData.customer_name || 'ไม่ระบุ',
-        inline: true
-      },
-      {
-        name: '📞 เบอร์โทร',
-        value: orderData.customer_phone || 'ไม่ระบุ',
-        inline: true
-      },
-      {
-        name: '💳 วิธีชำระเงิน',
-        value: orderData.payment_method || 'ไม่ระบุ',
-        inline: true
-      },
-      {
-        name: '📦 สถานะ',
-        value: orderData.order_status || 'รอดำเนินการ',
-        inline: true
-      }
-    ],
+    fields: fields,
     footer: {
       text: 'ระบบร้านอาหาร'
     },
@@ -251,7 +283,6 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   });
 
   console.log('🔵 Discord response status:', response.status);
-  console.log('🔵 Discord response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -265,19 +296,19 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
 }
 
 // LINE notification function (placeholder for now)
-async function sendLineNotification(accessToken: string, message: string, orderData: any) {
-  console.log('🟢 LINE notification (placeholder):', { accessToken, message, orderData });
+async function sendLineNotification(accessToken: string, message: string, orderData: any, orderItemsText: string) {
+  console.log('🟢 LINE notification (placeholder):', { accessToken, message, orderData, orderItemsText });
   return { status: 'LINE notification not implemented yet' };
 }
 
 // Telegram notification function (placeholder for now)
-async function sendTelegramNotification(botToken: string, message: string, orderData: any) {
-  console.log('🔷 Telegram notification (placeholder):', { botToken, message, orderData });
+async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string) {
+  console.log('🔷 Telegram notification (placeholder):', { botToken, message, orderData, orderItemsText });
   return { status: 'Telegram notification not implemented yet' };
 }
 
 // Instagram notification function (placeholder for now)
-async function sendInstagramNotification(apiToken: string, message: string, orderData: any) {
-  console.log('🟣 Instagram notification (placeholder):', { apiToken, message, orderData });
+async function sendInstagramNotification(apiToken: string, message: string, orderData: any, orderItemsText: string) {
+  console.log('🟣 Instagram notification (placeholder):', { apiToken, message, orderData, orderItemsText });
   return { status: 'Instagram notification not implemented yet' };
 }

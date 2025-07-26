@@ -273,47 +273,93 @@ export const useOrderNotifications = () => {
           if (order.order_source === 'online') {
             console.log(`📱 SINGLETON - Processing online order notification: ${order.order_number}`);
             
-            // Play sound notification
-            await playBellSound();
-            
-            // Show toast notification (SINGLE)
-            toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-              description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
-              duration: 10000,
-              action: {
-                label: 'ดูรายละเอียด',
-                onClick: () => {
-                  window.location.href = '/online-orders';
-                }
-              }
-            });
-            
-            // Send external notification (ONCE per singleton)
             try {
-              const { data, error } = await supabase.functions.invoke('send-order-notification', {
-                body: {
-                  orderData: {
-                    id: order.id,
-                    order_number: order.order_number,
-                    total_amount: order.total_amount,
-                    items_count: order.items_count || 1,
-                    member_id: order.member_id,
-                    payment_method: order.payment_method,
-                    order_source: order.order_source,
-                    status: order.status,
-                    created_at: order.created_at,
-                    customer_notes: order.customer_notes
-                  }
-                }
-              });
+              // Fetch complete order details including items and customer info
+              const { data: completeOrder, error: orderError } = await supabase
+                .from('orders')
+                .select(`
+                  *,
+                  members (
+                    name,
+                    phone
+                  ),
+                  order_items (
+                    id,
+                    menu_item_name,
+                    quantity,
+                    unit_price,
+                    total_price,
+                    selected_addons
+                  )
+                `)
+                .eq('id', order.id)
+                .single();
 
-              if (error) {
-                console.error('❌ SINGLETON - Failed to send external notifications:', error);
-              } else {
-                console.log('✅ SINGLETON - External notifications sent successfully');
+              if (orderError) {
+                console.error('❌ Error fetching complete order details:', orderError);
+              } else if (completeOrder) {
+                // Format order items for display
+                const orderItemsText = completeOrder.order_items.map((item: any) => {
+                  let itemText = `${item.menu_item_name} x${item.quantity}`;
+                  
+                  // Add addon details if present
+                  if (item.selected_addons && item.selected_addons.length > 0) {
+                    const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
+                    itemText += ` (${addons})`;
+                  }
+                  
+                  itemText += ` - ฿${item.total_price}`;
+                  return itemText;
+                }).join('\n');
+
+                const customerInfo = completeOrder.members ? 
+                  `ลูกค้า: ${completeOrder.members.name} (${completeOrder.members.phone})` : 
+                  'ลูกค้าทั่วไป';
+
+                // Play sound notification
+                await playBellSound();
+                
+                // Show detailed toast notification
+                toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
+                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ:\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
+                  duration: 15000,
+                  action: {
+                    label: 'ดูรายละเอียด',
+                    onClick: () => {
+                      window.location.href = '/online-orders';
+                    }
+                  }
+                });
+
+                // Send external notification with detailed order info
+                const { data, error } = await supabase.functions.invoke('send-order-notification', {
+                  body: {
+                    orderData: {
+                      id: completeOrder.id,
+                      order_number: completeOrder.order_number,
+                      total_amount: completeOrder.total_amount,
+                      items_count: completeOrder.order_items.length,
+                      member_id: completeOrder.member_id,
+                      payment_method: completeOrder.payment_method,
+                      order_source: completeOrder.order_source,
+                      status: completeOrder.status,
+                      created_at: completeOrder.created_at,
+                      customer_notes: completeOrder.customer_notes,
+                      customer_name: completeOrder.members?.name || 'ลูกค้าทั่วไป',
+                      customer_phone: completeOrder.members?.phone || '',
+                      order_items: completeOrder.order_items
+                    }
+                  }
+                });
+
+                if (error) {
+                  console.error('❌ SINGLETON - Failed to send external notifications:', error);
+                } else {
+                  console.log('✅ SINGLETON - External notifications sent successfully');
+                }
               }
             } catch (error) {
-              console.error('❌ SINGLETON - Error calling send-order-notification function:', error);
+              console.error('❌ SINGLETON - Error fetching order details:', error);
             }
             
             console.log(`📱 SINGLETON - Order notification processed successfully for: ${order.order_number}`);
