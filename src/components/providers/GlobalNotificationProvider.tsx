@@ -40,7 +40,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const location = useLocation();
   const isSubscribedRef = useRef(false);
   const setupRef = useRef(false);
-  const processedOrdersRef = useRef(new Set<string>()); // เก็บ order IDs ที่ประมวลผลแล้ว
+  const processedOrdersRef = useRef(new Set<string>());
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
@@ -49,38 +49,39 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
   useEffect(() => {
-    // Prevent multiple setup calls and don't run on customer mobile app
+    // CRITICAL: Prevent duplicate setup - only setup once globally
     if (setupRef.current || isCustomerMobileApp || isSubscribedRef.current) {
       console.log('🚫 GlobalNotificationProvider already setup or on customer app, skipping...');
       return;
     }
     
     setupRef.current = true;
-    console.log('🔔 Setting up GlobalNotificationProvider (single instance)...');
+    console.log('🔔 Setting up SINGLE GlobalNotificationProvider instance...');
     
     // Load notification settings
     loadNotificationSettings();
     
-    // Setup cross-device sync with unique channel name and single subscription
-    const syncChannelName = `notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Setup SINGLE cross-device sync channel
+    const uniqueSyncChannelName = `global-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const syncChannel = supabase
-      .channel(syncChannelName)
+      .channel(uniqueSyncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
         console.log('📡 Received dismiss broadcast');
         setShowOrderAlert(false);
         setNewOrder(null);
       })
       .subscribe((status) => {
-        console.log('📡 Sync subscription status:', status);
+        console.log('📡 Global Sync subscription status:', status);
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
+          console.log('✅ SINGLE Global sync subscription active');
         }
       });
 
     notificationChannelRef.current = syncChannel;
 
     return () => {
-      console.log('🧹 Cleaning up GlobalNotificationProvider...');
+      console.log('🧹 Cleaning up SINGLE GlobalNotificationProvider...');
       setupRef.current = false;
       isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
@@ -116,14 +117,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const handleNewOrder = async (orderData: any) => {
     try {
-      // ป้องกันการประมวลผลออเดอร์ซ้ำ
+      // CRITICAL: Prevent duplicate UI processing
       if (processedOrdersRef.current.has(orderData.id)) {
-        console.log('🚫 Order already processed in UI, skipping:', orderData.id);
+        console.log('🚫 Order already processed in GLOBAL UI, skipping:', orderData.id);
         return;
       }
       
       processedOrdersRef.current.add(orderData.id);
-      console.log('🔔 Processing new order for UI display:', orderData.order_number);
+      console.log('🔔 Processing new order for SINGLE UI display:', orderData.order_number);
       
       // Fetch complete order data
       const { data: completeOrder, error } = await supabase
@@ -168,7 +169,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        // Broadcast notification to other devices
+        // Broadcast notification to other devices (ONCE)
         if (notificationChannelRef.current) {
           notificationChannelRef.current.send({
             type: 'broadcast',
@@ -181,10 +182,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        // Clean up processed order after 5 minutes
+        // Clean up processed order after 10 minutes
         setTimeout(() => {
           processedOrdersRef.current.delete(orderData.id);
-        }, 5 * 60 * 1000);
+        }, 10 * 60 * 1000);
       }
     } catch (error) {
       console.error('❌ Error processing new order notification:', error);

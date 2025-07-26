@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,8 +10,8 @@ export const useOrderNotifications = () => {
   const isIOSRef = useRef(false);
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
-  const isSetupRef = useRef(false); // เพิ่ม flag เพื่อป้องกันการ setup หลายครั้ง
-  const processedOrdersRef = useRef(new Set<string>()); // เก็บ ID ของออเดอร์ที่ประมวลผลแล้ว
+  const isSetupRef = useRef(false);
+  const processedOrdersRef = useRef(new Set<string>());
 
   // Detect iOS
   useEffect(() => {
@@ -173,76 +174,10 @@ export const useOrderNotifications = () => {
         }
       }
       
-      // Method 3: iOS System Integration attempts
-      try {
-        // Try vibration for non-iOS devices only
-        if ('vibrate' in navigator && !isIOSRef.current) {
-          const vibrationPattern = [200, 100, 200, 100, 200];
-          navigator.vibrate(vibrationPattern);
-          console.log('✅ Device vibration triggered');
-        }
-        
-        // Visual feedback for iOS (แทนการสั่น)
-        if (isIOSRef.current) {
-          // แสดง animation แทนการสั่น
-          document.body.style.transform = 'translateX(2px)';
-          setTimeout(() => {
-            document.body.style.transform = 'translateX(-2px)';
-          }, 50);
-          setTimeout(() => {
-            document.body.style.transform = 'translateX(0)';
-          }, 100);
-        }
-        
-        // Visual feedback - flash screen
-        let flashCount = 0;
-        const maxFlashes = 6;
-        
-        const flashScreen = () => {
-          if (flashCount < maxFlashes) {
-            document.body.style.backgroundColor = flashCount % 2 === 0 ? '#ff6b6b' : '#ffffff';
-            setTimeout(() => {
-              document.body.style.backgroundColor = '';
-              flashCount++;
-              if (flashCount < maxFlashes) {
-                setTimeout(flashScreen, 250);
-              }
-            }, 250);
-          }
-        };
-        
-        flashScreen();
-        
-        // Title notification
-        const originalTitle = document.title;
-        let titleCount = 0;
-        
-        const updateTitle = () => {
-          if (titleCount < 3) {
-            document.title = `🔔 ออเดอร์ใหม่! (${titleCount + 1}/3)`;
-            titleCount++;
-            setTimeout(updateTitle, 1000);
-          } else {
-            document.title = originalTitle;
-          }
-        };
-        
-        updateTitle();
-        
-      } catch (error) {
-        console.log('⚠️ System integration failed:', error);
-      }
-      
       console.log('✅ Enhanced notification sequence completed');
       
     } catch (error) {
       console.error('❌ Notification failed:', error);
-      
-      // Ultimate fallback - visual feedback
-      document.body.style.backgroundColor = '#4CAF50';
-      setTimeout(() => {
-        document.body.style.backgroundColor = '';
-      }, 200);
     }
   };
 
@@ -290,22 +225,22 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // Fixed real-time order listening with duplicate prevention
+  // FIXED: Single notification per order with unique channel and proper cleanup
   useEffect(() => {
-    // ป้องกันการ setup หลายครั้ง
+    // Prevent multiple setup calls
     if (isSetupRef.current || isSubscribedRef.current) {
       console.log('🚫 Order notifications already setup, skipping...');
       return;
     }
 
     isSetupRef.current = true;
-    console.log('👂 Setting up order notifications (single instance)...');
+    console.log('👂 Setting up SINGLE order notifications instance...');
     
-    // สร้างชื่อ channel ที่ไม่ซ้ำกัน
-    const channelName = `orders-notifications-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Create unique channel name to prevent conflicts
+    const uniqueChannelName = `orders-single-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const channel = supabase
-      .channel(channelName)
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -316,25 +251,25 @@ export const useOrderNotifications = () => {
         async (payload) => {
           const order = payload.new as any;
           
-          // ป้องกันการประมวลผลออเดอร์ซ้ำ
+          // CRITICAL: Prevent duplicate processing
           if (processedOrdersRef.current.has(order.id)) {
             console.log('🚫 Order already processed, skipping:', order.id);
             return;
           }
           
-          // เพิ่ม order ID เข้าไปใน processed set
+          // Add order to processed set IMMEDIATELY
           processedOrdersRef.current.add(order.id);
           
-          console.log('🔔 New order received (unique):', order.order_number);
+          console.log('🔔 Processing NEW order (SINGLE):', order.order_number);
           
-          // ประมวลผลเฉพาะออเดอร์ออนไลน์เท่านั้น
+          // Only process online orders
           if (order.order_source === 'online') {
             console.log('🔔 Processing online order notification:', order.order_number);
             
-            // เล่นเสียงแจ้งเตือน
+            // Play sound
             await playBellSound();
             
-            // แสดง toast notification
+            // Show toast notification (SINGLE)
             toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
               description: `ออเดอร์ #${order.order_number} จำนวน ฿${order.total_amount}`,
               duration: 10000,
@@ -346,7 +281,7 @@ export const useOrderNotifications = () => {
               }
             });
             
-            // ส่งแจ้งเตือนไปยังแพลตฟอร์มภายนอก (เพียงครั้งเดียว)
+            // Send external notification (ONCE)
             try {
               const { data, error } = await supabase.functions.invoke('send-order-notification', {
                 body: {
@@ -368,37 +303,37 @@ export const useOrderNotifications = () => {
               if (error) {
                 console.error('❌ Failed to send external notifications:', error);
               } else {
-                console.log('✅ External notifications sent successfully');
+                console.log('✅ External notifications sent successfully (ONCE)');
               }
             } catch (error) {
               console.error('❌ Error calling send-order-notification function:', error);
             }
             
-            console.log('📱 Order notification processed successfully');
+            console.log('📱 Order notification processed successfully (SINGLE)');
           }
           
-          // ลบ order ID ออกจาก processed set หลังจาก 5 นาที เพื่อป้องกัน memory leak
+          // Clean up processed order after 10 minutes
           setTimeout(() => {
             processedOrdersRef.current.delete(order.id);
-          }, 5 * 60 * 1000);
+          }, 10 * 60 * 1000);
         }
       )
       .subscribe((status, err) => {
-        console.log('📡 Subscription status:', status);
+        console.log('📡 SINGLE Subscription status:', status);
         if (err) {
-          console.error('❌ Subscription error:', err);
+          console.error('❌ SINGLE Subscription error:', err);
         }
         
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
-          console.log('✅ Order notifications subscription active');
+          console.log('✅ SINGLE Order notifications subscription active');
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('🔄 Cleaning up order notifications...');
+      console.log('🔄 Cleaning up SINGLE order notifications...');
       isSetupRef.current = false;
       isSubscribedRef.current = false;
       processedOrdersRef.current.clear();
@@ -409,7 +344,7 @@ export const useOrderNotifications = () => {
       }
       stopBellSound();
     };
-  }, []); // Empty dependency array เพื่อให้ทำงานเพียงครั้งเดียว
+  }, []);
 
   return {
     playBellSound,

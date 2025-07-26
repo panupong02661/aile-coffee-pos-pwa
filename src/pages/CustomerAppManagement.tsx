@@ -19,16 +19,16 @@ const CustomerAppManagement = () => {
       
       <div className="flex-1">
         <div className="p-4">
-          {/* Custom Header with Menu Button */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Header with Menu Button */}
+          <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow-sm border border-coffee-200">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2"
+                className="p-2 hover:bg-coffee-100"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-5 h-5 text-coffee-700" />
               </Button>
               <h1 className="text-2xl font-bold text-coffee-800">จัดการแอปลูกค้า</h1>
             </div>
@@ -95,7 +95,7 @@ const CustomerAppManagement = () => {
                   <TabsContent value="analytics" className="mt-6">
                     <div className="space-y-6">
                       <h3 className="text-lg font-semibold">การวิเคราะห์</h3>
-                      <p className="text-gray-600">ดูสстатистและการใช้งานของแอพลูกค้า</p>
+                      <p className="text-gray-600">ดูสถิติและการใช้งานของแอพลูกค้า</p>
                     </div>
                   </TabsContent>
                 </Tabs>
