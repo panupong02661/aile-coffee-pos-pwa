@@ -279,42 +279,66 @@ export const useOrderNotifications = () => {
             console.log(`📱 SINGLETON - Processing online order notification: ${order.order_number}`);
             
             try {
-              // Wait a moment for order items to be inserted
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Wait longer for ALL order items to be inserted completely
+              await new Promise(resolve => setTimeout(resolve, 3000));
               
-              // Fetch complete order details including ALL items and customer info
-              const { data: completeOrder, error: orderError } = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  members (
-                    name,
-                    phone
-                  ),
-                  order_items (
-                    id,
-                    menu_item_name,
-                    quantity,
-                    unit_price,
-                    total_price,
-                    selected_addons
-                  )
-                `)
-                .eq('id', order.id)
-                .single();
-
-              if (orderError) {
-                console.error('❌ Error fetching complete order details:', orderError);
-              } else if (completeOrder) {
-                console.log(`📋 SINGLETON - Found ${completeOrder.order_items?.length || 0} items for order ${completeOrder.order_number}`);
+              // Fetch complete order details including ALL items and customer info with retry
+              let completeOrder = null;
+              let attempts = 0;
+              const maxAttempts = 5;
+              
+              while (attempts < maxAttempts && !completeOrder) {
+                attempts++;
+                console.log(`📋 SINGLETON - Fetching order attempt ${attempts}/${maxAttempts}`);
                 
-                // Format order items for display - SHOW ALL ITEMS
-                const orderItemsText = (completeOrder.order_items || []).map((item: any) => {
+                const { data: orderData, error: orderError } = await supabase
+                  .from('orders')
+                  .select(`
+                    *,
+                    members (
+                      name,
+                      phone
+                    ),
+                    order_items (
+                      id,
+                      menu_item_name,
+                      quantity,
+                      unit_price,
+                      total_price,
+                      selected_addons
+                    )
+                  `)
+                  .eq('id', order.id)
+                  .single();
+
+                if (orderError) {
+                  console.error(`❌ SINGLETON - Attempt ${attempts} error:`, orderError);
+                } else if (orderData && orderData.order_items && orderData.order_items.length > 0) {
+                  completeOrder = orderData;
+                  console.log(`✅ SINGLETON - Successfully fetched order with ${orderData.order_items.length} items on attempt ${attempts}`);
+                  break;
+                } else {
+                  console.log(`⏳ SINGLETON - Attempt ${attempts}: Order items not ready yet, waiting...`);
+                  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between attempts
+                }
+              }
+
+              if (completeOrder && completeOrder.order_items && completeOrder.order_items.length > 0) {
+                console.log(`📋 SINGLETON - Final order data: ${completeOrder.order_items.length} items for order ${completeOrder.order_number}`);
+                
+                // Format order items for display with FULL addon details
+                const orderItemsText = completeOrder.order_items.map((item: any) => {
                   let itemText = `${item.menu_item_name} x${item.quantity}`;
                   
-                  // Add addon details if present
+                  // Add detailed addon information
                   if (item.selected_addons && item.selected_addons.length > 0) {
-                    const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
+                    const addons = item.selected_addons.map((addon: any) => {
+                      if (addon.price && addon.price > 0) {
+                        return `+${addon.name} (+฿${addon.price})`;
+                      } else {
+                        return `+${addon.name}`;
+                      }
+                    }).join(', ');
                     itemText += ` (${addons})`;
                   }
                   
@@ -329,10 +353,10 @@ export const useOrderNotifications = () => {
                 // Play sound notification
                 await playBellSound();
                 
-                // Show detailed toast notification with ALL items
+                // Show detailed toast notification with ALL items and addons
                 toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ (${completeOrder.order_items?.length || 0} เมนู):\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
-                  duration: 15000,
+                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ (${completeOrder.order_items.length} เมนู):\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
+                  duration: 20000, // Show longer for detailed content
                   action: {
                     label: 'ดูรายละเอียด',
                     onClick: () => {
@@ -341,14 +365,14 @@ export const useOrderNotifications = () => {
                   }
                 });
 
-                // Send external notification with detailed order info including ALL items
+                // Send external notification with detailed order info including ALL items and addons
                 const { data, error } = await supabase.functions.invoke('send-order-notification', {
                   body: {
                     orderData: {
                       id: completeOrder.id,
                       order_number: completeOrder.order_number,
                       total_amount: completeOrder.total_amount,
-                      items_count: completeOrder.order_items?.length || 0,
+                      items_count: completeOrder.order_items.length,
                       member_id: completeOrder.member_id,
                       payment_method: completeOrder.payment_method,
                       order_source: completeOrder.order_source,
@@ -357,7 +381,7 @@ export const useOrderNotifications = () => {
                       customer_notes: completeOrder.customer_notes,
                       customer_name: completeOrder.members?.name || 'ลูกค้าทั่วไป',
                       customer_phone: completeOrder.members?.phone || '',
-                      order_items: completeOrder.order_items || []
+                      order_items: completeOrder.order_items
                     }
                   }
                 });
@@ -367,12 +391,14 @@ export const useOrderNotifications = () => {
                 } else {
                   console.log('✅ SINGLETON - External notifications sent successfully');
                 }
+              } else {
+                console.error('❌ SINGLETON - Failed to fetch complete order data after all attempts');
               }
             } catch (error) {
-              console.error('❌ SINGLETON - Error fetching order details:', error);
+              console.error('❌ SINGLETON - Error processing order notification:', error);
             }
             
-            console.log(`📱 SINGLETON - Order notification processed successfully for: ${order.order_number}`);
+            console.log(`📱 SINGLETON - Order notification processed for: ${order.order_number}`);
           } else {
             console.log(`📝 SINGLETON - Non-online order ignored: ${order.order_number} (source: ${order.order_source})`);
           }

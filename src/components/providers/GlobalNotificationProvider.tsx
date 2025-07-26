@@ -101,8 +101,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           if (order.order_source === 'online') {
             console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
             
-            // Wait for order items to be inserted
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Wait longer for order items to be inserted completely
+            await new Promise(resolve => setTimeout(resolve, 4000));
             
             // Broadcast to sync channel for cross-device UI sync
             if (notificationChannelRef.current) {
@@ -152,41 +152,56 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       globalUIProcessedOrders.add(orderData.orderId);
       console.log(`🎯 UI SINGLETON - Processing order for UI display: ${orderData.orderNumber}`);
       
-      // Fetch complete order data for UI with ALL items
-      const { data: completeOrder, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          members (
-            name,
-            phone
-          ),
-          order_items (
-            id,
-            menu_item_name,
-            quantity,
-            unit_price,
-            total_price,
-            selected_addons
-          )
-        `)
-        .eq('id', orderData.orderId)
-        .single();
+      // Fetch complete order data for UI with ALL items and retry logic
+      let completeOrder = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (attempts < maxAttempts && !completeOrder) {
+        attempts++;
+        console.log(`📋 UI SINGLETON - UI fetch attempt ${attempts}/${maxAttempts}`);
+        
+        const { data: orderResult, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            members (
+              name,
+              phone
+            ),
+            order_items (
+              id,
+              menu_item_name,
+              quantity,
+              unit_price,
+              total_price,
+              selected_addons
+            )
+          `)
+          .eq('id', orderData.orderId)
+          .single();
 
-      if (error) {
-        console.error('❌ UI SINGLETON - Error fetching complete order details:', error);
-        return;
+        if (error) {
+          console.error(`❌ UI SINGLETON - UI fetch attempt ${attempts} error:`, error);
+        } else if (orderResult && orderResult.order_items && orderResult.order_items.length > 0) {
+          completeOrder = orderResult;
+          console.log(`✅ UI SINGLETON - UI successfully fetched order with ${orderResult.order_items.length} items on attempt ${attempts}`);
+          break;
+        } else {
+          console.log(`⏳ UI SINGLETON - UI attempt ${attempts}: Order items not ready, waiting...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
 
-      if (completeOrder) {
-        console.log(`📋 UI SINGLETON - Fetched order with ${completeOrder.order_items?.length || 0} items`);
+      if (completeOrder && completeOrder.order_items && completeOrder.order_items.length > 0) {
+        console.log(`📋 UI SINGLETON - Final UI order data: ${completeOrder.order_items.length} items`);
         
         const orderForNotification: OnlineOrder = {
           id: completeOrder.id,
           order_number: completeOrder.order_number,
           total_amount: completeOrder.total_amount,
-          items: completeOrder.order_items || [],
-          order_items: completeOrder.order_items || [],
+          items: completeOrder.order_items,
+          order_items: completeOrder.order_items,
           customer_profiles: completeOrder.members ? {
             full_name: completeOrder.members.name,
             phone: completeOrder.members.phone
@@ -202,11 +217,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           await triggerIOSNotification({
             orderNumber: completeOrder.order_number,
             totalAmount: completeOrder.total_amount,
-            items: completeOrder.order_items || []
+            items: completeOrder.order_items
           });
         }
         
-        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items?.length || 0} items`);
+        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items.length} items`);
+      } else {
+        console.error('❌ UI SINGLETON - Failed to fetch complete order data for UI after all attempts');
       }
       
       // Clean up UI processed order after 10 minutes
@@ -241,9 +258,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return items.map((item) => {
       let itemText = `${item.menu_item_name} x${item.quantity}`;
       
-      // Add addon details if present
+      // Add detailed addon information with pricing
       if (item.selected_addons && item.selected_addons.length > 0) {
-        const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
+        const addons = item.selected_addons.map((addon: any) => {
+          if (addon.price && addon.price > 0) {
+            return `+${addon.name} (+฿${addon.price})`;
+          } else {
+            return `+${addon.name}`;
+          }
+        }).join(', ');
         itemText += ` (${addons})`;
       }
       
@@ -255,9 +278,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     <>
       {children}
       
-      {/* Enhanced Order Alert Dialog with ALL detailed items */}
+      {/* Enhanced Order Alert Dialog with ALL detailed items and addons */}
       <Dialog open={showOrderAlert} onOpenChange={setShowOrderAlert}>
-        <DialogContent className="sm:max-w-md border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
+        <DialogContent className="sm:max-w-lg border-4 border-orange-400 shadow-2xl bg-gradient-to-br from-orange-50 to-yellow-50">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between text-orange-600 text-xl font-bold">
               <div className="flex items-center gap-2">
@@ -293,19 +316,21 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   </div>
                 )}
                 
-                {/* Show ALL Order Items Details */}
+                {/* Show ALL Order Items with Complete Details */}
                 {newOrder.order_items && newOrder.order_items.length > 0 && (
                   <div className="mb-4 pb-4 border-b border-orange-200">
                     <p className="text-lg font-semibold text-orange-700 mb-2">
                       🍽️ รายการสั่งซื้อ ({newOrder.order_items.length} เมนู):
                     </p>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
                       {formatOrderItems(newOrder.order_items).map((itemText, index) => (
-                        <div key={index} className="text-sm text-gray-700 bg-white/50 p-2 rounded">
-                          • {itemText}
-                          <span className="float-right font-medium">
-                            ฿{newOrder.order_items![index].total_price.toFixed(2)}
-                          </span>
+                        <div key={index} className="text-sm text-gray-700 bg-white/50 p-3 rounded border-l-4 border-orange-300">
+                          <div className="flex justify-between items-start">
+                            <span className="flex-1">• {itemText}</span>
+                            <span className="font-bold text-orange-600 ml-2">
+                              ฿{newOrder.order_items![index].total_price.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -313,7 +338,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 )}
                 
                 <p className="text-3xl font-bold text-orange-600 mt-3">
-                  💰 รวม: ฿{newOrder.total_amount.toFixed(2)}
+                  💰 รวมทั้งสิ้น: ฿{newOrder.total_amount.toFixed(2)}
                 </p>
               </div>
               

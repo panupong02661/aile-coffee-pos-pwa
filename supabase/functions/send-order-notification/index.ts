@@ -94,20 +94,31 @@ Deno.serve(async (req) => {
 
     console.log('💬 Prepared message:', message);
 
-    // Format order items for notification
+    // Format order items for notification with COMPLETE addon details
     let orderItemsText = '';
     if (orderData.order_items && orderData.order_items.length > 0) {
-      orderItemsText = orderData.order_items.map((item: any) => {
-        let itemText = `${item.menu_item_name} x${item.quantity}`;
+      console.log(`📋 Processing ${orderData.order_items.length} order items for notification`);
+      
+      orderItemsText = orderData.order_items.map((item: any, index: number) => {
+        let itemText = `${index + 1}. ${item.menu_item_name} x${item.quantity}`;
         
-        // Add addon details if present
+        // Add comprehensive addon details with pricing
         if (item.selected_addons && item.selected_addons.length > 0) {
-          const addons = item.selected_addons.map((addon: any) => addon.name).join(', ');
-          itemText += ` (${addons})`;
+          const addons = item.selected_addons.map((addon: any) => {
+            if (addon.price && addon.price > 0) {
+              return `+${addon.name} (+฿${addon.price})`;
+            } else {
+              return `+${addon.name}`;
+            }
+          }).join(', ');
+          itemText += `\n   └─ ${addons}`;
         }
         
+        itemText += `\n   💰 ราคา: ฿${item.total_price}`;
         return itemText;
-      }).join('\n');
+      }).join('\n\n');
+      
+      console.log('📋 Formatted order items text:', orderItemsText);
     }
 
     const results = [];
@@ -218,11 +229,11 @@ Deno.serve(async (req) => {
   }
 });
 
-// Discord notification function with detailed order items
+// Discord notification function with comprehensive order details
 async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string) {
   console.log('🔵 Sending Discord notification to:', webhookUrl);
   
-  // Create fields for Discord embed
+  // Create comprehensive fields for Discord embed
   const fields = [
     {
       name: '📋 หมายเลขออเดอร์',
@@ -232,6 +243,11 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
     {
       name: '💰 ยอดรวม',
       value: `${orderData.total_amount.toLocaleString()} บาท`,
+      inline: true
+    },
+    {
+      name: '📦 จำนวนเมนู',
+      value: `${orderData.items_count} เมนู`,
       inline: true
     },
     {
@@ -248,30 +264,51 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
       name: '💳 วิธีชำระเงิน',
       value: orderData.payment_method || 'ไม่ระบุ',
       inline: true
-    },
-    {
-      name: '📦 สถานะ',
-      value: orderData.order_status || 'รอดำเนินการ',
-      inline: true
     }
   ];
 
-  // Add order items if available
+  // Add comprehensive order items if available
   if (orderItemsText) {
-    fields.push({
-      name: '🍽️ รายการสั่งซื้อ',
-      value: orderItemsText.substring(0, 1024), // Discord field value limit
-      inline: false
-    });
+    // Split long text if needed for Discord field limits
+    const maxFieldLength = 1024;
+    if (orderItemsText.length > maxFieldLength) {
+      const chunks = [];
+      let currentChunk = '';
+      const lines = orderItemsText.split('\n');
+      
+      for (const line of lines) {
+        if ((currentChunk + line + '\n').length > maxFieldLength) {
+          if (currentChunk) chunks.push(currentChunk.trim());
+          currentChunk = line + '\n';
+        } else {
+          currentChunk += line + '\n';
+        }
+      }
+      if (currentChunk) chunks.push(currentChunk.trim());
+      
+      chunks.forEach((chunk, index) => {
+        fields.push({
+          name: index === 0 ? '🍽️ รายการสั่งซื้อ (รายละเอียดครบถ้วน)' : `🍽️ รายการสั่งซื้อ (ต่อ ${index + 1})`,
+          value: chunk,
+          inline: false
+        });
+      });
+    } else {
+      fields.push({
+        name: '🍽️ รายการสั่งซื้อ (รายละเอียดครบถ้วน)',
+        value: orderItemsText,
+        inline: false
+      });
+    }
   }
 
   const embed = {
-    title: '🛒 ออเดอร์ออนไลน์ใหม่!',
+    title: '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!',
     description: message,
     color: 0x00ff00, // สีเขียว
     fields: fields,
     footer: {
-      text: 'ระบบร้านอาหาร'
+      text: `ระบบร้านอาหาร | เวลา: ${new Date().toLocaleString('th-TH')}`
     },
     timestamp: new Date().toISOString()
   };
@@ -281,7 +318,7 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
     embeds: [embed]
   };
 
-  console.log('🔵 Discord payload:', JSON.stringify(payload, null, 2));
+  console.log('🔵 Discord payload fields count:', fields.length);
 
   const response = await fetch(webhookUrl, {
     method: 'POST',
@@ -301,7 +338,7 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
 
   const responseData = await response.text();
   console.log('🔵 Discord success response:', responseData);
-  return { status: 'Discord notification sent', response: responseData };
+  return { status: 'Discord notification sent with complete details', response: responseData };
 }
 
 // LINE notification function (placeholder for now)
