@@ -46,6 +46,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const notificationChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isSubscribedRef = useRef(false);
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification, playIOSNotificationSound } = useIOSNotificationService();
@@ -59,27 +60,22 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const setupRef = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple setup calls
-    if (setupRef.current) {
-      console.log('🚫 GlobalNotificationProvider already setup, skipping...');
+    // Prevent multiple setup calls and don't run on customer mobile app
+    if (setupRef.current || isCustomerMobileApp || isSubscribedRef.current) {
+      console.log('🚫 GlobalNotificationProvider already setup or on customer app, skipping...');
       return;
     }
     
-    // Don't show notifications on customer mobile app page
-    if (isCustomerMobileApp) {
-      console.log('📱 Customer mobile app detected, notifications disabled');
-      return;
-    }
-
     setupRef.current = true;
     console.log('🔔 Setting up GlobalNotificationProvider (simplified)...');
     
     // Load minimal notification data ONCE
     loadNotificationData();
     
-    // Setup ONLY essential cross-device sync
+    // Setup ONLY essential cross-device sync with unique channel name
+    const syncChannelName = `enhanced-notification-sync-${Date.now()}`;
     const syncChannel = supabase
-      .channel('enhanced-notification-sync')
+      .channel(syncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
         console.log('📡 Received dismiss broadcast');
         setShowOrderAlert(false);
@@ -87,6 +83,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       })
       .subscribe((status) => {
         console.log('📡 Sync subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
       });
 
     notificationChannelRef.current = syncChannel;
@@ -94,13 +93,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       console.log('🧹 Cleaning up GlobalNotificationProvider...');
       setupRef.current = false;
-      supabase.removeChannel(syncChannel);
+      isSubscribedRef.current = false;
+      if (notificationChannelRef.current) {
+        supabase.removeChannel(notificationChannelRef.current);
+        notificationChannelRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, [isCustomerMobileApp]); // Remove navigate and other dependencies
+  }, [isCustomerMobileApp]); // Keep dependency to re-run when route changes
 
   const loadNotificationData = async () => {
     // Only load once per session

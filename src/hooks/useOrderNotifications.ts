@@ -8,7 +8,8 @@ export const useOrderNotifications = () => {
   const isAudioInitializedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isIOSRef = useRef(false);
-  const notificationChannelRef = useRef<any>(null);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   // Detect iOS
   useEffect(() => {
@@ -288,13 +289,22 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // Enhanced real-time order listening
+  // Fixed real-time order listening with proper subscription management
   useEffect(() => {
+    // Prevent multiple subscriptions
+    if (isSubscribedRef.current) {
+      console.log('🚫 Already subscribed, skipping...');
+      return;
+    }
+
     console.log('👂 Setting up enhanced iOS-compatible real-time order notifications...');
     console.log('🔍 Supabase client status:', !!supabase);
     
+    // Create a unique channel name to avoid conflicts
+    const channelName = `enhanced-orders-notifications-${Date.now()}`;
+    
     const channel = supabase
-      .channel('enhanced-orders-notifications')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -368,16 +378,25 @@ export const useOrderNotifications = () => {
         if (err) {
           console.error('❌ Enhanced subscription error:', err);
         }
+        
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        }
       });
 
+    channelRef.current = channel;
     console.log('✅ Enhanced iOS-compatible real-time notifications active');
 
     return () => {
       console.log('🔄 Cleaning up enhanced order notifications...');
-      supabase.removeChannel(channel);
+      isSubscribedRef.current = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
       stopBellSound();
     };
-  }, []);
+  }, []); // Empty dependency array to ensure this runs only once
 
   return {
     playBellSound,
