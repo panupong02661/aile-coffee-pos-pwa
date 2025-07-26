@@ -46,12 +46,8 @@ const CategoryFilter = ({
             size={headerStyle ? "sm" : "default"}
             className={`${
               selectedCategory === category.id
-                ? headerStyle 
-                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground border-primary'
-                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                : headerStyle
-                  ? 'border-border text-foreground hover:bg-accent bg-background/20'
-                  : 'border-border text-foreground hover:bg-accent'
+                ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                : 'bg-background text-foreground hover:bg-accent border-border'
             } transition-all duration-200 ${
               isMobile && headerStyle ? 'text-sm px-3 py-1.5' : ''
             }`}
