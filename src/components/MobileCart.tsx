@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, X, QrCode } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, Minus, Trash2, Tag, X, Clock, QrCode, Gift } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -63,11 +67,11 @@ const MobileCart = ({
   selectedMember
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
-  const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
-  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
+  const [pickupTime, setPickupTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('qr');
   const { toast } = useToast();
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
@@ -177,52 +181,74 @@ const MobileCart = ({
                 </div>
               </div>
 
-              <div className="space-y-2 mt-4">
-                <Button 
-                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-10"
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  disabled={total <= 0}
-                >
-                  ชำระเงิน
-                </Button>
-                
-                <div className="grid grid-cols-4 gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsDiscountModalOpen(true)}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50 h-10"
-                    size="sm"
-                  >
-                    <Percent className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsHoldBillModalOpen(true)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50 h-10"
-                    size="sm"
-                  >
-                    <Clock className="w-4 h-4" />
-                  </Button>
+            </div>
 
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsCodeModalOpen(true)}
-                    className="border-green-300 text-green-700 hover:bg-green-50 h-10"
-                    size="sm"
-                  >
-                    <QrCode className="w-4 h-4" />
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    onClick={onClearCart}
-                    className="h-10"
-                    size="sm"
-                  >
-                    เคลียร์
-                  </Button>
+            {/* Order Details Section */}
+            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-white flex-shrink-0">
+              <h3 className="font-medium text-coffee-800 mb-4 flex items-center">
+                <Clock className="w-4 h-4 mr-2" />
+                รายละเอียดการสั่งซื้อ
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="pickup-time" className="text-sm font-medium text-coffee-700">
+                    เวลาที่ต้องการรับสินค้า
+                  </Label>
+                  <Input
+                    id="pickup-time"
+                    type="datetime-local"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="mt-1"
+                    placeholder="เลือกเวลาที่ต้องการรับสินค้า"
+                  />
                 </div>
+
+                <div>
+                  <Label htmlFor="notes" className="text-sm font-medium text-coffee-700">
+                    หมายเหตุ (ถ้ามี)
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-1 min-h-[80px]"
+                    placeholder="เช่น ไม่ใส่น้ำตาล, เพิ่มน้ำแข็ง..."
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-coffee-700 mb-3 block">
+                    วิธีการชำระเงิน
+                  </Label>
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-coffee-50">
+                      <RadioGroupItem value="qr" id="qr" />
+                      <Label htmlFor="qr" className="flex items-center cursor-pointer flex-1">
+                        <QrCode className="w-4 h-4 mr-2" />
+                        QR Code
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-coffee-50">
+                      <RadioGroupItem value="points" id="points" />
+                      <Label htmlFor="points" className="flex items-center cursor-pointer flex-1">
+                        <Gift className="w-4 h-4 mr-2" />
+                        ใช้แต้มแลก
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Button 
+                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-12"
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  disabled={total <= 0 || !pickupTime}
+                >
+                  ยืนยันการสั่งซื้อ (฿{total})
+                </Button>
               </div>
             </div>
 
@@ -318,25 +344,6 @@ const MobileCart = ({
         selectedMember={selectedMember}
       />
 
-      <DiscountModal
-        isOpen={isDiscountModalOpen}
-        onClose={() => setIsDiscountModalOpen(false)}
-        onApplyDiscount={handleApplyDiscount}
-        currentDiscount={billDiscount}
-        currentType={billDiscountType}
-      />
-
-      <HoldBillModal
-        isOpen={isHoldBillModalOpen}
-        onClose={() => setIsHoldBillModalOpen(false)}
-        currentCart={cartItems}
-        currentDiscount={billDiscount}
-        currentDiscountType={billDiscountType}
-        currentTotal={total}
-        onHoldBill={handleHoldBill}
-        onRestoreBill={handleRestoreBill}
-      />
-
       {selectedItemForDiscount && (
         <ItemDiscountModal
           isOpen={isItemDiscountModalOpen}
@@ -350,16 +357,6 @@ const MobileCart = ({
           itemName={selectedItemForDiscount.menu_item.name}
         />
       )}
-
-      <CodeModal
-        isOpen={isCodeModalOpen}
-        onClose={() => setIsCodeModalOpen(false)}
-        onApplyCode={(giftData) => {
-          if (onCodeApply) {
-            onCodeApply(giftData);
-          }
-        }}
-      />
     </>
   );
 };
