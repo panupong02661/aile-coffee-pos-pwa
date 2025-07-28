@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAutoPrint } from './useAutoPrint';
 
 // Global singleton flags to prevent multiple instances
 let globalNotificationInstance: any = null;
@@ -14,6 +15,7 @@ export const useOrderNotifications = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const isIOSRef = useRef(false);
   const instanceIdRef = useRef<string>(`${Date.now()}-${Math.random()}`);
+  const { isAutoPrintEnabled, printOrderReceipt } = useAutoPrint();
 
   // Detect iOS
   useEffect(() => {
@@ -365,6 +367,25 @@ export const useOrderNotifications = () => {
                   }
                 });
 
+                // Auto-print receipt if enabled
+                if (isAutoPrintEnabled) {
+                  console.log('🖨️ SINGLETON - Auto-printing enabled, printing receipt...');
+                  
+                  const printOrderData = {
+                    id: completeOrder.id,
+                    order_number: completeOrder.order_number,
+                    total_amount: completeOrder.total_amount,
+                    created_at: completeOrder.created_at,
+                    customer_name: completeOrder.members?.name,
+                    customer_phone: completeOrder.members?.phone,
+                    customer_notes: completeOrder.customer_notes,
+                    payment_method: completeOrder.payment_method,
+                    order_items: completeOrder.order_items
+                  };
+                  
+                  await printOrderReceipt(printOrderData);
+                }
+
                 // Send external notification with detailed order info including ALL items and addons
                 const { data, error } = await supabase.functions.invoke('send-order-notification', {
                   body: {
@@ -450,6 +471,7 @@ export const useOrderNotifications = () => {
     playBellSound,
     stopBellSound,
     initializeAudio,
-    instanceId: instanceIdRef.current
+    instanceId: instanceIdRef.current,
+    isAutoPrintEnabled
   };
 };
