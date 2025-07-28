@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
 import AddonModal from '@/components/AddonModal';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
+import MobileCart from '@/components/MobileCart';
 
 interface MenuItem {
   id: string;
@@ -81,6 +82,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [gridColumns, setGridColumns] = useState(2);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -1290,15 +1292,30 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               <ShoppingCart className="w-5 h-5" />
               สั่งสินค้าออนไลน์
             </div>
-            <Button
-              onClick={() => setShowDisplaySettings(true)}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              ตั้งค่าการแสดงผล
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsCartOpen(true)}
+                className="relative flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
+                size="sm"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>ตะกร้า</span>
+                {cartItems.length > 0 && (
+                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[18px] h-5 flex items-center justify-center rounded-full text-xs">
+                    {cartItems.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                onClick={() => setShowDisplaySettings(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                ตั้งค่าการแสดงผล
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
       </Card>
@@ -1394,54 +1411,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         </div>
       )}
 
-      {/* Cart */}
-      {cartItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>ตะกร้าสินค้า ({cartItems.length} รายการ)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cartItems.map(item => (
-              <div key={item.id} className="flex justify-between items-center p-3 border rounded">
-                <div className="flex-1">
-                  <h4 className="font-medium">{item.menu_item.name}</h4>
-                  <p className="text-sm text-gray-600">฿{item.menu_item.price} x {item.quantity}</p>
-                  {item.selected_addons && item.selected_addons.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      Add-ons: {item.selected_addons.map(addon => `${addon.name} (+฿${addon.price})`).join(', ')}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="w-8 text-center">{item.quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                  <span className="ml-4 font-bold">฿{item.total_price}</span>
-                </div>
-              </div>
-            ))}
-            
-            <div className="border-t pt-4">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>ยอดรวม:</span>
-                <span className="text-green-600">฿{getTotalAmount()}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Order Details */}
       {cartItems.length > 0 && (
@@ -1599,6 +1568,38 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         menuItem={selectedMenuItem}
         addons={availableAddons}
         onAddToCart={handleAddonModalAddToCart}
+      />
+
+      {/* Mobile Cart Component */}
+      <MobileCart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems.map(item => ({
+          ...item,
+          menu_item: item.menu_item,
+          selected_addons: (item.selected_addons || []).map(addon => ({
+            id: addon.id,
+            name: addon.name,
+            price: addon.price,
+            category: 'other' as const,
+            is_required: addon.addon_groups?.is_required || false,
+            allow_multiple: addon.addon_groups?.allow_multiple || false,
+            addon_group_id: addon.addon_group_id
+          })),
+          item_discount: 0,
+          item_discount_type: 'amount' as const
+        }))}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={(itemId) => {
+          setCartItems(prev => prev.filter(item => item.id !== itemId));
+        }}
+        onUpdateDiscount={() => {}} // Not used in online ordering
+        onClearCart={() => setCartItems([])}
+        billDiscount={0}
+        billDiscountType="amount"
+        onUpdateBillDiscount={() => {}} // Not used in online ordering
+        onUpdateBillDiscountType={() => {}} // Not used in online ordering
+        onRestoreCart={() => {}} // Not used in online ordering
       />
     </div>
   );
