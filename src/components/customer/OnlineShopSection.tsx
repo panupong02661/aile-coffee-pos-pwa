@@ -1600,6 +1600,10 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         onUpdateBillDiscount={() => {}} // Not used in online ordering
         onUpdateBillDiscountType={() => {}} // Not used in online ordering
         onRestoreCart={() => {}} // Not used in online ordering
+        onCodeApply={() => {}} // Not used in online ordering
+        appliedGiftCode={null}
+        onPaymentComplete={() => {}} // Not used in online ordering
+        selectedMember={currentUser}
       />
     </div>
   );
