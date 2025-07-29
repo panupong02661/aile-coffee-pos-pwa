@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useOfflineStorage } from '@/hooks/useOfflineStorage';
 import { useDevice } from '@/hooks/useDevice';
-import { CloudOff, Cloud, Sync, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { CloudOff, Cloud, RefreshCw, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const MobileOfflineManager = () => {
   const { 
@@ -69,7 +69,7 @@ const MobileOfflineManager = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Sync className="w-5 h-5 mr-2" />
+            <RefreshCw className="w-5 h-5 mr-2" />
             ข้อมูลออฟไลน์
           </CardTitle>
         </CardHeader>
@@ -106,7 +106,7 @@ const MobileOfflineManager = () => {
                 onClick={handleSync}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <Sync className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 ซิงค์ข้อมูลทั้งหมด
               </Button>
             )}

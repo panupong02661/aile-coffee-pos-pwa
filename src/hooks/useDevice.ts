@@ -94,7 +94,7 @@ export const useDevice = () => {
     getPreference,
     hideKeyboard,
     isOnline: networkStatus?.connected || false,
-    connectionType: networkStatus?.connectionType || ConnectionType.Unknown,
+    connectionType: networkStatus?.connectionType || 'unknown',
     isMobile: deviceInfo?.platform === 'ios' || deviceInfo?.platform === 'android',
   };
 };

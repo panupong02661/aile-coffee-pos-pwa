@@ -74,7 +74,11 @@ const MenuManagement = () => {
   };
 
   const handleFormSuccess = () => {
-    refetch();
+    // Call individual refetch functions
+    refetch.categories();
+    refetch.menuItems();
+    refetch.addonGroups();
+    refetch.addons();
     handleFormClose();
   };
 
@@ -231,8 +235,6 @@ const MenuManagement = () => {
         isOpen={isAddonGroupFormOpen}
         onClose={handleFormClose}
         onSuccess={handleFormSuccess}
-        categories={categories}
-        menuItems={menuItems}
         editAddonGroup={editingItem}
       />
 
