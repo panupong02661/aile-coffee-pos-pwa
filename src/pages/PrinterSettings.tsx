@@ -8,6 +8,7 @@ import PrinterConfiguration from '@/components/printer/PrinterConfiguration';
 import PrintQueue from '@/components/printer/PrintQueue';
 import PrintReports from '@/components/printer/PrintReports';
 import PrintHistory from '@/components/printer/PrintHistory';
+import NetworkDiagnostic from '@/components/printer/NetworkDiagnostic';
 import AutoPrintSettings from '@/components/AutoPrintSettings';
 
 const PrinterSettings = () => {
@@ -41,14 +42,19 @@ const PrinterSettings = () => {
                 <CardDescription>จัดการการตั้งค่าเครื่องพิมพ์และการพิมพ์รายงาน</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="config" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                <Tabs defaultValue="diagnostic" className="w-full">
+                  <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="diagnostic">ตรวจสอบเครือข่าย</TabsTrigger>
                     <TabsTrigger value="config">ตั้งค่าเครื่องพิมพ์</TabsTrigger>
                     <TabsTrigger value="auto-print">การพิมพ์อัตโนมัติ</TabsTrigger>
                     <TabsTrigger value="queue">คิวการพิมพ์</TabsTrigger>
                     <TabsTrigger value="reports">พิมพ์รายงาน</TabsTrigger>
                     <TabsTrigger value="history">ประวัติการพิมพ์</TabsTrigger>
                   </TabsList>
+                  
+                  <TabsContent value="diagnostic" className="mt-6">
+                    <NetworkDiagnostic />
+                  </TabsContent>
                   
                   <TabsContent value="config" className="mt-6">
                     <PrinterConfiguration />

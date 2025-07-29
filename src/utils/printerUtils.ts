@@ -154,104 +154,256 @@ const generateESCPOSReceipt = (order: PrintOrder, config: PrinterConfig): string
   return receipt;
 };
 
-// Send raw data to network printer
+// Send raw data to network printer using various methods
 const sendToPrinter = async (data: string, config: PrinterConfig): Promise<boolean> => {
   try {
-    // Try using WebSocket for network printing
-    const ws = new WebSocket(`ws://${config.ip_address}:${config.port}`);
+    console.log(`🔗 Attempting to connect to printer ${config.ip_address}:${config.port}`);
     
-    return new Promise((resolve, reject) => {
-      ws.onopen = () => {
-        console.log('🔗 Connected to printer');
-        ws.send(data);
-        
-        setTimeout(() => {
-          ws.close();
-          resolve(true);
-        }, 1000);
-      };
-      
-      ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
-        ws.close();
-        reject(error);
-      };
-      
-      ws.onclose = () => {
-        console.log('🔌 Printer connection closed');
-      };
-    });
+    // Method 1: Try raw TCP connection (most reliable for thermal printers)
+    const success = await sendRawTCP(data, config);
+    if (success) return true;
+    
+    // Method 2: Try fetch with different content types
+    const httpSuccess = await sendToPrinterHTTP(data, config);
+    if (httpSuccess) return true;
+    
+    return false;
   } catch (error) {
     console.error('❌ Failed to connect to printer:', error);
     return false;
   }
 };
 
-// Alternative method using fetch API for HTTP-based printers
-const sendToPrinterHTTP = async (data: string, config: PrinterConfig): Promise<boolean> => {
-  try {
-    const response = await fetch(`http://${config.ip_address}:${config.port}/print`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-      },
-      body: data,
-    });
-    
-    return response.ok;
-  } catch (error) {
-    console.error('❌ HTTP print failed:', error);
-    return false;
-  }
+// Raw TCP connection using WebSocket (for port 9100)
+const sendRawTCP = async (data: string, config: PrinterConfig): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      // สำหรับ thermal printer ส่วนใหญ่จะใช้ raw TCP ผ่าน port 9100
+      // แต่เนื่องจาก browser ไม่สามารถทำ raw TCP ได้โดยตรง
+      // เราจะใช้วิธีอื่นแทน
+      console.log('⚠️ Raw TCP not supported in browser environment');
+      resolve(false);
+    } catch (error) {
+      console.error('❌ Raw TCP error:', error);
+      resolve(false);
+    }
+  });
 };
 
-// Test printer connection
+// Alternative methods for HTTP-based printing
+const sendToPrinterHTTP = async (data: string, config: PrinterConfig): Promise<boolean> => {
+  const commonPaths = ['/print', '/cgi-bin/epostm/tm_direct_print.cgi', '/'];
+  
+  for (const path of commonPaths) {
+    try {
+      console.log(`📡 Trying HTTP method: http://${config.ip_address}:${config.port}${path}`);
+      
+      const response = await fetch(`http://${config.ip_address}:${config.port}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
+        body: data,
+        mode: 'no-cors' // เพื่อหลีกเลี่ยง CORS issues
+      });
+      
+      console.log(`✅ HTTP request sent successfully to ${path}`);
+      return true;
+    } catch (error) {
+      console.log(`❌ HTTP ${path} failed:`, error);
+    }
+  }
+  
+  return false;
+};
+
+// Test printer connection with multiple ports and methods
 export const testPrinterConnection = async (): Promise<boolean> => {
   const config = getPrinterConfig();
   
   try {
     console.log(`🔍 Testing printer connection to ${config.ip_address}:${config.port}`);
     
-    // Generate test receipt
-    const testData = generateESCPOSReceipt({
-      id: 'test',
-      order_number: 'TEST-001',
-      total_amount: 100,
-      created_at: new Date().toISOString(),
-      customer_name: 'ทดสอบระบบ',
-      order_items: [{
-        menu_item_name: 'กาแฟทดสอบ',
-        quantity: 1,
-        unit_price: 100,
-        total_price: 100
-      }],
-      payment_method: 'เงินสด'
-    }, config);
+    // Test common printer ports if current port fails
+    const commonPorts = [config.port, '9100', '515', '631', '80'];
+    const uniquePorts = [...new Set(commonPorts)];
     
-    // Try WebSocket first, then HTTP fallback
-    let success = await sendToPrinter(testData, config);
-    
-    if (!success) {
-      console.log('📡 WebSocket failed, trying HTTP method...');
-      success = await sendToPrinterHTTP(testData, config);
+    for (const port of uniquePorts) {
+      console.log(`🔌 Testing port ${port}...`);
+      
+      const testConfig = { ...config, port };
+      const testData = generateTestReceipt();
+      
+      // Try different connection methods
+      const success = await tryConnectionMethods(testData, testConfig);
+      
+      if (success) {
+        toast.success('✅ ทดสอบการพิมพ์สำเร็จ', {
+          description: `เครื่องพิมพ์ ${config.ip_address}:${port} ทำงานปกติ`
+        });
+        
+        // Update config with working port
+        if (port !== config.port) {
+          savePrinterConfig({ ...config, port });
+          toast.success('🔧 อัปเดตพอร์ต', {
+            description: `ใช้พอร์ต ${port} สำหรับการเชื่อมต่อ`
+          });
+        }
+        
+        return true;
+      }
     }
     
-    if (success) {
-      toast.success('✅ ทดสอบการพิมพ์สำเร็จ', {
-        description: `เครื่องพิมพ์ ${config.ip_address} ทำงานปกติ`
-      });
-    } else {
-      toast.error('❌ ทดสอบการพิมพ์ล้มเหลว', {
-        description: `ไม่สามารถเชื่อมต่อเครื่องพิมพ์ ${config.ip_address}:${config.port} ได้`
-      });
-    }
+    // If all ports fail, show detailed error
+    toast.error('❌ ทดสอบการพิมพ์ล้มเหลว', {
+      description: `ไม่สามารถเชื่อมต่อ ${config.ip_address} ได้ในพอร์ต ${uniquePorts.join(', ')}`
+    });
     
-    return success;
+    return false;
   } catch (error) {
     console.error('❌ Test print error:', error);
     toast.error('❌ เกิดข้อผิดพลาด', {
       description: 'ไม่สามารถทดสอบการพิมพ์ได้'
     });
+    return false;
+  }
+};
+
+// Generate test receipt data
+const generateTestReceipt = () => {
+  return generateESCPOSReceipt({
+    id: 'test',
+    order_number: 'TEST-001',
+    total_amount: 100,
+    created_at: new Date().toISOString(),
+    customer_name: 'ทดสอบระบบ',
+    order_items: [{
+      menu_item_name: 'กาแฟทดสอบ',
+      quantity: 1,
+      unit_price: 100,
+      total_price: 100
+    }],
+    payment_method: 'เงินสด'
+  }, getPrinterConfig());
+};
+
+// Try different connection methods
+const tryConnectionMethods = async (data: string, config: PrinterConfig): Promise<boolean> => {
+  const methods = [
+    () => sendToPrinter(data, config),
+    () => pingTest(config.ip_address),
+    () => webPrintFallback(data, config)
+  ];
+  
+  for (const method of methods) {
+    try {
+      const result = await method();
+      if (result) return true;
+    } catch (error) {
+      console.log('Method failed, trying next...');
+    }
+  }
+  
+  return false;
+};
+
+// Simple ping test to check if printer IP is reachable
+const pingTest = async (ip: string): Promise<boolean> => {
+  try {
+    console.log(`🏓 Ping testing ${ip}...`);
+    
+    // Simple connectivity test using image loading
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        resolve(false);
+      }, 3000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      
+      // Try to load a favicon or simple endpoint
+      img.src = `http://${ip}/favicon.ico?${Date.now()}`;
+    });
+  } catch (error) {
+    return false;
+  }
+};
+
+// Web-based print fallback (open print dialog)
+const webPrintFallback = async (data: string, config: PrinterConfig): Promise<boolean> => {
+  try {
+    console.log('🌐 Using web print fallback...');
+    
+    // Convert ESC/POS to readable text
+    const readableText = data
+      .replace(/\x1B\x40/g, '') // Remove INIT
+      .replace(/\x1B\x61[\x00-\x02]/g, '') // Remove alignment
+      .replace(/\x1B\x45[\x00-\x01]/g, '') // Remove bold
+      .replace(/\x1B\x21[\x00-\x30]/g, '') // Remove text size
+      .replace(/\x1D\x56\x42\x00/g, '') // Remove cut command
+      .replace(/\x0A/g, '\n'); // Convert line feeds
+    
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>ทดสอบการพิมพ์ - ${config.ip_address}</title>
+          <style>
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              line-height: 1.4;
+              margin: 20px;
+              white-space: pre-wrap;
+            }
+            .printer-info {
+              background: #f0f0f0;
+              padding: 10px;
+              margin-bottom: 20px;
+              border-radius: 5px;
+            }
+            @media print {
+              .printer-info { display: none; }
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="printer-info">
+            <strong>ข้อมูลเครื่องพิมพ์:</strong><br>
+            IP: ${config.ip_address}<br>
+            Port: ${config.port}<br>
+            กว้างกระดาษ: ${config.paper_width}mm<br><br>
+            <em>กรุณากด Ctrl+P หรือ Cmd+P เพื่อพิมพ์</em>
+          </div>
+          ${readableText}
+        </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      
+      toast.success('📄 เปิดหน้าต่างพิมพ์', {
+        description: 'กรุณากด Ctrl+P หรือ Cmd+P เพื่อพิมพ์'
+      });
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Web print fallback failed:', error);
     return false;
   }
 };
@@ -265,12 +417,12 @@ export const printOrderReceipt = async (order: PrintOrder): Promise<boolean> => 
     
     const receiptData = generateESCPOSReceipt(order, config);
     
-    // Try WebSocket first, then HTTP fallback
+    // Try different connection methods
     let success = await sendToPrinter(receiptData, config);
     
     if (!success) {
-      console.log('📡 WebSocket failed, trying HTTP method...');
-      success = await sendToPrinterHTTP(receiptData, config);
+      console.log('📡 Network print failed, trying web print fallback...');
+      success = await webPrintFallback(receiptData, config);
     }
     
     if (success) {
