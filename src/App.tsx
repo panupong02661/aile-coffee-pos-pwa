@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
@@ -29,6 +28,7 @@ const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement')
 const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommendationsPage'));
 const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
+const MobileSettings = lazy(() => import('./pages/MobileSettings'));
 
 // New 5 main system pages
 const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
@@ -70,6 +70,9 @@ function App() {
                   <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
                   <Route path="/delivery-integration" element={<DeliveryIntegration />} />
                   <Route path="/notifications" element={<NotificationPage />} />
+                  
+                  {/* Mobile Settings Route */}
+                  <Route path="/mobile-settings" element={<MobileSettings />} />
                   
                   {/* New 5 main system routes */}
                   <Route path="/advanced-reports" element={<AdvancedReports />} />
