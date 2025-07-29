@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { printOrderReceipt as networkPrintOrderReceipt } from '@/utils/printerUtils';
 
 interface OrderItem {
   menu_item_name: string;
@@ -81,11 +82,39 @@ ${order.payment_method ? `ชำระโดย: ${order.payment_method}` : ''}
     return receiptContent;
   };
 
-  // Print order receipt
+  // Print order receipt using network printer
   const printOrderReceipt = async (order: PrintOrder) => {
     try {
       console.log('🖨️ Auto-printing order receipt:', order.order_number);
       
+      // Use network printer
+      const success = await networkPrintOrderReceipt(order);
+      
+      if (success) {
+        // Add to print queue for tracking
+        await addToPrintQueue({
+          type: 'ใบเสร็จออนไลน์',
+          document: `ใบเสร็จ #${order.order_number}`,
+          orderData: order
+        });
+
+        console.log('✅ Network print command sent successfully');
+        return true;
+      } else {
+        throw new Error('ไม่สามารถพิมพ์ผ่านเครื่องพิมพ์ network ได้');
+      }
+    } catch (error) {
+      console.error('❌ Auto-print failed:', error);
+      
+      // Fallback to browser print
+      console.log('🔄 Falling back to browser print...');
+      return await browserPrintFallback(order);
+    }
+  };
+
+  // Fallback browser print method
+  const browserPrintFallback = async (order: PrintOrder) => {
+    try {
       const receiptContent = generateReceiptContent(order);
       
       // Create a new window for printing
@@ -128,24 +157,16 @@ ${order.payment_method ? `ชำระโดย: ${order.payment_method}` : ''}
           }, 500);
         };
 
-        // Add to print queue for tracking
-        await addToPrintQueue({
-          type: 'ใบเสร็จออนไลน์',
-          document: `ใบเสร็จ #${order.order_number}`,
-          orderData: order
+        toast.success('🖨️ กำลังพิมพ์ใบเสร็จ (Browser)', {
+          description: `ออเดอร์ #${order.order_number} ใช้การพิมพ์ผ่าน Browser`
         });
 
-        toast.success('🖨️ กำลังพิมพ์ใบเสร็จ', {
-          description: `ออเดอร์ #${order.order_number} ส่งไปยังเครื่องพิมพ์แล้ว`
-        });
-
-        console.log('✅ Print command sent successfully');
         return true;
       } else {
         throw new Error('ไม่สามารถเปิดหน้าต่างพิมพ์ได้');
       }
     } catch (error) {
-      console.error('❌ Auto-print failed:', error);
+      console.error('❌ Browser print fallback failed:', error);
       toast.error('ไม่สามารถพิมพ์ได้', {
         description: 'กรุณาตรวจสอบการเชื่อมต่อเครื่องพิมพ์'
       });

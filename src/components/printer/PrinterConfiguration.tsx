@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Printer } from 'lucide-react';
+import { savePrinterConfig, testPrinterConnection } from '@/utils/printerUtils';
 
 interface PrinterConfigForm {
   printer_name: string;
@@ -29,13 +30,13 @@ const PrinterConfiguration = () => {
   
   const { register, handleSubmit, setValue, watch } = useForm<PrinterConfigForm>({
     defaultValues: {
-      printer_name: 'เครื่องพิมพ์หลัก',
-      printer_model: 'STAR TSP-143III',
+      printer_name: 'Ailecoffee',
+      printer_model: 'TSP143IIIU GY',
       connection_type: 'Ethernet',
       usb_path: '/dev/usb/lp0',
-      ip_address: '192.168.1.132',
+      ip_address: '192.168.1.170',
       port: '9100',
-      paper_width: '58',
+      paper_width: '80',
       print_speed: 'ปกติ',
       auto_cut: true,
       test_print_enabled: true
@@ -49,12 +50,20 @@ const PrinterConfiguration = () => {
   const onSubmit = async (data: PrinterConfigForm) => {
     setLoading(true);
     try {
-      // Simulate saving printer configuration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save printer configuration to localStorage
+      savePrinterConfig({
+        ip_address: data.ip_address,
+        port: data.port,
+        paper_width: data.paper_width,
+        auto_cut: data.auto_cut
+      });
+      
+      // Also save all form data for future reference
+      localStorage.setItem('printerFormData', JSON.stringify(data));
       
       toast({
         title: 'บันทึกสำเร็จ',
-        description: 'การตั้งค่าเครื่องพิมพ์ได้ถูกบันทึกเรียบร้อยแล้ว'
+        description: `การตั้งค่าเครื่องพิมพ์ ${data.printer_name} (${data.ip_address}:${data.port}) ได้ถูกบันทึกเรียบร้อยแล้ว`
       });
     } catch (error) {
       toast({
@@ -70,19 +79,14 @@ const PrinterConfiguration = () => {
   const handleTestPrint = async () => {
     setLoading(true);
     try {
-      // Simulate test print
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Test actual printer connection
+      const success = await testPrinterConnection();
       
-      toast({
-        title: 'ทดสอบการพิมพ์สำเร็จ',
-        description: 'เครื่องพิมพ์ทำงานปกติ'
-      });
+      if (!success) {
+        throw new Error('ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้');
+      }
     } catch (error) {
-      toast({
-        title: 'ทดสอบการพิมพ์ล้มเหลว',
-        description: 'กรุณาตรวจสอบการเชื่อมต่อเครื่องพิมพ์',
-        variant: 'destructive'
-      });
+      console.error('Test print failed:', error);
     } finally {
       setLoading(false);
     }
