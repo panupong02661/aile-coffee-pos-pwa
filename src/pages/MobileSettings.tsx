@@ -16,7 +16,8 @@ import {
   Vibrate, 
   Battery,
   Wifi,
-  Settings
+  Settings,
+  Star
 } from 'lucide-react';
 
 const MobileSettings = () => {
@@ -59,7 +60,7 @@ const MobileSettings = () => {
                 {/* Device Info */}
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-4">ข้อมูลอุปกรณ์</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -94,6 +95,18 @@ const MobileSettings = () => {
                             <p className="font-medium">{deviceInfo?.model || 'Unknown'}</p>
                           </div>
                           <Battery className="w-5 h-5 text-blue-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Star SDK</p>
+                            <p className="font-medium">{isMobile ? 'พร้อมใช้งาน' : 'ไม่รองรับ'}</p>
+                          </div>
+                          <Star className={`w-5 h-5 ${isMobile ? 'text-green-500' : 'text-gray-400'}`} />
                         </div>
                       </CardContent>
                     </Card>
