@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { StarPrinter, StarPrinter as StarPrinterInterface, StarPrinterStatus } from '@/plugins/star-printer';
-import type { StarPrinter as StarPrinterType } from '@/plugins/star-printer';
+import { StarPrinter, StarPrinterStatus } from '@/plugins/star-printer';
+import type { StarPrinter as StarPrinterType } from '@/plugins/star-printer/definitions';
 import { useDevice } from './useDevice';
 import { toast } from 'sonner';
 
