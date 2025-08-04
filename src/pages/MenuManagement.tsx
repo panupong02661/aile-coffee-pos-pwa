@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +15,9 @@ import AddonsList from '@/components/AddonsList';
 import MobilePhotoCapture from '@/components/MobilePhotoCapture';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useDevice } from '@/hooks/useDevice';
-import { Plus, Smartphone } from 'lucide-react';
+import { useMenuExcel } from '@/hooks/useMenuExcel';
+import { Plus, Smartphone, Download, Upload } from 'lucide-react';
+import { useRef } from 'react';
 
 const MenuManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -28,6 +29,7 @@ const MenuManagement = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
 
   const { isMobile } = useDevice();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { 
     categories, 
@@ -37,6 +39,13 @@ const MenuManagement = () => {
     loading,
     refetch 
   } = useSupabaseData();
+
+  const {
+    exportMenuToExcel,
+    importMenuFromExcel,
+    isExporting,
+    isImporting
+  } = useMenuExcel();
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -84,6 +93,31 @@ const MenuManagement = () => {
 
   const handlePhotoCapture = (photoUri: string) => {
     setSelectedPhoto(photoUri);
+  };
+
+  const handleExportMenu = () => {
+    exportMenuToExcel(menuItems, categories);
+  };
+
+  const handleImportMenu = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && 
+          file.type !== 'application/vnd.ms-excel') {
+        toast.error('กรุณาเลือกไฟล์ Excel (.xlsx หรือ .xls)');
+        return;
+      }
+      
+      importMenuFromExcel(file, categories, handleFormSuccess);
+    }
+    // Reset input
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   if (loading) {
@@ -156,13 +190,47 @@ const MenuManagement = () => {
                 <TabsContent value="menu-items" className="mt-6">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">รายการเมนู ({menuItems.length})</h3>
-                    <Button 
-                      onClick={() => setIsMenuFormOpen(true)}
-                      className="bg-coffee-600 hover:bg-coffee-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      เพิ่มเมนูใหม่
-                    </Button>
+                    <div className="flex gap-2">
+                      {/* Export Button */}
+                      <Button 
+                        onClick={handleExportMenu}
+                        disabled={isExporting || menuItems.length === 0}
+                        variant="outline"
+                        className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        {isExporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'}
+                      </Button>
+
+                      {/* Import Button */}
+                      <Button 
+                        onClick={handleImportMenu}
+                        disabled={isImporting}
+                        variant="outline"
+                        className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {isImporting ? 'กำลังนำเข้า...' : 'นำเข้า Excel'}
+                      </Button>
+
+                      {/* Hidden file input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+
+                      {/* Add Menu Button */}
+                      <Button 
+                        onClick={() => setIsMenuFormOpen(true)}
+                        className="bg-coffee-600 hover:bg-coffee-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        เพิ่มเมนูใหม่
+                      </Button>
+                    </div>
                   </div>
                   <MenuItemsList menuItems={menuItems} onEdit={(item) => handleEdit(item, 'menu')} />
                 </TabsContent>
