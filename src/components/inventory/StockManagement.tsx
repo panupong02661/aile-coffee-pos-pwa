@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
@@ -127,23 +126,49 @@ const StockManagement = () => {
   };
 
   const handleAddIngredient = async () => {
-    if (!ingredientForm.name) {
+    if (!ingredientForm.name.trim()) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกชื่อวัตถุดิบ', variant: 'destructive' });
       return;
     }
 
+    console.log('[StockManagement] Adding ingredient:', ingredientForm);
+
     try {
-      const { error } = await supabase
+      // Prepare ingredient data with proper structure
+      const ingredientData = {
+        name: ingredientForm.name.trim(),
+        category: ingredientForm.category || 'other',
+        quantity: Number(ingredientForm.quantity) || 0,
+        unit: ingredientForm.unit || 'g',
+        minimum_stock: Number(ingredientForm.minimum_stock) || 10,
+        cost_per_unit: Number(ingredientForm.cost_per_unit) || 0,
+        supplier: ingredientForm.supplier?.trim() || '',
+        sort_order: ingredients.length + 1,
+        is_active: true
+      };
+
+      console.log('[StockManagement] Prepared data:', ingredientData);
+
+      const { data: insertedData, error } = await supabase
         .from('ingredients')
-        .insert([{
-          ...ingredientForm,
-          sort_order: ingredients.length + 1
-        }]);
+        .insert([ingredientData])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[StockManagement] Insert error:', error);
+        throw error;
+      }
 
-      toast({ title: 'สำเร็จ', description: 'เพิ่มวัตถุดิบใหม่แล้ว' });
+      console.log('[StockManagement] Insert successful:', insertedData);
+
+      toast({ 
+        title: 'สำเร็จ', 
+        description: `เพิ่มวัตถุดิบ "${ingredientForm.name}" แล้ว` 
+      });
+      
       setIsAddingIngredient(false);
+      
+      // Reset form
       setIngredientForm({
         name: '',
         category: 'other',
@@ -153,10 +178,30 @@ const StockManagement = () => {
         cost_per_unit: 0,
         supplier: ''
       });
-      refetch.ingredients();
-    } catch (error) {
-      console.error('Error:', error);
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถเพิ่มวัตถุดิบได้', variant: 'destructive' });
+      
+      // Refresh data
+      await refetch.ingredients();
+      
+    } catch (error: any) {
+      console.error('[StockManagement] Full error details:', error);
+      
+      let errorMessage = 'ไม่สามารถเพิ่มวัตถุดิบได้';
+      
+      if (error?.message) {
+        if (error.message.includes('duplicate')) {
+          errorMessage = 'ชื่อวัตถุดิบซ้ำกับที่มีอยู่แล้ว';
+        } else if (error.message.includes('null')) {
+          errorMessage = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+        } else {
+          errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
+        }
+      }
+      
+      toast({ 
+        title: 'ข้อผิดพลาด', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -349,11 +394,12 @@ const StockManagement = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name">ชื่อวัตถุดิบ</Label>
+                <Label htmlFor="name">ชื่อวัตถุดิบ *</Label>
                 <Input
                   id="name"
                   value={ingredientForm.name}
                   onChange={(e) => setIngredientForm({ ...ingredientForm, name: e.target.value })}
+                  placeholder="กรอกชื่อวัตถุดิบ"
                 />
               </div>
 
@@ -382,6 +428,8 @@ const StockManagement = () => {
                   <Input
                     id="quantity"
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={ingredientForm.quantity}
                     onChange={(e) => setIngredientForm({ ...ingredientForm, quantity: Number(e.target.value) })}
                   />
@@ -413,6 +461,7 @@ const StockManagement = () => {
                   <Input
                     id="minimum_stock"
                     type="number"
+                    min="0"
                     value={ingredientForm.minimum_stock}
                     onChange={(e) => setIngredientForm({ ...ingredientForm, minimum_stock: Number(e.target.value) })}
                   />
@@ -423,6 +472,7 @@ const StockManagement = () => {
                   <Input
                     id="cost_per_unit"
                     type="number"
+                    min="0"
                     step="0.01"
                     value={ingredientForm.cost_per_unit}
                     onChange={(e) => setIngredientForm({ ...ingredientForm, cost_per_unit: Number(e.target.value) })}
@@ -436,6 +486,7 @@ const StockManagement = () => {
                   id="supplier"
                   value={ingredientForm.supplier}
                   onChange={(e) => setIngredientForm({ ...ingredientForm, supplier: e.target.value })}
+                  placeholder="ระบุชื่อผู้จัดจำหน่าย (ถ้ามี)"
                 />
               </div>
 
