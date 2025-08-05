@@ -50,7 +50,30 @@ import {
   Database,
   HardDrive,
   FileCheck,
-  Lock
+  Lock,
+  Activity,
+  Target,
+  Zap,
+  Palette,
+  MousePointer,
+  Filter,
+  Keyboard,
+  WifiOff,
+  Archive,
+  Image,
+  Download,
+  Server,
+  AlertTriangle,
+  ScanLine,
+  Camera,
+  Navigation,
+  LineChart,
+  Eye,
+  Layers,
+  FlaskConical,
+  Timer,
+  TestTube,
+  Navigation2
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -135,6 +158,71 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'role-access', label: 'Role-based Access', icon: Lock, path: '/role-access' },
     { id: 'access-control', label: 'จัดการสิทธิ์การเข้าถึง', icon: Shield, path: '/access-control' },
     
+    // 📊 ระบบวิเคราะห์และรายงานขั้นสูง (ใหม่ - สีแดง)
+    { id: 'ai-analytics-dashboard', label: 'AI Analytics Dashboard', icon: Brain, path: '/ai-analytics-dashboard', isNew: true },
+    { id: 'predictive-analytics', label: 'Predictive Analytics', icon: Activity, path: '/predictive-analytics', isNew: true },
+    { id: 'realtime-bi', label: 'Real-time Business Intelligence', icon: LineChart, path: '/realtime-bi', isNew: true },
+    { id: 'customer-segmentation', label: 'Customer Segmentation', icon: Target, path: '/customer-segmentation', isNew: true },
+    { id: 'profitability-analysis', label: 'Profitability Analysis', icon: TrendingUp, path: '/profitability-analysis', isNew: true },
+    
+    // 🤖 ระบบ AI และ Automation (ใหม่ - สีแดง)
+    { id: 'smart-recommendation', label: 'Smart Recommendation Engine', icon: Brain, path: '/smart-recommendation', isNew: true },
+    { id: 'smart-inventory-ai', label: 'Smart Inventory Management', icon: Package, path: '/smart-inventory-ai', isNew: true },
+    
+    // 📱 ระบบลูกค้าขั้นสูง (ใหม่ - สีแดง)
+    { id: 'pwa-app', label: 'Progressive Web App (PWA)', icon: Smartphone, path: '/pwa-app', isNew: true },
+    { id: 'gamification', label: 'Gamification System', icon: Target, path: '/gamification', isNew: true },
+    { id: 'virtual-loyalty', label: 'Virtual Loyalty Card', icon: CardIcon, path: '/virtual-loyalty', isNew: true },
+    { id: 'push-notifications', label: 'Push Notifications', icon: Bell, path: '/push-notifications', isNew: true },
+    
+    // 🎨 UI/UX Enhancement (ใหม่ - สีแดง)
+    { id: 'dark-mode', label: 'Dark Mode', icon: Palette, path: '/dark-mode', isNew: true },
+    { id: 'responsive-design', label: 'Responsive Design ที่ดีขึ้น', icon: Smartphone, path: '/responsive-design', isNew: true },
+    { id: 'drag-drop', label: 'Drag & Drop Interface', icon: MousePointer, path: '/drag-drop', isNew: true },
+    { id: 'advanced-filtering', label: 'Advanced Filtering', icon: Filter, path: '/advanced-filtering', isNew: true },
+    { id: 'keyboard-shortcuts', label: 'Keyboard Shortcuts', icon: Keyboard, path: '/keyboard-shortcuts', isNew: true },
+    
+    // ⚡ Performance Optimization (ใหม่ - สีแดง)
+    { id: 'offline-first', label: 'Offline-First Architecture', icon: WifiOff, path: '/offline-first', isNew: true },
+    { id: 'smart-caching', label: 'Smart Caching', icon: Archive, path: '/smart-caching', isNew: true },
+    { id: 'image-optimization', label: 'Image Optimization', icon: Image, path: '/image-optimization', isNew: true },
+    { id: 'lazy-loading', label: 'Lazy Loading', icon: Zap, path: '/lazy-loading', isNew: true },
+    { id: 'cdn-integration', label: 'CDN Integration', icon: Server, path: '/cdn-integration', isNew: true },
+    
+    // 🔒 Security Enhancement (ใหม่ - สีแดง)
+    { id: 'rbac-advanced', label: 'Role-Based Access Control ขั้นสูง', icon: Shield, path: '/rbac-advanced', isNew: true },
+    { id: 'fraud-detection', label: 'Fraud Detection', icon: AlertTriangle, path: '/fraud-detection', isNew: true },
+    
+    // 📈 Business Intelligence (ใหม่ - สีแดง)
+    { id: 'advanced-reporting-new', label: 'Advanced Reporting ใหม่', icon: BarChart3, path: '/advanced-reporting-new', isNew: true },
+    { id: 'custom-dashboards', label: 'Custom Dashboards', icon: PieChart, path: '/custom-dashboards', isNew: true },
+    { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export', isNew: true },
+    { id: 'automated-reports', label: 'Automated Reports', icon: Clock, path: '/automated-reports', isNew: true },
+    { id: 'kpi-monitoring', label: 'KPI Monitoring', icon: Target, path: '/kpi-monitoring', isNew: true },
+    
+    // 🌐 Integration & API (ใหม่ - สีแดง)
+    { id: 'third-party-pos', label: 'Third-Party POS Integration', icon: Calculator, path: '/third-party-pos', isNew: true },
+    { id: 'accounting-integration', label: 'Accounting Software Integration', icon: Briefcase, path: '/accounting-integration', isNew: true },
+    { id: 'social-media-integration', label: 'Social Media Integration', icon: MessageCircle, path: '/social-media-integration', isNew: true },
+    { id: 'email-marketing-tools', label: 'Email Marketing Tools', icon: Mail, path: '/email-marketing-tools', isNew: true },
+    { id: 'webhook-support', label: 'Webhook Support', icon: Wifi, path: '/webhook-support', isNew: true },
+    
+    // 🎯 Marketing Automation (ใหม่ - สีแดง)
+    { id: 'ab-testing', label: 'A/B Testing', icon: TestTube, path: '/ab-testing', isNew: true },
+    { id: 'customer-journey', label: 'Customer Journey Mapping', icon: Navigation2, path: '/customer-journey', isNew: true },
+    { id: 'retention-analytics', label: 'Retention Analytics', icon: UserCheck, path: '/retention-analytics', isNew: true },
+    
+    // 🍽️ Restaurant-Specific Features (ใหม่ - สีแดง)
+    { id: 'kitchen-display', label: 'Kitchen Display System', icon: ChefHat, path: '/kitchen-display', isNew: true },
+    { id: 'queue-management', label: 'Queue Management', icon: Users, path: '/queue-management', isNew: true },
+    { id: 'recipe-management', label: 'Recipe Management', icon: FlaskConical, path: '/recipe-management', isNew: true },
+    { id: 'allergen-tracking', label: 'Allergen Tracking', icon: Eye, path: '/allergen-tracking', isNew: true },
+    
+    // 📱 Mobile Enhancements (ใหม่ - สีแดง)
+    { id: 'barcode-scanner', label: 'Barcode Scanner', icon: ScanLine, path: '/barcode-scanner', isNew: true },
+    { id: 'camera-integration', label: 'Camera Integration', icon: Camera, path: '/camera-integration', isNew: true },
+    { id: 'gps-integration', label: 'GPS Integration', icon: Navigation, path: '/gps-integration', isNew: true },
+    
     // เมนูเดิมที่เหลือ
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
     { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
@@ -185,6 +273,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
                   const hasPage = existingPages.includes(item.path);
+                  const isNew = item.isNew || false;
                   
                   return (
                     <Link
@@ -196,11 +285,18 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                           ? 'bg-coffee-600 text-white'
                           : hasPage 
                             ? 'text-coffee-700 hover:bg-coffee-50'
-                            : 'text-black hover:bg-coffee-50'
+                            : isNew
+                              ? 'text-red-600 hover:bg-red-50'
+                              : 'text-black hover:bg-coffee-50'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.label}</span>
+                      {isNew && (
+                        <span className="ml-auto text-xs bg-red-500 text-white px-2 py-1 rounded-full">
+                          NEW
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
