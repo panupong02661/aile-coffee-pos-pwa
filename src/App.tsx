@@ -38,7 +38,10 @@ const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 
-// New placeholder page for all new features
+// New feature pages
+const AIAnalyticsDashboard = lazy(() => import('./pages/AIAnalyticsDashboard'));
+
+// Placeholder page for features still in development
 const ComingSoon = lazy(() => import('./pages/ComingSoon'));
 
 function App() {
@@ -114,8 +117,10 @@ function App() {
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
                   
-                  {/* New routes - 📊 ระบบวิเคราะห์และรายงานขั้นสูง */}
-                  <Route path="/ai-analytics-dashboard" element={<ComingSoon />} />
+                  {/* New implemented features */}
+                  <Route path="/ai-analytics-dashboard" element={<AIAnalyticsDashboard />} />
+                  
+                  {/* New routes - 📊 ระบบวิเคราะห์และรายงานขั้นสูง (remaining features) */}
                   <Route path="/predictive-analytics" element={<ComingSoon />} />
                   <Route path="/realtime-bi" element={<ComingSoon />} />
                   <Route path="/customer-segmentation" element={<ComingSoon />} />
