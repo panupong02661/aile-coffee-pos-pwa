@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { QRCodeSVG } from 'qrcode.react';
 import { Star, Crown, Diamond, Gift, CreditCard } from 'lucide-react';
 
 interface LoyaltyCardProps {
@@ -55,6 +54,16 @@ const VirtualLoyaltyCard = ({ memberData }: LoyaltyCardProps) => {
     ? (memberData.totalSpent / currentTier.nextTierRequirement) * 100 
     : 100;
 
+  // Simple QR code placeholder component
+  const QRCodePlaceholder = ({ value, size }: { value: string; size: number }) => (
+    <div 
+      className="bg-black flex items-center justify-center text-white text-xs font-mono"
+      style={{ width: size, height: size }}
+    >
+      QR:{value.slice(-6)}
+    </div>
+  );
+
   return (
     <div className="max-w-md mx-auto">
       <div 
@@ -102,11 +111,9 @@ const VirtualLoyaltyCard = ({ memberData }: LoyaltyCardProps) => {
         <div className="absolute inset-0 backface-hidden rotate-y-180">
           <Card className="h-full bg-white shadow-xl">
             <CardContent className="p-6 h-full flex flex-col justify-center items-center space-y-4">
-              <QRCodeSVG 
+              <QRCodePlaceholder 
                 value={`LOYALTY:${memberData.id}`} 
                 size={120}
-                level="M"
-                includeMargin
               />
               <div className="text-center">
                 <p className="font-medium">สแกนเพื่อใช้แต้ม</p>

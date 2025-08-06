@@ -1,295 +1,272 @@
-
 import React, { useState } from 'react';
-import Header from '@/components/Header';
-import MainSidebar from '@/components/MainSidebar';
-import VirtualLoyaltyCard from '@/components/virtual-loyalty/VirtualLoyaltyCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CreditCard, Wallet, History, Settings } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Search, 
+  CreditCard, 
+  Bell, 
+  Gift, 
+  Wallet, 
+  History, 
+  Settings,
+  Star,
+  Crown,
+  Diamond,
+  TrendingUp,
+  Users
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import Shell from '@/components/Shell';
+import VirtualLoyaltyCard from '@/components/virtual-loyalty/VirtualLoyaltyCard';
 
 const VirtualLoyaltySystem = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
+  const { toast } = useToast();
 
-  const sampleMember = {
-    id: 'M001234',
-    name: 'คุณสมชาย ใจดี',
-    phone: '081-234-5678',
-    tier: 'gold' as const,
-    points: 2850,
-    totalSpent: 8500,
-    joinDate: '2023-01-15'
-  };
-
-  const recentTransactions = [
-    { date: '2024-01-15', type: 'earn', points: 150, description: 'ซื้อกาแฟ ฿150' },
-    { date: '2024-01-12', type: 'redeem', points: -500, description: 'แลกส่วนลด 10%' },
-    { date: '2024-01-10', type: 'earn', points: 200, description: 'ซื้อขนม ฿200' },
-    { date: '2024-01-08', type: 'bonus', points: 100, description: 'โบนัสวันเกิด' },
+  // Mock data
+  const mockMembers = [
+    {
+      id: 'M001',
+      name: 'สมชาย ใจดี',
+      phone: '081-234-5678',
+      tier: 'gold' as const,
+      points: 2500,
+      totalSpent: 8500,
+      joinDate: '2024-01-15'
+    },
+    {
+      id: 'M002',
+      name: 'สมหญิง จริงใจ',
+      phone: '089-987-6543',
+      tier: 'silver' as const,
+      points: 800,
+      totalSpent: 1200,
+      joinDate: '2024-05-20'
+    },
+    {
+      id: 'M003',
+      name: 'ธนาคาร มั่นคง',
+      phone: '085-111-2222',
+      tier: 'platinum' as const,
+      points: 12000,
+      totalSpent: 25000,
+      joinDate: '2023-11-01'
+    }
   ];
 
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+  };
+
+  const filteredMembers = searchTerm
+    ? mockMembers.filter(member =>
+        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.phone.includes(searchTerm) ||
+        member.id.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : mockMembers;
+
+  const handleSelectMember = (member: any) => {
+    setSelectedMember(member);
+  };
+
+  const handleUpdateMember = (memberId: string, updatedData: any) => {
+    // In a real application, you would update the member data in a database
+    // Here, we'll just update the mock data
+    // setMembers(prevMembers =>
+    //   prevMembers.map(member =>
+    //     member.id === memberId ? { ...member, ...updatedData } : member
+    //   )
+    // );
+
+    toast({
+      title: 'แก้ไขข้อมูลสมาชิก',
+      description: `ข้อมูลสมาชิก ${updatedData.name} ถูกแก้ไขเรียบร้อยแล้ว`,
+    });
+  };
+
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-      />
-      
-      <div className="flex-1 flex flex-col h-screen">
-        <Header 
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          title="ระบบบัตรสมาชิกดิจิทัล"
-          page="loyalty"
-        />
-        
-        <div className="flex-1 overflow-auto p-4">
-          <div className="max-w-7xl mx-auto">
-            <Tabs defaultValue="card" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="card">บัตรสมาชิก</TabsTrigger>
-                <TabsTrigger value="wallet">กระเป๋าดิจิทัล</TabsTrigger>
-                <TabsTrigger value="history">ประวัติ</TabsTrigger>
-                <TabsTrigger value="settings">ตั้งค่า</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="card" className="mt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>ค้นหาสมาชิก</CardTitle>
-                        <CardDescription>กรอกเบอร์โทรศัพท์เพื่อแสดงบัตรสมาชิก</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex space-x-2">
-                          <Input
-                            placeholder="081-234-5678"
-                            value={searchPhone}
-                            onChange={(e) => setSearchPhone(e.target.value)}
-                          />
-                          <Button>ค้นหา</Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <VirtualLoyaltyCard memberData={sampleMember} />
-                  </div>
-
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>สถิติแต้มสะสม</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                            <span>แต้มที่ได้รับวันนี้</span>
-                            <span className="font-bold text-green-600">+150</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                            <span>แต้มที่ใช้ไปเดือนนี้</span>
-                            <span className="font-bold text-blue-600">-1,200</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                            <span>แต้มคงเหลือ</span>
-                            <span className="font-bold text-purple-600">{sampleMember.points.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>การแจ้งเตือน</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                            <p className="text-sm font-medium">แต้มจะหมดอายุ</p>
-                            <p className="text-xs text-muted-foreground">500 แต้มจะหมดอายุใน 30 วัน</p>
-                          </div>
-                          <div className="p-3 bg-green-50 border-l-4 border-green-400 rounded">
-                            <p className="text-sm font-medium">โปรโมชั่นพิเศษ</p>
-                            <p className="text-xs text-muted-foreground">ส่วนลด 20% สำหรับสมาชิก Gold</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+    <Shell 
+      title="ระบบบัตรสมาชิกดิจิทัล" 
+      subtitle="จัดการบัตรสมาชิกแบบดิจิทัลและระบบสะสมแต้ม"
+      activeTab="other"
+    >
+      <Tabs defaultValue="members" className="w-full space-y-4">
+        <TabsList>
+          <TabsTrigger value="members">
+            <Users className="h-4 w-4 mr-2" />
+            สมาชิก
+          </TabsTrigger>
+          <TabsTrigger value="tiers">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            ระดับสมาชิก
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings className="h-4 w-4 mr-2" />
+            ตั้งค่า
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="members" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>รายชื่อสมาชิก</CardTitle>
+              <CardDescription>ค้นหาและจัดการข้อมูลสมาชิก</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="search"
+                    placeholder="ค้นหาจากชื่อ, เบอร์โทร, หรือ ID"
+                    className="pl-10"
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="wallet" className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Wallet className="h-5 w-5 mr-2" />
-                        ยอดเงินคงเหลือ
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-3xl font-bold">฿1,250</p>
-                      <p className="text-sm text-muted-foreground mt-2">อัปเดตล่าสุด: วันนี้</p>
-                      <Button className="w-full mt-4">เติมเงิน</Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <CreditCard className="h-5 w-5 mr-2" />
-                        คูปองส่วนลด
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-3xl font-bold">5</p>
-                      <p className="text-sm text-muted-foreground mt-2">คูปองพร้อมใช้</p>
-                      <Button variant="outline" className="w-full mt-4">ดูคูปอง</Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>ของขวัญ</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-3xl font-bold">2</p>
-                      <p className="text-sm text-muted-foreground mt-2">ของขวัญที่ได้รับ</p>
-                      <Button variant="outline" className="w-full mt-4">ใช้ของขวัญ</Button>
-                    </CardContent>
-                  </Card>
+                <div>
+                  <Button>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    เพิ่มสมาชิกใหม่
+                  </Button>
                 </div>
+              </div>
 
-                <div className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>คูปองส่วนลดพิเศษ</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[
-                          { title: 'ส่วนลด 15%', desc: 'สำหรับเครื่องดื่ม', exp: '31 ม.ค. 67' },
-                          { title: 'ซื้อ 2 แถม 1', desc: 'เค้ก', exp: '28 ก.พ. 67' },
-                          { title: 'ฟรีกาแฟ', desc: 'เมื่อซื้อขนม', exp: '15 มี.ค. 67' },
-                          { title: 'ส่วนลด ฿50', desc: 'ขั้นต่ำ 300 บาท', exp: '10 เม.ย. 67' },
-                        ].map((coupon, index) => (
-                          <div key={index} className="p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
-                            <h3 className="font-bold text-purple-800">{coupon.title}</h3>
-                            <p className="text-sm text-purple-600">{coupon.desc}</p>
-                            <p className="text-xs text-muted-foreground mt-2">หมดอายุ: {coupon.exp}</p>
-                            <Button size="sm" variant="outline" className="mt-2">ใช้เลย</Button>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="history" className="mt-6">
-                <Card>
+              <Table className="mt-4">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>ชื่อ</TableHead>
+                    <TableHead>เบอร์โทร</TableHead>
+                    <TableHead>ระดับสมาชิก</TableHead>
+                    <TableHead>แต้มสะสม</TableHead>
+                    <TableHead>จัดการ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">{member.id}</TableCell>
+                      <TableCell>{member.name}</TableCell>
+                      <TableCell>{member.phone}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            member.tier === 'gold'
+                              ? 'default'
+                              : member.tier === 'silver'
+                              ? 'secondary'
+                              : 'destructive'
+                          }
+                        >
+                          {member.tier}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{member.points}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSelectMember(member)}
+                        >
+                          ดูข้อมูล
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="tiers">
+          <Card>
+            <CardHeader>
+              <CardTitle>ระดับสมาชิก</CardTitle>
+              <CardDescription>จัดการระดับสมาชิกและสิทธิประโยชน์</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-gray-100">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <History className="h-5 w-5 mr-2" />
-                      ประวัติการใช้แต้ม
+                      <Star className="h-5 w-5 mr-2 text-gray-500" />
+                      Silver
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {recentTransactions.map((transaction, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{transaction.description}</p>
-                            <p className="text-sm text-muted-foreground">{transaction.date}</p>
-                          </div>
-                          <div className={`text-right ${transaction.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            <p className="font-bold">
-                              {transaction.points > 0 ? '+' : ''}{transaction.points}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {transaction.type === 'earn' ? 'ได้รับ' : 
-                               transaction.type === 'redeem' ? 'ใช้แต้ม' : 'โบนัส'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <ul className="list-disc pl-5">
+                      <li>ส่วนลด 5%</li>
+                      <li>แต้มพิเศษ 2x</li>
+                    </ul>
                   </CardContent>
                 </Card>
-              </TabsContent>
 
-              <TabsContent value="settings" className="mt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Settings className="h-5 w-5 mr-2" />
-                        การตั้งค่าบัตร
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <h3 className="font-medium mb-2">ธีมบัตร</h3>
-                        <div className="grid grid-cols-3 gap-2">
-                          {['Silver', 'Gold', 'Platinum'].map((theme) => (
-                            <div
-                              key={theme}
-                              className={`h-16 rounded-lg cursor-pointer border-2 ${
-                                theme === 'Gold' ? 'border-yellow-400 bg-gradient-to-r from-yellow-400 to-yellow-600' :
-                                theme === 'Silver' ? 'border-gray-400 bg-gradient-to-r from-gray-400 to-gray-600' :
-                                'border-purple-400 bg-gradient-to-r from-purple-400 to-purple-600'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                <Card className="bg-yellow-100">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Crown className="h-5 w-5 mr-2 text-yellow-500" />
+                      Gold
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc pl-5">
+                      <li>ส่วนลด 10%</li>
+                      <li>แต้มพิเศษ 3x</li>
+                      <li>ของแถมพิเศษ</li>
+                    </ul>
+                  </CardContent>
+                </Card>
 
-                      <div>
-                        <h3 className="font-medium mb-2">การแจ้งเตือน</h3>
-                        <div className="space-y-2">
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" defaultChecked />
-                            แจ้งเตือนเมื่อได้รับแต้ม
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" defaultChecked />
-                            แจ้งเตือนโปรโมชั่นพิเศษ
-                          </label>
-                          <label className="flex items-center">
-                            <input type="checkbox" className="mr-2" />
-                            แจ้งเตือนแต้มใกล้หมดอายุ
-                          </label>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Card className="bg-purple-100">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Diamond className="h-5 w-5 mr-2 text-purple-500" />
+                      Platinum
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc pl-5">
+                      <li>ส่วนลด 15%</li>
+                      <li>แต้มพิเศษ 5x</li>
+                      <li>ของแถมพิเศษ</li>
+                      <li>เครื่องดื่มฟรี</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>ตั้งค่าระบบ</CardTitle>
+              <CardDescription>ปรับแต่งการทำงานของระบบสมาชิก</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>กำลังอยู่ในระหว่างการพัฒนา...</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>ความปลอดภัย</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Button variant="outline" className="w-full">
-                        เปลี่ยนรหัส PIN
-                      </Button>
-                      <Button variant="outline" className="w-full">
-                        ตั้งค่าการยืนยันตัวตน
-                      </Button>
-                      <Button variant="outline" className="w-full">
-                        ดูประวัติการเข้าใช้งาน
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </div>
-    </div>
+      {selectedMember && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>ข้อมูลสมาชิก</CardTitle>
+            <CardDescription>รายละเอียดและประวัติของสมาชิก</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VirtualLoyaltyCard memberData={selectedMember} />
+          </CardContent>
+        </Card>
+      )}
+    </Shell>
   );
 };
 
