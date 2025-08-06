@@ -8,35 +8,33 @@ import StockManagement from '@/components/inventory/StockManagement';
 import RecipeManagement from '@/components/inventory/RecipeManagement';
 import InventoryDashboard from '@/components/inventory/InventoryDashboard';
 import InventoryReports from '@/components/inventory/InventoryReports';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Inventory = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="h-screen bg-background flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
       />
       
-      <div className="flex-1">
-        <div className="p-4">
-          <Header 
-            onToggleSidebar={() => setIsSidebarOpen(true)}
-            categories={[]}
-            selectedCategory=""
-            onCategorySelect={() => {}}
-            gridColumns={4}
-            setGridColumns={() => {}}
-            itemSize="medium"
-            setItemSize={() => {}}
-            page="other"
-          />
-          
+      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
+        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <Header 
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          title="จัดการคลังสินค้า"
+          page="other"
+        />
+        
+        <div className="flex-1 overflow-auto p-4">
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">จัดการคลังสินค้า</CardTitle>
+                <CardTitle className="text-2xl">จัดการคลังสินค้า</CardTitle>
                 <CardDescription>ระบบจัดการสต็อก สูตรอาหาร การคำนวณต้นทุน และรายงาน</CardDescription>
               </CardHeader>
               <CardContent>
