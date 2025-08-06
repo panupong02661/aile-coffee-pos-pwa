@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
@@ -38,9 +39,12 @@ const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 
-// New feature pages
+// New implemented feature pages
 const AIAnalyticsDashboard = lazy(() => import('./pages/AIAnalyticsDashboard'));
 const PredictiveAnalytics = lazy(() => import('./pages/PredictiveAnalytics'));
+const RealtimeBIDashboard = lazy(() => import('./pages/RealtimeBIDashboard'));
+const CustomerSegmentation = lazy(() => import('./pages/CustomerSegmentation'));
+const ProfitabilityAnalysis = lazy(() => import('./pages/ProfitabilityAnalysis'));
 
 // Placeholder page for features still in development
 const ComingSoon = lazy(() => import('./pages/ComingSoon'));
@@ -118,14 +122,12 @@ function App() {
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
                   
-                  {/* New implemented features */}
+                  {/* New implemented features - 📊 ระบบวิเคราะห์และรายงานขั้นสูง */}
                   <Route path="/ai-analytics-dashboard" element={<AIAnalyticsDashboard />} />
                   <Route path="/predictive-analytics" element={<PredictiveAnalytics />} />
-                  
-                  {/* New routes - 📊 ระบบวิเคราะห์และรายงานขั้นสูง (remaining features) */}
-                  <Route path="/realtime-bi" element={<ComingSoon />} />
-                  <Route path="/customer-segmentation" element={<ComingSoon />} />
-                  <Route path="/profitability-analysis" element={<ComingSoon />} />
+                  <Route path="/realtime-bi" element={<RealtimeBIDashboard />} />
+                  <Route path="/customer-segmentation" element={<CustomerSegmentation />} />
+                  <Route path="/profitability-analysis" element={<ProfitabilityAnalysis />} />
                   
                   {/* New routes - 🤖 ระบบ AI และ Automation */}
                   <Route path="/smart-recommendation" element={<ComingSoon />} />
