@@ -1,201 +1,109 @@
 
-import { Suspense, lazy } from 'react';
 import { Toaster } from '@/components/ui/toaster';
-import { Toaster as SonnerToaster } from '@/components/ui/sonner';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './hooks/useAuth';
-import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { GlobalNotificationProvider } from '@/components/providers/GlobalNotificationProvider';
+import Index from './pages/Index';
+import Dashboard from './pages/Dashboard';
+import POS from './pages/POS';
+import MenuManagement from './pages/MenuManagement';
+import Reports from './pages/Reports';
+import Inventory from './pages/Inventory';
+import MemberManagement from './pages/MemberManagement';
+import Promotions from './pages/Promotions';
+import ShopSettings from './pages/ShopSettings';
+import PrinterSettings from './pages/PrinterSettings';
+import NotFound from './pages/NotFound';
+import OnlineSystem from './pages/OnlineSystem';
+import CustomerSystem from './pages/CustomerSystem';
+import MemberRegistration from './pages/MemberRegistration';
+import CustomerMobileApp from './pages/CustomerMobileApp';
+import TechnologySystem from './pages/TechnologySystem';
+import StaffManagement from './pages/StaffManagement';
+import SecuritySystem from './pages/SecuritySystem';
+import CustomerAppManagement from './pages/CustomerAppManagement';
+import OnlineOrderManagement from './pages/OnlineOrderManagement';
+import DeliveryIntegration from './pages/DeliveryIntegration';
+import FinancialSystem from './pages/FinancialSystem';
+import MobileSettings from './pages/MobileSettings';
+import NotificationPage from './pages/NotificationPage';
+import QRCodePromptPayPage from './pages/QRCodePromptPayPage';
+import SecurityRecommendationsPage from './pages/SecurityRecommendationsPage';
+import AdvancedReports from './pages/AdvancedReports';
+import ComingSoon from './pages/ComingSoon';
+import AIAnalyticsDashboard from './pages/AIAnalyticsDashboard';
+import PredictiveAnalytics from './pages/PredictiveAnalytics';
+import RealtimeBIDashboard from './pages/RealtimeBIDashboard';
+import CustomerSegmentation from './pages/CustomerSegmentation';
+import ProfitabilityAnalysis from './pages/ProfitabilityAnalysis';
+import IntelligentInventory from './pages/IntelligentInventory';
+import SmartMenuRecommendations from './pages/SmartMenuRecommendations';
+import AutomatedMarketing from './pages/AutomatedMarketing';
 
 const queryClient = new QueryClient();
 
-// Existing pages
-const Index = lazy(() => import('./pages/Index'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const MenuManagement = lazy(() => import('./pages/MenuManagement'));
-const MemberManagement = lazy(() => import('./pages/MemberManagement'));
-const MemberRegistration = lazy(() => import('./pages/MemberRegistration'));
-const POS = lazy(() => import('./pages/POS'));
-const Reports = lazy(() => import('./pages/Reports'));
-const ShopSettings = lazy(() => import('./pages/ShopSettings'));
-const Promotions = lazy(() => import('./pages/Promotions'));
-const OnlineSystem = lazy(() => import('./pages/OnlineSystem'));
-const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
-const CustomerAppManagement = lazy(() => import('./pages/CustomerAppManagement'));
-const QRCodePromptPayPage = lazy(() => import('./pages/QRCodePromptPayPage'));
-const Inventory = lazy(() => import('./pages/Inventory'));
-const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
-const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
-const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommendationsPage'));
-const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
-const NotificationPage = lazy(() => import('./pages/NotificationPage'));
-const MobileSettings = lazy(() => import('./pages/MobileSettings'));
-
-// Existing 5 main system pages
-const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
-const StaffManagement = lazy(() => import('./pages/StaffManagement'));
-const FinancialSystem = lazy(() => import('./pages/FinancialSystem'));
-const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
-const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
-const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
-
-// New implemented feature pages
-const AIAnalyticsDashboard = lazy(() => import('./pages/AIAnalyticsDashboard'));
-const PredictiveAnalytics = lazy(() => import('./pages/PredictiveAnalytics'));
-const RealtimeBIDashboard = lazy(() => import('./pages/RealtimeBIDashboard'));
-const CustomerSegmentation = lazy(() => import('./pages/CustomerSegmentation'));
-const ProfitabilityAnalysis = lazy(() => import('./pages/ProfitabilityAnalysis'));
-
-// Placeholder page for features still in development
-const ComingSoon = lazy(() => import('./pages/ComingSoon'));
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <GlobalNotificationProvider>
-            <div className="min-h-screen bg-background">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              }>
-                <Routes>
-                  {/* Existing routes */}
-                  <Route path="/" element={<POS />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/menu" element={<MenuManagement />} />
-                  <Route path="/members" element={<MemberManagement />} />
-                  <Route path="/member-registration" element={<MemberRegistration />} />
-                  <Route path="/pos" element={<POS />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/shop-settings" element={<ShopSettings />} />
-                  <Route path="/promotions" element={<Promotions />} />
-                  <Route path="/online-system" element={<OnlineSystem />} />
-                  <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-                  <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-                  <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/printer-settings" element={<PrinterSettings />} />
-                  <Route path="/online-orders" element={<OnlineOrderManagement />} />
-                  <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
-                  <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-                  <Route path="/notifications" element={<NotificationPage />} />
-                  
-                  {/* Mobile Settings Route */}
-                  <Route path="/mobile-settings" element={<MobileSettings />} />
-                  
-                  {/* Existing 5 main system routes */}
-                  <Route path="/advanced-reports" element={<AdvancedReports />} />
-                  <Route path="/sales-reports" element={<AdvancedReports />} />
-                  <Route path="/product-reports" element={<AdvancedReports />} />
-                  <Route path="/customer-analytics" element={<AdvancedReports />} />
-                  <Route path="/staff" element={<StaffManagement />} />
-                  <Route path="/time-attendance" element={<StaffManagement />} />
-                  <Route path="/permissions" element={<StaffManagement />} />
-                  <Route path="/branch-management" element={<StaffManagement />} />
-                  <Route path="/accounting" element={<FinancialSystem />} />
-                  <Route path="/income-expense" element={<FinancialSystem />} />
-                  <Route path="/profit-loss" element={<FinancialSystem />} />
-                  <Route path="/tax-system" element={<FinancialSystem />} />
-                  <Route path="/vat-calculation" element={<FinancialSystem />} />
-                  <Route path="/tax-invoice" element={<FinancialSystem />} />
-                  <Route path="/credit-system" element={<FinancialSystem />} />
-                  <Route path="/crm" element={<CustomerSystem />} />
-                  <Route path="/customer-data" element={<CustomerSystem />} />
-                  <Route path="/purchase-history" element={<CustomerSystem />} />
-                  <Route path="/marketing" element={<CustomerSystem />} />
-                  <Route path="/sms-marketing" element={<CustomerSystem />} />
-                  <Route path="/email-marketing" element={<CustomerSystem />} />
-                  <Route path="/table-reservation" element={<CustomerSystem />} />
-                  <Route path="/digital-payment" element={<TechnologySystem />} />
-                  <Route path="/credit-card" element={<TechnologySystem />} />
-                  <Route path="/api-system" element={<TechnologySystem />} />
-                  <Route path="/external-integration" element={<TechnologySystem />} />
-                  <Route path="/staff-mobile-app" element={<TechnologySystem />} />
-                  <Route path="/customer-mobile-app" element={<TechnologySystem />} />
-                  <Route path="/data-backup" element={<SecuritySystem />} />
-                  <Route path="/auto-backup" element={<SecuritySystem />} />
-                  <Route path="/system-logs" element={<SecuritySystem />} />
-                  <Route path="/usage-logs" element={<SecuritySystem />} />
-                  <Route path="/role-access" element={<SecuritySystem />} />
-                  <Route path="/access-control" element={<SecuritySystem />} />
-                  
-                  {/* New implemented features - 📊 ระบบวิเคราะห์และรายงานขั้นสูง */}
-                  <Route path="/ai-analytics-dashboard" element={<AIAnalyticsDashboard />} />
-                  <Route path="/predictive-analytics" element={<PredictiveAnalytics />} />
-                  <Route path="/realtime-bi" element={<RealtimeBIDashboard />} />
-                  <Route path="/customer-segmentation" element={<CustomerSegmentation />} />
-                  <Route path="/profitability-analysis" element={<ProfitabilityAnalysis />} />
-                  
-                  {/* New routes - 🤖 ระบบ AI และ Automation */}
-                  <Route path="/smart-recommendation" element={<ComingSoon />} />
-                  <Route path="/smart-inventory-ai" element={<ComingSoon />} />
-                  
-                  {/* New routes - 📱 ระบบลูกค้าขั้นสูง */}
-                  <Route path="/pwa-app" element={<ComingSoon />} />
-                  <Route path="/gamification" element={<ComingSoon />} />
-                  <Route path="/virtual-loyalty" element={<ComingSoon />} />
-                  <Route path="/push-notifications" element={<ComingSoon />} />
-                  
-                  {/* New routes - 🎨 UI/UX Enhancement */}
-                  <Route path="/dark-mode" element={<ComingSoon />} />
-                  <Route path="/responsive-design" element={<ComingSoon />} />
-                  <Route path="/drag-drop" element={<ComingSoon />} />
-                  <Route path="/advanced-filtering" element={<ComingSoon />} />
-                  <Route path="/keyboard-shortcuts" element={<ComingSoon />} />
-                  
-                  {/* New routes - ⚡ Performance Optimization */}
-                  <Route path="/offline-first" element={<ComingSoon />} />
-                  <Route path="/smart-caching" element={<ComingSoon />} />
-                  <Route path="/image-optimization" element={<ComingSoon />} />
-                  <Route path="/lazy-loading" element={<ComingSoon />} />
-                  <Route path="/cdn-integration" element={<ComingSoon />} />
-                  
-                  {/* New routes - 🔒 Security Enhancement */}
-                  <Route path="/rbac-advanced" element={<ComingSoon />} />
-                  <Route path="/fraud-detection" element={<ComingSoon />} />
-                  
-                  {/* New routes - 📈 Business Intelligence */}
-                  <Route path="/advanced-reporting-new" element={<ComingSoon />} />
-                  <Route path="/custom-dashboards" element={<ComingSoon />} />
-                  <Route path="/data-export" element={<ComingSoon />} />
-                  <Route path="/automated-reports" element={<ComingSoon />} />
-                  <Route path="/kpi-monitoring" element={<ComingSoon />} />
-                  
-                  {/* New routes - 🌐 Integration & API */}
-                  <Route path="/third-party-pos" element={<ComingSoon />} />
-                  <Route path="/accounting-integration" element={<ComingSoon />} />
-                  <Route path="/social-media-integration" element={<ComingSoon />} />
-                  <Route path="/email-marketing-tools" element={<ComingSoon />} />
-                  <Route path="/webhook-support" element={<ComingSoon />} />
-                  
-                  {/* New routes - 🎯 Marketing Automation */}
-                  <Route path="/ab-testing" element={<ComingSoon />} />
-                  <Route path="/customer-journey" element={<ComingSoon />} />
-                  <Route path="/retention-analytics" element={<ComingSoon />} />
-                  
-                  {/* New routes - 🍽️ Restaurant-Specific Features */}
-                  <Route path="/kitchen-display" element={<ComingSoon />} />
-                  <Route path="/queue-management" element={<ComingSoon />} />
-                  <Route path="/recipe-management" element={<ComingSoon />} />
-                  <Route path="/allergen-tracking" element={<ComingSoon />} />
-                  
-                  {/* New routes - 📱 Mobile Enhancements */}
-                  <Route path="/barcode-scanner" element={<ComingSoon />} />
-                  <Route path="/camera-integration" element={<ComingSoon />} />
-                  <Route path="/gps-integration" element={<ComingSoon />} />
-                </Routes>
-              </Suspense>
-              <Toaster />
-              <SonnerToaster />
-            </div>
-          </GlobalNotificationProvider>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <GlobalNotificationProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/pos" element={<POS />} />
+            <Route path="/menu" element={<MenuManagement />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/members" element={<MemberManagement />} />
+            <Route path="/promotions" element={<Promotions />} />
+            <Route path="/settings" element={<ShopSettings />} />
+            <Route path="/printer" element={<PrinterSettings />} />
+            <Route path="/online-system" element={<OnlineSystem />} />
+            <Route path="/customer-system" element={<CustomerSystem />} />
+            <Route path="/member-registration" element={<MemberRegistration />} />
+            <Route path="/customer-app" element={<CustomerMobileApp />} />
+            <Route path="/technology" element={<TechnologySystem />} />
+            <Route path="/staff" element={<StaffManagement />} />
+            <Route path="/security" element={<SecuritySystem />} />
+            <Route path="/customer-app-management" element={<CustomerAppManagement />} />
+            <Route path="/online-orders" element={<OnlineOrderManagement />} />
+            <Route path="/delivery" element={<DeliveryIntegration />} />
+            <Route path="/financial" element={<FinancialSystem />} />
+            <Route path="/mobile-settings" element={<MobileSettings />} />
+            <Route path="/notifications" element={<NotificationPage />} />
+            <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
+            <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
+            <Route path="/advanced-reports" element={<AdvancedReports />} />
+            <Route path="/ai-analytics" element={<AIAnalyticsDashboard />} />
+            <Route path="/predictive-analytics" element={<PredictiveAnalytics />} />
+            <Route path="/realtime-bi" element={<RealtimeBIDashboard />} />
+            <Route path="/customer-segmentation" element={<CustomerSegmentation />} />
+            <Route path="/profitability-analysis" element={<ProfitabilityAnalysis />} />
+            <Route path="/intelligent-inventory" element={<IntelligentInventory />} />
+            <Route path="/smart-menu" element={<SmartMenuRecommendations />} />
+            <Route path="/automated-marketing" element={<AutomatedMarketing />} />
+            
+            {/* Routing สำหรับหน้าที่ยังไม่ได้สร้าง */}
+            <Route path="/dynamic-pricing" element={<ComingSoon />} />
+            <Route path="/voice-assistant" element={<ComingSoon />} />
+            <Route path="/chatbot-support" element={<ComingSoon />} />
+            <Route path="/ar-menu" element={<ComingSoon />} />
+            <Route path="/facial-recognition" element={<ComingSoon />} />
+            <Route path="/iot-integration" element={<ComingSoon />} />
+            <Route path="/blockchain-loyalty" element={<ComingSoon />} />
+            <Route path="/virtual-reality" element={<ComingSoon />} />
+            <Route path="/quantum-computing" element={<ComingSoon />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </GlobalNotificationProvider>
+  </QueryClientProvider>
+);
 
 export default App;
