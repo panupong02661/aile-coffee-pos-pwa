@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, Target, Gift, Settings, Users, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Shell from '@/components/Shell';
+import { Shell } from '@/components/Shell';
 import GamificationDashboard from '@/components/gamification/GamificationDashboard';
 
 const GamificationSystem = () => {

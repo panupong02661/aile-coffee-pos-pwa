@@ -20,7 +20,7 @@ import {
   Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Shell from '@/components/Shell';
+import { Shell } from '@/components/Shell';
 import VirtualLoyaltyCard from '@/components/virtual-loyalty/VirtualLoyaltyCard';
 
 const VirtualLoyaltySystem = () => {
