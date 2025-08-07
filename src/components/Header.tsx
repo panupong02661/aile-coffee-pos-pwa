@@ -14,8 +14,8 @@ interface HeaderProps {
   onCategorySelect?: (category: string) => void;
   gridColumns?: number;
   setGridColumns?: (columns: number) => void;
-  itemSize?: string;
-  setItemSize?: (size: string) => void;
+  itemSize?: 'small' | 'medium' | 'large';
+  setItemSize?: (size: 'small' | 'medium' | 'large') => void;
   onMemberClick?: () => void;
   selectedMember?: any;
   onRemoveMember?: () => void;
@@ -38,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({
   ...otherProps
 }) => {
   return (
-    <header className="h-16 border-b bg-white flex items-center justify-between px-4 sticky top-0 z-50">
+    <header className="h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-50">
       <div className="flex items-center space-x-4">
         <Button
           variant="ghost"
