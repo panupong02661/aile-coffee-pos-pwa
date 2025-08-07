@@ -105,163 +105,170 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
       title: 'หน้าหลัก',
       items: [
         { id: 'dashboard', label: 'หน้าแรก', icon: BarChart3, path: '/dashboard' },
-        { id: 'advanced-reports', label: 'แดชบอร์ด', icon: TrendingUp, path: '/advanced-reports' },
         { id: 'pos', label: 'ขายหน้าร้าน (POS)', icon: Calculator, path: '/' },
+        { id: 'advanced-reports', label: 'แดชบอร์ด', icon: TrendingUp, path: '/advanced-reports' },
+        { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
+        { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
       ]
     },
     {
-      title: 'จัดการร้อง',
+      title: 'จัดการร้าน',
       items: [
-        { id: 'inventory', label: 'จัดการสต็อก', icon: Package, path: '/inventory' },
         { id: 'menu', label: 'จัดการสินค้า', icon: MenuIcon, path: '/menu' },
+        { id: 'inventory', label: 'จัดการสต็อก', icon: Package, path: '/inventory' },
         { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
+        { id: 'sales-reports', label: 'รายงานยอดขาย', icon: BarChart, path: '/sales-reports' },
+        { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
+        { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
+        { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
+      ]
+    },
+    {
+      title: 'จัดการลูกค้า',
+      items: [
         { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
+        { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
+        { id: 'crm', label: 'ระบบ CRM', icon: UserCog, path: '/crm' },
+        { id: 'customer-data', label: 'ข้อมูลลูกค้า', icon: Users, path: '/customer-data' },
+        { id: 'purchase-history', label: 'ประวัติการซื้อ', icon: BookOpen, path: '/purchase-history' },
+        { id: 'marketing', label: 'ระบบการตลาด', icon: MessageCircle, path: '/marketing' },
+        { id: 'sms-marketing', label: 'SMS Marketing', icon: PhoneIcon, path: '/sms-marketing' },
+        { id: 'email-marketing', label: 'Email Marketing', icon: Mail, path: '/email-marketing' },
+      ]
+    },
+    {
+      title: 'จัดการพนักงาน',
+      items: [
+        { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
+        { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
+        { id: 'permissions', label: 'กำหนดสิทธิ์', icon: Shield, path: '/permissions' },
+        { id: 'branch-management', label: 'จัดการสาขา', icon: MapPin, path: '/branch-management' },
+        { id: 'staff-mobile-app', label: 'Mobile App พนักงาน', icon: Smartphone, path: '/staff-mobile-app' },
+      ]
+    },
+    {
+      title: 'บันทึกรายการ',
+      items: [
+        { id: 'accounting', label: 'ระบบบัญชี', icon: Briefcase, path: '/accounting' },
+        { id: 'income-expense', label: 'รายรับ-รายจ่าย', icon: DollarSign, path: '/income-expense' },
+        { id: 'profit-loss', label: 'กำไร-ขาดทุน', icon: TrendingUp, path: '/profit-loss' },
+        { id: 'system-logs', label: 'ระบบ Log', icon: FileCheck, path: '/system-logs' },
+        { id: 'usage-logs', label: 'บันทึกการใช้งาน', icon: FileText, path: '/usage-logs' },
+      ]
+    },
+    {
+      title: 'จัดการสาขา',
+      items: [
+        { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
+        { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
+        { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
+        { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
+        { id: 'table-reservation', label: 'ระบบจองโต๊ะ', icon: Calendar, path: '/table-reservation' },
+      ]
+    },
+    {
+      title: 'ระบบภาษี',
+      items: [
+        { id: 'tax-system', label: 'ระบบภาษี', icon: Receipt, path: '/tax-system' },
+        { id: 'vat-calculation', label: 'คำนวณภาษีมูลค่าเพิ่ม', icon: CalculatorIcon, path: '/vat-calculation' },
+        { id: 'tax-invoice', label: 'ออกใบกำกับภาษี', icon: FileText, path: '/tax-invoice' },
+      ]
+    },
+    {
+      title: 'รายรับ-รายจ่าย',
+      items: [
+        { id: 'credit-system', label: 'ระบบเครดิต', icon: Banknote, path: '/credit-system' },
+        { id: 'digital-payment', label: 'การชำระเงินดิจิทัล', icon: CardIcon, path: '/digital-payment' },
+        { id: 'qr-promptpay', label: 'QR Code PromptPay', icon: QrCode, path: '/qr-promptpay' },
+        { id: 'credit-card', label: 'บัตรเครดิต', icon: CreditCard, path: '/credit-card' },
+      ]
+    },
+    {
+      title: 'การ-ขายหมด',
+      items: [
         { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
       ]
     },
     {
-      title: 'ระบบออนไลน์',
+      title: 'ระบบขั้นสูง',
+      items: [
+        { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
+        { id: 'ai-analytics-dashboard', label: 'AI Analytics Dashboard', icon: Brain, path: '/ai-analytics-dashboard', isNew: true },
+        { id: 'predictive-analytics', label: 'วิเคราะห์พฤติกรรม', icon: Activity, path: '/predictive-analytics', isNew: true },
+        { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
+        { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
+      ]
+    },
+    {
+      title: 'ตำแหน่งอื่นๆรสาคัญ',
       items: [
         { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
         { id: 'online-orders', label: 'จัดการออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
         { id: 'customer-app-management', label: 'แอปลูกค้า', icon: Smartphone, path: '/customer-app-management' },
         { id: 'customer-mobile-app', label: 'จัดการแอปลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
         { id: 'delivery-integration', label: 'เชื่อมต่อแอปสั่งอาหาร', icon: Truck, path: '/delivery-integration' },
+        { id: 'api-system', label: 'ระบบ API', icon: Wifi, path: '/api-system' },
+        { id: 'external-integration', label: 'เชื่อมต่อระบบภายนอก', icon: Globe, path: '/external-integration' },
       ]
     },
     {
-      title: 'ระบบสำคัญ',
+      title: 'ระบบเครดิต',
       items: [
-        { id: 'ai-analytics-dashboard', label: 'AI Analytics', icon: Brain, path: '/ai-analytics-dashboard', isNew: true },
-        { id: 'predictive-analytics', label: 'วิเคราะห์พฤติกรรม', icon: Activity, path: '/predictive-analytics', isNew: true },
+        { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
+        { id: 'data-backup', label: 'สำรองข้อมูล', icon: HardDrive, path: '/data-backup' },
+        { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
+        { id: 'role-access', label: 'Role-based Access', icon: Lock, path: '/role-access' },
+        { id: 'access-control', label: 'จัดการสิทธิ์การเข้าถึง', icon: Shield, path: '/access-control' },
+      ]
+    },
+    {
+      title: 'ระบบ CRM',
+      items: [
+        { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
+        // New features grouped under CRM
+        { id: 'realtime-bi', label: 'Real-time Business Intelligence', icon: LineChart, path: '/realtime-bi', isNew: true },
+        { id: 'customer-segmentation', label: 'Customer Segmentation', icon: Target, path: '/customer-segmentation', isNew: true },
+        { id: 'profitability-analysis', label: 'Profitability Analysis', icon: TrendingUp, path: '/profitability-analysis', isNew: true },
+        { id: 'smart-recommendation', label: 'Smart Recommendation Engine', icon: Brain, path: '/smart-recommendation', isNew: true },
+        { id: 'smart-inventory-ai', label: 'Smart Inventory Management', icon: Package, path: '/smart-inventory-ai', isNew: true },
+        { id: 'pwa-app', label: 'Progressive Web App (PWA)', icon: Smartphone, path: '/pwa-app', isNew: true },
+        { id: 'gamification', label: 'Gamification System', icon: Target, path: '/gamification', isNew: true },
+        { id: 'virtual-loyalty', label: 'Virtual Loyalty Card', icon: CardIcon, path: '/virtual-loyalty', isNew: true },
+        { id: 'push-notifications', label: 'Push Notifications', icon: Bell, path: '/push-notifications', isNew: true },
+        { id: 'dark-mode', label: 'Dark Mode', icon: Palette, path: '/dark-mode', isNew: true },
+        { id: 'responsive-design', label: 'Responsive Design ที่ดีขึ้น', icon: Smartphone, path: '/responsive-design', isNew: true },
+        { id: 'drag-drop', label: 'Drag & Drop Interface', icon: MousePointer, path: '/drag-drop', isNew: true },
+        { id: 'advanced-filtering', label: 'Advanced Filtering', icon: Filter, path: '/advanced-filtering', isNew: true },
+        { id: 'keyboard-shortcuts', label: 'Keyboard Shortcuts', icon: Keyboard, path: '/keyboard-shortcuts', isNew: true },
+        { id: 'offline-first', label: 'Offline-First Architecture', icon: WifiOff, path: '/offline-first', isNew: true },
+        { id: 'smart-caching', label: 'Smart Caching', icon: Archive, path: '/smart-caching', isNew: true },
+        { id: 'image-optimization', label: 'Image Optimization', icon: Image, path: '/image-optimization', isNew: true },
+        { id: 'lazy-loading', label: 'Lazy Loading', icon: Zap, path: '/lazy-loading', isNew: true },
+        { id: 'cdn-integration', label: 'CDN Integration', icon: Server, path: '/cdn-integration', isNew: true },
+        { id: 'rbac-advanced', label: 'Role-Based Access Control ขั้นสูง', icon: Shield, path: '/rbac-advanced', isNew: true },
+        { id: 'fraud-detection', label: 'Fraud Detection', icon: AlertTriangle, path: '/fraud-detection', isNew: true },
+        { id: 'advanced-reporting-new', label: 'Advanced Reporting ใหม่', icon: BarChart3, path: '/advanced-reporting-new', isNew: true },
+        { id: 'custom-dashboards', label: 'Custom Dashboards', icon: PieChart, path: '/custom-dashboards', isNew: true },
+        { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export', isNew: true },
+        { id: 'automated-reports', label: 'Automated Reports', icon: Clock, path: '/automated-reports', isNew: true },
+        { id: 'kpi-monitoring', label: 'KPI Monitoring', icon: Target, path: '/kpi-monitoring', isNew: true },
+        { id: 'third-party-pos', label: 'Third-Party POS Integration', icon: Calculator, path: '/third-party-pos', isNew: true },
+        { id: 'accounting-integration', label: 'Accounting Software Integration', icon: Briefcase, path: '/accounting-integration', isNew: true },
+        { id: 'social-media-integration', label: 'Social Media Integration', icon: MessageCircle, path: '/social-media-integration', isNew: true },
+        { id: 'email-marketing-tools', label: 'Email Marketing Tools', icon: Mail, path: '/email-marketing-tools', isNew: true },
+        { id: 'webhook-support', label: 'Webhook Support', icon: Wifi, path: '/webhook-support', isNew: true },
+        { id: 'ab-testing', label: 'A/B Testing', icon: TestTube, path: '/ab-testing', isNew: true },
+        { id: 'customer-journey', label: 'Customer Journey Mapping', icon: Navigation2, path: '/customer-journey', isNew: true },
+        { id: 'retention-analytics', label: 'Retention Analytics', icon: UserCheck, path: '/retention-analytics', isNew: true },
+        { id: 'kitchen-display', label: 'Kitchen Display System', icon: ChefHat, path: '/kitchen-display', isNew: true },
+        { id: 'queue-management', label: 'Queue Management', icon: Users, path: '/queue-management', isNew: true },
+        { id: 'recipe-management', label: 'Recipe Management', icon: FlaskConical, path: '/recipe-management', isNew: true },
+        { id: 'allergen-tracking', label: 'Allergen Tracking', icon: Eye, path: '/allergen-tracking', isNew: true },
+        { id: 'barcode-scanner', label: 'Barcode Scanner', icon: ScanLine, path: '/barcode-scanner', isNew: true },
+        { id: 'camera-integration', label: 'Camera Integration', icon: Camera, path: '/camera-integration', isNew: true },
+        { id: 'gps-integration', label: 'GPS Integration', icon: Navigation, path: '/gps-integration', isNew: true },
       ]
     }
-  ];
-
-  // Remaining items (for backward compatibility - these will be added without categories)
-  const remainingItems = [
-    // POS และ Dashboard หลัก
-    { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
-    { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
-    
-    // ระบบจัดการหลัก
-    { id: 'sales-reports', label: 'รายงานยอดขาย', icon: BarChart, path: '/sales-reports' },
-    { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
-    { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
-    { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
-    { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
-    { id: 'permissions', label: 'กำหนดสิทธิ์', icon: Shield, path: '/permissions' },
-    { id: 'branch-management', label: 'จัดการสาขา', icon: MapPin, path: '/branch-management' },
-    
-    // ระบบการเงิน
-    { id: 'accounting', label: 'ระบบบัญชี', icon: Briefcase, path: '/accounting' },
-    { id: 'income-expense', label: 'รายรับ-รายจ่าย', icon: DollarSign, path: '/income-expense' },
-    { id: 'profit-loss', label: 'กำไร-ขาดทุน', icon: TrendingUp, path: '/profit-loss' },
-    { id: 'tax-system', label: 'ระบบภาษี', icon: Receipt, path: '/tax-system' },
-    { id: 'vat-calculation', label: 'คำนวณภาษีมูลค่าเพิ่ม', icon: CalculatorIcon, path: '/vat-calculation' },
-    { id: 'tax-invoice', label: 'ออกใบกำกับภาษี', icon: FileText, path: '/tax-invoice' },
-    { id: 'credit-system', label: 'ระบบเครดิต', icon: Banknote, path: '/credit-system' },
-    
-    // ระบบลูกค้า
-    { id: 'crm', label: 'ระบบ CRM', icon: UserCog, path: '/crm' },
-    { id: 'customer-data', label: 'ข้อมูลลูกค้า', icon: Users, path: '/customer-data' },
-    { id: 'purchase-history', label: 'ประวัติการซื้อ', icon: BookOpen, path: '/purchase-history' },
-    { id: 'marketing', label: 'ระบบการตลาด', icon: MessageCircle, path: '/marketing' },
-    { id: 'sms-marketing', label: 'SMS Marketing', icon: PhoneIcon, path: '/sms-marketing' },
-    { id: 'email-marketing', label: 'Email Marketing', icon: Mail, path: '/email-marketing' },
-    { id: 'table-reservation', label: 'ระบบจองโต๊ะ', icon: Calendar, path: '/table-reservation' },
-    
-    // ระบบเทคโนโลยี
-    { id: 'digital-payment', label: 'การชำระเงินดิจิทัล', icon: CardIcon, path: '/digital-payment' },
-    { id: 'qr-promptpay', label: 'QR Code PromptPay', icon: QrCode, path: '/qr-promptpay' },
-    { id: 'credit-card', label: 'บัตรเครดิต', icon: CreditCard, path: '/credit-card' },
-    { id: 'api-system', label: 'ระบบ API', icon: Wifi, path: '/api-system' },
-    { id: 'external-integration', label: 'เชื่อมต่อระบบภายนอก', icon: Globe, path: '/external-integration' },
-    { id: 'staff-mobile-app', label: 'Mobile App พนักงาน', icon: Smartphone, path: '/staff-mobile-app' },
-    
-    // ระบบรักษาความปลอดภัย
-    { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
-    { id: 'data-backup', label: 'สำรองข้อมูล', icon: HardDrive, path: '/data-backup' },
-    { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
-    { id: 'system-logs', label: 'ระบบ Log', icon: FileCheck, path: '/system-logs' },
-    { id: 'usage-logs', label: 'บันทึกการใช้งาน', icon: FileText, path: '/usage-logs' },
-    { id: 'role-access', label: 'Role-based Access', icon: Lock, path: '/role-access' },
-    { id: 'access-control', label: 'จัดการสิทธิ์การเข้าถึง', icon: Shield, path: '/access-control' },
-    
-    // 📊 ระบบวิเคราะห์และรายงานขั้นสูง (ใหม่ - สีแดง)
-    { id: 'realtime-bi', label: 'Real-time Business Intelligence', icon: LineChart, path: '/realtime-bi', isNew: true },
-    { id: 'customer-segmentation', label: 'Customer Segmentation', icon: Target, path: '/customer-segmentation', isNew: true },
-    { id: 'profitability-analysis', label: 'Profitability Analysis', icon: TrendingUp, path: '/profitability-analysis', isNew: true },
-    
-    // 🤖 ระบบ AI และ Automation (ใหม่ - สีแดง)
-    { id: 'smart-recommendation', label: 'Smart Recommendation Engine', icon: Brain, path: '/smart-recommendation', isNew: true },
-    { id: 'smart-inventory-ai', label: 'Smart Inventory Management', icon: Package, path: '/smart-inventory-ai', isNew: true },
-    
-    // 📱 ระบบลูกค้าขั้นสูง (ใหม่ - สีแดง)
-    { id: 'pwa-app', label: 'Progressive Web App (PWA)', icon: Smartphone, path: '/pwa-app', isNew: true },
-    { id: 'gamification', label: 'Gamification System', icon: Target, path: '/gamification', isNew: true },
-    { id: 'virtual-loyalty', label: 'Virtual Loyalty Card', icon: CardIcon, path: '/virtual-loyalty', isNew: true },
-    { id: 'push-notifications', label: 'Push Notifications', icon: Bell, path: '/push-notifications', isNew: true },
-    
-    // 🎨 UI/UX Enhancement (ใหม่ - สีแดง)
-    { id: 'dark-mode', label: 'Dark Mode', icon: Palette, path: '/dark-mode', isNew: true },
-    { id: 'responsive-design', label: 'Responsive Design ที่ดีขึ้น', icon: Smartphone, path: '/responsive-design', isNew: true },
-    { id: 'drag-drop', label: 'Drag & Drop Interface', icon: MousePointer, path: '/drag-drop', isNew: true },
-    { id: 'advanced-filtering', label: 'Advanced Filtering', icon: Filter, path: '/advanced-filtering', isNew: true },
-    { id: 'keyboard-shortcuts', label: 'Keyboard Shortcuts', icon: Keyboard, path: '/keyboard-shortcuts', isNew: true },
-    
-    // ⚡ Performance Optimization (ใหม่ - สีแดง)
-    { id: 'offline-first', label: 'Offline-First Architecture', icon: WifiOff, path: '/offline-first', isNew: true },
-    { id: 'smart-caching', label: 'Smart Caching', icon: Archive, path: '/smart-caching', isNew: true },
-    { id: 'image-optimization', label: 'Image Optimization', icon: Image, path: '/image-optimization', isNew: true },
-    { id: 'lazy-loading', label: 'Lazy Loading', icon: Zap, path: '/lazy-loading', isNew: true },
-    { id: 'cdn-integration', label: 'CDN Integration', icon: Server, path: '/cdn-integration', isNew: true },
-    
-    // 🔒 Security Enhancement (ใหม่ - สีแดง)
-    { id: 'rbac-advanced', label: 'Role-Based Access Control ขั้นสูง', icon: Shield, path: '/rbac-advanced', isNew: true },
-    { id: 'fraud-detection', label: 'Fraud Detection', icon: AlertTriangle, path: '/fraud-detection', isNew: true },
-    
-    // 📈 Business Intelligence (ใหม่ - สีแดง)
-    { id: 'advanced-reporting-new', label: 'Advanced Reporting ใหม่', icon: BarChart3, path: '/advanced-reporting-new', isNew: true },
-    { id: 'custom-dashboards', label: 'Custom Dashboards', icon: PieChart, path: '/custom-dashboards', isNew: true },
-    { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export', isNew: true },
-    { id: 'automated-reports', label: 'Automated Reports', icon: Clock, path: '/automated-reports', isNew: true },
-    { id: 'kpi-monitoring', label: 'KPI Monitoring', icon: Target, path: '/kpi-monitoring', isNew: true },
-    
-    // 🌐 Integration & API (ใหม่ - สีแดง)
-    { id: 'third-party-pos', label: 'Third-Party POS Integration', icon: Calculator, path: '/third-party-pos', isNew: true },
-    { id: 'accounting-integration', label: 'Accounting Software Integration', icon: Briefcase, path: '/accounting-integration', isNew: true },
-    { id: 'social-media-integration', label: 'Social Media Integration', icon: MessageCircle, path: '/social-media-integration', isNew: true },
-    { id: 'email-marketing-tools', label: 'Email Marketing Tools', icon: Mail, path: '/email-marketing-tools', isNew: true },
-    { id: 'webhook-support', label: 'Webhook Support', icon: Wifi, path: '/webhook-support', isNew: true },
-    
-    // 🎯 Marketing Automation (ใหม่ - สีแดง)
-    { id: 'ab-testing', label: 'A/B Testing', icon: TestTube, path: '/ab-testing', isNew: true },
-    { id: 'customer-journey', label: 'Customer Journey Mapping', icon: Navigation2, path: '/customer-journey', isNew: true },
-    { id: 'retention-analytics', label: 'Retention Analytics', icon: UserCheck, path: '/retention-analytics', isNew: true },
-    
-    // 🍽️ Restaurant-Specific Features (ใหม่ - สีแดง)
-    { id: 'kitchen-display', label: 'Kitchen Display System', icon: ChefHat, path: '/kitchen-display', isNew: true },
-    { id: 'queue-management', label: 'Queue Management', icon: Users, path: '/queue-management', isNew: true },
-    { id: 'recipe-management', label: 'Recipe Management', icon: FlaskConical, path: '/recipe-management', isNew: true },
-    { id: 'allergen-tracking', label: 'Allergen Tracking', icon: Eye, path: '/allergen-tracking', isNew: true },
-    
-    // 📱 Mobile Enhancements (ใหม่ - สีแดง)
-    { id: 'barcode-scanner', label: 'Barcode Scanner', icon: ScanLine, path: '/barcode-scanner', isNew: true },
-    { id: 'camera-integration', label: 'Camera Integration', icon: Camera, path: '/camera-integration', isNew: true },
-    { id: 'gps-integration', label: 'GPS Integration', icon: Navigation, path: '/gps-integration', isNew: true },
-    
-    // เมนูเดิมที่เหลือ
-    { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
-    { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
-    { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
-    { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
-    { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
-    { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
-    { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
-    { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
-    { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
-    { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
   ];
 
   const handleMenuClick = () => {
@@ -338,18 +345,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                     </div>
                   </div>
                 ))}
-                
-                {/* Remaining uncategorized items */}
-                <div>
-                  <div className="px-3 py-2">
-                    <h3 className="text-xs font-semibold text-coffee-600 uppercase tracking-wider">
-                      เพิ่มเติม
-                    </h3>
-                  </div>
-                  <div className="space-y-1">
-                    {remainingItems.map((item) => renderMenuItem(item))}
-                  </div>
-                </div>
               </nav>
             </div>
           </ScrollArea>
