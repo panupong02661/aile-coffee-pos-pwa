@@ -1,4 +1,3 @@
-
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,6 +42,8 @@ import IntelligentInventory from './pages/IntelligentInventory';
 import SmartMenuRecommendations from './pages/SmartMenuRecommendations';
 import AutomatedMarketing from './pages/AutomatedMarketing';
 import PWAApplication from './pages/PWAApplication';
+import GamificationSystem from './pages/GamificationSystem';
+import VirtualLoyaltyCard from './pages/VirtualLoyaltyCard';
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,8 @@ const App = () => (
               <Route path="/smart-menu" element={<SmartMenuRecommendations />} />
               <Route path="/automated-marketing" element={<AutomatedMarketing />} />
               <Route path="/pwa-app" element={<PWAApplication />} />
+              <Route path="/gamification" element={<GamificationSystem />} />
+              <Route path="/virtual-loyalty" element={<VirtualLoyaltyCard />} />
               
               {/* Routing สำหรับหน้าที่ยังไม่ได้สร้าง */}
               <Route path="/dynamic-pricing" element={<ComingSoon />} />
