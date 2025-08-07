@@ -1,5 +1,4 @@
 
-
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,6 +42,7 @@ import ProfitabilityAnalysis from './pages/ProfitabilityAnalysis';
 import IntelligentInventory from './pages/IntelligentInventory';
 import SmartMenuRecommendations from './pages/SmartMenuRecommendations';
 import AutomatedMarketing from './pages/AutomatedMarketing';
+import PWAApplication from './pages/PWAApplication';
 
 const queryClient = new QueryClient();
 
@@ -89,6 +89,7 @@ const App = () => (
               <Route path="/intelligent-inventory" element={<IntelligentInventory />} />
               <Route path="/smart-menu" element={<SmartMenuRecommendations />} />
               <Route path="/automated-marketing" element={<AutomatedMarketing />} />
+              <Route path="/pwa-app" element={<PWAApplication />} />
               
               {/* Routing สำหรับหน้าที่ยังไม่ได้สร้าง */}
               <Route path="/dynamic-pricing" element={<ComingSoon />} />
@@ -111,4 +112,3 @@ const App = () => (
 );
 
 export default App;
-
