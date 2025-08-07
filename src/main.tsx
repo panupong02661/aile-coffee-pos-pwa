@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
 import './index.css';
-import { registerServiceWorker } from './utils/pwa.ts';
+import { registerServiceWorker } from './utils/pwa';
 
 const container = document.getElementById("root");
 if (!container) {

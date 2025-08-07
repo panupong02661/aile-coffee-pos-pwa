@@ -8,9 +8,35 @@ import { Badge } from '@/components/ui/badge';
 interface HeaderProps {
   onToggleSidebar: () => void;
   title?: string;
+  page?: string;
+  categories?: any[];
+  selectedCategory?: string;
+  onCategorySelect?: (category: string) => void;
+  gridColumns?: number;
+  setGridColumns?: (columns: number) => void;
+  itemSize?: string;
+  setItemSize?: (size: string) => void;
+  onMemberClick?: () => void;
+  selectedMember?: any;
+  onRemoveMember?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar, title = "Coffee POS" }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onToggleSidebar, 
+  title = "Coffee POS",
+  page,
+  categories,
+  selectedCategory,
+  onCategorySelect,
+  gridColumns,
+  setGridColumns,
+  itemSize,
+  setItemSize,
+  onMemberClick,
+  selectedMember,
+  onRemoveMember,
+  ...otherProps
+}) => {
   return (
     <header className="h-16 border-b bg-white flex items-center justify-between px-4 sticky top-0 z-50">
       <div className="flex items-center space-x-4">
