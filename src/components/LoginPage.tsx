@@ -1,133 +1,105 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { Coffee, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Coffee, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('admin@coffee.com');
-  const [password, setPassword] = useState('password');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const success = await login(email, password);
-      
-      if (success) {
-        toast({
-          title: "เข้าสู่ระบบสำเร็จ! 🎉",
-          description: "ยินดีต้อนรับสู่ระบบ Coffee POS",
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "เข้าสู่ระบบล้มเหลว",
-          description: "กรุณาตรวจสอบอีเมลและรหัสผ่าน",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    setLoading(true);
+    
+    const success = await login(username, password);
+    if (success) {
+      navigate('/');
     }
+    
+    setLoading(false);
   };
 
+  const bgPattern = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L40 20L20 40L0 20L20 0Z' fill='%23f5f5f0' opacity='0.1'/%3E%3C/svg%3E";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary rounded-full">
-              <Coffee className="w-8 h-8 text-white" />
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-coffee-50 via-cream-50 to-coffee-100 flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-repeat opacity-20"
+        style={{ backgroundImage: `url("${bgPattern}")` }}
+      ></div>
+      
+      <Card className="w-full max-w-md shadow-2xl border-coffee-200 bg-white/95 backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center pb-6">
+          <div className="mx-auto mb-4 w-16 h-16 bg-coffee-600 rounded-full flex items-center justify-center shadow-lg">
+            <Coffee className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">เข้าสู่ระบบ</CardTitle>
-          <CardDescription>
-            ระบบจัดการร้านกาแฟ Coffee POS
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-coffee-800">
+            Aile Coffee POS
+          </CardTitle>
+          <p className="text-coffee-600 mt-2">เข้าสู่ระบบจุดขาย</p>
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">อีเมล</Label>
+              <Label htmlFor="username" className="text-coffee-700 font-medium">
+                ชื่อผู้ใช้งาน
+              </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <User className="absolute left-3 top-3 w-4 h-4 text-coffee-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="กรอกอีเมลของคุณ"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 h-12 border-coffee-200 focus:border-coffee-500 focus:ring-coffee-200"
+                  placeholder="กรอกชื่อผู้ใช้งาน"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">รหัสผ่าน</Label>
+              <Label htmlFor="password" className="text-coffee-700 font-medium">
+                รหัสผ่าน
+              </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-3 w-4 h-4 text-coffee-400" />
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="กรอกรหัสผ่านของคุณ"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 h-12 border-coffee-200 focus:border-coffee-500 focus:ring-coffee-200"
+                  placeholder="กรอกรหัสผ่าน"
                   required
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-coffee-600 hover:bg-coffee-700 text-white font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
+              disabled={loading}
             >
-              {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+              {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm text-center text-muted-foreground mb-2">
-              ข้อมูลสำหรับทดสอบ:
-            </p>
-            <div className="text-xs space-y-1">
-              <p><strong>Admin:</strong> admin@coffee.com / password</p>
-              <p><strong>Staff:</strong> staff@coffee.com / password</p>
+          <div className="mt-6 text-center text-sm text-coffee-500">
+            <p className="mb-2">ระดับผู้ใช้งาน:</p>
+            <div className="space-y-1">
+              <p><span className="font-medium text-coffee-700">Admin:</span> ผู้ดูแลระบบ</p>
+              <p><span className="font-medium text-coffee-700">Manager:</span> ผู้จัดการ</p>
+              <p><span className="font-medium text-coffee-700">Staff:</span> พนักงาน</p>
             </div>
           </div>
         </CardContent>
