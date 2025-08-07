@@ -63,8 +63,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <GlobalNotificationProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <GlobalNotificationProvider>
             <div className="min-h-screen bg-background">
               <Toaster />
               <Routes>
@@ -125,8 +125,8 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
-          </BrowserRouter>
-        </GlobalNotificationProvider>
+          </GlobalNotificationProvider>
+        </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
   );
