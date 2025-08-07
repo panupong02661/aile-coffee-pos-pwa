@@ -100,20 +100,51 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/notifications'
   ];
   
-  const menuItems = [
+  const menuCategories = [
+    {
+      title: 'หน้าหลัก',
+      items: [
+        { id: 'dashboard', label: 'หน้าแรก', icon: BarChart3, path: '/dashboard' },
+        { id: 'advanced-reports', label: 'แดชบอร์ด', icon: TrendingUp, path: '/advanced-reports' },
+        { id: 'pos', label: 'ขายหน้าร้าน (POS)', icon: Calculator, path: '/' },
+      ]
+    },
+    {
+      title: 'จัดการร้อง',
+      items: [
+        { id: 'inventory', label: 'จัดการสต็อก', icon: Package, path: '/inventory' },
+        { id: 'menu', label: 'จัดการสินค้า', icon: MenuIcon, path: '/menu' },
+        { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
+        { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
+        { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
+      ]
+    },
+    {
+      title: 'ระบบออนไลน์',
+      items: [
+        { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
+        { id: 'online-orders', label: 'จัดการออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
+        { id: 'customer-app-management', label: 'แอปลูกค้า', icon: Smartphone, path: '/customer-app-management' },
+        { id: 'customer-mobile-app', label: 'จัดการแอปลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
+        { id: 'delivery-integration', label: 'เชื่อมต่อแอปสั่งอาหาร', icon: Truck, path: '/delivery-integration' },
+      ]
+    },
+    {
+      title: 'ระบบสำคัญ',
+      items: [
+        { id: 'ai-analytics-dashboard', label: 'AI Analytics', icon: Brain, path: '/ai-analytics-dashboard', isNew: true },
+        { id: 'predictive-analytics', label: 'วิเคราะห์พฤติกรรม', icon: Activity, path: '/predictive-analytics', isNew: true },
+      ]
+    }
+  ];
+
+  // Remaining items (for backward compatibility - these will be added without categories)
+  const remainingItems = [
     // POS และ Dashboard หลัก
-    { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
-    { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
-    { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
-    { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
     { id: 'tables', label: 'จัดการโต๊ะ', icon: Table, path: '/tables' },
-    { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
-    { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
-    { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
     
     // ระบบจัดการหลัก
-    { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: TrendingUp, path: '/advanced-reports' },
     { id: 'sales-reports', label: 'รายงานยอดขาย', icon: BarChart, path: '/sales-reports' },
     { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
     { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
@@ -147,7 +178,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'api-system', label: 'ระบบ API', icon: Wifi, path: '/api-system' },
     { id: 'external-integration', label: 'เชื่อมต่อระบบภายนอก', icon: Globe, path: '/external-integration' },
     { id: 'staff-mobile-app', label: 'Mobile App พนักงาน', icon: Smartphone, path: '/staff-mobile-app' },
-    { id: 'customer-mobile-app', label: 'แอปมือถือลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
     
     // ระบบรักษาความปลอดภัย
     { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
@@ -159,8 +189,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'access-control', label: 'จัดการสิทธิ์การเข้าถึง', icon: Shield, path: '/access-control' },
     
     // 📊 ระบบวิเคราะห์และรายงานขั้นสูง (ใหม่ - สีแดง)
-    { id: 'ai-analytics-dashboard', label: 'AI Analytics Dashboard', icon: Brain, path: '/ai-analytics-dashboard', isNew: true },
-    { id: 'predictive-analytics', label: 'Predictive Analytics', icon: Activity, path: '/predictive-analytics', isNew: true },
     { id: 'realtime-bi', label: 'Real-time Business Intelligence', icon: LineChart, path: '/realtime-bi', isNew: true },
     { id: 'customer-segmentation', label: 'Customer Segmentation', icon: Target, path: '/customer-segmentation', isNew: true },
     { id: 'profitability-analysis', label: 'Profitability Analysis', icon: TrendingUp, path: '/profitability-analysis', isNew: true },
@@ -224,8 +252,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'gps-integration', label: 'GPS Integration', icon: Navigation, path: '/gps-integration', isNew: true },
     
     // เมนูเดิมที่เหลือ
-    { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
-    { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'advanced', label: 'ระบบขั้นสูง', icon: Cog, path: '/advanced' },
     { id: 'advanced-payment', label: 'ชำระเงินขั้นสูง', icon: CreditCard, path: '/advanced-payment' },
     { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
@@ -233,8 +259,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
     { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
-    { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-    { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
     { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
@@ -242,6 +266,38 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
 
   const handleMenuClick = () => {
     onClose();
+  };
+
+  const renderMenuItem = (item: any) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.path;
+    const hasPage = existingPages.includes(item.path);
+    const isNew = item.isNew || false;
+    
+    return (
+      <Link
+        key={item.id}
+        to={item.path}
+        onClick={handleMenuClick}
+        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+          isActive
+            ? 'bg-coffee-600 text-white'
+            : hasPage 
+              ? 'text-coffee-700 hover:bg-coffee-50'
+              : isNew
+                ? 'text-red-600 hover:bg-red-50'
+                : 'text-black hover:bg-coffee-50'
+        }`}
+      >
+        <Icon className="w-4 h-4" />
+        <span>{item.label}</span>
+        {isNew && (
+          <span className="ml-auto text-xs bg-red-500 text-white px-2 py-1 rounded-full">
+            NEW
+          </span>
+        )}
+      </Link>
+    );
   };
 
   return (
@@ -268,38 +324,32 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           
           <ScrollArea className="h-[calc(100vh-200px)]">
             <div className="p-2 pb-80 md:pb-16">
-              <nav className="space-y-1">
-                {menuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  const hasPage = existingPages.includes(item.path);
-                  const isNew = item.isNew || false;
-                  
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.path}
-                      onClick={handleMenuClick}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
-                        isActive
-                          ? 'bg-coffee-600 text-white'
-                          : hasPage 
-                            ? 'text-coffee-700 hover:bg-coffee-50'
-                            : isNew
-                              ? 'text-red-600 hover:bg-red-50'
-                              : 'text-black hover:bg-coffee-50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                      {isNew && (
-                        <span className="ml-auto text-xs bg-red-500 text-white px-2 py-1 rounded-full">
-                          NEW
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
+              <nav className="space-y-4">
+                {/* Categorized Menu Items */}
+                {menuCategories.map((category) => (
+                  <div key={category.title}>
+                    <div className="px-3 py-2">
+                      <h3 className="text-xs font-semibold text-coffee-600 uppercase tracking-wider">
+                        {category.title}
+                      </h3>
+                    </div>
+                    <div className="space-y-1">
+                      {category.items.map((item) => renderMenuItem(item))}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Remaining uncategorized items */}
+                <div>
+                  <div className="px-3 py-2">
+                    <h3 className="text-xs font-semibold text-coffee-600 uppercase tracking-wider">
+                      เพิ่มเติม
+                    </h3>
+                  </div>
+                  <div className="space-y-1">
+                    {remainingItems.map((item) => renderMenuItem(item))}
+                  </div>
+                </div>
               </nav>
             </div>
           </ScrollArea>
