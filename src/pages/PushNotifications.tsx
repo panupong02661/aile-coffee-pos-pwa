@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import Header from '@/components/Header';
@@ -26,7 +25,7 @@ import {
   Volume2,
   VolumeX,
   Smartphone,
-  Desktop,
+  Monitor,
   CheckCircle,
   AlertCircle,
   Info,
@@ -176,11 +175,7 @@ const PushNotifications = () => {
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         tag: `test-${template.id}`,
-        requireInteraction: true,
-        actions: [
-          { action: 'view', title: 'ดูรายละเอียด' },
-          { action: 'dismiss', title: 'ปิด' }
-        ]
+        requireInteraction: true
       });
 
       toast({
