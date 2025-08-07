@@ -1,214 +1,197 @@
 
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React from 'react';
+import { Shell } from '@/components/Shell';
+import Header from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shell } from '@/components/Shell';
+import { useState } from 'react';
 import { 
   Rocket, 
   Clock, 
   Star, 
-  Bell,
-  BrainCircuit,
+  CheckCircle, 
+  Coffee, 
   Zap,
-  Shield,
-  TrendingUp
+  Heart,
+  Target
 } from 'lucide-react';
 
 const ComingSoon = () => {
-  const location = useLocation();
-  const [isNotified, setIsNotified] = useState(false);
-  
-  // Get feature info based on current path
-  const getFeatureInfo = () => {
-    const path = location.pathname;
-    
-    // Feature categories mapping
-    const featureMap: Record<string, { title: string; description: string; category: string; icon: any; eta: string }> = {
-      // 📊 ระบบวิเคราะห์และรายงานขั้นสูง
-      '/ai-analytics-dashboard': {
-        title: 'AI Analytics Dashboard',
-        description: 'วิเคราะห์พฤติกรรมลูกค้าด้วยเทคโนโลยี AI ขั้นสูง เพื่อให้ข้อมูลเชิงลึกสำหรับการตัดสินใจทางธุรกิจ',
-        category: 'ระบบวิเคราะห์และรายงานขั้นสูง',
-        icon: BrainCircuit,
-        eta: 'Q2 2025'
-      },
-      '/predictive-analytics': {
-        title: 'Predictive Analytics',
-        description: 'คาดการณ์ยอดขายและความต้องการสินค้าในอนาคต ช่วยวางแผนธุรกิจให้แม่นยำขึ้น',
-        category: 'ระบบวิเคราะห์และรายงานขั้นสูง',
-        icon: TrendingUp,
-        eta: 'Q2 2025'
-      },
-      '/realtime-bi': {
-        title: 'Real-time Business Intelligence',
-        description: 'ดูข้อมูลสดๆ แบบ Real-time พร้อมแดชบอร์ดที่อัปเดตทันที',
-        category: 'ระบบวิเคราะห์และรายงานขั้นสูง',
-        icon: Zap,
-        eta: 'Q1 2025'
-      },
-      '/customer-segmentation': {
-        title: 'Customer Segmentation',
-        description: 'จัดกลุ่มลูกค้าตามพฤติกรรมการซื้อ เพื่อสร้างกลยุทธ์การตลาดที่เหมาะสม',
-        category: 'ระบบวิเคราะห์และรายงานขั้นสูง',
-        icon: Star,
-        eta: 'Q2 2025'
-      },
-      '/profitability-analysis': {
-        title: 'Profitability Analysis',
-        description: 'วิเคราะห์กำไรรายสินค้าและหมวดหมู่อย่างละเอียด',
-        category: 'ระบบวิเคราะห์และรายงานขั้นสูง',
-        icon: TrendingUp,
-        eta: 'Q1 2025'
-      },
-      
-      // Default for other new features
-      default: {
-        title: 'ฟีเจอร์ใหม่',
-        description: 'ฟีเจอร์นี้กำลังอยู่ในระหว่างการพัฒนา เร็วๆ นี้',
-        category: 'ระบบใหม่',
-        icon: Rocket,
-        eta: 'Q2 2025'
-      }
-    };
-    
-    return featureMap[path] || featureMap.default;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const upcomingFeatures = [
+    {
+      id: 1,
+      title: "ระบบ AI สำหรับพยากรณ์ยอดขาย",
+      description: "ใช้ AI วิเคราะห์ข้อมูลเพื่อพยากรณ์ยอดขายและแนะนำกลยุทธ์การขาย",
+      icon: Zap,
+      status: "กำลังพัฒนา",
+      progress: 75,
+      eta: "เดือนหน้า"
+    },
+    {
+      id: 2,
+      title: "ระบบจองโต๊ะออนไลน์",
+      description: "ให้ลูกค้าสามารถจองโต๊ะล่วงหน้าผ่านแอปมือถือ",
+      icon: Target,
+      status: "วางแผน",
+      progress: 30,
+      eta: "2 เดือน"
+    },
+    {
+      id: 3,
+      title: "ระบบรีวิวและคะแนน",
+      description: "ให้ลูกค้าสามารถให้คะแนนและรีวิวเมนูต่าง ๆ",
+      icon: Star,
+      status: "วางแผน",
+      progress: 15,
+      eta: "3 เดือน"
+    },
+    {
+      id: 4,
+      title: "ระบบแชทบอทอัจฉริยะ",
+      description: "บอทตอบคำถามและช่วยลูกค้าสั่งเมนูอัตโนมัติ",
+      icon: Heart,
+      status: "ไอเดีย",
+      progress: 5,
+      eta: "4 เดือน"
+    }
+  ];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "กำลังพัฒนา":
+        return <Badge className="bg-blue-500">กำลังพัฒนา</Badge>;
+      case "วางแผน":
+        return <Badge variant="secondary">วางแผน</Badge>;
+      case "ไอเดีย":
+        return <Badge variant="outline">ไอเดีย</Badge>;
+      default:
+        return <Badge>อื่น ๆ</Badge>;
+    }
   };
-  
-  const feature = getFeatureInfo();
-  const FeatureIcon = feature.icon;
-  
-  const handleNotifyMe = () => {
-    setIsNotified(true);
-    // Here you could implement actual notification logic
-    setTimeout(() => {
-      setIsNotified(false);
-    }, 3000);
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 70) return "bg-green-500";
+    if (progress >= 40) return "bg-blue-500";
+    if (progress >= 20) return "bg-yellow-500";
+    return "bg-gray-300";
   };
-  
+
   return (
     <Shell>
-      <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-4 bg-gradient-to-br from-orange-100 to-red-100 rounded-full">
-              <FeatureIcon className="w-12 h-12 text-red-600" />
+      <div className="h-screen bg-background flex">
+        <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        
+        <div className={`flex-1 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        }`}>
+          <Header 
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            title="ฟีเจอร์ที่กำลังจะมา"
+          />
+          
+          <div className="p-6 space-y-6">
+            {/* Hero Section */}
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-blue-500 rounded-full">
+                    <Rocket className="w-12 h-12 text-white" />
+                  </div>
+                </div>
+                <CardTitle className="text-3xl font-bold text-blue-700">
+                  ฟีเจอร์ใหม่กำลังมา! 🚀
+                </CardTitle>
+                <CardDescription className="text-lg text-blue-600">
+                  เรากำลังพัฒนาฟีเจอร์ใหม่ ๆ ที่จะทำให้ระบบของคุณทรงพลังขึ้น
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="text-center">
+                <div className="flex items-center justify-center space-x-6 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Coffee className="w-5 h-5 text-blue-500" />
+                    <span>ฟีเจอร์ที่กำลังพัฒนา: <strong>4 ฟีเจอร์</strong></span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-5 h-5 text-blue-500" />
+                    <span>ฟีเจอร์ถัดไป: <strong>เดือนหน้า</strong></span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Features List */}
+            <div className="grid gap-6">
+              <h2 className="text-2xl font-bold">ฟีเจอร์ที่กำลังพัฒนา</h2>
+              
+              {upcomingFeatures.map((feature) => (
+                <Card key={feature.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <feature.icon className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">{feature.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {feature.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <div className="text-right space-y-2">
+                        {getStatusBadge(feature.status)}
+                        <p className="text-sm text-muted-foreground">
+                          ETA: {feature.eta}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>ความคืบหน้า</span>
+                        <span className="font-medium">{feature.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(feature.progress)}`}
+                          style={{ width: `${feature.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+
+            {/* Newsletter Section */}
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl text-green-700">
+                  🔔 อยากรับข่าวสารอัพเดตใหม่ ๆ ?
+                </CardTitle>
+                <CardDescription className="text-green-600">
+                  เราจะแจ้งให้ทราบทันทีเมื่อฟีเจอร์ใหม่พร้อมใช้งาน
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="text-center">
+                <Button className="bg-green-500 hover:bg-green-600">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  เปิดการแจ้งเตือน
+                </Button>
+                <p className="text-xs text-green-600 mt-2">
+                  คุณจะได้รับการแจ้งเตือนผ่านระบบ Push Notification
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          
-          <Badge variant="destructive" className="mb-4">
-            🚧 กำลังพัฒนา
-          </Badge>
-          
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {feature.title}
-          </h1>
-          
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
-            {feature.description}
-          </p>
-          
-          <div className="flex justify-center items-center space-x-4 mb-8">
-            <Badge variant="outline" className="text-sm">
-              📂 {feature.category}
-            </Badge>
-            <Badge variant="outline" className="text-sm">
-              ⏰ ETA: {feature.eta}
-            </Badge>
-          </div>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-orange-500" />
-                <span>สถานะการพัฒนา</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">วางแผน</span>
-                  <Badge variant="default">✅ เสร็จสิ้น</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ออกแบบ UI/UX</span>
-                  <Badge variant="default">🔄 กำลังดำเนินการ</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">พัฒนาระบบ</span>
-                  <Badge variant="secondary">⏳ รอดำเนินการ</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">ทดสอบระบบ</span>
-                  <Badge variant="secondary">⏳ รอดำเนินการ</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                <span>คุณสมบัติเด่น</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>ใช้งานง่าย เหมาะกับผู้ใช้ทุกระดับ</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>ความเร็วสูง ประสิทธิภาพดี</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>รองรับการใช้งานบนมือถือ</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>เชื่อมต่อกับระบบเดิมได้อย่างราบรื่น</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <Card className="text-center">
-          <CardHeader>
-            <CardTitle>อยากได้รับแจ้งเตือนเมื่อฟีเจอร์นี้พร้อมใช้งาน?</CardTitle>
-            <CardDescription>
-              เราจะแจ้งให้คุณทราบทันทีเมื่อฟีเจอร์นี้พร้อมใช้งาน
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={handleNotifyMe}
-              disabled={isNotified}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isNotified ? (
-                <>
-                  <Bell className="w-4 h-4 mr-2" />
-                  แจ้งเตือนแล้ว ✅
-                </>
-              ) : (
-                <>
-                  <Bell className="w-4 h-4 mr-2" />
-                  แจ้งเตือนฉันเมื่อพร้อมใช้งาน
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>ติดตามความคืบหน้าได้ที่แดชบอร์ดหลัก หรือสอบถามทีมพัฒนาได้ตลอดเวลา</p>
         </div>
       </div>
     </Shell>

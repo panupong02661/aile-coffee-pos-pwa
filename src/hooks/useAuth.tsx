@@ -1,118 +1,107 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Simple types to avoid conflicts
-type UserRole = 'admin' | 'manager' | 'staff';
-
-// Renamed to avoid any conflicts with built-in types
-interface AuthUser {
+interface User {
   id: string;
-  username: string;
-  full_name?: string;
-  role: UserRole;
-  avatar_url?: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'staff' | 'owner';
+  avatar?: string;
+  shopId?: string;
 }
 
 interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    // Check for stored auth data on app start
+    const storedUser = localStorage.getItem('coffee_pos_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('coffee_pos_user');
+      }
     }
-    setLoading(false);
+    setIsLoading(false);
   }, []);
 
-  const showToast = (title: string, description: string, variant?: 'default' | 'destructive') => {
-    // Simple console log for now to avoid toast dependency issues
-    console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`);
-  };
-
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    // Mock authentication - in real app, this would call an API
     try {
-      // Use a more explicit query structure to avoid type issues
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, username, role, password_hash')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Database error:', error);
-        showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
-        return false;
-      }
-
-      if (!data) {
-        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
-        return false;
-      }
-
-      // Simple password check (in production, use proper password hashing)
-      if (password !== 'admin') {
-        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
-        return false;
-      }
-
-      // Create user object with explicit typing
-      const userData: AuthUser = {
-        id: data.id,
-        username: data.username,
-        full_name: getLevelDisplayName(data.role as UserRole),
-        role: data.role as UserRole,
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock user data based on email
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: email === 'admin@coffee.com' ? 'ผู้ดูแลระบบ' : 'พนักงาน',
+        role: email === 'admin@coffee.com' ? 'admin' : 'staff',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
+        shopId: 'shop_001'
       };
 
-      setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      // Simple validation
+      if (email && password) {
+        setUser(mockUser);
+        localStorage.setItem('coffee_pos_user', JSON.stringify(mockUser));
+        setIsLoading(false);
+        return true;
+      }
       
-      showToast('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว');
-      return true;
+      setIsLoading(false);
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
+      setIsLoading(false);
       return false;
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
-    showToast('สำเร็จ', 'ออกจากระบบเรียบร้อยแล้ว');
+    localStorage.removeItem('coffee_pos_user');
   };
 
-  const getLevelDisplayName = (role: UserRole): string => {
-    switch (role) {
-      case 'admin': return 'ผู้ดูแลระบบ';
-      case 'manager': return 'ผู้จัดการ';
-      case 'staff': return 'พนักงาน';
-      default: return 'ผู้ใช้งาน';
-    }
+  const value: AuthContextType = {
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isLoading
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
