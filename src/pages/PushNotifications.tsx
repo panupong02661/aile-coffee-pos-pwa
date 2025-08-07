@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Shell } from '@/components/Shell';
 import Header from '@/components/Header';
@@ -5,12 +6,7 @@ import MainSidebar from '@/components/MainSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,23 +18,22 @@ import {
   Calendar,
   Target,
   MessageSquare,
-  Volume2,
-  VolumeX,
-  Smartphone,
-  Monitor,
   CheckCircle,
   AlertCircle,
   Info,
   Gift,
   Coffee,
-  ShoppingCart,
   Star,
-  Zap,
-  Heart,
   TrendingUp,
-  User,
-  Globe
+  Heart,
+  Crown,
+  History,
+  BarChart
 } from 'lucide-react';
+
+import { NotificationService, NotificationTemplate, ScheduledNotification } from '@/components/notifications/NotificationService';
+import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import { NotificationScheduler } from '@/components/notifications/NotificationScheduler';
 
 const PushNotifications = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -51,19 +46,21 @@ const PushNotifications = () => {
     system: true,
     marketing: false
   });
-  const [subscribers, setSubscribers] = useState(1247);
-  const [sentNotifications, setSentNotifications] = useState(8934);
-  const [openRate, setOpenRate] = useState(68.5);
+  const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
+  const [stats, setStats] = useState({
+    subscribers: 1247,
+    sentNotifications: 8934,
+    openRate: 68.5
+  });
   const { toast } = useToast();
 
-  // Mock notification templates
-  const templates = [
+  // Notification templates
+  const templates: NotificationTemplate[] = [
     {
       id: 'order_ready',
       name: 'ออเดอร์พร้อม',
       title: 'ออเดอร์ของคุณพร้อมแล้ว! ☕',
       body: 'กรุณามารับออเดอร์ที่เคาน์เตอร์',
-      icon: Coffee,
       category: 'orders',
       usage: 234
     },
@@ -72,7 +69,6 @@ const PushNotifications = () => {
       name: 'โปรโมชั่นพิเศษ',
       title: 'ส่วนลด 30% วันนี้เท่านั้น! 🎉',
       body: 'รีบมาก่อนหมดเวลา 18:00 น.',
-      icon: Gift,
       category: 'promotions',
       usage: 189
     },
@@ -81,7 +77,6 @@ const PushNotifications = () => {
       name: 'เมนูใหม่',
       title: 'เมนูใหม่มาแล้ว! 🆕',
       body: 'ลองชิมเมนูใหม่พิเศษของเรา',
-      icon: Star,
       category: 'marketing',
       usage: 156
     },
@@ -90,94 +85,81 @@ const PushNotifications = () => {
       name: 'แต้มสะสม',
       title: 'คุณได้รับแต้ม! ⭐',
       body: 'แต้มสะสมของคุณ +50 แต้ม',
-      icon: Heart,
       category: 'orders',
       usage: 298
+    },
+    {
+      id: 'birthday_special',
+      name: 'วันเกิดพิเศษ',
+      title: 'สุขสันต์วันเกิด! 🎂',
+      body: 'รับกาแฟฟรี 1 แก้วในวันพิเศษของคุณ',
+      category: 'promotions',
+      usage: 67
+    },
+    {
+      id: 'inventory_alert',
+      name: 'แจ้งเตือนสต็อก',
+      title: 'สินค้าใกล้หมด! ⚠️',
+      body: 'กาแฟ Arabica เหลือ 5 ถุง',
+      category: 'inventory',
+      usage: 45
     }
   ];
 
-  // Mock scheduled notifications
-  const [scheduledNotifications, setScheduledNotifications] = useState([
-    {
-      id: 'SCH001',
-      title: 'Happy Hour เริ่มแล้ว! 🎉',
-      message: 'ส่วนลด 25% เวลา 14:00-16:00 น.',
-      scheduledTime: '2024-01-08 14:00',
-      status: 'scheduled',
-      recipients: 'all_customers',
-      recipientCount: 1247
-    },
-    {
-      id: 'SCH002',
-      title: 'อย่าลืมมารับออเดอร์นะคะ ☕',
-      message: 'ออเดอร์ของคุณรออยู่ที่เคาน์เตอร์',
-      scheduledTime: '2024-01-08 16:30',
-      status: 'sent',
-      recipients: 'specific_users',
-      recipientCount: 5
-    },
-    {
-      id: 'SCH003',
-      title: 'เมนูใหม่พรุ่งนี้! 🆕',
-      message: 'เตรียมตัวให้พร้อมกับรสชาติใหม่',
-      scheduledTime: '2024-01-09 10:00',
-      status: 'scheduled',
-      recipients: 'vip_customers',
-      recipientCount: 89
-    }
-  ]);
-
   // Mock analytics data
-  const [analyticsData] = useState({
+  const analyticsData = {
     today: { sent: 45, delivered: 43, opened: 31, clicked: 12 },
     week: { sent: 289, delivered: 276, opened: 189, clicked: 78 },
     month: { sent: 1156, delivered: 1089, opened: 746, clicked: 298 }
-  });
+  };
 
   useEffect(() => {
-    // Check notification permission
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
+    // Initialize notification service and get current stats
+    const serviceStats = NotificationService.getStats();
+    setNotificationPermission(serviceStats.permission);
+    setIsServiceWorkerReady(serviceStats.serviceWorkerReady);
+    setStats({
+      subscribers: serviceStats.subscribers,
+      sentNotifications: serviceStats.sentNotifications,
+      openRate: 68.5
+    });
 
-    // Check service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(registration => {
-        setIsServiceWorkerReady(!!registration);
-      });
+    // Load scheduled notifications
+    const scheduled = NotificationService.getScheduledNotifications();
+    setScheduledNotifications(scheduled);
+
+    // Load notification settings
+    const savedSettings = localStorage.getItem('notificationSettings');
+    if (savedSettings) {
+      setNotificationSettings(JSON.parse(savedSettings));
     }
   }, []);
 
   const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      
-      if (permission === 'granted') {
-        toast({
-          title: "สิทธิ์การแจ้งเตือนได้รับอนุญาต! ✅",
-          description: "ตั้งแต่นี้คุณจะได้รับการแจ้งเตือนจากแอป",
-        });
-      } else {
-        toast({
-          title: "ไม่สามารถขอสิทธิ์ได้",
-          description: "กรุณาอนุญาตการแจ้งเตือนในการตั้งค่าเบราว์เซอร์",
-          variant: "destructive"
-        });
-      }
+    const permission = await NotificationService.requestPermission();
+    setNotificationPermission(permission);
+    
+    if (permission === 'granted') {
+      toast({
+        title: "สิทธิ์การแจ้งเตือนได้รับอนุญาต! ✅",
+        description: "ตั้งแต่นี้คุณจะได้รับการแจ้งเตือนจากแอป",
+      });
+    } else {
+      toast({
+        title: "ไม่สามารถขอสิทธิ์ได้",
+        description: "กรุณาอนุญาตการแจ้งเตือนในการตั้งค่าเบราว์เซอร์",
+        variant: "destructive"
+      });
     }
   };
 
-  const sendTestNotification = (template: typeof templates[0]) => {
-    if (notificationPermission === 'granted') {
-      new Notification(template.title, {
-        body: template.body,
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        tag: `test-${template.id}`,
-        requireInteraction: true
-      });
-
+  const sendTestNotification = (template: NotificationTemplate) => {
+    const success = NotificationService.sendTestNotification(template);
+    
+    if (success) {
+      // Update template usage
+      template.usage += 1;
+      
       toast({
         title: "ส่งการแจ้งเตือนทดสอบแล้ว! 📱",
         description: `ใช้เทมเพลต: ${template.name}`,
@@ -191,30 +173,51 @@ const PushNotifications = () => {
     }
   };
 
-  const sendBulkNotification = (notification: typeof scheduledNotifications[0]) => {
-    // Simulate sending bulk notification
-    setScheduledNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, status: 'sent' } : n)
-    );
-    
-    setSentNotifications(prev => prev + notification.recipientCount);
-    
-    toast({
-      title: "ส่งการแจ้งเตือนสำเร็จ! 🎉",
-      description: `ส่งไปยัง ${notification.recipientCount} ผู้รับ`,
-    });
+  const sendBulkNotification = async (notification: ScheduledNotification) => {
+    try {
+      const success = await NotificationService.sendBulkNotification({
+        title: notification.title,
+        message: notification.message,
+        recipients: notification.recipients,
+        recipientCount: notification.recipientCount
+      });
+
+      if (success) {
+        // Update notification status
+        NotificationService.updateScheduledNotification(notification.id, 'sent');
+        
+        // Refresh scheduled notifications
+        const updated = NotificationService.getScheduledNotifications();
+        setScheduledNotifications(updated);
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          sentNotifications: prev.sentNotifications + notification.recipientCount
+        }));
+        
+        toast({
+          title: "ส่งการแจ้งเตือนสำเร็จ! 🎉",
+          description: `ส่งไปยัง ${notification.recipientCount} ผู้รับ`,
+        });
+      }
+    } catch (error) {
+      NotificationService.updateScheduledNotification(notification.id, 'failed');
+      toast({
+        title: "ส่งการแจ้งเตือนล้มเหลว",
+        description: "กรุณาลองใหม่อีกครั้ง",
+        variant: "destructive"
+      });
+    }
   };
 
-  const toggleNotificationSetting = (key: string) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof typeof prev]
-    }));
-    
-    toast({
-      title: "บันทึกการตั้งค่าแล้ว! ⚙️",
-      description: "การเปลี่ยนแปลงจะมีผลทันที",
-    });
+  const handleSettingsChange = (newSettings: typeof notificationSettings) => {
+    setNotificationSettings(newSettings);
+    localStorage.setItem('notificationSettings', JSON.stringify(newSettings));
+  };
+
+  const handleScheduled = (notification: ScheduledNotification) => {
+    setScheduledNotifications(prev => [...prev, notification]);
   };
 
   const getPermissionStatus = () => {
@@ -239,6 +242,17 @@ const PushNotifications = () => {
       default:
         return <Badge variant="secondary">ร่าง</Badge>;
     }
+  };
+
+  const deleteScheduledNotification = (id: string) => {
+    const updated = scheduledNotifications.filter(n => n.id !== id);
+    setScheduledNotifications(updated);
+    localStorage.setItem('scheduledNotifications', JSON.stringify(updated));
+    
+    toast({
+      title: "ลบการแจ้งเตือนแล้ว",
+      description: "การแจ้งเตือนที่กำหนดการถูกลบเรียบร้อย",
+    });
   };
 
   const permissionStatus = getPermissionStatus();
@@ -276,7 +290,7 @@ const PushNotifications = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">ผู้สมัครรับ</p>
-                      <p className="text-lg font-semibold">{subscribers.toLocaleString()}</p>
+                      <p className="text-lg font-semibold">{stats.subscribers.toLocaleString()}</p>
                     </div>
                     <Users className="w-8 h-8 text-blue-500" />
                   </div>
@@ -288,7 +302,7 @@ const PushNotifications = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">ส่งทั้งหมด</p>
-                      <p className="text-lg font-semibold">{sentNotifications.toLocaleString()}</p>
+                      <p className="text-lg font-semibold">{stats.sentNotifications.toLocaleString()}</p>
                     </div>
                     <Send className="w-8 h-8 text-green-500" />
                   </div>
@@ -300,7 +314,7 @@ const PushNotifications = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">อัตราเปิด</p>
-                      <p className="text-lg font-semibold">{openRate}%</p>
+                      <p className="text-lg font-semibold">{stats.openRate}%</p>
                     </div>
                     <TrendingUp className="w-8 h-8 text-purple-500" />
                   </div>
@@ -334,110 +348,7 @@ const PushNotifications = () => {
 
               {/* Send Notifications Tab */}
               <TabsContent value="send" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Send className="w-5 h-5" />
-                      ส่งการแจ้งเตือนทันที
-                    </CardTitle>
-                    <CardDescription>
-                      สร้างและส่งการแจ้งเตือนให้ผู้ใช้ทันที
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">หัวข้อการแจ้งเตือน</Label>
-                        <Input 
-                          id="title"
-                          placeholder="เช่น: ออเดอร์ของคุณพร้อมแล้ว!"
-                          defaultValue="ออเดอร์ของคุณพร้อมแล้ว! ☕"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="recipients">ผู้รับ</Label>
-                        <Select defaultValue="all_customers">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all_customers">ลูกค้าทั้งหมด (1,247)</SelectItem>
-                            <SelectItem value="vip_customers">ลูกค้า VIP (89)</SelectItem>
-                            <SelectItem value="recent_orders">ลูกค้าที่สั่งล่าสุด (156)</SelectItem>
-                            <SelectItem value="specific_users">เลือกเฉพาะ</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="message">ข้อความ</Label>
-                      <Textarea 
-                        id="message"
-                        placeholder="พิมพ์ข้อความที่ต้องการส่ง..."
-                        defaultValue="กรุณามารับออเดอร์ที่เคาน์เตอร์ภายใน 10 นาที"
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="icon">ไอคอน</Label>
-                        <Select defaultValue="coffee">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="coffee">☕ กาแฟ</SelectItem>
-                            <SelectItem value="gift">🎁 ของขวัญ</SelectItem>
-                            <SelectItem value="star">⭐ ดาว</SelectItem>
-                            <SelectItem value="heart">❤️ หัวใจ</SelectItem>
-                            <SelectItem value="bell">🔔 กระดิ่ง</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="priority">ความสำคัญ</Label>
-                        <Select defaultValue="normal">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">ต่ำ</SelectItem>
-                            <SelectItem value="normal">ปกติ</SelectItem>
-                            <SelectItem value="high">สูง</SelectItem>
-                            <SelectItem value="urgent">เร่งด่วน</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        className="flex-1"
-                        onClick={() => {
-                          toast({
-                            title: "ส่งการแจ้งเตือนสำเร็จ! 🎉",
-                            description: "ส่งไปยังลูกค้าทั้งหมด 1,247 คน",
-                          });
-                        }}
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        ส่งทันที
-                      </Button>
-                      <Button variant="outline" onClick={() => {
-                        toast({
-                          title: "บันทึกร่างสำเร็จ! 📝",
-                          description: "สามารถกลับมาแก้ไขและส่งทีหลังได้",
-                        });
-                      }}>
-                        บันทึกร่าง
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <NotificationScheduler onScheduled={handleScheduled} />
               </TabsContent>
 
               {/* Templates Tab */}
@@ -453,41 +364,47 @@ const PushNotifications = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {templates.map((template) => (
-                        <div key={template.id} className="p-4 border rounded-lg">
-                          <div className="flex items-center gap-3 mb-3">
-                            <template.icon className="w-6 h-6 text-primary" />
-                            <div>
-                              <h3 className="font-semibold">{template.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                ใช้งาน {template.usage} ครั้ง
-                              </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {templates.map((template) => {
+                        const IconComponent = template.category === 'orders' ? Coffee : 
+                                           template.category === 'promotions' ? Gift :
+                                           template.category === 'marketing' ? Star : Heart;
+                        
+                        return (
+                          <div key={template.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-3 mb-3">
+                              <IconComponent className="w-6 h-6 text-primary" />
+                              <div>
+                                <h3 className="font-semibold">{template.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  ใช้งาน {template.usage} ครั้ง
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2 mb-4">
+                              <div className="p-2 bg-muted rounded">
+                                <p className="font-medium text-sm">{template.title}</p>
+                                <p className="text-xs text-muted-foreground">{template.body}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={() => sendTestNotification(template)}
+                              >
+                                ทดสอบ
+                              </Button>
+                              <Button size="sm" className="flex-1">
+                                ใช้เทมเพลต
+                              </Button>
                             </div>
                           </div>
-                          
-                          <div className="space-y-2 mb-4">
-                            <div className="p-2 bg-muted rounded">
-                              <p className="font-medium text-sm">{template.title}</p>
-                              <p className="text-xs text-muted-foreground">{template.body}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="flex-1"
-                              onClick={() => sendTestNotification(template)}
-                            >
-                              ทดสอบ
-                            </Button>
-                            <Button size="sm" className="flex-1">
-                              ใช้เทมเพลต
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -507,51 +424,63 @@ const PushNotifications = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {scheduledNotifications.map((notification) => (
-                        <div key={notification.id} className="p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h3 className="font-semibold">{notification.title}</h3>
-                              <p className="text-sm text-muted-foreground">{notification.message}</p>
-                            </div>
-                            {getStatusBadge(notification.status)}
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm text-muted-foreground">
-                            <div className="flex items-center gap-4">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {new Date(notification.scheduledTime).toLocaleString('th-TH')}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                {notification.recipientCount} คน
-                              </span>
+                      {scheduledNotifications.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>ยังไม่มีการแจ้งเตือนที่กำหนดการไว้</p>
+                          <p className="text-sm">สร้างการแจ้งเตือนใหม่ในแท็บ "ส่งการแจ้งเตือน"</p>
+                        </div>
+                      ) : (
+                        scheduledNotifications.map((notification) => (
+                          <div key={notification.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <h3 className="font-semibold">{notification.title}</h3>
+                                <p className="text-sm text-muted-foreground">{notification.message}</p>
+                              </div>
+                              {getStatusBadge(notification.status)}
                             </div>
                             
-                            <div className="flex gap-2">
-                              {notification.status === 'scheduled' && (
-                                <>
+                            <div className="flex items-center justify-between text-sm text-muted-foreground">
+                              <div className="flex items-center gap-4">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  {new Date(notification.scheduledTime).toLocaleString('th-TH')}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  {notification.recipientCount} คน
+                                </span>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                {notification.status === 'scheduled' && (
+                                  <>
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => sendBulkNotification(notification)}
+                                    >
+                                      ส่งเลย
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => deleteScheduledNotification(notification.id)}
+                                    >
+                                      ลบ
+                                    </Button>
+                                  </>
+                                )}
+                                {notification.status === 'sent' && (
                                   <Button size="sm" variant="outline">
-                                    แก้ไข
+                                    ดูรายละเอียด
                                   </Button>
-                                  <Button 
-                                    size="sm"
-                                    onClick={() => sendBulkNotification(notification)}
-                                  >
-                                    ส่งเลย
-                                  </Button>
-                                </>
-                              )}
-                              {notification.status === 'sent' && (
-                                <Button size="sm" variant="outline">
-                                  ดูรายละเอียด
-                                </Button>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -562,7 +491,7 @@ const PushNotifications = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5" />
+                      <BarChart className="w-5 h-5" />
                       สถิติการแจ้งเตือน
                     </CardTitle>
                     <CardDescription>
@@ -655,77 +584,19 @@ const PushNotifications = () => {
                       จัดการประเภทการแจ้งเตือนและการตั้งค่า
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <h4 className="font-semibold mb-3">ประเภทการแจ้งเตือน</h4>
-                      <div className="space-y-4">
-                        {[
-                          { key: 'orders', label: 'ออเดอร์และการสั่งซื้อ', desc: 'แจ้งเตือนเกี่ยวกับสถานะออเดอร์', icon: ShoppingCart },
-                          { key: 'promotions', label: 'โปรโมชั่นและส่วนลด', desc: 'ข้อเสนอพิเศษและส่วนลด', icon: Gift },
-                          { key: 'inventory', label: 'สินค้าคงคลัง', desc: 'แจ้งเตือนสต็อกสินค้า', icon: Target },
-                          { key: 'system', label: 'ระบบและการบำรุงรักษา', desc: 'อัพเดทระบบและการแจ้งเตือนสำคัญ', icon: Settings },
-                          { key: 'marketing', label: 'การตลาดและกิจกรรม', desc: 'กิจกรรมพิเศษและข่าวสาร', icon: Zap }
-                        ].map(({ key, label, desc, icon: Icon }) => (
-                          <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Icon className="w-5 h-5 text-primary" />
-                              <div>
-                                <p className="font-medium">{label}</p>
-                                <p className="text-sm text-muted-foreground">{desc}</p>
-                              </div>
-                            </div>
-                            <Switch 
-                              checked={notificationSettings[key as keyof typeof notificationSettings]}
-                              onCheckedChange={() => toggleNotificationSetting(key)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold mb-3">การตั้งค่าขั้นสูง</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">เสียงการแจ้งเตือน</p>
-                            <p className="text-sm text-muted-foreground">เปิด/ปิดเสียงการแจ้งเตือน</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">การสั่นของเครื่อง</p>
-                            <p className="text-sm text-muted-foreground">สั่นเครื่องเมื่อได้รับการแจ้งเตือน</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">แสดงบนหน้าจอล็อก</p>
-                            <p className="text-sm text-muted-foreground">แสดงการแจ้งเตือนบนหน้าจอล็อก</p>
-                          </div>
-                          <Switch defaultChecked />
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">โหมดไม่รบกวน</p>
-                            <p className="text-sm text-muted-foreground">หยุดการแจ้งเตือนเวลา 22:00-08:00</p>
-                          </div>
-                          <Switch />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t">
+                  <CardContent>
+                    <NotificationSettings 
+                      settings={notificationSettings}
+                      onSettingsChange={handleSettingsChange}
+                    />
+                    
+                    <div className="pt-4 border-t mt-6">
                       <h4 className="font-semibold mb-2">ข้อมูลเทคนิค</h4>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>Service Worker: {isServiceWorkerReady ? '✅ พร้อมใช้งาน' : '❌ ไม่พร้อม'}</p>
                         <p>Notification API: {'Notification' in window ? '✅ รองรับ' : '❌ ไม่รองรับ'}</p>
                         <p>Push API: {'PushManager' in window ? '✅ รองรับ' : '❌ ไม่รองรับ'}</p>
+                        <p>สถานะสิทธิ์: {permissionStatus.text}</p>
                       </div>
                     </div>
                   </CardContent>
