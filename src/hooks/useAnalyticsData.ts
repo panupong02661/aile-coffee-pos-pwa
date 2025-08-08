@@ -117,7 +117,7 @@ export const useSalesData = () => {
         const dailyCustomers = new Set(orders?.map(order => order.member_id).filter(Boolean)).size;
 
         salesData.push({
-          name: format(date, 'EEE', { locale: { code: 'th' } }),
+          name: format(date, 'EEE'),
           sales: dailySales,
           orders: dailyOrders,
           customers: dailyCustomers,
@@ -149,7 +149,7 @@ export const useCategoryData = () => {
         .from('menu_items')
         .select(`
           *,
-          categories(name)
+          categories!inner(name)
         `);
 
       if (menuError) throw menuError;

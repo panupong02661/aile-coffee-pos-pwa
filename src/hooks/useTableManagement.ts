@@ -53,7 +53,7 @@ export const useTableManagement = () => {
         .order('table_number', { ascending: true });
 
       if (error) throw error;
-      setTables(data || []);
+      setTables((data || []) as Table[]);
     } catch (error) {
       console.error('Error fetching tables:', error);
       toast({
@@ -73,7 +73,7 @@ export const useTableManagement = () => {
         .order('reservation_time', { ascending: true });
 
       if (error) throw error;
-      setReservations(data || []);
+      setReservations((data || []) as TableReservation[]);
     } catch (error) {
       console.error('Error fetching reservations:', error);
       toast({
@@ -94,13 +94,13 @@ export const useTableManagement = () => {
 
       if (error) throw error;
 
-      setTables(prev => [...prev, data]);
+      setTables(prev => [...prev, data as Table]);
       toast({
         title: 'สำเร็จ',
         description: 'เพิ่มโต๊ะใหม่แล้ว'
       });
 
-      return data;
+      return data as Table;
     } catch (error) {
       console.error('Error creating table:', error);
       toast({
@@ -124,7 +124,7 @@ export const useTableManagement = () => {
       if (error) throw error;
 
       setTables(prev => prev.map(table => 
-        table.id === tableId ? data : table
+        table.id === tableId ? data as Table : table
       ));
 
       toast({
@@ -132,7 +132,7 @@ export const useTableManagement = () => {
         description: 'อัปเดตข้อมูลโต๊ะแล้ว'
       });
 
-      return data;
+      return data as Table;
     } catch (error) {
       console.error('Error updating table:', error);
       toast({
@@ -179,13 +179,13 @@ export const useTableManagement = () => {
 
       if (error) throw error;
 
-      setReservations(prev => [...prev, data]);
+      setReservations(prev => [...prev, data as TableReservation]);
       toast({
         title: 'สำเร็จ',
         description: 'จองโต๊ะแล้ว'
       });
 
-      return data;
+      return data as TableReservation;
     } catch (error) {
       console.error('Error creating reservation:', error);
       toast({
@@ -209,7 +209,7 @@ export const useTableManagement = () => {
       if (error) throw error;
 
       setReservations(prev => prev.map(reservation => 
-        reservation.id === reservationId ? data : reservation
+        reservation.id === reservationId ? data as TableReservation : reservation
       ));
 
       toast({
@@ -217,7 +217,7 @@ export const useTableManagement = () => {
         description: 'อัปเดตการจองแล้ว'
       });
 
-      return data;
+      return data as TableReservation;
     } catch (error) {
       console.error('Error updating reservation:', error);
       toast({
