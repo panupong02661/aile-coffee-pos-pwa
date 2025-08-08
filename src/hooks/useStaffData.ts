@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -64,7 +63,7 @@ export const useStaffData = () => {
     try {
       const { data, error } = await supabase
         .from('staff')
-        .select('*')
+        .select('id, name, phone, email, position, department, hire_date, salary, status, is_active, created_at, updated_at')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -130,7 +129,7 @@ export const useStaffData = () => {
       const { data, error } = await supabase
         .from('staff')
         .insert(staffData)
-        .select()
+        .select('id, name, phone, email, position, department, hire_date, salary, status, is_active, created_at, updated_at')
         .single();
 
       if (error) throw error;
@@ -159,7 +158,7 @@ export const useStaffData = () => {
         .from('staff')
         .update(updates)
         .eq('id', staffId)
-        .select()
+        .select('id, name, phone, email, position, department, hire_date, salary, status, is_active, created_at, updated_at')
         .single();
 
       if (error) throw error;

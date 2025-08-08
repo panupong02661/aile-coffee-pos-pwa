@@ -11,11 +11,23 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, User, Phone, Mail, Briefcase, Calendar, DollarSign, Clock } from 'lucide-react';
 import { useStaffData, Staff } from '@/hooks/useStaffData';
 
+interface FormData {
+  name: string;
+  phone: string;
+  email: string;
+  position: string;
+  department: string;
+  hire_date: string;
+  salary: number;
+  status: 'active' | 'inactive' | 'terminated';
+  is_active: boolean;
+}
+
 const StaffList = () => {
   const { staff, loading, createStaff, updateStaff, deleteStaff, getStaffAttendanceToday } = useStaffData();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
     email: '',
@@ -23,7 +35,7 @@ const StaffList = () => {
     department: '',
     hire_date: '',
     salary: 0,
-    status: 'active' as const,
+    status: 'active',
     is_active: true
   });
 
@@ -241,7 +253,7 @@ const StaffList = () => {
                   <Label htmlFor="status">สถานะ *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Staff['status'] }))}
+                    onValueChange={(value: 'active' | 'inactive' | 'terminated') => setFormData(prev => ({ ...prev, status: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="เลือกสถานะ" />
@@ -489,9 +501,9 @@ const StaffList = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">อีเมล</Label>
+                <Label htmlFor="edit-email">อีเมล</Label>
                 <Input
-                  id="email"
+                  id="edit-email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -499,7 +511,7 @@ const StaffList = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="position">ตำแหน่ง *</Label>
+                <Label htmlFor="edit-position">ตำแหน่ง *</Label>
                 <Select
                   value={formData.position}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}
@@ -522,7 +534,7 @@ const StaffList = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">แผนก *</Label>
+                <Label htmlFor="edit-department">แผนก *</Label>
                 <Select
                   value={formData.department}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
@@ -540,9 +552,9 @@ const StaffList = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hire_date">วันที่เริ่มงาน *</Label>
+                <Label htmlFor="edit-hire_date">วันที่เริ่มงาน *</Label>
                 <Input
-                  id="hire_date"
+                  id="edit-hire_date"
                   type="date"
                   value={formData.hire_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, hire_date: e.target.value }))}
@@ -553,9 +565,9 @@ const StaffList = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="salary">เงินเดือน *</Label>
+                <Label htmlFor="edit-salary">เงินเดือน *</Label>
                 <Input
-                  id="salary"
+                  id="edit-salary"
                   type="number"
                   value={formData.salary}
                   onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
@@ -566,10 +578,10 @@ const StaffList = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">สถานะ *</Label>
+                <Label htmlFor="edit-status">สถานะ *</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Staff['status'] }))}
+                  onValueChange={(value: 'active' | 'inactive' | 'terminated') => setFormData(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกสถานะ" />
@@ -585,11 +597,11 @@ const StaffList = () => {
 
             <div className="flex items-center space-x-2">
               <Switch
-                id="is_active"
+                id="edit-is_active"
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
               />
-              <Label htmlFor="is_active">เปิดใช้งานบัญชี</Label>
+              <Label htmlFor="edit-is_active">เปิดใช้งานบัญชี</Label>
             </div>
 
             <div className="flex gap-2 pt-4">
