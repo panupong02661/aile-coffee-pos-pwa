@@ -9,7 +9,7 @@ import NotificationQueue from '@/components/notifications/NotificationQueue';
 import { NotificationScheduler } from '@/components/notifications/NotificationScheduler';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 import { Bell, MessageSquare, Clock, Settings, TrendingUp, Users } from 'lucide-react';
-import { NotificationService } from '@/components/notifications/NotificationService';
+import { NotificationService, ScheduledNotification } from '@/components/notifications/NotificationService';
 
 const AdvancedNotifications = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -20,8 +20,13 @@ const AdvancedNotifications = () => {
     system: true,
     marketing: false
   });
+  const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
 
   const stats = NotificationService.getStats();
+
+  const handleNotificationScheduled = (notification: ScheduledNotification) => {
+    setScheduledNotifications(prev => [...prev, notification]);
+  };
 
   return (
     <div className="min-h-screen bg-coffee-50">
@@ -146,7 +151,7 @@ const AdvancedNotifications = () => {
                   </TabsContent>
                   
                   <TabsContent value="scheduler" className="mt-6">
-                    <NotificationScheduler />
+                    <NotificationScheduler onScheduled={handleNotificationScheduled} />
                   </TabsContent>
                   
                   <TabsContent value="settings" className="mt-6">
