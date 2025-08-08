@@ -145,12 +145,17 @@ export const useCategoryData = () => {
 
       if (error) throw error;
 
+      // Get categories separately to avoid relationship conflicts
+      const { data: categories, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (categoriesError) throw categoriesError;
+
+      // Get menu items separately
       const { data: menuItems, error: menuError } = await supabase
         .from('menu_items')
-        .select(`
-          *,
-          categories!inner(name)
-        `);
+        .select('*');
 
       if (menuError) throw menuError;
 
@@ -158,7 +163,8 @@ export const useCategoryData = () => {
       
       orderItems?.forEach(item => {
         const menuItem = menuItems?.find(m => m.id === item.menu_item_id);
-        const categoryName = menuItem?.categories?.name || 'อื่นๆ';
+        const category = categories?.find(c => c.id === menuItem?.category_id);
+        const categoryName = category?.name || 'อื่นๆ';
         
         if (!categoryStats[categoryName]) {
           categoryStats[categoryName] = { sales: 0, count: 0 };
