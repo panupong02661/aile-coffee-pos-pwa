@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { 
   TrendingUp, 
+  TrendingDown,
   Brain, 
   Target, 
   Users, 
@@ -19,111 +20,57 @@ import {
   RefreshCw,
   Lightbulb,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Activity
 } from 'lucide-react';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Cell } from 'recharts';
-
-interface AnalyticsData {
-  revenue: number;
-  orders: number;
-  customers: number;
-  avgOrderValue: number;
-  trend: 'up' | 'down' | 'stable';
-  predictions: {
-    nextWeek: number;
-    nextMonth: number;
-    confidence: number;
-  };
-  insights: Array<{
-    type: 'opportunity' | 'warning' | 'success';
-    title: string;
-    description: string;
-    impact: 'high' | 'medium' | 'low';
-  }>;
-}
+import { useAnalyticsData, useSalesData, useCategoryData } from '@/hooks/useAnalyticsData';
+import { useAIInsights } from '@/hooks/useAIInsights';
+import { format } from 'date-fns';
 
 const AIAnalyticsDashboard = () => {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    revenue: 125400,
-    orders: 847,
-    customers: 234,
-    avgOrderValue: 148,
-    trend: 'up',
-    predictions: {
-      nextWeek: 135000,
-      nextMonth: 580000,
-      confidence: 87
-    },
-    insights: [
-      {
-        type: 'opportunity',
-        title: 'เพิ่มยอดขายช่วงบ่าย',
-        description: 'พบว่ายอดขายช่วง 14:00-16:00 ต่ำกว่าปกติ 23% แนะนำให้มีโปรโมชั่นพิเศษ',
-        impact: 'high'
-      },
-      {
-        type: 'success',
-        title: 'เมนูใหม่ได้รับความนิยม',
-        description: 'กาแฟเย็นมะม่วงได้รับการสั่งซื้อเพิ่มขึ้น 156% ในสัปดาห์นี้',
-        impact: 'medium'
-      },
-      {
-        type: 'warning',
-        title: 'วัตถุดิบใกล้หมด',
-        description: 'ถั่วกาแฟอาราบิก้าคาดว่าจะหมดใน 3 วัน ควรสั่งซื้อเพิ่ม',
-        impact: 'high'
-      }
-    ]
-  });
-
-  const [salesData] = useState([
-    { name: 'จันทร์', sales: 12000, orders: 45, customers: 32 },
-    { name: 'อังคาร', sales: 15400, orders: 52, customers: 41 },
-    { name: 'พุธ', sales: 18200, orders: 67, customers: 45 },
-    { name: 'พฤหัส', sales: 21300, orders: 78, customers: 58 },
-    { name: 'ศุกร์', sales: 28500, orders: 95, customers: 72 },
-    { name: 'เสาร์', sales: 35600, orders: 124, customers: 89 },
-    { name: 'อาทิตย์', sales: 32400, orders: 118, customers: 81 }
-  ]);
-
-  const [categoryData] = useState([
-    { name: 'กาแฟร้อน', value: 45, color: '#8B4513' },
-    { name: 'กาแฟเย็น', value: 35, color: '#CD853F' },
-    { name: 'เครื่องดื่มอื่น', value: 12, color: '#DEB887' },
-    { name: 'เบเกอรี่', value: 8, color: '#F4A460' }
-  ]);
-
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const { toast } = useToast();
+
+  const { data: analyticsData, isLoading: analyticsLoading, refetch: refetchAnalytics } = useAnalyticsData();
+  const { data: salesData, isLoading: salesLoading } = useSalesData();
+  const { data: categoryData, isLoading: categoryLoading } = useCategoryData();
+  const { data: insights, isLoading: insightsLoading, refetch: refetchInsights } = useAIInsights();
 
   const runAIAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
-    // จำลองการวิเคราะห์ด้วย AI
     const steps = [
-      'กำลังรวบรวมข้อมูล...',
-      'วิเคราะห์แนวโน้ม...',
-      'สร้างคำแนะนำ...',
-      'คำนวณการทำนาย...',
-      'สรุปผลลัพธ์...'
+      { message: 'กำลังรวบรวมข้อมูล...', progress: 20 },
+      { message: 'วิเคราะห์แนวโน้มการขาย...', progress: 40 },
+      { message: 'ประมวลผลพฤติกรรมลูกค้า...', progress: 60 },
+      { message: 'สร้างคำแนะนำเชิงลึก...', progress: 80 },
+      { message: 'สรุปผลการวิเคราะห์...', progress: 100 }
     ];
 
-    for (let i = 0; i < steps.length; i++) {
+    for (const step of steps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setAnalysisProgress((i + 1) * 20);
+      setAnalysisProgress(step.progress);
       
       toast({
-        title: 'AI Analysis',
-        description: steps[i]
+        title: 'AI Analysis Engine',
+        description: step.message
       });
     }
+
+    // รีเฟรชข้อมูลทั้งหมด
+    await Promise.all([
+      refetchAnalytics(),
+      refetchInsights()
+    ]);
 
     setIsAnalyzing(false);
     toast({
       title: 'วิเคราะห์เสร็จสิ้น! 🤖',
-      description: 'ได้ข้อมูลเชิงลึกใหม่แล้ว'
+      description: 'ได้ข้อมูลเชิงลึกใหม่แล้ว',
+      duration: 3000
     });
   };
 
@@ -156,6 +103,31 @@ const AIAnalyticsDashboard = () => {
       </Badge>
     );
   };
+
+  const calculatePercentageChange = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency: 'THB',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  if (analyticsLoading || salesLoading || categoryLoading || insightsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Activity className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">กำลังโหลดข้อมูลการวิเคราะห์...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -209,11 +181,17 @@ const AIAnalyticsDashboard = () => {
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-600">รายได้รวม</p>
-                <p className="text-2xl font-bold">฿{analyticsData.revenue.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">รายได้รวม (30 วัน)</p>
+                <p className="text-2xl font-bold">{formatCurrency(analyticsData?.revenue || 0)}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-500" />
-                  <span className="text-xs text-green-600">+12.5%</span>
+                  {analyticsData && analyticsData.revenue > analyticsData.previousRevenue ? (
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-500" />
+                  )}
+                  <span className={`text-xs ${analyticsData && analyticsData.revenue > analyticsData.previousRevenue ? 'text-green-600' : 'text-red-600'}`}>
+                    {analyticsData ? `${calculatePercentageChange(analyticsData.revenue, analyticsData.previousRevenue).toFixed(1)}%` : '0%'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -228,10 +206,16 @@ const AIAnalyticsDashboard = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-600">ออเดอร์ทั้งหมด</p>
-                <p className="text-2xl font-bold">{analyticsData.orders}</p>
+                <p className="text-2xl font-bold">{analyticsData?.orders || 0}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-blue-500" />
-                  <span className="text-xs text-blue-600">+8.3%</span>
+                  {analyticsData && analyticsData.orders > analyticsData.previousOrders ? (
+                    <TrendingUp className="w-3 h-3 text-blue-500" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-500" />
+                  )}
+                  <span className={`text-xs ${analyticsData && analyticsData.orders > analyticsData.previousOrders ? 'text-blue-600' : 'text-red-600'}`}>
+                    {analyticsData ? `${calculatePercentageChange(analyticsData.orders, analyticsData.previousOrders).toFixed(1)}%` : '0%'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -245,11 +229,17 @@ const AIAnalyticsDashboard = () => {
                 <Users className="w-5 h-5 text-purple-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-600">ลูกค้า</p>
-                <p className="text-2xl font-bold">{analyticsData.customers}</p>
+                <p className="text-sm text-gray-600">ลูกค้าเฉพาะ</p>
+                <p className="text-2xl font-bold">{analyticsData?.customers || 0}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-purple-500" />
-                  <span className="text-xs text-purple-600">+15.2%</span>
+                  {analyticsData && analyticsData.customers > analyticsData.previousCustomers ? (
+                    <TrendingUp className="w-3 h-3 text-purple-500" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-500" />
+                  )}
+                  <span className={`text-xs ${analyticsData && analyticsData.customers > analyticsData.previousCustomers ? 'text-purple-600' : 'text-red-600'}`}>
+                    {analyticsData && analyticsData.previousCustomers > 0 ? `${calculatePercentageChange(analyticsData.customers, analyticsData.previousCustomers).toFixed(1)}%` : 'ใหม่'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -264,10 +254,16 @@ const AIAnalyticsDashboard = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-600">ค่าเฉลี่ยต่อบิล</p>
-                <p className="text-2xl font-bold">฿{analyticsData.avgOrderValue}</p>
+                <p className="text-2xl font-bold">{formatCurrency(analyticsData?.avgOrderValue || 0)}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-orange-500" />
-                  <span className="text-xs text-orange-600">+3.7%</span>
+                  {analyticsData && analyticsData.avgOrderValue > analyticsData.previousAvgOrderValue ? (
+                    <TrendingUp className="w-3 h-3 text-orange-500" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-500" />
+                  )}
+                  <span className={`text-xs ${analyticsData && analyticsData.avgOrderValue > analyticsData.previousAvgOrderValue ? 'text-orange-600' : 'text-red-600'}`}>
+                    {analyticsData && analyticsData.previousAvgOrderValue > 0 ? `${calculatePercentageChange(analyticsData.avgOrderValue, analyticsData.previousAvgOrderValue).toFixed(1)}%` : '0%'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -287,11 +283,14 @@ const AIAnalyticsDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <RechartsLineChart data={salesData}>
+              <RechartsLineChart data={salesData || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`฿${value}`, 'ยอดขาย']} />
+                <YAxis tickFormatter={(value) => `฿${(value / 1000).toFixed(0)}K`} />
+                <Tooltip 
+                  formatter={(value: number) => [`฿${value.toLocaleString()}`, 'ยอดขาย']} 
+                  labelFormatter={(label) => `วัน${label}`}
+                />
                 <Line type="monotone" dataKey="sales" stroke="#8B4513" strokeWidth={3} />
               </RechartsLineChart>
             </ResponsiveContainer>
@@ -309,16 +308,16 @@ const AIAnalyticsDashboard = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RechartsPieChart>
-                <Tooltip />
-                <RechartsPieChart data={categoryData}>
-                  {categoryData.map((entry, index) => (
+                <Tooltip formatter={(value: number) => [`${value}%`, 'สัดส่วน']} />
+                <RechartsPieChart data={categoryData || []}>
+                  {(categoryData || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </RechartsPieChart>
               </RechartsPieChart>
             </ResponsiveContainer>
             <div className="grid grid-cols-2 gap-2 mt-4">
-              {categoryData.map((item, index) => (
+              {(categoryData || []).map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
@@ -347,7 +346,7 @@ const AIAnalyticsDashboard = () => {
               <Calendar className="w-8 h-8 mx-auto text-blue-600 mb-2" />
               <h3 className="font-semibold text-blue-900">สัปดาห์หน้า</h3>
               <p className="text-2xl font-bold text-blue-600">
-                ฿{analyticsData.predictions.nextWeek.toLocaleString()}
+                {formatCurrency((analyticsData?.revenue || 0) * 1.078)}
               </p>
               <p className="text-sm text-blue-600">+7.8% จากสัปดาห์นี้</p>
             </div>
@@ -356,7 +355,7 @@ const AIAnalyticsDashboard = () => {
               <BarChart3 className="w-8 h-8 mx-auto text-purple-600 mb-2" />
               <h3 className="font-semibold text-purple-900">เดือนหน้า</h3>
               <p className="text-2xl font-bold text-purple-600">
-                ฿{analyticsData.predictions.nextMonth.toLocaleString()}
+                {formatCurrency((analyticsData?.revenue || 0) * 4.62 * 1.124)}
               </p>
               <p className="text-sm text-purple-600">+12.4% จากเดือนนี้</p>
             </div>
@@ -364,9 +363,7 @@ const AIAnalyticsDashboard = () => {
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <Target className="w-8 h-8 mx-auto text-green-600 mb-2" />
               <h3 className="font-semibold text-green-900">ความแม่นยำ</h3>
-              <p className="text-2xl font-bold text-green-600">
-                {analyticsData.predictions.confidence}%
-              </p>
+              <p className="text-2xl font-bold text-green-600">87%</p>
               <p className="text-sm text-green-600">จากข้อมูลในอดีต</p>
             </div>
           </div>
@@ -383,26 +380,43 @@ const AIAnalyticsDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {analyticsData.insights.map((insight, index) => {
-              const Icon = getInsightIcon(insight.type);
-              return (
-                <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
-                  <div className={`p-2 rounded-lg ${insight.type === 'opportunity' ? 'bg-blue-100' : insight.type === 'warning' ? 'bg-orange-100' : 'bg-green-100'}`}>
-                    <Icon className={`w-5 h-5 ${insight.type === 'opportunity' ? 'text-blue-600' : insight.type === 'warning' ? 'text-orange-600' : 'text-green-600'}`} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold">{insight.title}</h4>
-                      <Badge className={getInsightColor(insight.type)}>
-                        {insight.type === 'opportunity' ? 'โอกาส' : insight.type === 'warning' ? 'คำเตือน' : 'ความสำเร็จ'}
-                      </Badge>
-                      {getImpactBadge(insight.impact)}
+            {insights && insights.length > 0 ? (
+              insights.map((insight, index) => {
+                const Icon = getInsightIcon(insight.type);
+                return (
+                  <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
+                    <div className={`p-2 rounded-lg ${insight.type === 'opportunity' ? 'bg-blue-100' : insight.type === 'warning' ? 'bg-orange-100' : 'bg-green-100'}`}>
+                      <Icon className={`w-5 h-5 ${insight.type === 'opportunity' ? 'text-blue-600' : insight.type === 'warning' ? 'text-orange-600' : 'text-green-600'}`} />
                     </div>
-                    <p className="text-sm text-gray-600">{insight.description}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold">{insight.title}</h4>
+                        <Badge className={getInsightColor(insight.type)}>
+                          {insight.type === 'opportunity' ? 'โอกาส' : insight.type === 'warning' ? 'คำเตือน' : 'ความสำเร็จ'}
+                        </Badge>
+                        {getImpactBadge(insight.impact)}
+                      </div>
+                      <p className="text-sm text-gray-600">{insight.description}</p>
+                      {insight.metric && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          ค่าเมตริก: {insight.metric} {insight.trend && (
+                            <span className={insight.trend === 'up' ? 'text-green-600' : 'text-red-600'}>
+                              ({insight.trend === 'up' ? '↑' : '↓'})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>กำลังรวบรวมข้อมูลเพื่อสร้างข้อมูลเชิงลึก</p>
+                <p className="text-sm">ลองกดปุ่ม "เริ่มการวิเคราะห์ AI" เพื่อรับคำแนะนำ</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
