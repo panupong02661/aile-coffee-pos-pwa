@@ -26,11 +26,17 @@ import MenuItemsList from '@/components/MenuItemsList';
 import CategoriesList from '@/components/CategoriesList';
 import AddonsList from '@/components/AddonsList';
 import MenuManagementGrid from '@/components/MenuManagementGrid';
+import MenuForm from '@/components/MenuForm';
+import CategoryForm from '@/components/CategoryForm';
 
 const MenuManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuFormOpen, setIsMenuFormOpen] = useState(false);
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [editMenuItem, setEditMenuItem] = useState<any>(null);
+  const [editCategory, setEditCategory] = useState<any>(null);
   const { toast } = useToast();
   
   const {
@@ -58,19 +64,13 @@ const MenuManagement = () => {
   };
 
   const handleEditMenuItem = (item: any) => {
-    console.log('Edit menu item:', item);
-    toast({
-      title: 'แก้ไขเมนู',
-      description: `เตรียมแก้ไข ${item.name}`,
-    });
+    setEditMenuItem(item);
+    setIsMenuFormOpen(true);
   };
 
   const handleEditCategory = (category: any) => {
-    console.log('Edit category:', category);
-    toast({
-      title: 'แก้ไขหมวดหมู่',
-      description: `เตรียมแก้ไข ${category.name}`,
-    });
+    setEditCategory(category);
+    setIsCategoryFormOpen(true);
   };
 
   const handleEditAddon = (addon: any) => {
@@ -96,6 +96,31 @@ const MenuManagement = () => {
       title: 'เพิ่มรูปภาพ',
       description: `เตรียมเพิ่มรูปภาพสำหรับ ${item.name}`,
     });
+  };
+
+  const handleAddNewMenu = () => {
+    setEditMenuItem(null);
+    setIsMenuFormOpen(true);
+  };
+
+  const handleAddNewCategory = () => {
+    setEditCategory(null);
+    setIsCategoryFormOpen(true);
+  };
+
+  const handleMenuFormClose = () => {
+    setIsMenuFormOpen(false);
+    setEditMenuItem(null);
+  };
+
+  const handleCategoryFormClose = () => {
+    setIsCategoryFormOpen(false);
+    setEditCategory(null);
+  };
+
+  const handleFormSuccess = () => {
+    refetch.menuItems();
+    refetch.categories();
   };
 
   const filteredMenuItems = menuItems.filter(item =>
@@ -186,7 +211,7 @@ const MenuManagement = () => {
                         disabled={isImporting}
                       />
                     </Button>
-                    <Button size="sm">
+                    <Button size="sm" onClick={handleAddNewMenu}>
                       <Plus className="h-4 w-4 mr-2" />
                       เพิ่มสินค้าใหม่
                     </Button>
@@ -231,6 +256,12 @@ const MenuManagement = () => {
               </TabsList>
               
               <TabsContent value="products" className="mt-6">
+                <div className="flex justify-end mb-4">
+                  <Button onClick={handleAddNewMenu}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    เพิ่มเมนูใหม่
+                  </Button>
+                </div>
                 <MenuItemsList 
                   menuItems={filteredMenuItems}
                   onEdit={handleEditMenuItem}
@@ -238,6 +269,12 @@ const MenuManagement = () => {
               </TabsContent>
               
               <TabsContent value="categories" className="mt-6">
+                <div className="flex justify-end mb-4">
+                  <Button onClick={handleAddNewCategory}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    เพิ่มหมวดหมู่ใหม่
+                  </Button>
+                </div>
                 <CategoriesList 
                   categories={filteredCategories}
                   onEdit={handleEditCategory}
@@ -264,6 +301,23 @@ const MenuManagement = () => {
           </div>
         </div>
       </div>
+
+      {/* Menu Form Modal */}
+      <MenuForm
+        isOpen={isMenuFormOpen}
+        onClose={handleMenuFormClose}
+        onSuccess={handleFormSuccess}
+        categories={categories}
+        editMenuItem={editMenuItem}
+      />
+
+      {/* Category Form Modal */}
+      <CategoryForm
+        isOpen={isCategoryFormOpen}
+        onClose={handleCategoryFormClose}
+        onSuccess={handleFormSuccess}
+        editCategory={editCategory}
+      />
     </div>
   );
 };
