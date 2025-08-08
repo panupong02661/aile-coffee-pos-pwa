@@ -46,6 +46,8 @@ import PWAApplication from '@/pages/PWAApplication';
 import GamificationSystem from '@/pages/GamificationSystem';
 import VirtualLoyaltyCard from '@/pages/VirtualLoyaltyCard';
 import PushNotifications from '@/pages/PushNotifications';
+import TableManagementPage from '@/pages/TableManagement';
+import AdvancedNotifications from '@/pages/AdvancedNotifications';
 
 const queryClient = new QueryClient();
 
@@ -83,6 +85,9 @@ function App() {
               <Route path="/delivery-integration" element={<ProtectedRoute><DeliveryIntegration /></ProtectedRoute>} />
               <Route path="/automated-marketing" element={<ProtectedRoute><AutomatedMarketing /></ProtectedRoute>} />
               <Route path="/ai-analytics" element={<ProtectedRoute><AIAnalyticsDashboard /></ProtectedRoute>} />
+              <Route path="/ai-analytics-dashboard" element={<ProtectedRoute><AIAnalyticsDashboard /></ProtectedRoute>} />
+              <Route path="/tables" element={<ProtectedRoute><TableManagementPage /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><AdvancedNotifications /></ProtectedRoute>} />
               <Route path="/predictive-analytics" element={<ProtectedRoute><PredictiveAnalytics /></ProtectedRoute>} />
               <Route path="/realtime-bi" element={<ProtectedRoute><RealtimeBIDashboard /></ProtectedRoute>} />
               <Route path="/customer-segmentation" element={<ProtectedRoute><CustomerSegmentation /></ProtectedRoute>} />
@@ -90,7 +95,6 @@ function App() {
               <Route path="/smart-recommendations" element={<ProtectedRoute><SmartMenuRecommendations /></ProtectedRoute>} />
               <Route path="/intelligent-inventory" element={<ProtectedRoute><IntelligentInventory /></ProtectedRoute>} />
               <Route path="/advanced-reports" element={<ProtectedRoute><AdvancedReports /></ProtectedRoute>} />
-              <Route path="/notifications" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
               <Route path="/security-recommendations" element={<ProtectedRoute><SecurityRecommendationsPage /></ProtectedRoute>} />
               <Route path="/coming-soon" element={<ProtectedRoute><ComingSoon /></ProtectedRoute>} />
               <Route path="/pwa-application" element={<ProtectedRoute><PWAApplication /></ProtectedRoute>} />
