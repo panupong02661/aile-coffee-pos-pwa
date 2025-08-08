@@ -516,80 +516,81 @@ const StaffList = () => {
                     <SelectItem value="cleaner">พนักงานทำความสะอาด</SelectItem>
                     <SelectItem value="delivery">พนักงานส่งของ</SelectItem>
                   </SelectContent>
-                </div>
+                </Select>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="department">แผนก *</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกแผนก" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="management">บริหาร</SelectItem>
-                      <SelectItem value="kitchen">ครัว</SelectItem>
-                      <SelectItem value="service">บริการ</SelectItem>
-                      <SelectItem value="delivery">จัดส่ง</SelectItem>
-                      <SelectItem value="cleaning">ทำความสะอาด</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hire_date">วันที่เริ่มงาน *</Label>
-                  <Input
-                    id="hire_date"
-                    type="date"
-                    value={formData.hire_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, hire_date: e.target.value }))}
-                    required
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">แผนก *</Label>
+                <Select
+                  value={formData.department}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกแผนก" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="management">บริหาร</SelectItem>
+                    <SelectItem value="kitchen">ครัว</SelectItem>
+                    <SelectItem value="service">บริการ</SelectItem>
+                    <SelectItem value="delivery">จัดส่ง</SelectItem>
+                    <SelectItem value="cleaning">ทำความสะอาด</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salary">เงินเดือน *</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    value={formData.salary}
-                    onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
-                    required
-                    min="0"
-                    step="100"
-                    placeholder="กรอกเงินเดือน"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">สถานะ *</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Staff['status'] }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกสถานะ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">ทำงาน</SelectItem>
-                      <SelectItem value="inactive">หยุดงาน</SelectItem>
-                      <SelectItem value="terminated">เลิกงาน</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+              <div className="space-y-2">
+                <Label htmlFor="hire_date">วันที่เริ่มงาน *</Label>
+                <Input
+                  id="hire_date"
+                  type="date"
+                  value={formData.hire_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hire_date: e.target.value }))}
+                  required
                 />
-                <Label htmlFor="is_active">เปิดใช้งานบัญชี</Label>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="salary">เงินเดือน *</Label>
+                <Input
+                  id="salary"
+                  type="number"
+                  value={formData.salary}
+                  onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
+                  required
+                  min="0"
+                  step="100"
+                  placeholder="กรอกเงินเดือน"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">สถานะ *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Staff['status'] }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกสถานะ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">ทำงาน</SelectItem>
+                    <SelectItem value="inactive">หยุดงาน</SelectItem>
+                    <SelectItem value="terminated">เลิกงาน</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+              <Label htmlFor="is_active">เปิดใช้งานบัญชี</Label>
+            </div>
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
