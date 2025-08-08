@@ -122,16 +122,16 @@ const MenuManagement = () => {
         <div className="flex-shrink-0 bg-cream-50 p-4 pb-0">
           <Header 
             onToggleSidebar={handleToggleSidebar}
-            page="menu-management"
+            page="other"
+            title="จัดการเมนูและสินค้า"
           />
         </div>
         
         {/* Content Area */}
         <div className="flex-1 flex flex-col gap-6 overflow-hidden p-4 pt-0">
-          {/* Page Title and Actions */}
+          {/* Page Actions */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-coffee-800">จัดการเมนูและสินค้า</h1>
               <p className="text-coffee-600">จัดการเมนู หมวดหมู่ และส่วนเสริม</p>
             </div>
             
@@ -345,10 +345,6 @@ const MenuManagement = () => {
                             +฿{addon.price?.toFixed(2) || '0.00'}
                           </span>
                         </div>
-                        
-                        {addon.description && (
-                          <p className="text-sm text-gray-600 mb-2">{addon.description}</p>
-                        )}
                         
                         <div className="flex justify-end">
                           <Button
