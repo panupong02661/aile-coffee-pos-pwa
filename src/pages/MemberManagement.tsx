@@ -10,33 +10,35 @@ import MemberForm from '@/components/MemberForm';
 import MembershipSettings from '@/components/MembershipSettings';
 import PointsManagement from '@/components/PointsManagement';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const MemberManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
+    <div className="min-h-screen bg-coffee-50">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
       />
       
-      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
-      }`}>
-        <Header 
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          title="จัดการสมาชิก"
-          page="other"
-        />
-        
-        <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1">
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={() => setIsSidebarOpen(true)}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">จัดการสมาชิก</CardTitle>
+                <CardTitle className="text-2xl text-coffee-800">จัดการสมาชิก</CardTitle>
                 <CardDescription>จัดการข้อมูลสมาชิก ระดับสมาชิก และระบบแต้มสะสม</CardDescription>
               </CardHeader>
               <CardContent>

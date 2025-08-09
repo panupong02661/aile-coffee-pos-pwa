@@ -1,492 +1,383 @@
-
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Clock, Calendar as CalendarIcon, Users, CheckCircle, XCircle, Timer, Download, Filter } from 'lucide-react';
-import { useStaffData } from '@/hooks/useStaffData';
-import { format, subDays, startOfWeek, endOfWeek } from 'date-fns';
+import { Clock, Calendar as CalendarIcon, LogIn, LogOut, User } from 'lucide-react';
+import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+
+interface Staff {
+  id: string;
+  name: string;
+  position: string;
+}
+
+interface TimeAttendanceRecord {
+  id: string;
+  staff_id: string;
+  date: string;
+  check_in_time: string | null;
+  check_out_time: string | null;
+  work_hours: number;
+  status: string;
+  notes: string | null;
+  staff: Staff;
+}
 
 const TimeAttendance = () => {
-  const { 
-    staff, 
-    attendance, 
-    loading, 
-    checkIn, 
-    checkOut, 
-    getTodayAttendance,
-    getStaffAttendanceToday,
-    refetch 
-  } = useStaffData();
-
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<TimeAttendanceRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [dateRange, setDateRange] = useState({
-    from: startOfWeek(new Date(), { locale: th }),
-    to: endOfWeek(new Date(), { locale: th })
-  });
-  const [selectedStaff, setSelectedStaff] = useState('all');
-  const [checkInTime, setCheckInTime] = useState('');
-  const [checkOutTime, setCheckOutTime] = useState('');
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
+  const [checkInTime, setCheckInTime] = useState<string>('08:00');
+  const [checkOutTime, setCheckOutTime] = useState<string>('17:00');
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const todayAttendance = getTodayAttendance();
-  const currentTime = new Date().toTimeString().split(' ')[0].slice(0, 5);
+  useEffect(() => {
+    fetchStaff();
+    fetchAttendanceRecords();
+  }, [selectedDate]);
 
-  const handleQuickCheckIn = async (staffId: string) => {
+  const fetchStaff = async () => {
     try {
-      await checkIn(staffId);
-      refetch.attendance();
+      const { data, error } = await supabase
+        .from('staff')
+        .select('id, name, position')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setStaff(data || []);
     } catch (error) {
-      console.error('Error with quick check in:', error);
+      console.error('Error fetching staff:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลพนักงานได้', variant: 'destructive' });
     }
   };
 
-  const handleQuickCheckOut = async (staffId: string) => {
+  const fetchAttendanceRecords = async () => {
     try {
-      await checkOut(staffId);
-      refetch.attendance();
+      setLoading(true);
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_attendance')
+        .select(`
+          *,
+          staff (
+            id,
+            name,
+            position
+          )
+        `)
+        .eq('date', dateString)
+        .order('staff(name)');
+
+      if (error) throw error;
+      setAttendanceRecords(data || []);
     } catch (error) {
-      console.error('Error with quick check out:', error);
+      console.error('Error fetching attendance records:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลการเข้างานได้', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleManualCheckIn = async (staffId: string) => {
-    if (!checkInTime) return;
-    try {
-      await checkIn(staffId, checkInTime + ':00');
-      setCheckInTime('');
-      refetch.attendance();
-    } catch (error) {
-      console.error('Error with manual check in:', error);
+  const calculateWorkHours = (checkIn: string, checkOut: string): number => {
+    const checkInTime = new Date(`2000-01-01 ${checkIn}`);
+    const checkOutTime = new Date(`2000-01-01 ${checkOut}`);
+    const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+    return Math.max(0, diffMs / (1000 * 60 * 60)); // Convert to hours
+  };
+
+  const recordAttendance = async () => {
+    if (!selectedStaff) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกพนักงาน', variant: 'destructive' });
+      return;
     }
-  };
 
-  const handleManualCheckOut = async (staffId: string) => {
-    if (!checkOutTime) return;
     try {
-      await checkOut(staffId, checkOutTime + ':00');
-      setCheckOutTime('');
-      refetch.attendance();
-    } catch (error) {
-      console.error('Error with manual check out:', error);
-    }
-  };
-
-  const getAttendanceStatus = (staffId: string, date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const record = attendance.find(a => a.staff_id === staffId && a.date === dateStr);
-    
-    if (!record || !record.check_in_time) return 'absent';
-    if (!record.check_out_time) return 'working';
-    return 'completed';
-  };
-
-  const getWeeklyStats = () => {
-    const weekAttendance = attendance.filter(a => {
-      const date = new Date(a.date);
-      return date >= dateRange.from && date <= dateRange.to;
-    });
-
-    return {
-      totalPresent: weekAttendance.filter(a => a.check_in_time).length,
-      totalAbsent: staff.length * 7 - weekAttendance.filter(a => a.check_in_time).length,
-      totalHours: weekAttendance.reduce((sum, a) => sum + (a.work_hours || 0), 0),
-      avgHoursPerDay: weekAttendance.length > 0 ? 
-        weekAttendance.reduce((sum, a) => sum + (a.work_hours || 0), 0) / weekAttendance.length : 0
-    };
-  };
-
-  const weeklyStats = getWeeklyStats();
-
-  const exportAttendanceData = () => {
-    const csvData = attendance.map(record => {
-      const staffMember = staff.find(s => s.id === record.staff_id);
-      return {
-        'วันที่': record.date,
-        'ชื่อพนักงาน': staffMember?.name || 'ไม่ทราบ',
-        'เวลาเข้า': record.check_in_time || '-',
-        'เวลาออก': record.check_out_time || '-',
-        'ชั่วโมงทำงาน': record.work_hours || 0,
-        'สถานะ': record.status,
-        'หมายเหตุ': record.notes || ''
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
+      const workHours = checkOutTime ? calculateWorkHours(checkInTime, checkOutTime) : 0;
+      
+      // Check if record already exists
+      const existingRecord = attendanceRecords.find(record => record.staff_id === selectedStaff);
+      
+      const attendanceData = {
+        staff_id: selectedStaff,
+        date: dateString,
+        check_in_time: checkInTime,
+        check_out_time: checkOutTime || null,
+        work_hours: workHours,
+        status: workHours >= 8 ? 'present' : workHours >= 4 ? 'half_day' : 'late'
       };
-    });
 
-    const csv = [
-      Object.keys(csvData[0] || {}).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
+      if (existingRecord) {
+        // Update existing record
+        const { error } = await supabase
+          .from('time_attendance')
+          .update(attendanceData)
+          .eq('id', existingRecord.id);
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `attendance_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
+        if (error) throw error;
+        toast({ title: 'สำเร็จ', description: 'อัปเดตข้อมูลการเข้างานเรียบร้อยแล้ว' });
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('time_attendance')
+          .insert([attendanceData]);
+
+        if (error) throw error;
+        toast({ title: 'สำเร็จ', description: 'บันทึกการเข้างานเรียบร้อยแล้ว' });
+      }
+
+      await fetchAttendanceRecords();
+      setSelectedStaff('');
+      setCheckInTime('08:00');
+      setCheckOutTime('17:00');
+    } catch (error) {
+      console.error('Error recording attendance:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถบันทึกการเข้างานได้', variant: 'destructive' });
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'present':
+        return <Badge className="bg-green-100 text-green-800">เข้างานเต็ม</Badge>;
+      case 'half_day':
+        return <Badge className="bg-yellow-100 text-yellow-800">เข้างานสาย</Badge>;
+      case 'late':
+        return <Badge className="bg-orange-100 text-orange-800">มาสาย</Badge>;
+      case 'absent':
+        return <Badge className="bg-red-100 text-red-800">ขาดงาน</Badge>;
+      default:
+        return <Badge variant="outline">ไม่ระบุ</Badge>;
+    }
+  };
+
+  const getWorkHoursDisplay = (hours: number) => {
+    const fullHours = Math.floor(hours);
+    const minutes = Math.round((hours - fullHours) * 60);
+    return `${fullHours} ชม. ${minutes} น.`;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header with Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">มาวันนี้</p>
-                <p className="text-2xl font-bold">{todayAttendance.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">ขาดวันนี้</p>
-                <p className="text-2xl font-bold">{staff.length - todayAttendance.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Timer className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">ชั่วโมงรวม (สัปดาห์)</p>
-                <p className="text-2xl font-bold">{weeklyStats.totalHours.toFixed(1)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">เฉลี่ย/วัน</p>
-                <p className="text-2xl font-bold">{weeklyStats.avgHoursPerDay.toFixed(1)}ช.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
+      {/* Date Selection and Quick Actions */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              ลงเวลาด่วน
-            </CardTitle>
-            <div className="text-sm text-gray-600">
-              เวลาปัจจุบัน: {currentTime}
-            </div>
-          </div>
+          <CardTitle className="flex items-center">
+            <Clock className="w-5 h-5 mr-2" />
+            บันทึกเวลาทำงาน
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {staff.filter(s => s.status === 'active').map(member => {
-              const todayRecord = getStaffAttendanceToday(member.id);
-              const hasCheckedIn = todayRecord?.check_in_time;
-              const hasCheckedOut = todayRecord?.check_out_time;
-
-              return (
-                <div key={member.id} className="border rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">{member.name}</div>
-                      <div className="text-sm text-gray-500">{member.position}</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {hasCheckedIn ? (
-                      <div className="text-sm">
-                        <div className="text-green-600">
-                          ✓ เข้างาน: {todayRecord.check_in_time}
-                        </div>
-                        {hasCheckedOut && (
-                          <div className="text-blue-600">
-                            ← ออกงาน: {todayRecord.check_out_time}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Badge variant="secondary">ยังไม่ได้ลงเวลา</Badge>
-                    )}
-
-                    <div className="flex gap-2">
-                      {!hasCheckedIn ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleQuickCheckIn(member.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                        >
-                          เข้างาน
-                        </Button>
-                      ) : !hasCheckedOut ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleQuickCheckOut(member.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
-                        >
-                          ออกงาน
-                        </Button>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800 justify-center py-1">
-                          เสร็จสิ้น ({(todayRecord.work_hours || 0).toFixed(1)}ช.)
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Manual Time Entry */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ลงเวลาด้วยตนเอง</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-medium">ลงเวลาเข้างาน</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>เลือกพนักงาน</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกพนักงาน" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {staff.map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>เวลา</Label>
-                  <Input
-                    type="time"
-                    value={checkInTime}
-                    onChange={(e) => setCheckInTime(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button 
-                onClick={() => {/* handle manual check in */}}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                ลงเวลาเข้างาน
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-medium">ลงเวลาออกงาน</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>เลือกพนักงาน</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกพนักงาน" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {staff.filter(s => {
-                        const record = getStaffAttendanceToday(s.id);
-                        return record?.check_in_time && !record?.check_out_time;
-                      }).map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>เวลา</Label>
-                  <Input
-                    type="time"
-                    value={checkOutTime}
-                    onChange={(e) => setCheckOutTime(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button 
-                onClick={() => {/* handle manual check out */}}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                ลงเวลาออกงาน
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Attendance Report */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>รายงานการลงเวลา</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={exportAttendanceData}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                ส่งออก CSV
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>วันที่</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    {format(selectedDate, 'dd/MM/yyyy', { locale: th })}
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP", { locale: th }) : "เลือกวันที่"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={(date) => date && setSelectedDate(date)}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
+
+            <div className="space-y-2">
+              <Label>พนักงาน</Label>
+              <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกพนักงาน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staff.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name} - {member.position}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>เวลาเข้างาน</Label>
+              <Input
+                type="time"
+                value={checkInTime}
+                onChange={(e) => setCheckInTime(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>เวลาออกงาน</Label>
+              <Input
+                type="time"
+                value={checkOutTime}
+                onChange={(e) => setCheckOutTime(e.target.value)}
+              />
+            </div>
           </div>
+
+          <div className="flex justify-end mt-4">
+            <Button onClick={recordAttendance}>
+              <LogIn className="w-4 h-4 mr-2" />
+              บันทึกเวลาทำงาน
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Records */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            บันทึกเวลาทำงานวันที่ {format(selectedDate, "PPP", { locale: th })}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>พนักงาน</TableHead>
-                <TableHead>วันที่</TableHead>
-                <TableHead>เวลาเข้า</TableHead>
-                <TableHead>เวลาออก</TableHead>
-                <TableHead>ชั่วโมงทำงาน</TableHead>
-                <TableHead>สถานะ</TableHead>
-                <TableHead>หมายเหตุ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {attendance
-                .filter(record => {
-                  const recordDate = new Date(record.date);
-                  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-                  return record.date === selectedDateStr;
-                })
-                .map((record) => {
-                  const staffMember = staff.find(s => s.id === record.staff_id);
-                  return (
-                    <TableRow key={`${record.staff_id}-${record.date}`}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Users className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <div className="font-medium">{staffMember?.name}</div>
-                            <div className="text-sm text-gray-500">{staffMember?.position}</div>
-                          </div>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>พนักงาน</TableHead>
+                  <TableHead>ตำแหน่ง</TableHead>
+                  <TableHead>เวลาเข้า</TableHead>
+                  <TableHead>เวลาออก</TableHead>
+                  <TableHead>ชั่วโมงทำงาน</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attendanceRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      ยังไม่มีการบันทึกเวลาทำงานในวันนี้
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  attendanceRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <User className="w-4 h-4 mr-2" />
+                          {record.staff.name}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {format(new Date(record.date), 'dd/MM/yyyy', { locale: th })}
-                      </TableCell>
+                      <TableCell>{record.staff.position}</TableCell>
                       <TableCell>
                         {record.check_in_time ? (
-                          <span className="text-green-600">{record.check_in_time}</span>
+                          <div className="flex items-center">
+                            <LogIn className="w-4 h-4 mr-2 text-green-600" />
+                            {record.check_in_time}
+                          </div>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          '-'
                         )}
                       </TableCell>
                       <TableCell>
                         {record.check_out_time ? (
-                          <span className="text-blue-600">{record.check_out_time}</span>
-                        ) : record.check_in_time ? (
-                          <Badge variant="secondary">ยังทำงาน</Badge>
+                          <div className="flex items-center">
+                            <LogOut className="w-4 h-4 mr-2 text-red-600" />
+                            {record.check_out_time}
+                          </div>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          '-'
                         )}
                       </TableCell>
                       <TableCell>
-                        {record.work_hours > 0 ? (
-                          <span className="font-medium">{record.work_hours.toFixed(2)} ชั่วโมง</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
+                        {record.work_hours > 0 ? getWorkHoursDisplay(record.work_hours) : '-'}
                       </TableCell>
-                      <TableCell>
-                        <Badge 
-                          className={
-                            record.status === 'present' ? 'bg-green-100 text-green-800' :
-                            record.status === 'absent' ? 'bg-red-100 text-red-800' :
-                            record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }
-                        >
-                          {record.status === 'present' ? 'มาทำงาน' :
-                           record.status === 'absent' ? 'ขาดงาน' :
-                           record.status === 'late' ? 'มาสาย' : 'อื่นๆ'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600">
-                          {record.notes || '-'}
-                        </span>
-                      </TableCell>
+                      <TableCell>{getStatusBadge(record.status)}</TableCell>
                     </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-
-          {attendance.filter(r => r.date === format(selectedDate, 'yyyy-MM-dd')).length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              ไม่มีข้อมูลการลงเวลาในวันที่เลือก
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Summary Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">เข้างานวันนี้</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {attendanceRecords.filter(r => r.status === 'present').length}
+            </div>
+            <p className="text-xs text-gray-500">คน</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">เข้างานสาย</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {attendanceRecords.filter(r => r.status === 'late').length}
+            </div>
+            <p className="text-xs text-gray-500">คน</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">ขาดงาน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {staff.length - attendanceRecords.length}
+            </div>
+            <p className="text-xs text-gray-500">คน</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">ยังไม่เช็คเอาท์</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {attendanceRecords.filter(r => !r.check_out_time).length}
+            </div>
+            <p className="text-xs text-gray-500">คน</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

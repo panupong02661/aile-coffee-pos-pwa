@@ -31,7 +31,6 @@ interface HeaderProps {
   page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
   selectedMember?: Member | null;
   onRemoveMember?: () => void;
-  title?: string;
 }
 
 const Header = ({ 
@@ -46,8 +45,7 @@ const Header = ({
   setItemSize = () => {},
   page = 'other',
   selectedMember,
-  onRemoveMember = () => {},
-  title
+  onRemoveMember = () => {}
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -81,17 +79,11 @@ const Header = ({
 
   return (
     <>
-      <div className="flex items-center justify-between bg-card p-4 border-b border-border">
+      <div className="flex items-center justify-between">
         <div className="flex items-center">
-          {/* Hamburger menu button - always visible */}
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="mr-3">
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
             <Menu className="w-5 h-5" />
           </Button>
-
-          {/* Page title */}
-          {title && (
-            <h1 className="text-xl font-semibold text-foreground mr-6">{title}</h1>
-          )}
 
           {onMemberClick && (
             <Button variant="outline" size="sm" className="ml-2" onClick={onMemberClick}>
@@ -164,7 +156,7 @@ const Header = ({
 
       {/* Search Modal */}
       <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <SheetContent side="top" className="bg-background">
+        <SheetContent side="top" className="bg-cream-100">
           <SheetHeader>
             <SheetTitle>ค้นหาสินค้า</SheetTitle>
             <SheetDescription>

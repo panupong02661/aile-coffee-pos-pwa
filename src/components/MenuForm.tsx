@@ -91,7 +91,6 @@ const MenuForm: React.FC<MenuFormProps> = ({
       }
 
       onSuccess();
-      onClose();
     } catch (error) {
       console.error('Error saving menu item:', error);
       toast({ 

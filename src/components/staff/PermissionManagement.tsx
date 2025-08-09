@@ -1,423 +1,307 @@
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, User, Lock, Unlock, Settings, Eye, Edit, UserX, Save } from 'lucide-react';
-import { useStaffData } from '@/hooks/useStaffData';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Shield, User, Settings, Edit } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface StaffPermission {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  role: string;
+  permissions: {
+    pos: boolean;
+    menu_management: boolean;
+    member_management: boolean;
+    reports: boolean;
+    settings: boolean;
+    staff_management: boolean;
+    financial: boolean;
+    inventory: boolean;
+  };
+}
+
+interface PermissionGroup {
+  key: keyof StaffPermission['permissions'];
+  name: string;
+  description: string;
+}
 
 const PermissionManagement = () => {
-  const { 
-    staff, 
-    permissions, 
-    availablePermissions,
-    loading, 
-    updatePermission, 
-    getStaffPermissions 
-  } = useStaffData();
+  const [staffPermissions, setStaffPermissions] = useState<StaffPermission[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<StaffPermission | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
-  const [bulkPermissions, setBulkPermissions] = useState<Record<string, boolean>>({});
+  const permissionGroups: PermissionGroup[] = [
+    { key: 'pos', name: 'ระบบ POS', description: 'การขายและรับชำระเงิน' },
+    { key: 'menu_management', name: 'จัดการเมนู', description: 'เพิ่ม แก้ไข ลบเมนูอาหาร' },
+    { key: 'member_management', name: 'จัดการสมาชิก', description: 'จัดการข้อมูลสมาชิกและแต้ม' },
+    { key: 'reports', name: 'รายงาน', description: 'ดูรายงานยอดขายและสถิติ' },
+    { key: 'inventory', name: 'จัดการสต็อก', description: 'จัดการคลังสินค้าและวัตถุดิบ' },
+    { key: 'staff_management', name: 'จัดการพนักงาน', description: 'จัดการข้อมูลพนักงาน' },
+    { key: 'financial', name: 'ระบบการเงิน', description: 'จัดการบัญชีและการเงิน' },
+    { key: 'settings', name: 'ตั้งค่าระบบ', description: 'ตั้งค่าร้านและระบบ' }
+  ];
 
-  const handlePermissionToggle = async (staffId: string, permissionName: string, isGranted: boolean) => {
+  useEffect(() => {
+    fetchStaffPermissions();
+  }, []);
+
+  const fetchStaffPermissions = async () => {
+    setLoading(true);
     try {
-      await updatePermission(staffId, permissionName, isGranted);
+      // Mock data for demonstration
+      const mockPermissions: StaffPermission[] = [
+        {
+          id: '1',
+          staff_id: '1',
+          staff_name: 'นางสาวสมใจ ใจดี',
+          role: 'staff',
+          permissions: {
+            pos: true,
+            menu_management: false,
+            member_management: true,
+            reports: false,
+            settings: false,
+            staff_management: false,
+            financial: false,
+            inventory: false
+          }
+        },
+        {
+          id: '2',
+          staff_id: '2',
+          staff_name: 'นายสมชาย รักงาน',
+          role: 'staff',
+          permissions: {
+            pos: true,
+            menu_management: true,
+            member_management: false,
+            reports: false,
+            settings: false,
+            staff_management: false,
+            financial: false,
+            inventory: true
+          }
+        },
+        {
+          id: '3',
+          staff_id: '3',
+          staff_name: 'นางสาวมาลี ขยันทำ',
+          role: 'manager',
+          permissions: {
+            pos: true,
+            menu_management: true,
+            member_management: true,
+            reports: true,
+            settings: true,
+            staff_management: true,
+            financial: true,
+            inventory: true
+          }
+        }
+      ];
+
+      setStaffPermissions(mockPermissions);
     } catch (error) {
-      console.error('Error updating permission:', error);
+      console.error('Error fetching staff permissions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleBulkPermissionChange = (permissionName: string, isGranted: boolean) => {
-    setBulkPermissions(prev => ({
-      ...prev,
-      [permissionName]: isGranted
-    }));
-  };
-
-  const applyBulkPermissions = async () => {
-    if (!selectedStaffId) return;
-
-    try {
-      for (const [permissionName, isGranted] of Object.entries(bulkPermissions)) {
-        await updatePermission(selectedStaffId, permissionName, isGranted);
-      }
-      setBulkPermissions({});
-      setSelectedStaffId('');
-    } catch (error) {
-      console.error('Error applying bulk permissions:', error);
+  const handlePermissionChange = (permission: keyof StaffPermission['permissions'], value: boolean) => {
+    if (selectedStaff) {
+      setSelectedStaff(prev => prev ? {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [permission]: value
+        }
+      } : null);
     }
   };
 
-  const getPermissionStats = () => {
-    const stats = availablePermissions.map(perm => {
-      const grantedCount = permissions.filter(p => 
-        p.permission_name === perm.key && p.is_granted
-      ).length;
-      
-      return {
-        ...perm,
-        grantedCount,
-        percentage: staff.length > 0 ? Math.round((grantedCount / staff.length) * 100) : 0
-      };
-    });
+  const handleSavePermissions = async () => {
+    if (!selectedStaff) return;
 
-    return stats;
-  };
-
-  const getRoleBasedPermissions = (role: string) => {
-    const rolePermissions: Record<string, string[]> = {
-      'manager': ['manage_orders', 'manage_menu', 'manage_inventory', 'manage_staff', 'view_reports', 'manage_promotions', 'manage_members', 'access_pos', 'manage_settings', 'void_transactions'],
-      'supervisor': ['manage_orders', 'manage_menu', 'manage_inventory', 'view_reports', 'manage_promotions', 'manage_members', 'access_pos', 'void_transactions'],
-      'cashier': ['manage_orders', 'access_pos', 'manage_members'],
-      'cook': ['view_reports', 'access_pos'],
-      'waiter': ['manage_orders', 'access_pos', 'manage_members'],
-      'cleaner': ['access_pos'],
-      'delivery': ['manage_orders', 'access_pos']
-    };
-
-    return rolePermissions[role] || [];
-  };
-
-  const applyRolePermissions = async (staffId: string, role: string) => {
-    const rolePermissions = getRoleBasedPermissions(role);
-    
     try {
-      // Grant role permissions
-      for (const permission of rolePermissions) {
-        await updatePermission(staffId, permission, true);
-      }
-      
-      // Revoke permissions not in role
-      const otherPermissions = availablePermissions
-        .filter(p => !rolePermissions.includes(p.key))
-        .map(p => p.key);
-        
-      for (const permission of otherPermissions) {
-        await updatePermission(staffId, permission, false);
-      }
+      // Update in state (in real app, would update in database)
+      setStaffPermissions(prev => 
+        prev.map(staff => 
+          staff.id === selectedStaff.id ? selectedStaff : staff
+        )
+      );
+
+      setIsEditDialogOpen(false);
+      setSelectedStaff(null);
+      toast({
+        title: 'สำเร็จ',
+        description: 'อัพเดทสิทธิ์การเข้าถึงเรียบร้อยแล้ว'
+      });
     } catch (error) {
-      console.error('Error applying role permissions:', error);
+      console.error('Error updating permissions:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถอัพเดทสิทธิ์ได้',
+        variant: 'destructive'
+      });
     }
   };
 
-  const permissionStats = getPermissionStats();
+  const openEditDialog = (staff: StaffPermission) => {
+    setSelectedStaff({ ...staff });
+    setIsEditDialogOpen(true);
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Badge className="bg-red-100 text-red-800">Admin</Badge>;
+      case 'manager':
+        return <Badge className="bg-blue-100 text-blue-800">Manager</Badge>;
+      default:
+        return <Badge variant="secondary">Staff</Badge>;
+    }
+  };
+
+  const countActivePermissions = (permissions: StaffPermission['permissions']) => {
+    return Object.values(permissions).filter(Boolean).length;
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="individual" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="individual">สิทธิ์รายบุคคล</TabsTrigger>
-          <TabsTrigger value="bulk">จัดการสิทธิ์แบบกลุ่ม</TabsTrigger>
-          <TabsTrigger value="overview">ภาพรวมสิทธิ์</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="individual" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                จัดการสิทธิ์รายบุคคล
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>พนักงาน</TableHead>
-                    <TableHead>ตำแหน่ง</TableHead>
-                    <TableHead>สิทธิ์ที่ได้รับ</TableHead>
-                    <TableHead>การจัดการ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staff.map(member => {
-                    const staffPerms = getStaffPermissions(member.id);
-                    const grantedPerms = staffPerms.filter(p => p.is_granted);
-                    
-                    return (
-                      <TableRow key={member.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div>
-                              <div className="font-medium">{member.name}</div>
-                              <div className="text-sm text-gray-500">{member.phone}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{member.position}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {grantedPerms.length > 0 ? (
-                              grantedPerms.map(perm => {
-                                const permDetail = availablePermissions.find(p => p.key === perm.permission_name);
-                                return (
-                                  <Badge key={perm.permission_name} className="bg-green-100 text-green-800 text-xs">
-                                    {permDetail?.name || perm.permission_name}
-                                  </Badge>
-                                );
-                              })
-                            ) : (
-                              <span className="text-gray-500 text-sm">ไม่มีสิทธิ์พิเศษ</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const modal = document.getElementById(`permissions-modal-${member.id}`) as HTMLDialogElement;
-                                modal?.showModal();
-                              }}
-                            >
-                              <Settings className="w-4 h-4" />
-                              จัดการ
-                            </Button>
-                            <Select
-                              onValueChange={(role) => applyRolePermissions(member.id, role)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue placeholder="ตั้งค่าตามตำแหน่ง" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="manager">ผู้จัดการ</SelectItem>
-                                <SelectItem value="supervisor">หัวหน้างาน</SelectItem>
-                                <SelectItem value="cashier">แคชเชียร์</SelectItem>
-                                <SelectItem value="cook">พ่อครัว</SelectItem>
-                                <SelectItem value="waiter">พนักงานเสิร์ฟ</SelectItem>
-                                <SelectItem value="cleaner">พนักงานทำความสะอาด</SelectItem>
-                                <SelectItem value="delivery">พนักงานส่งของ</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Permission Modal */}
-                          <dialog id={`permissions-modal-${member.id}`} className="modal rounded-lg p-0 backdrop:bg-black/50">
-                            <div className="bg-white rounded-lg p-6 min-w-[600px] max-w-[800px] max-h-[80vh] overflow-y-auto">
-                              <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold">สิทธิ์การเข้าถึง - {member.name}</h3>
-                                <button
-                                  onClick={() => {
-                                    const modal = document.getElementById(`permissions-modal-${member.id}`) as HTMLDialogElement;
-                                    modal?.close();
-                                  }}
-                                  className="text-gray-500 hover:text-gray-700"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                              
-                              <div className="space-y-4">
-                                {availablePermissions.map(permission => {
-                                  const currentPerm = staffPerms.find(p => p.permission_name === permission.key);
-                                  const isGranted = currentPerm?.is_granted || false;
-                                  
-                                  return (
-                                    <div key={permission.key} className="flex items-center justify-between p-3 border rounded-lg">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          {isGranted ? (
-                                            <Unlock className="w-4 h-4 text-green-600" />
-                                          ) : (
-                                            <Lock className="w-4 h-4 text-red-600" />
-                                          )}
-                                          <span className="font-medium">{permission.name}</span>
-                                        </div>
-                                        <p className="text-sm text-gray-600">{permission.description}</p>
-                                      </div>
-                                      <Switch
-                                        checked={isGranted}
-                                        onCheckedChange={(checked) => 
-                                          handlePermissionToggle(member.id, permission.key, checked)
-                                        }
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </dialog>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bulk" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>จัดการสิทธิ์แบบกลุ่ม</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>เลือกพนักงาน</Label>
-                  <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกพนักงานที่ต้องการแก้ไขสิทธิ์" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {staff.map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name} - {member.position}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {selectedStaffId && (
-                <div className="space-y-4">
-                  <h4 className="font-medium">ตั้งค่าสิทธิ์</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {availablePermissions.map(permission => {
-                      const currentPerm = getStaffPermissions(selectedStaffId).find(p => p.permission_name === permission.key);
-                      const isCurrentlyGranted = currentPerm?.is_granted || false;
-                      const bulkValue = bulkPermissions[permission.key];
-                      const displayValue = bulkValue !== undefined ? bulkValue : isCurrentlyGranted;
-                      
-                      return (
-                        <div key={permission.key} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {displayValue ? (
-                                <Unlock className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <Lock className="w-4 h-4 text-red-600" />
-                              )}
-                              <span className="font-medium">{permission.name}</span>
-                            </div>
-                            <p className="text-sm text-gray-600">{permission.description}</p>
-                          </div>
-                          <Switch
-                            checked={displayValue}
-                            onCheckedChange={(checked) => 
-                              handleBulkPermissionChange(permission.key, checked)
-                            }
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={applyBulkPermissions} className="bg-blue-600 hover:bg-blue-700">
-                      <Save className="w-4 h-4 mr-2" />
-                      บันทึกการเปลี่ยนแปลง
-                    </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Shield className="w-5 h-5 mr-2" />
+            จัดการสิทธิ์การเข้าถึง
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>พนักงาน</TableHead>
+                <TableHead>บทบาท</TableHead>
+                <TableHead>สิทธิ์ที่ได้รับ</TableHead>
+                <TableHead>POS</TableHead>
+                <TableHead>เมนู</TableHead>
+                <TableHead>สมาชิก</TableHead>
+                <TableHead>รายงาน</TableHead>
+                <TableHead>จัดการ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {staffPermissions.map((staff) => (
+                <TableRow key={staff.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-2" />
+                      {staff.staff_name}
+                    </div>
+                  </TableCell>
+                  <TableCell>{getRoleBadge(staff.role)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {countActivePermissions(staff.permissions)}/8 สิทธิ์
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {staff.permissions.pos ? 
+                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
+                      <Badge variant="outline">✗</Badge>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {staff.permissions.menu_management ? 
+                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
+                      <Badge variant="outline">✗</Badge>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {staff.permissions.member_management ? 
+                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
+                      <Badge variant="outline">✗</Badge>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {staff.permissions.reports ? 
+                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
+                      <Badge variant="outline">✗</Badge>
+                    }
+                  </TableCell>
+                  <TableCell>
                     <Button 
                       variant="outline" 
-                      onClick={() => {
-                        setBulkPermissions({});
-                        setSelectedStaffId('');
-                      }}
+                      size="sm" 
+                      onClick={() => openEditDialog(staff)}
                     >
-                      ยกเลิก
+                      <Edit className="w-4 h-4" />
                     </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {permissionStats.map(stat => (
-              <Card key={stat.key}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Shield className="w-5 h-5 text-blue-600" />
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>แก้ไขสิทธิ์การเข้าถึง - {selectedStaff?.staff_name}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedStaff && (
+            <div className="space-y-6">
+              <div className="grid gap-4">
+                {permissionGroups.map((group) => (
+                  <div key={group.key} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="space-y-1">
+                      <Label className="text-base font-medium">{group.name}</Label>
+                      <p className="text-sm text-muted-foreground">{group.description}</p>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{stat.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{stat.description}</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all"
-                            style={{ width: `${stat.percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium">{stat.grantedCount}/{staff.length}</span>
-                      </div>
-                    </div>
+                    <Switch
+                      checked={selectedStaff.permissions[group.key]}
+                      onCheckedChange={(checked) => handlePermissionChange(group.key, checked)}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>สรุปสิทธิ์ตามตำแหน่ง</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ตำแหน่ง</TableHead>
-                    <TableHead>จำนวนคน</TableHead>
-                    <TableHead>สิทธิ์เฉลี่ย</TableHead>
-                    <TableHead>สิทธิ์สูงสุด</TableHead>
-                    <TableHead>สิทธิ์น้อยสุด</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from(new Set(staff.map(s => s.position))).map(position => {
-                    const positionStaff = staff.filter(s => s.position === position);
-                    const allPerms = positionStaff.map(s => getStaffPermissions(s.id).filter(p => p.is_granted).length);
-                    const avgPerms = allPerms.length > 0 ? allPerms.reduce((a, b) => a + b, 0) / allPerms.length : 0;
-                    const maxPerms = Math.max(...allPerms, 0);
-                    const minPerms = Math.min(...allPerms, 0);
-                    
-                    return (
-                      <TableRow key={position}>
-                        <TableCell>
-                          <Badge variant="outline">{position}</Badge>
-                        </TableCell>
-                        <TableCell>{positionStaff.length}</TableCell>
-                        <TableCell>{avgPerms.toFixed(1)}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-100 text-green-800">{maxPerms}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-red-100 text-red-800">{minPerms}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                ))}
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  ยกเลิก
+                </Button>
+                <Button onClick={handleSavePermissions}>
+                  บันทึกการเปลี่ยนแปลง
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

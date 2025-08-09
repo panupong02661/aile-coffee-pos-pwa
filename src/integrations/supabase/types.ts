@@ -170,36 +170,6 @@ export type Database = {
         }
         Relationships: []
       }
-      areas: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_active: boolean
-          name: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       bulk_discounts: {
         Row: {
           created_at: string | null
@@ -1168,80 +1138,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
-      }
-      expense_categories: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_active: boolean
-          name: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      expenses: {
-        Row: {
-          amount: number
-          category_id: string | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          expense_date: string
-          id: string
-          receipt_url: string | null
-          updated_at: string
-        }
-        Insert: {
-          amount?: number
-          category_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          expense_date?: string
-          id?: string
-          receipt_url?: string | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          category_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          expense_date?: string
-          id?: string
-          receipt_url?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expenses_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "expense_categories"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       gift_usage_history: {
         Row: {
@@ -2788,11 +2684,9 @@ export type Database = {
       staff: {
         Row: {
           created_at: string
-          department: string
           email: string | null
           hire_date: string
           id: string
-          is_active: boolean
           name: string
           phone: string
           position: string
@@ -2803,11 +2697,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          department?: string
           email?: string | null
           hire_date?: string
           id?: string
-          is_active?: boolean
           name: string
           phone: string
           position: string
@@ -2818,44 +2710,15 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          department?: string
           email?: string | null
           hire_date?: string
           id?: string
-          is_active?: boolean
           name?: string
           phone?: string
           position?: string
           role?: string
           salary?: number
           status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      staff_permissions: {
-        Row: {
-          created_at: string
-          id: string
-          is_granted: boolean
-          permission_name: string
-          staff_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_granted?: boolean
-          permission_name: string
-          staff_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_granted?: boolean
-          permission_name?: string
-          staff_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -3105,13 +2968,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_tables_area_id"
-            columns: ["area_id"]
-            isOneToOne: false
-            referencedRelation: "areas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "tables_area_id_fkey"
             columns: ["area_id"]
