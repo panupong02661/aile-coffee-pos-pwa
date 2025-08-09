@@ -1,10 +1,9 @@
 
-import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import GlobalNotificationProvider from '@/components/providers/GlobalNotificationProvider';
 import { AuthProvider } from '@/hooks/useAuth';
 import Index from './pages/Index';
@@ -59,7 +58,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -206,5 +205,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;
