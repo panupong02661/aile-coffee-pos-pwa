@@ -49,7 +49,7 @@ import SalesReports from './pages/SalesReports';
 import ProductReports from './pages/ProductReports';
 import CustomerAnalytics from './pages/CustomerAnalytics';
 
-// Create QueryClient instance outside the component to prevent recreation
+// Create QueryClient instance outside component to avoid recreating
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -59,10 +59,10 @@ const queryClient = new QueryClient({
   },
 });
 
-const App: React.FC = () => {
+function App() {
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
         <AuthProvider>
           <TooltipProvider>
             <GlobalNotificationProvider>
@@ -102,15 +102,13 @@ const App: React.FC = () => {
                   <Route path="/intelligent-inventory" element={<IntelligentInventory />} />
                   <Route path="/smart-menu" element={<SmartMenuRecommendations />} />
                   <Route path="/automated-marketing" element={<AutomatedMarketing />} />
-                  
-                  {/* New pages added */}
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/tables" element={<Tables />} />
                   <Route path="/sales-reports" element={<SalesReports />} />
                   <Route path="/product-reports" element={<ProductReports />} />
                   <Route path="/customer-analytics" element={<CustomerAnalytics />} />
                   
-                  {/* Pages that redirect to ComingSoon for features not yet implemented */}
+                  {/* Coming Soon routes */}
                   <Route path="/time-attendance" element={<ComingSoon />} />
                   <Route path="/permissions" element={<ComingSoon />} />
                   <Route path="/branch-management" element={<ComingSoon />} />
@@ -186,8 +184,6 @@ const App: React.FC = () => {
                   <Route path="/shop-settings" element={<ShopSettings />} />
                   <Route path="/printer-settings" element={<PrinterSettings />} />
                   <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-                  
-                  {/* Routing สำหรับหน้าที่ยังไม่ได้สร้าง */}
                   <Route path="/dynamic-pricing" element={<ComingSoon />} />
                   <Route path="/voice-assistant" element={<ComingSoon />} />
                   <Route path="/chatbot-support" element={<ComingSoon />} />
@@ -206,9 +202,9 @@ const App: React.FC = () => {
             </GlobalNotificationProvider>
           </TooltipProvider>
         </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
