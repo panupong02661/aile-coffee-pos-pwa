@@ -114,13 +114,13 @@ const App: React.FC = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <GlobalNotificationProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <GlobalNotificationProvider>
               <AppRoutes />
               <Toaster />
               <Sonner />
-            </BrowserRouter>
-          </GlobalNotificationProvider>
+            </GlobalNotificationProvider>
+          </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </React.StrictMode>
