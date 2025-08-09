@@ -1,5 +1,4 @@
 
-
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,16 +42,21 @@ import ProfitabilityAnalysis from './pages/ProfitabilityAnalysis';
 import IntelligentInventory from './pages/IntelligentInventory';
 import SmartMenuRecommendations from './pages/SmartMenuRecommendations';
 import AutomatedMarketing from './pages/AutomatedMarketing';
+import Orders from './pages/Orders';
+import Tables from './pages/Tables';
+import SalesReports from './pages/SalesReports';
+import ProductReports from './pages/ProductReports';
+import CustomerAnalytics from './pages/CustomerAnalytics';
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           <GlobalNotificationProvider>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -90,6 +94,91 @@ const App = () => (
               <Route path="/smart-menu" element={<SmartMenuRecommendations />} />
               <Route path="/automated-marketing" element={<AutomatedMarketing />} />
               
+              {/* New pages added */}
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/tables" element={<Tables />} />
+              <Route path="/sales-reports" element={<SalesReports />} />
+              <Route path="/product-reports" element={<ProductReports />} />
+              <Route path="/customer-analytics" element={<CustomerAnalytics />} />
+              
+              {/* Pages that redirect to ComingSoon for features not yet implemented */}
+              <Route path="/time-attendance" element={<ComingSoon />} />
+              <Route path="/permissions" element={<ComingSoon />} />
+              <Route path="/branch-management" element={<ComingSoon />} />
+              <Route path="/accounting" element={<ComingSoon />} />
+              <Route path="/income-expense" element={<ComingSoon />} />
+              <Route path="/profit-loss" element={<ComingSoon />} />
+              <Route path="/tax-system" element={<ComingSoon />} />
+              <Route path="/vat-calculation" element={<ComingSoon />} />
+              <Route path="/tax-invoice" element={<ComingSoon />} />
+              <Route path="/credit-system" element={<ComingSoon />} />
+              <Route path="/crm" element={<ComingSoon />} />
+              <Route path="/customer-data" element={<ComingSoon />} />
+              <Route path="/purchase-history" element={<ComingSoon />} />
+              <Route path="/marketing" element={<ComingSoon />} />
+              <Route path="/sms-marketing" element={<ComingSoon />} />
+              <Route path="/email-marketing" element={<ComingSoon />} />
+              <Route path="/table-reservation" element={<ComingSoon />} />
+              <Route path="/digital-payment" element={<ComingSoon />} />
+              <Route path="/credit-card" element={<ComingSoon />} />
+              <Route path="/api-system" element={<ComingSoon />} />
+              <Route path="/external-integration" element={<ComingSoon />} />
+              <Route path="/staff-mobile-app" element={<ComingSoon />} />
+              <Route path="/customer-mobile-app" element={<ComingSoon />} />
+              <Route path="/data-backup" element={<ComingSoon />} />
+              <Route path="/auto-backup" element={<ComingSoon />} />
+              <Route path="/system-logs" element={<ComingSoon />} />
+              <Route path="/usage-logs" element={<ComingSoon />} />
+              <Route path="/role-access" element={<ComingSoon />} />
+              <Route path="/access-control" element={<ComingSoon />} />
+              <Route path="/ai-analytics-dashboard" element={<ComingSoon />} />
+              <Route path="/smart-recommendation" element={<ComingSoon />} />
+              <Route path="/smart-inventory-ai" element={<ComingSoon />} />
+              <Route path="/pwa-app" element={<ComingSoon />} />
+              <Route path="/gamification" element={<ComingSoon />} />
+              <Route path="/virtual-loyalty" element={<ComingSoon />} />
+              <Route path="/push-notifications" element={<ComingSoon />} />
+              <Route path="/dark-mode" element={<ComingSoon />} />
+              <Route path="/responsive-design" element={<ComingSoon />} />
+              <Route path="/drag-drop" element={<ComingSoon />} />
+              <Route path="/advanced-filtering" element={<ComingSoon />} />
+              <Route path="/keyboard-shortcuts" element={<ComingSoon />} />
+              <Route path="/offline-first" element={<ComingSoon />} />
+              <Route path="/smart-caching" element={<ComingSoon />} />
+              <Route path="/image-optimization" element={<ComingSoon />} />
+              <Route path="/lazy-loading" element={<ComingSoon />} />
+              <Route path="/cdn-integration" element={<ComingSoon />} />
+              <Route path="/rbac-advanced" element={<ComingSoon />} />
+              <Route path="/fraud-detection" element={<ComingSoon />} />
+              <Route path="/advanced-reporting-new" element={<ComingSoon />} />
+              <Route path="/custom-dashboards" element={<ComingSoon />} />
+              <Route path="/data-export" element={<ComingSoon />} />
+              <Route path="/automated-reports" element={<ComingSoon />} />
+              <Route path="/kpi-monitoring" element={<ComingSoon />} />
+              <Route path="/third-party-pos" element={<ComingSoon />} />
+              <Route path="/accounting-integration" element={<ComingSoon />} />
+              <Route path="/social-media-integration" element={<ComingSoon />} />
+              <Route path="/email-marketing-tools" element={<ComingSoon />} />
+              <Route path="/webhook-support" element={<ComingSoon />} />
+              <Route path="/ab-testing" element={<ComingSoon />} />
+              <Route path="/customer-journey" element={<ComingSoon />} />
+              <Route path="/retention-analytics" element={<ComingSoon />} />
+              <Route path="/kitchen-display" element={<ComingSoon />} />
+              <Route path="/queue-management" element={<ComingSoon />} />
+              <Route path="/recipe-management" element={<ComingSoon />} />
+              <Route path="/allergen-tracking" element={<ComingSoon />} />
+              <Route path="/barcode-scanner" element={<ComingSoon />} />
+              <Route path="/camera-integration" element={<ComingSoon />} />
+              <Route path="/gps-integration" element={<ComingSoon />} />
+              <Route path="/advanced" element={<ComingSoon />} />
+              <Route path="/advanced-payment" element={<ComingSoon />} />
+              <Route path="/kitchen" element={<ComingSoon />} />
+              <Route path="/ai-analytics" element={<ComingSoon />} />
+              <Route path="/business-settings" element={<ComingSoon />} />
+              <Route path="/shop-settings" element={<ShopSettings />} />
+              <Route path="/printer-settings" element={<PrinterSettings />} />
+              <Route path="/delivery-integration" element={<DeliveryIntegration />} />
+              
               {/* Routing สำหรับหน้าที่ยังไม่ได้สร้าง */}
               <Route path="/dynamic-pricing" element={<ComingSoon />} />
               <Route path="/voice-assistant" element={<ComingSoon />} />
@@ -104,11 +193,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </GlobalNotificationProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
 export default App;
-
