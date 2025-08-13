@@ -10,14 +10,6 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   plugins: {
-    StarPrinter: {
-      ios: {
-        framework: "StarIO10"
-      },
-      android: {
-        framework: "StarIO10"
-      }
-    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
@@ -58,10 +50,7 @@ const config: CapacitorConfig = {
     }
   },
   ios: {
-    contentInset: 'automatic',
-    entitlements: {
-      'com.apple.external-accessory.wireless-configuration': true
-    }
+    contentInset: 'automatic'
   },
   android: {
     allowMixedContent: true,
