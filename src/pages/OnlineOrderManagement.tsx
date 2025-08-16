@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ShoppingCart, Users, Package, Clock, TrendingUp, Calendar, RotateCcw } from 'lucide-react';
+import Header from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
 
 interface OnlineOrder {
   id: string;
@@ -41,6 +43,15 @@ const OnlineOrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [orderStats, setOrderStats] = useState<OrderStats>({ today: 0, thisMonth: 0, thisYear: 0 });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
 
   const fetchOnlineOrders = async () => {
     try {
@@ -188,17 +199,58 @@ const OnlineOrderManagement = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">กำลังโหลดข้อมูลออเดอร์ออนไลน์...</p>
+      <div className="h-screen bg-cream-50 flex">
+        <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+        
+        <div className={`flex-1 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        }`}>
+          <div className="p-4">
+            <Header 
+              onToggleSidebar={handleToggleSidebar}
+              categories={[]}
+              selectedCategory=""
+              onCategorySelect={() => {}}
+              gridColumns={4}
+              setGridColumns={() => {}}
+              itemSize="medium"
+              setItemSize={() => {}}
+              page="other"
+            />
+            
+            <div className="container mx-auto p-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-gray-600">กำลังโหลดข้อมูลออเดอร์ออนไลน์...</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="h-screen bg-cream-50 flex">
+      <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
+          <div className="container mx-auto p-6">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -387,6 +439,9 @@ const OnlineOrderManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

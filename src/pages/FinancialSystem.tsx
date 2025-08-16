@@ -10,17 +10,25 @@ import { Briefcase, DollarSign, Receipt, CreditCard } from 'lucide-react';
 const FinancialSystem = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-coffee-50">
       <MainSidebar 
         isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        onClose={handleCloseSidebar} 
       />
       
       <div className="flex-1">
         <div className="p-4">
           <Header 
-            onToggleSidebar={() => setIsSidebarOpen(true)}
+            onToggleSidebar={handleToggleSidebar}
             categories={[]}
             selectedCategory=""
             onCategorySelect={() => {}}

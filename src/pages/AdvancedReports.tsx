@@ -13,6 +13,14 @@ import CustomerAnalytics from '@/components/reports/CustomerAnalytics';
 const AdvancedReports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   const handleExportReport = (type: string) => {
     // Implementation for exporting reports
     console.log(`Exporting ${type} report...`);
@@ -23,13 +31,13 @@ const AdvancedReports = () => {
     <div className="min-h-screen bg-coffee-50">
       <MainSidebar 
         isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        onClose={handleCloseSidebar} 
       />
       
       <div className="flex-1">
         <div className="p-4">
           <Header 
-            onToggleSidebar={() => setIsSidebarOpen(true)}
+            onToggleSidebar={handleToggleSidebar}
             categories={[]}
             selectedCategory=""
             onCategorySelect={() => {}}
