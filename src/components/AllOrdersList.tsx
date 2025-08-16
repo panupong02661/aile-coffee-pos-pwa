@@ -185,7 +185,6 @@ const AllOrdersList = () => {
             setSelectedOrderForDetails(null);
           }}
           orderId={selectedOrderForDetails.id}
-          orderNumber={selectedOrderForDetails.orderNumber}
         />
       )}
     </>

@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ShoppingCart, Users, Package, Clock, TrendingUp, Calendar, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Users, Package, Clock, TrendingUp, Calendar, RotateCcw, Eye } from 'lucide-react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
+import OrderDetailsModal from '@/components/OrderDetailsModal';
 
 interface OnlineOrder {
   id: string;
@@ -43,6 +44,8 @@ const OnlineOrderManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [orderStats, setOrderStats] = useState<OrderStats>({ today: 0, thisMonth: 0, thisYear: 0 });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -208,6 +211,16 @@ const OnlineOrderManagement = () => {
       console.error('Error updating order status:', error);
       toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
     }
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsOrderModalOpen(false);
+    setSelectedOrderId(null);
   };
 
   if (loading) {
@@ -400,7 +413,15 @@ const OnlineOrderManagement = () => {
                   <TableBody>
                     {filteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell className="font-medium">
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto font-medium text-blue-600 hover:text-blue-800"
+                            onClick={() => handleViewOrder(order.id)}
+                          >
+                            {order.order_number}
+                          </Button>
+                        </TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{order.member_name || 'ไม่ระบุ'}</div>
@@ -428,21 +449,32 @@ const OnlineOrderManagement = () => {
                         </TableCell>
                         <TableCell>{formatDate(order.created_at)}</TableCell>
                         <TableCell>
-                          <Select 
-                            value={order.payment_status || 'completed'} 
-                            onValueChange={(value) => updateOrderStatus(order.id, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">รอดำเนินการ</SelectItem>
-                              <SelectItem value="confirmed">ยืนยันแล้ว</SelectItem>
-                              <SelectItem value="preparing">กำลังเตรียม</SelectItem>
-                              <SelectItem value="ready">พร้อมส่ง</SelectItem>
-                              <SelectItem value="completed">เสร็จสิ้น</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewOrder(order.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              ดู
+                            </Button>
+                            <Select 
+                              value={order.payment_status || 'completed'} 
+                              onValueChange={(value) => updateOrderStatus(order.id, value)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">รอดำเนินการ</SelectItem>
+                                <SelectItem value="confirmed">ยืนยันแล้ว</SelectItem>
+                                <SelectItem value="preparing">กำลังเตรียม</SelectItem>
+                                <SelectItem value="ready">พร้อมส่ง</SelectItem>
+                                <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -459,6 +491,12 @@ const OnlineOrderManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <OrderDetailsModal
+        isOpen={isOrderModalOpen}
+        onClose={handleCloseModal}
+        orderId={selectedOrderId}
+      />
           </div>
         </div>
       </div>

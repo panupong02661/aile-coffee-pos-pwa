@@ -201,7 +201,6 @@ const MemberPurchaseHistoryModal = ({ isOpen, onClose, memberId, memberName }: M
         isOpen={!!selectedOrder}
         onClose={handleCloseOrderDetails}
         orderId={selectedOrder?.id || ''}
-        orderNumber={selectedOrder?.orderNumber || ''}
       />
     </>
   );
