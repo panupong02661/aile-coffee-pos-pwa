@@ -51,6 +51,7 @@ const Index = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const {
     cartItems,
@@ -115,9 +116,17 @@ const Index = () => {
     calculated_cost: Number(item.cost_price)
   }));
 
-  const filteredMenuItems = selectedCategory === '1' 
+  // Filter by category first, then by search term
+  let filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
+  
+  // Apply search filter if search term exists
+  if (searchTerm) {
+    filteredMenuItems = filteredMenuItems.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -318,6 +327,10 @@ const Index = () => {
             page="pos"
             selectedMember={selectedMember}
             onRemoveMember={handleRemoveMember}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            menuItems={convertedMenuItems}
+            onMenuItemSelect={handleMenuItemClick}
           />
           
           {/* Debug toggle button */}

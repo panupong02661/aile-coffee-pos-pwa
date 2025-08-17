@@ -31,6 +31,10 @@ interface HeaderProps {
   page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
   selectedMember?: Member | null;
   onRemoveMember?: () => void;
+  searchTerm?: string;
+  onSearchChange?: (searchTerm: string) => void;
+  menuItems?: any[];
+  onMenuItemSelect?: (menuItem: any) => void;
 }
 
 const Header = ({ 
@@ -45,10 +49,15 @@ const Header = ({
   setItemSize = () => {},
   page = 'other',
   selectedMember,
-  onRemoveMember = () => {}
+  onRemoveMember = () => {},
+  searchTerm = '',
+  onSearchChange = () => {},
+  menuItems = [],
+  onMenuItemSelect = () => {}
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
 
   const getTierBadgeColor = (tier: string) => {
     switch (tier) {
@@ -75,6 +84,22 @@ const Header = ({
       case 'silver': return <Star className="w-3 h-3" />;
       default: return <User className="w-3 h-3" />;
     }
+  };
+
+  // Filter menu items based on search term
+  const filteredMenuItems = menuItems.filter(item =>
+    item.name.toLowerCase().includes(localSearchTerm.toLowerCase())
+  );
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchTerm(value);
+    onSearchChange(value);
+  };
+
+  const handleMenuItemClick = (menuItem: any) => {
+    onMenuItemSelect(menuItem);
+    setIsSearchOpen(false);
+    setLocalSearchTerm('');
   };
 
   return (
@@ -156,7 +181,7 @@ const Header = ({
 
       {/* Search Modal */}
       <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <SheetContent side="top" className="bg-cream-100">
+        <SheetContent side="top" className="bg-background max-h-[80vh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>ค้นหาสินค้า</SheetTitle>
             <SheetDescription>
@@ -164,12 +189,55 @@ const Header = ({
             </SheetDescription>
           </SheetHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="search" className="text-right">
-                คำค้นหา
-              </Label>
-              <Input id="search" className="col-span-3" />
+            <div className="space-y-2">
+              <Label htmlFor="search">คำค้นหา</Label>
+              <Input 
+                id="search" 
+                placeholder="พิมพ์ชื่อเมนูที่ต้องการค้นหา..."
+                value={localSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                autoFocus
+              />
             </div>
+            
+            {/* Search Results */}
+            {localSearchTerm && (
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">ผลการค้นหา ({filteredMenuItems.length} รายการ)</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {filteredMenuItems.length > 0 ? (
+                    filteredMenuItems.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                        onClick={() => handleMenuItemClick(item)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          {item.image && (
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              ฿{Number(item.price).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline">เลือก</Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      ไม่พบเมนูที่ตรงกับการค้นหา
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

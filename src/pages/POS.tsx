@@ -61,6 +61,7 @@ const POS = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const {
     cartItems,
@@ -153,9 +154,17 @@ const POS = () => {
 
   console.log('🍽️ Converted menu items:', convertedMenuItems.length);
 
-  const filteredMenuItems = selectedCategory === '1' 
+  // Filter by category first, then by search term
+  let filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
+  
+  // Apply search filter if search term exists
+  if (searchTerm) {
+    filteredMenuItems = filteredMenuItems.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
 
   console.log('🔍 Filtered menu items:', {
     selectedCategory,
@@ -371,6 +380,10 @@ const POS = () => {
             itemSize={itemSize}
             setItemSize={setItemSize}
             page="pos"
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            menuItems={convertedMenuItems}
+            onMenuItemSelect={handleMenuItemClick}
           />
           
           {/* Debug toggle button */}
