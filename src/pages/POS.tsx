@@ -7,6 +7,7 @@ import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
+import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
@@ -15,6 +16,9 @@ import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Search, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Member {
   id: string;
@@ -62,6 +66,7 @@ const POS = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
 
   const {
     cartItems,
@@ -159,6 +164,21 @@ const POS = () => {
     filteredCount: filteredMenuItems.length,
     totalMenuItems: convertedMenuItems.length
   });
+
+  const filteredMenuItemsForSearch = convertedMenuItems.filter(item =>
+    item.name.toLowerCase().includes(localSearchTerm.toLowerCase())
+  );
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchTerm(value);
+    setSearchTerm(value);
+  };
+
+  const handleMenuItemFromSearch = (menuItem: any) => {
+    handleMenuItemClick(menuItem);
+    setIsSearchOpen(false);
+    setLocalSearchTerm('');
+  };
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -396,7 +416,11 @@ const POS = () => {
             </div>
 
             <div className="flex items-center justify-end min-w-[200px]">
-              {/* Empty space to match alignment */}
+              {selectedMember && (
+                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                  ⭐ {selectedMember.points.toLocaleString()} แต้ม
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -528,6 +552,80 @@ const POS = () => {
           onAddToCart={handleAddToCartWithAddons}
         />
       )}
+
+      {/* Search Modal */}
+      <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <SheetContent side="top" className="bg-background max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>ค้นหาสินค้า</SheetTitle>
+            <SheetDescription>
+              ป้อนชื่อสินค้าที่คุณต้องการค้นหา
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">คำค้นหา</Label>
+              <Input 
+                id="search" 
+                placeholder="พิมพ์ชื่อเมนูที่ต้องการค้นหา..."
+                value={localSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                autoFocus
+              />
+            </div>
+            
+            {/* Search Results */}
+            {localSearchTerm && (
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">ผลการค้นหา ({filteredMenuItemsForSearch.length} รายการ)</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {filteredMenuItemsForSearch.length > 0 ? (
+                    filteredMenuItemsForSearch.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                        onClick={() => handleMenuItemFromSearch(item)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          {item.image && (
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              ฿{Number(item.price).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline">เลือก</Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      ไม่พบเมนูที่ตรงกับการค้นหา
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Settings Modal */}
+      <DisplaySettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        gridColumns={gridColumns}
+        setGridColumns={setGridColumns}
+        itemSize={itemSize}
+        setItemSize={setItemSize}
+        page="pos"
+      />
 
       {/* Debug Code Checker */}
       {showDebug && <DebugCodeChecker />}
