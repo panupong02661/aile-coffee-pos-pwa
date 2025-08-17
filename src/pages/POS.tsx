@@ -154,17 +154,10 @@ const POS = () => {
 
   console.log('🍽️ Converted menu items:', convertedMenuItems.length);
 
-  // Filter by category first, then by search term
-  let filteredMenuItems = selectedCategory === '1' 
+  // Filter by category only - don't filter by search term in main display
+  const filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
-  
-  // Apply search filter if search term exists
-  if (searchTerm) {
-    filteredMenuItems = filteredMenuItems.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }
 
   console.log('🔍 Filtered menu items:', {
     selectedCategory,
