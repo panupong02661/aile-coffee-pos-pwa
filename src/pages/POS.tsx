@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -346,7 +345,7 @@ const POS = () => {
 
   return (
     <div 
-      className="h-screen bg-background flex overflow-hidden" 
+      className="h-screen bg-background flex overflow-hidden fixed inset-0" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -355,12 +354,12 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col h-full transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
-        {/* Header */}
-        <div className={`flex-shrink-0 bg-background sticky top-0 z-10 ${
-          isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
+        {/* Fixed Header */}
+        <div className={`flex-shrink-0 bg-background border-b border-border sticky top-0 z-20 ${
+          isMobile ? 'p-2 pb-2' : 'p-4 pb-2'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -379,40 +378,44 @@ const POS = () => {
             onMenuItemSelect={handleMenuItemClick}
           />
           
-          {/* Debug toggle button */}
-          <Button
-            onClick={() => setShowDebug(!showDebug)}
-            size="sm"
-            variant="outline"
-            className="mt-2"
-          >
-            {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
-          </Button>
+          {/* Debug controls - fixed position */}
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              onClick={() => setShowDebug(!showDebug)}
+              size="sm"
+              variant="outline"
+            >
+              {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
+            </Button>
 
-          {/* Enhanced iPad Audio Test Button */}
-          <Button
-            onClick={async () => {
-              await handleUserInteraction();
-              await playBellSound();
-            }}
-            size="sm"
-            variant="outline"
-            className="mt-2 ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
-          >
-            🔔 ทดสอบเสียงแจ้งเตือน iPad
-          </Button>
+            <Button
+              onClick={async () => {
+                await handleUserInteraction();
+                await playBellSound();
+              }}
+              size="sm"
+              variant="outline"
+              className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+            >
+              🔔 ทดสอบเสียงแจ้งเตือน iPad
+            </Button>
+          </div>
         </div>
         
-        {/* Content Area */}
-        <div className={`flex-1 flex gap-6 overflow-hidden ${
-          isMobile ? 'flex-col p-2 pt-0' : 'p-4 pt-0'
+        {/* Fixed Content Area */}
+        <div className={`flex-1 flex overflow-hidden ${
+          isMobile ? 'flex-col gap-2 p-2' : 'gap-4 p-4'
         }`}>
-          {/* Menu Grid Container */}
+          {/* Menu Grid Container - Fixed */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-card rounded-lg border border-border">
+            <div className="h-full bg-card rounded-lg border border-border shadow-sm">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-2' : 'p-4'
-              }`} style={{ scrollbarWidth: 'thin' }}>
+              }`} 
+              style={{ 
+                scrollbarWidth: 'thin',
+                scrollBehavior: 'smooth'
+              }}>
                 {filteredMenuItems.length > 0 ? (
                   <MenuGrid
                     menuItems={filteredMenuItems}
@@ -436,18 +439,21 @@ const POS = () => {
             </div>
           </div>
 
-          {/* Desktop Cart */}
+          {/* Desktop Cart - Fixed */}
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
-              <div className="h-full flex flex-col">
-                {/* Selected Member Display */}
+              <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm">
+                {/* Selected Member Display - Fixed */}
                 {selectedMember && (
-                  <SelectedMemberDisplay
-                    member={selectedMember}
-                    onRemove={handleRemoveMember}
-                  />
+                  <div className="flex-shrink-0 p-4 border-b border-border">
+                    <SelectedMemberDisplay
+                      member={selectedMember}
+                      onRemove={handleRemoveMember}
+                    />
+                  </div>
                 )}
                 
+                {/* Cart Content - Scrollable */}
                 <div className="flex-1 overflow-hidden">
                   <Cart
                     cartItems={cartItems}
@@ -471,12 +477,12 @@ const POS = () => {
           )}
         </div>
 
-        {/* Mobile Cart Button */}
+        {/* Mobile Cart Button - Fixed Position */}
         {isMobile && (
-          <div className="fixed bottom-4 right-4 z-20">
+          <div className="fixed bottom-6 right-6 z-30">
             <Button
               onClick={() => setIsMobileCartOpen(true)}
-              className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg relative"
+              className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg relative touch-none"
               size="sm"
             >
               <ShoppingCart className="w-6 h-6" />
