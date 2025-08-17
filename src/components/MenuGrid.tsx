@@ -102,17 +102,17 @@ const MenuGrid = ({
             }`}
             onClick={() => handleItemClick(item)}
           >
-            <CardContent className={`${isMobile ? 'p-2' : 'p-3'}`}>
+            <CardContent className={`${isMobile ? 'p-1' : 'p-2'}`}>
               <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                 {item.image && (
                   <img 
                     src={item.image} 
                     alt={item.name}
-                    className="w-full h-2/3 object-cover rounded-md mb-1"
+                    className="w-full h-3/4 object-cover rounded-md mb-1"
                     loading="lazy"
                   />
                 )}
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex-1 flex flex-col justify-between px-1">
                   <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
                     isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                   }`}>
