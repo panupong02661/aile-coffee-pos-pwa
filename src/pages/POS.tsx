@@ -380,7 +380,7 @@ const POS = () => {
             onMenuItemSelect={handleMenuItemClick}
           />
           
-          {/* Debug controls with member points - reduced spacing */}
+          {/* Debug controls with member points - aligned with customer info above */}
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-2">
               <Button
@@ -404,14 +404,14 @@ const POS = () => {
               </Button>
             </div>
 
-            {/* Member Points on second row */}
-            {selectedMember && (
-              <div className="flex items-center">
+            {/* Member Points - aligned to match customer info position above */}
+            <div className="flex items-center justify-end min-w-[200px]">
+              {selectedMember && (
                 <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
                   ⭐ {selectedMember.points.toLocaleString()} แต้ม
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
         
