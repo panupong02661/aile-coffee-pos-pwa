@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -14,7 +13,7 @@ import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Search, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Member {
@@ -61,6 +60,8 @@ const POS = () => {
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const {
     cartItems,
@@ -96,7 +97,6 @@ const POS = () => {
     addonsCount: addons?.length || 0
   });
 
-  // ปรับ grid columns สำหรับมือถือ
   useEffect(() => {
     console.log('📱 Mobile effect triggered:', isMobile);
     if (isMobile) {
@@ -110,7 +110,6 @@ const POS = () => {
     }
   }, [isMobile]);
 
-  // บันทึกการตั้งค่าลง localStorage เมื่อมีการเปลี่ยนแปลง
   useEffect(() => {
     localStorage.setItem('pos-grid-columns', gridColumns.toString());
   }, [gridColumns]);
@@ -119,7 +118,6 @@ const POS = () => {
     localStorage.setItem('pos-item-size', itemSize);
   }, [itemSize]);
 
-  // Convert database categories to the format expected by components
   const convertedCategories = [
     { 
       id: '1', 
@@ -139,7 +137,6 @@ const POS = () => {
 
   console.log('🏷️ Converted categories:', convertedCategories.length);
 
-  // Convert database menu items to the format expected by components
   const convertedMenuItems = (menuItems || []).map(item => ({
     id: item.id,
     name: item.name,
@@ -153,7 +150,6 @@ const POS = () => {
 
   console.log('🍽️ Converted menu items:', convertedMenuItems.length);
 
-  // Filter by category only - don't filter by search term in main display
   const filteredMenuItems = selectedCategory === '1' 
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
@@ -187,24 +183,20 @@ const POS = () => {
   const handleMenuItemClick = (menuItem: any) => {
     console.log('Menu item clicked:', menuItem);
     
-    // Get addon groups for this specific menu item
     const menuAddonGroups = getAddonGroupsForMenuItem(menuItem.id);
     console.log('Menu addon groups:', menuAddonGroups);
     
-    // Get addon groups for the category this menu item belongs to
     const categoryAddonGroups = menuItem.category_id 
       ? getAddonGroupsForCategory(menuItem.category_id) 
       : [];
     console.log('Category addon groups:', categoryAddonGroups);
 
-    // Combine both sets of addon groups (avoid duplicates)
     const allAddonGroupIds = new Set([
       ...menuAddonGroups.map(ag => ag.id),
       ...categoryAddonGroups.map(ag => ag.id)
     ]);
     console.log('All addon group IDs:', Array.from(allAddonGroupIds));
 
-    // Get all addons that belong to these addon groups
     const relevantAddons = (addons || []).filter(addon => 
       addon.addon_group_id && allAddonGroupIds.has(addon.addon_group_id)
     );
@@ -215,13 +207,11 @@ const POS = () => {
       setAvailableAddons(relevantAddons);
       setIsAddonModalOpen(true);
     } else {
-      // No addons available, add directly to cart
       addToCart(menuItem, []);
     }
   };
 
   const handleAddToCartWithAddons = (menuItem: any, selectedAddons: DatabaseAddon[]) => {
-    // Convert DatabaseAddon to the format expected by cart
     const convertedAddons = selectedAddons.map(addon => ({
       id: addon.id,
       name: addon.name,
@@ -241,18 +231,14 @@ const POS = () => {
   const handleCodeApply = async (giftData: any) => {
     console.log('Applying gift code:', giftData);
     
-    // เก็บข้อมูลโค้ดไว้ แต่ไม่อัปเดตสถานะในฐานข้อมูลตอนนี้
     setAppliedGiftCode(giftData);
     
     if (giftData.gift_type === 'menu_item') {
-      // Try to find the menu item by gift_id (assuming it references menu_items.id)
       const menuItem = convertedMenuItems.find(item => item.id === giftData.gift_id);
       
       if (menuItem) {
-        // Add the menu item as a free item with full discount
         addFreeItemToCart(menuItem, giftData.gift_name);
       } else {
-        // Create a placeholder menu item if not found
         const placeholderItem = {
           id: giftData.gift_id || `gift_${Date.now()}`,
           name: giftData.gift_name,
@@ -266,14 +252,13 @@ const POS = () => {
         addFreeItemToCart(placeholderItem, giftData.gift_name);
       }
     } else if (giftData.gift_type === 'promotion') {
-      // Apply promotion discount to bill
       applyPromotionDiscount(giftData.gift_value);
     }
   };
 
   const handleClearCart = () => {
     clearCart();
-    setAppliedGiftCode(null); // Clear applied gift code when cart is cleared
+    setAppliedGiftCode(null);
   };
 
   const handleUserInteraction = async () => {
@@ -287,11 +272,9 @@ const POS = () => {
 
   const handlePaymentComplete = async () => {
     try {
-      // เล่นเสียงแจ้งเตือนเมื่อยืนยันการสั่งซื้อ
       console.log('🔔 Playing notification sound for order confirmation...');
       await playBellSound();
       
-      // อัปเดตสถานะโค้ดเป็น "ใช้แล้ว" เมื่อชำระเงินสำเร็จแล้วเท่านั้น
       if (appliedGiftCode) {
         try {
           console.log('🔄 กำลังอัพเดทสถานะโค้ดเป็น "ใช้แล้ว":', appliedGiftCode.id);
@@ -380,7 +363,7 @@ const POS = () => {
             onMenuItemSelect={handleMenuItemClick}
           />
           
-          {/* Debug controls with member points - aligned with customer info above */}
+          {/* Debug controls with search and settings buttons */}
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-2">
               <Button
@@ -402,15 +385,18 @@ const POS = () => {
               >
                 🔔 ทดสอบเสียงแจ้งเตือน iPad
               </Button>
+
+              <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
+                <Search className="w-5 h-5" />
+              </Button>
+
+              <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                <Settings className="w-5 h-5" />
+              </Button>
             </div>
 
-            {/* Member Points - aligned to match customer info position above */}
             <div className="flex items-center justify-end min-w-[200px]">
-              {selectedMember && (
-                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                  ⭐ {selectedMember.points.toLocaleString()} แต้ม
-                </span>
-              )}
+              {/* Empty space to match alignment */}
             </div>
           </div>
         </div>

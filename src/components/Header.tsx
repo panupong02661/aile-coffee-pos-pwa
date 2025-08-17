@@ -104,7 +104,7 @@ const Header = ({
 
   return (
     <>
-      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier, Search, Settings */}
+      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier with Points */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
@@ -133,39 +133,31 @@ const Header = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* Member Name and Tier - aligned to the right */}
-          <div className="flex items-center justify-end min-w-[200px]">
-            {selectedMember && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm">
-                <span className="text-sm font-bold text-blue-900 tracking-wide">
-                  {selectedMember.name}
+        <div className="flex items-center justify-end min-w-[200px]">
+          {selectedMember && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm">
+              <span className="text-sm font-bold text-blue-900 tracking-wide">
+                {selectedMember.name}
+              </span>
+              <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-2 py-0.5 font-bold shadow-sm`}>
+                <span className="flex items-center gap-1">
+                  {getTierIcon(selectedMember.tier)}
+                  {getTierName(selectedMember.tier)}
                 </span>
-                <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-xs px-2 py-0.5 font-bold shadow-sm`}>
-                  <span className="flex items-center gap-1">
-                    {getTierIcon(selectedMember.tier)}
-                    {getTierName(selectedMember.tier)}
-                  </span>
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRemoveMember}
-                  className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 ml-1 rounded-full"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
-            <Search className="w-5 h-5" />
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" />
-          </Button>
+              </Badge>
+              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full ml-1">
+                ⭐ {selectedMember.points.toLocaleString()} แต้ม
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRemoveMember}
+                className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 ml-1 rounded-full"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -242,8 +234,18 @@ const Header = ({
         setItemSize={setItemSize}
         page={page}
       />
+
+      {/* Return search and settings button functions for parent component */}
+      <div style={{ display: 'none' }}>
+        <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
+          <Search className="w-5 h-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+          <Settings className="w-5 h-5" />
+        </Button>
+      </div>
     </>
   );
 };
 
-export default Header;
+export { Header as default };
