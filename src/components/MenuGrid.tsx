@@ -60,38 +60,38 @@ const MenuGrid = ({
   const getSizeClasses = () => {
     if (isMobile) {
       return {
-        small: 'h-32',  // ลดความสูงสำหรับ 3 คอลัมน์
-        medium: 'h-36',
-        large: 'h-40'
+        small: 'h-36',  // เพิ่มความสูงจาก h-32
+        medium: 'h-40', // เพิ่มความสูงจาก h-36
+        large: 'h-44'   // เพิ่มความสูงจาก h-40
       };
     }
     
-    // Desktop sizing - adjust for higher column counts
+    // Desktop sizing - เพิ่มขนาดสำหรับ desktop
     if (gridColumns >= 8) {
       return {
-        small: 'h-20',
-        medium: 'h-24',
-        large: 'h-28'
+        small: 'h-24',  // เพิ่มขนาดจาก h-20
+        medium: 'h-28', // เพิ่มขนาดจาก h-24
+        large: 'h-32'   // เพิ่มขนาดจาก h-28
       };
     } else if (gridColumns >= 5) {
       return {
-        small: 'h-24',
-        medium: 'h-28',
-        large: 'h-32'
+        small: 'h-28',  // เพิ่มขนาดจาก h-24
+        medium: 'h-32', // เพิ่มขนาดจาก h-28
+        large: 'h-36'   // เพิ่มขนาดจาก h-32
       };
     }
     
     return {
-      small: 'h-32',
-      medium: 'h-40',
-      large: 'h-48'
+      small: 'h-36',  // เพิ่มขนาดจาก h-32
+      medium: 'h-44', // เพิ่มขนาดจาก h-40
+      large: 'h-52'   // เพิ่มขนาดจาก h-48
     };
   };
 
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={`grid ${getGridStyle()} gap-2 md:gap-4`}>
+    <div className={`grid ${getGridStyle()} gap-1 md:gap-2`}>
       {menuItems
         .filter(item => item.is_available)
         .map((item) => (
