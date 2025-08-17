@@ -108,7 +108,7 @@ const MenuGrid = ({
                   <img 
                     src={item.image} 
                     alt={item.name}
-                    className="w-full h-3/4 object-cover rounded-md mb-1"
+                    className="w-full h-4/5 object-cover rounded-md mb-1"
                     loading="lazy"
                   />
                 )}
