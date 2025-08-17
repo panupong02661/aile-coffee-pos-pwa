@@ -580,23 +580,23 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] max-w-[95vw] max-h-[75vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[540px] max-w-[95vw] max-h-[85vh] overflow-y-auto">
         <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="w-4 h-4" />
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <CreditCard className="w-5 h-5" />
             ชำระเงิน
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {/* Order Summary - Compact */}
-          <div className="bg-gray-50 p-2 rounded-lg">
-            <div className="flex justify-between items-center text-base font-semibold">
+        <div className="space-y-4">
+          {/* Order Summary - Increased size */}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="flex justify-between items-center text-lg font-semibold">
               <span>ยอดชำระ:</span>
               <span className="text-green-600">฿{total.toLocaleString()}</span>
             </div>
             {selectedMember && (
-              <div className="mt-1 text-xs text-gray-600">
+              <div className="mt-2 text-sm text-gray-600">
                 {selectedMember.name} ({selectedMember.phone})
                 <div className="text-blue-600">
                   {getTierDisplayName(selectedMember.tier)} | {selectedMember.points.toLocaleString()} แต้ม
@@ -605,43 +605,43 @@ const PaymentModal = ({
             )}
           </div>
 
-          {/* Payment Method Selection - Compact */}
+          {/* Payment Method Selection - Increased size */}
           <div>
-            <Label className="text-sm font-medium">วิธีการชำระเงิน</Label>
+            <Label className="text-base font-medium">วิธีการชำระเงิน</Label>
             <RadioGroup 
               value={paymentMethod} 
               onValueChange={handleMethodChange}
-              className="mt-1"
+              className="mt-2"
             >
-              <div className="grid grid-cols-2 gap-1">
-                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="cash" id="cash" className="w-3 h-3" />
-                  <Label htmlFor="cash" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
-                    <DollarSign className="w-3 h-3" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="cash" id="cash" className="w-4 h-4" />
+                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
+                    <DollarSign className="w-4 h-4" />
                     เงินสด
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="qr" id="qr" className="w-3 h-3" />
-                  <Label htmlFor="qr" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
-                    <CreditCard className="w-3 h-3" />
+                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="qr" id="qr" className="w-4 h-4" />
+                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
+                    <CreditCard className="w-4 h-4" />
                     QR Code
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="points" id="points" className="w-3 h-3" />
-                  <Label htmlFor="points" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
-                    <Gift className="w-3 h-3" />
+                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="points" id="points" className="w-4 h-4" />
+                  <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
+                    <Gift className="w-4 h-4" />
                     แต้มสะสม
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-1 p-1.5 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="promptpay" id="promptpay" className="w-3 h-3" />
-                  <Label htmlFor="promptpay" className="flex items-center gap-1 cursor-pointer flex-1 text-xs">
-                    <QrCode className="w-3 h-3" />
+                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="promptpay" id="promptpay" className="w-4 h-4" />
+                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
+                    <QrCode className="w-4 h-4" />
                     PromptPay
                   </Label>
                 </div>
@@ -649,11 +649,11 @@ const PaymentModal = ({
             </RadioGroup>
           </div>
 
-          {/* Cash Input and Banknotes - Compact */}
+          {/* Cash Input and Banknotes - Increased size */}
           {paymentMethod === 'cash' && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div>
-                <Label htmlFor="cash-received" className="text-sm">จำนวนเงินที่รับ (บาท)</Label>
+                <Label htmlFor="cash-received" className="text-base">จำนวนเงินที่รับ (บาท)</Label>
                 <Input
                   id="cash-received"
                   type="number"
@@ -661,20 +661,20 @@ const PaymentModal = ({
                   onChange={(e) => setCashReceived(e.target.value)}
                   min={total}
                   step="0.01"
-                  className="mt-1 h-8"
+                  className="mt-2 h-10 text-base"
                 />
               </div>
 
-              {/* Banknote Buttons - Compact */}
+              {/* Banknote Buttons - Increased size */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">ธนบัตร</Label>
-                <div className="grid grid-cols-5 gap-1 mb-2">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">ธนบัตร</Label>
+                <div className="grid grid-cols-5 gap-2 mb-3">
                   {banknotes.map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"
                       onClick={() => handleBanknoteClick(amount)}
-                      className="h-8 text-xs font-medium"
+                      className="h-10 text-sm font-medium"
                     >
                       ฿{amount}
                     </Button>
@@ -682,18 +682,18 @@ const PaymentModal = ({
                 </div>
                 
                 {/* Exact Payment and Change display */}
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={handleExactPayment}
-                    className="flex-1 h-8 text-xs font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                    className="flex-1 h-10 text-sm font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>
                   
                   {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-2 bg-blue-50 rounded border">
-                      <span className="text-blue-700 font-medium text-xs">
+                    <div className="flex-1 flex items-center justify-center p-3 bg-blue-50 rounded border">
+                      <span className="text-blue-700 font-medium text-sm">
                         เงินทอน: ฿{change.toLocaleString()}
                       </span>
                     </div>
@@ -703,11 +703,11 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* Points Payment Input - Compact */}
+          {/* Points Payment Input - Increased size */}
           {paymentMethod === 'points' && selectedMember && currentTierSettings && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div>
-                <Label htmlFor="points-input" className="text-sm">จำนวนแต้มที่ต้องการใช้</Label>
+                <Label htmlFor="points-input" className="text-base">จำนวนแต้มที่ต้องการใช้</Label>
                 <Input
                   id="points-input"
                   type="number"
@@ -715,15 +715,15 @@ const PaymentModal = ({
                   onChange={(e) => setPointsToUse(e.target.value)}
                   min={getMinimumPoints()}
                   max={getMaximumPoints()}
-                  className="mt-1 h-8"
+                  className="mt-2 h-10 text-base"
                   placeholder={`ขั้นต่ำ ${getMinimumPoints()} แต้ม`}
                 />
               </div>
 
-              <div className="space-y-1">
-                <div className="p-2 bg-purple-50 rounded border">
-                  <div className="text-xs text-purple-700 space-y-0.5">
-                    <div className="font-medium text-purple-800 text-sm">
+              <div className="space-y-2">
+                <div className="p-3 bg-purple-50 rounded border">
+                  <div className="text-sm text-purple-700 space-y-1">
+                    <div className="font-medium text-purple-800 text-base">
                       สมาชิกระดับ{getTierDisplayName(selectedMember.tier)}
                     </div>
                     <div>แต้มที่มี: {selectedMember.points.toLocaleString()} แต้ม</div>
@@ -747,7 +747,7 @@ const PaymentModal = ({
                 <Button
                   variant="outline"
                   onClick={handleUseAllPoints}
-                  className="w-full h-8 text-xs border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                  className="w-full h-10 text-sm border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
                 >
                   ใช้แต้มสูงสุด ({getMaximumPoints().toLocaleString()} แต้ม)
                 </Button>
@@ -755,14 +755,14 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* QR Code Payment Info - Compact */}
+          {/* QR Code Payment Info - Increased size */}
           {paymentMethod === 'qr' && (
-            <div className="space-y-1">
-              <div className="p-2 bg-blue-50 rounded border text-center">
-                <div className="text-xs text-blue-700">
+            <div className="space-y-2">
+              <div className="p-3 bg-blue-50 rounded border text-center">
+                <div className="text-sm text-blue-700">
                   แสดง QR Code สำหรับการชำระเงิน
                 </div>
-                <div className="text-base font-semibold text-blue-800 mt-1">
+                <div className="text-lg font-semibold text-blue-800 mt-2">
                   ฿{total.toLocaleString()}
                 </div>
               </div>
@@ -792,20 +792,20 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          {/* Action Buttons - Increased size */}
+          <div className="flex gap-3">
             <Button 
               variant="outline" 
               onClick={onClose}
-              className="flex-1 h-9"
+              className="flex-1 h-12 text-base"
               disabled={isProcessing}
             >
-              <ArrowLeft className="w-3 h-3 mr-1" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               ยกเลิก
             </Button>
             <Button 
               onClick={handlePayment}
-              className="flex-1 h-9 bg-green-600 hover:bg-green-700"
+              className="flex-1 h-12 text-base bg-green-600 hover:bg-green-700"
               disabled={isProcessing || !cartItems || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
