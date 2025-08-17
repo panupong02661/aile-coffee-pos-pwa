@@ -135,7 +135,7 @@ const Header = ({
         <div className="flex items-center space-x-2">
           {/* Enhanced Member Display - Moved before search and settings buttons */}
           {selectedMember && (
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm mr-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm mr-3">
               <div className="flex flex-col gap-0.5">
                 {/* Line 1: Name and Tier Badge */}
                 <div className="flex items-center gap-2">

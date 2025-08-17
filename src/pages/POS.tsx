@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -6,7 +7,6 @@ import Cart from '@/components/Cart';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
-import SelectedMemberDisplay from '@/components/SelectedMemberDisplay';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -372,6 +372,8 @@ const POS = () => {
             itemSize={itemSize}
             setItemSize={setItemSize}
             page="pos"
+            selectedMember={selectedMember}
+            onRemoveMember={handleRemoveMember}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             menuItems={convertedMenuItems}
@@ -443,16 +445,6 @@ const POS = () => {
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
               <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm">
-                {/* Selected Member Display - Fixed */}
-                {selectedMember && (
-                  <div className="flex-shrink-0 p-4 border-b border-border">
-                    <SelectedMemberDisplay
-                      member={selectedMember}
-                      onRemove={handleRemoveMember}
-                    />
-                  </div>
-                )}
-                
                 {/* Cart Content - Scrollable */}
                 <div className="flex-1 overflow-hidden">
                   <Cart
