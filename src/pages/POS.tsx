@@ -359,7 +359,7 @@ const POS = () => {
       }`}>
         {/* Fixed Header */}
         <div className={`flex-shrink-0 bg-background border-b border-border sticky top-0 z-20 ${
-          isMobile ? 'p-2 pb-2' : 'p-4 pb-2'
+          isMobile ? 'p-2 pb-1' : 'p-4 pb-1'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -380,27 +380,38 @@ const POS = () => {
             onMenuItemSelect={handleMenuItemClick}
           />
           
-          {/* Debug controls - fixed position */}
-          <div className="flex items-center gap-2 mt-2">
-            <Button
-              onClick={() => setShowDebug(!showDebug)}
-              size="sm"
-              variant="outline"
-            >
-              {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
-            </Button>
+          {/* Debug controls with member points - reduced spacing */}
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowDebug(!showDebug)}
+                size="sm"
+                variant="outline"
+              >
+                {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
+              </Button>
 
-            <Button
-              onClick={async () => {
-                await handleUserInteraction();
-                await playBellSound();
-              }}
-              size="sm"
-              variant="outline"
-              className="bg-blue-100 hover:bg-blue-200 text-blue-800"
-            >
-              🔔 ทดสอบเสียงแจ้งเตือน iPad
-            </Button>
+              <Button
+                onClick={async () => {
+                  await handleUserInteraction();
+                  await playBellSound();
+                }}
+                size="sm"
+                variant="outline"
+                className="bg-blue-100 hover:bg-blue-200 text-blue-800"
+              >
+                🔔 ทดสอบเสียงแจ้งเตือน iPad
+              </Button>
+            </div>
+
+            {/* Member Points on second row */}
+            {selectedMember && (
+              <div className="flex items-center">
+                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                  ⭐ {selectedMember.points.toLocaleString()} แต้ม
+                </span>
+              </div>
+            )}
           </div>
         </div>
         
