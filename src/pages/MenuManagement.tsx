@@ -121,6 +121,11 @@ const MenuManagement = () => {
     }
   };
 
+  const handleStatusChange = () => {
+    // Refresh menu items when status changes
+    refetch.menuItems();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
@@ -233,7 +238,11 @@ const MenuManagement = () => {
                       </Button>
                     </div>
                   </div>
-                  <MenuItemsList menuItems={menuItems} onEdit={(item) => handleEdit(item, 'menu')} />
+                  <MenuItemsList 
+                    menuItems={menuItems} 
+                    onEdit={(item) => handleEdit(item, 'menu')}
+                    onStatusChange={handleStatusChange}
+                  />
                 </TabsContent>
 
                 <TabsContent value="categories" className="mt-6">

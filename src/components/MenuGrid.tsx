@@ -93,7 +93,7 @@ const MenuGrid = ({
   return (
     <div className={`grid ${getGridStyle()} gap-1 md:gap-2`}>
       {menuItems
-        .filter(item => item.is_available)
+        .filter(item => item.is_available === true) // Only show available items
         .map((item) => (
           <Card 
             key={item.id} 

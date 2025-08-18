@@ -4,13 +4,42 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MenuItemsListProps {
   menuItems: any[];
   onEdit: (item: any) => void;
+  onStatusChange?: () => void;
 }
 
-const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit }) => {
+const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStatusChange }) => {
+  const handleStatusToggle = async (item: any) => {
+    try {
+      const newStatus = !item.is_available;
+      
+      const { error } = await supabase
+        .from('menu_items')
+        .update({ is_available: newStatus })
+        .eq('id', item.id);
+
+      if (error) {
+        toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        return;
+      }
+
+      toast.success(`${newStatus ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}เมนู ${item.name} แล้ว`);
+      
+      // Call the callback to refresh data
+      if (onStatusChange) {
+        onStatusChange();
+      }
+    } catch (error) {
+      console.error('Error updating menu item status:', error);
+      toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {menuItems.map((item) => (
@@ -18,13 +47,21 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit }) => {
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-lg">{item.name}</h3>
-              <Badge variant={item.is_available ? 'default' : 'secondary'}>
+              <Badge 
+                variant={item.is_available ? 'default' : 'destructive'}
+                className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                  item.is_available 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+                onClick={() => handleStatusToggle(item)}
+              >
                 {item.is_available ? (
                   <Eye className="w-3 h-3 mr-1" />
                 ) : (
                   <EyeOff className="w-3 h-3 mr-1" />
                 )}
-                {item.is_available ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                {item.is_available ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
             
