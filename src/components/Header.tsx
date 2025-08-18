@@ -104,7 +104,7 @@ const Header = ({
 
   return (
     <>
-      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier with Points */}
+      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
@@ -145,9 +145,6 @@ const Header = ({
                   {getTierName(selectedMember.tier)}
                 </span>
               </Badge>
-              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full ml-1">
-                ⭐ {selectedMember.points.toLocaleString()} แต้ม
-              </span>
               <Button
                 variant="ghost"
                 size="sm"
