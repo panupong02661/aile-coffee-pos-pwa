@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseAddonGroup, useSupabaseData } from '@/hooks/useSupabaseData';
@@ -257,7 +257,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
             <Label htmlFor="allow_multiple">เลือกได้หลายรายการ</Label>
           </div>
 
-          {/* Menu Selection */}
+          {/* Menu Selection with ScrollArea */}
           <div>
             <Label>เมนู</Label>
             <div className="mt-2">
@@ -272,7 +272,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       ? "เลือกเมนู..."
                       : selectedMenuItems.length === menuItems.length
                       ? "เลือกทั้งหมด"
-                      : `เลือกแล้ว ${selectedMenuItems.length} รายการ`}
+                      : `เลือกแล้ว ${selectedMenuItems.length}รายการ`}
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -299,28 +299,30 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {menuItems.map((menuItem) => (
-                      <div
-                        key={menuItem.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer"
-                        onClick={() => toggleMenuItem(menuItem.id)}
-                      >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center">
-                          {selectedMenuItems.includes(menuItem.id) && (
-                            <Check className="w-3 h-3" />
-                          )}
+                  <ScrollArea className="h-60">
+                    <div className="p-1">
+                      {menuItems.map((menuItem) => (
+                        <div
+                          key={menuItem.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer rounded-sm"
+                          onClick={() => toggleMenuItem(menuItem.id)}
+                        >
+                          <div className="w-4 h-4 border rounded flex items-center justify-center">
+                            {selectedMenuItems.includes(menuItem.id) && (
+                              <Check className="w-3 h-3" />
+                            )}
+                          </div>
+                          <span className="text-sm">{menuItem.name}</span>
                         </div>
-                        <span className="text-sm">{menuItem.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
 
-          {/* Category Selection */}
+          {/* Category Selection with ScrollArea */}
           <div>
             <Label>หมวดหมู่</Label>
             <div className="mt-2">
@@ -362,22 +364,24 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {categories.map((category) => (
-                      <div
-                        key={category.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer"
-                        onClick={() => toggleCategory(category.id)}
-                      >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center">
-                          {selectedCategories.includes(category.id) && (
-                            <Check className="w-3 h-3" />
-                          )}
+                  <ScrollArea className="h-60">
+                    <div className="p-1">
+                      {categories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer rounded-sm"
+                          onClick={() => toggleCategory(category.id)}
+                        >
+                          <div className="w-4 h-4 border rounded flex items-center justify-center">
+                            {selectedCategories.includes(category.id) && (
+                              <Check className="w-3 h-3" />
+                            )}
+                          </div>
+                          <span className="text-sm">{category.name}</span>
                         </div>
-                        <span className="text-sm">{category.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
