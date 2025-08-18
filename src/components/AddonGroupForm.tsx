@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseAddonGroup, useSupabaseData } from '@/hooks/useSupabaseData';
@@ -303,22 +304,24 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {menuItems.map((menuItem) => (
-                      <div
-                        key={menuItem.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => toggleMenuItem(menuItem.id)}
-                      >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
-                          {selectedMenuItems.includes(menuItem.id) && (
-                            <Check className="w-3 h-3 text-green-600" />
-                          )}
+                  <ScrollArea className="h-64">
+                    <div className="p-1">
+                      {menuItems.map((menuItem) => (
+                        <div
+                          key={menuItem.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors rounded-sm"
+                          onClick={() => toggleMenuItem(menuItem.id)}
+                        >
+                          <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
+                            {selectedMenuItems.includes(menuItem.id) && (
+                              <Check className="w-3 h-3 text-green-600" />
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-900">{menuItem.name}</span>
                         </div>
-                        <span className="text-sm text-gray-900">{menuItem.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
@@ -371,22 +374,24 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {categories.map((category) => (
-                      <div
-                        key={category.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => toggleCategory(category.id)}
-                      >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
-                          {selectedCategories.includes(category.id) && (
-                            <Check className="w-3 h-3 text-green-600" />
-                          )}
+                  <ScrollArea className="h-64">
+                    <div className="p-1">
+                      {categories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors rounded-sm"
+                          onClick={() => toggleCategory(category.id)}
+                        >
+                          <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
+                            {selectedCategories.includes(category.id) && (
+                              <Check className="w-3 h-3 text-green-600" />
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-900">{category.name}</span>
                         </div>
-                        <span className="text-sm text-gray-900">{category.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
