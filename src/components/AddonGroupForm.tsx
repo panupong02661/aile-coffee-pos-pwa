@@ -276,15 +276,11 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50 max-h-80 overflow-y-auto"
+                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50"
                   align="start" 
                   side="bottom"
-                  style={{ 
-                    WebkitOverflowScrolling: 'touch',
-                    overscrollBehavior: 'contain'
-                  }}
                 >
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -306,11 +302,16 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="p-1">
+                  <div 
+                    className="max-h-80 overflow-y-auto overscroll-contain"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                    }}
+                  >
                     {menuItems.map((menuItem) => (
                       <div
                         key={menuItem.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                         onClick={() => toggleMenuItem(menuItem.id)}
                       >
                         <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
@@ -347,15 +348,11 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50 max-h-80 overflow-y-auto"
+                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50"
                   align="start" 
                   side="bottom"
-                  style={{ 
-                    WebkitOverflowScrolling: 'touch',
-                    overscrollBehavior: 'contain'
-                  }}
                 >
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -377,11 +374,16 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="p-1">
+                  <div 
+                    className="max-h-80 overflow-y-auto overscroll-contain"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                    }}
+                  >
                     {categories.map((category) => (
                       <div
                         key={category.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                         onClick={() => toggleCategory(category.id)}
                       >
                         <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
