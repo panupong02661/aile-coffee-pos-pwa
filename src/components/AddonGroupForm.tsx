@@ -276,11 +276,12 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50"
+                  className="w-full p-0 bg-white border shadow-lg z-[9999]"
                   align="start" 
                   side="bottom"
+                  style={{ width: 'var(--radix-popover-trigger-width)' }}
                 >
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 border-b bg-gray-50">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -302,24 +303,19 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div 
-                    className="max-h-80 overflow-y-auto overscroll-contain"
-                    style={{ 
-                      WebkitOverflowScrolling: 'touch',
-                    }}
-                  >
+                  <div className="max-h-64 overflow-y-auto">
                     {menuItems.map((menuItem) => (
                       <div
                         key={menuItem.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors"
                         onClick={() => toggleMenuItem(menuItem.id)}
                       >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
+                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
                           {selectedMenuItems.includes(menuItem.id) && (
                             <Check className="w-3 h-3 text-green-600" />
                           )}
                         </div>
-                        <span className="text-sm text-gray-900 dark:text-gray-100">{menuItem.name}</span>
+                        <span className="text-sm text-gray-900">{menuItem.name}</span>
                       </div>
                     ))}
                   </div>
@@ -348,11 +344,12 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50"
+                  className="w-full p-0 bg-white border shadow-lg z-[9999]"
                   align="start" 
                   side="bottom"
+                  style={{ width: 'var(--radix-popover-trigger-width)' }}
                 >
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 border-b bg-gray-50">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -374,24 +371,19 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div 
-                    className="max-h-80 overflow-y-auto overscroll-contain"
-                    style={{ 
-                      WebkitOverflowScrolling: 'touch',
-                    }}
-                  >
+                  <div className="max-h-64 overflow-y-auto">
                     {categories.map((category) => (
                       <div
                         key={category.id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer transition-colors"
                         onClick={() => toggleCategory(category.id)}
                       >
-                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
+                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white border-gray-300">
                           {selectedCategories.includes(category.id) && (
                             <Check className="w-3 h-3 text-green-600" />
                           )}
                         </div>
-                        <span className="text-sm text-gray-900 dark:text-gray-100">{category.name}</span>
+                        <span className="text-sm text-gray-900">{category.name}</span>
                       </div>
                     ))}
                   </div>
