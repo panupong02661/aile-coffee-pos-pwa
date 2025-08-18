@@ -332,29 +332,6 @@ const Index = () => {
             menuItems={convertedMenuItems}
             onMenuItemSelect={handleMenuItemClick}
           />
-          
-          {/* Debug toggle button */}
-          <Button
-            onClick={() => setShowDebug(!showDebug)}
-            size="sm"
-            variant="outline"
-            className="mt-2"
-          >
-            {showDebug ? 'ปิด Debug' : 'เปิด Debug'}
-          </Button>
-
-          {/* Enhanced iPad Audio Test Button */}
-          <Button
-            onClick={async () => {
-              await handleUserInteraction();
-              await playBellSound();
-            }}
-            size="sm"
-            variant="outline"
-            className="mt-2 ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
-          >
-            🔔 ทดสอบเสียงแจ้งเตือน iPad
-          </Button>
         </div>
         
         {/* Content Area */}
