@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseAddonGroup, useSupabaseData } from '@/hooks/useSupabaseData';
@@ -257,7 +256,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
             <Label htmlFor="allow_multiple">เลือกได้หลายรายการ</Label>
           </div>
 
-          {/* Menu Selection with ScrollArea */}
+          {/* Menu Selection with touch scrolling */}
           <div>
             <Label>เมนู</Label>
             <div className="mt-2">
@@ -299,7 +298,13 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-60">
+                  <div 
+                    className="h-60 overflow-y-auto bg-white dark:bg-gray-800 touch-pan-y"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                      overscrollBehavior: 'contain'
+                    }}
+                  >
                     <div className="p-1">
                       {menuItems.map((menuItem) => (
                         <div
@@ -316,13 +321,13 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
 
-          {/* Category Selection with ScrollArea */}
+          {/* Category Selection with touch scrolling */}
           <div>
             <Label>หมวดหมู่</Label>
             <div className="mt-2">
@@ -364,7 +369,13 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-60">
+                  <div 
+                    className="h-60 overflow-y-auto bg-white dark:bg-gray-800 touch-pan-y"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                      overscrollBehavior: 'contain'
+                    }}
+                  >
                     <div className="p-1">
                       {categories.map((category) => (
                         <div
@@ -381,7 +392,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
