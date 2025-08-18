@@ -256,7 +256,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
             <Label htmlFor="allow_multiple">เลือกได้หลายรายการ</Label>
           </div>
 
-          {/* Menu Selection with touch scrolling */}
+          {/* Menu Selection */}
           <div>
             <Label>เมนู</Label>
             <div className="mt-2">
@@ -275,8 +275,16 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50" align="start" side="bottom">
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
+                <PopoverContent 
+                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50 max-h-80 overflow-y-auto"
+                  align="start" 
+                  side="bottom"
+                  style={{ 
+                    WebkitOverflowScrolling: 'touch',
+                    overscrollBehavior: 'contain'
+                  }}
+                >
+                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -298,36 +306,28 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div 
-                    className="h-60 overflow-y-auto bg-white dark:bg-gray-800 touch-pan-y"
-                    style={{ 
-                      WebkitOverflowScrolling: 'touch',
-                      overscrollBehavior: 'contain'
-                    }}
-                  >
-                    <div className="p-1">
-                      {menuItems.map((menuItem) => (
-                        <div
-                          key={menuItem.id}
-                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
-                          onClick={() => toggleMenuItem(menuItem.id)}
-                        >
-                          <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
-                            {selectedMenuItems.includes(menuItem.id) && (
-                              <Check className="w-3 h-3 text-green-600" />
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100">{menuItem.name}</span>
+                  <div className="p-1">
+                    {menuItems.map((menuItem) => (
+                      <div
+                        key={menuItem.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
+                        onClick={() => toggleMenuItem(menuItem.id)}
+                      >
+                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
+                          {selectedMenuItems.includes(menuItem.id) && (
+                            <Check className="w-3 h-3 text-green-600" />
+                          )}
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-sm text-gray-900 dark:text-gray-100">{menuItem.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
 
-          {/* Category Selection with touch scrolling */}
+          {/* Category Selection */}
           <div>
             <Label>หมวดหมู่</Label>
             <div className="mt-2">
@@ -346,8 +346,16 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50" align="start" side="bottom">
-                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
+                <PopoverContent 
+                  className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50 max-h-80 overflow-y-auto"
+                  align="start" 
+                  side="bottom"
+                  style={{ 
+                    WebkitOverflowScrolling: 'touch',
+                    overscrollBehavior: 'contain'
+                  }}
+                >
+                  <div className="p-2 border-b bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -369,29 +377,21 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div 
-                    className="h-60 overflow-y-auto bg-white dark:bg-gray-800 touch-pan-y"
-                    style={{ 
-                      WebkitOverflowScrolling: 'touch',
-                      overscrollBehavior: 'contain'
-                    }}
-                  >
-                    <div className="p-1">
-                      {categories.map((category) => (
-                        <div
-                          key={category.id}
-                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
-                          onClick={() => toggleCategory(category.id)}
-                        >
-                          <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
-                            {selectedCategories.includes(category.id) && (
-                              <Check className="w-3 h-3 text-green-600" />
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100">{category.name}</span>
+                  <div className="p-1">
+                    {categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
+                        onClick={() => toggleCategory(category.id)}
+                      >
+                        <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
+                          {selectedCategories.includes(category.id) && (
+                            <Check className="w-3 h-3 text-green-600" />
+                          )}
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-sm text-gray-900 dark:text-gray-100">{category.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </PopoverContent>
               </Popover>
