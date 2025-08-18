@@ -257,7 +257,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
             <Label htmlFor="allow_multiple">เลือกได้หลายรายการ</Label>
           </div>
 
-          {/* Menu Selection with improved scrollable area */}
+          {/* Menu Selection with improved scrolling */}
           <div>
             <Label>เมนู</Label>
             <div className="mt-2">
@@ -276,7 +276,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg" align="start" side="bottom">
+                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50" align="start" side="bottom">
                   <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
                     <div className="flex gap-2">
                       <Button
@@ -299,34 +299,30 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-60 bg-white dark:bg-gray-800">
-                    <div className="p-1 cursor-grab active:cursor-grabbing select-none">
+                  <div className="h-60 overflow-y-auto bg-white dark:bg-gray-800">
+                    <div className="p-1">
                       {menuItems.map((menuItem) => (
                         <div
                           key={menuItem.id}
                           className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleMenuItem(menuItem.id);
-                          }}
-                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => toggleMenuItem(menuItem.id)}
                         >
                           <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
                             {selectedMenuItems.includes(menuItem.id) && (
                               <Check className="w-3 h-3 text-green-600" />
                             )}
                           </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100 select-none">{menuItem.name}</span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{menuItem.name}</span>
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
 
-          {/* Category Selection with improved scrollable area */}
+          {/* Category Selection with improved scrolling */}
           <div>
             <Label>หมวดหมู่</Label>
             <div className="mt-2">
@@ -345,7 +341,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg" align="start" side="bottom">
+                <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 border shadow-lg z-50" align="start" side="bottom">
                   <div className="p-2 border-b bg-gray-50 dark:bg-gray-700">
                     <div className="flex gap-2">
                       <Button
@@ -368,28 +364,24 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-60 bg-white dark:bg-gray-800">
-                    <div className="p-1 cursor-grab active:cursor-grabbing select-none">
+                  <div className="h-60 overflow-y-auto bg-white dark:bg-gray-800">
+                    <div className="p-1">
                       {categories.map((category) => (
                         <div
                           key={category.id}
                           className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-sm transition-colors"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleCategory(category.id);
-                          }}
-                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => toggleCategory(category.id)}
                         >
                           <div className="w-4 h-4 border rounded flex items-center justify-center bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500">
                             {selectedCategories.includes(category.id) && (
                               <Check className="w-3 h-3 text-green-600" />
                             )}
                           </div>
-                          <span className="text-sm text-gray-900 dark:text-gray-100 select-none">{category.name}</span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{category.name}</span>
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
