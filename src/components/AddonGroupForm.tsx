@@ -257,7 +257,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
             <Label htmlFor="allow_multiple">เลือกได้หลายรายการ</Label>
           </div>
 
-          {/* Menu Selection with improved scrolling */}
+          {/* Menu Selection with ScrollArea */}
           <div>
             <Label>เมนู</Label>
             <div className="mt-2">
@@ -299,7 +299,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="h-60 overflow-y-auto bg-white dark:bg-gray-800">
+                  <ScrollArea className="h-60">
                     <div className="p-1">
                       {menuItems.map((menuItem) => (
                         <div
@@ -316,13 +316,13 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
 
-          {/* Category Selection with improved scrolling */}
+          {/* Category Selection with ScrollArea */}
           <div>
             <Label>หมวดหมู่</Label>
             <div className="mt-2">
@@ -364,7 +364,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="h-60 overflow-y-auto bg-white dark:bg-gray-800">
+                  <ScrollArea className="h-60">
                     <div className="p-1">
                       {categories.map((category) => (
                         <div
@@ -381,7 +381,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 </PopoverContent>
               </Popover>
             </div>
