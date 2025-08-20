@@ -91,7 +91,7 @@ const MenuGrid = ({
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={`grid ${getGridStyle()} gap-1 md:gap-2`}>
+    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`}>
       {menuItems
         .filter(item => item.is_available === true) // Only show available items
         .map((item) => (
@@ -102,7 +102,7 @@ const MenuGrid = ({
             }`}
             onClick={() => handleItemClick(item)}
           >
-            <CardContent className={`${isMobile ? 'p-1' : 'p-2'}`}>
+            <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`}>
               <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                 {item.image && (
                   <img 

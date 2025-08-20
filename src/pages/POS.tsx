@@ -362,7 +362,7 @@ const POS = () => {
       }`}>
         {/* Fixed Header */}
         <div className={`flex-shrink-0 bg-background border-b border-border sticky top-0 z-20 ${
-          isMobile ? 'p-2 pb-1' : 'p-4 pb-1'
+          isMobile ? 'p-2 pb-1' : 'p-2 pb-1'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -425,15 +425,15 @@ const POS = () => {
           </div>
         </div>
         
-        {/* Fixed Content Area */}
+        {/* Fixed Content Area - Reduced padding */}
         <div className={`flex-1 flex overflow-hidden ${
-          isMobile ? 'flex-col gap-2 p-2' : 'gap-4 p-4'
+          isMobile ? 'flex-col gap-1 p-1' : 'gap-2 p-2'
         }`}>
           {/* Menu Grid Container - Fixed */}
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="h-full bg-card rounded-lg border border-border shadow-sm">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-2' : 'p-4'
+                isMobile ? 'p-1' : 'p-2'
               }`} 
               style={{ 
                 scrollbarWidth: 'thin',
