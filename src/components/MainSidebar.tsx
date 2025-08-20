@@ -179,7 +179,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <UserProfile />
           
           <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="p-2 pb-80 md:pb-16">
+            <div className="p-2 pb-16 md:pb-3">
               <nav className="space-y-1">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
