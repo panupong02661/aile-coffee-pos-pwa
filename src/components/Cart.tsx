@@ -162,11 +162,9 @@ const Cart = ({
     <>
       <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
         <CardHeader className="pb-2 pt-3 flex-shrink-0">
-          <div className="flex justify-end">
-            <CardTitle className="text-coffee-800 text-base">
-              ตะกร้าสินค้า ({cartItems.length} รายการ)
-            </CardTitle>
-          </div>
+          <CardTitle className="text-coffee-800 text-base">
+            ตะกร้าสินค้า ({cartItems.length} รายการ)
+          </CardTitle>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col min-h-0 p-3 pt-0 overflow-hidden">

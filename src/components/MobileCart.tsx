@@ -1,7 +1,12 @@
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, Minus, Trash2, Tag, X, Clock, QrCode, Gift } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -11,14 +16,14 @@ import CodeModal from './CodeModal';
 import { useToast } from '@/hooks/use-toast';
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from '@/components/ui/drawer';
 
 interface MobileCartProps {
+  isOpen: boolean;
+  onClose: () => void;
   cartItems: CartItem[];
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   onRemoveItem: (itemId: string) => void;
@@ -44,6 +49,8 @@ interface MobileCartProps {
 }
 
 const MobileCart = ({ 
+  isOpen,
+  onClose,
   cartItems, 
   onUpdateQuantity, 
   onRemoveItem, 
@@ -60,11 +67,11 @@ const MobileCart = ({
   selectedMember
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
-  const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
-  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
+  const [pickupTime, setPickupTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('qr');
   const { toast } = useToast();
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
@@ -92,6 +99,7 @@ const MobileCart = ({
     onClearCart();
     setIsPaymentModalOpen(false);
     onUpdateBillDiscount(0);
+    onClose();
   };
 
   const handleApplyDiscount = (discount: number, type: 'percent' | 'amount') => {
@@ -102,6 +110,7 @@ const MobileCart = ({
   const handleHoldBill = () => {
     onClearCart();
     onUpdateBillDiscount(0);
+    onClose();
   };
 
   const handleRestoreBill = (bill: any) => {
@@ -121,34 +130,28 @@ const MobileCart = ({
 
   return (
     <>
-      <Drawer>
-        <DrawerTrigger asChild>
-          <Button className="fixed bottom-4 right-4 z-50 bg-coffee-600 hover:bg-coffee-700 shadow-lg">
-            ตะกร้า ({cartItems.length})
-          </Button>
-        </DrawerTrigger>
+      <Drawer open={isOpen} onOpenChange={onClose}>
         <DrawerContent className="max-h-[90vh] flex flex-col">
           <DrawerHeader className="flex-shrink-0">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
               <DrawerTitle className="text-coffee-800">
                 ตะกร้าสินค้า ({cartItems.length} รายการ)
               </DrawerTitle>
-            </div>
-            <DrawerClose asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-2 right-2"
+                onClick={onClose}
+                className="p-2"
               >
-                ✕
+                <X className="w-5 h-5" />
               </Button>
-            </DrawerClose>
+            </div>
           </DrawerHeader>
           
-          <div className="flex-1 flex flex-col min-h-0 p-4 pt-0 overflow-hidden">
-            {/* Payment Summary Section */}
-            <div className="border border-coffee-200 rounded-lg p-3 mb-3 bg-coffee-50 flex-shrink-0">
-              <div className="space-y-1.5">
+          <div className="flex-1 flex flex-col min-h-0 px-4 pb-4 overflow-hidden">
+            {/* Payment Summary Section - Always show */}
+            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-coffee-50 flex-shrink-0">
+              <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>ยอดรวมย่อย:</span>
                   <span>฿{subtotal}</span>
@@ -174,83 +177,101 @@ const MobileCart = ({
 
                 <Separator />
                 
-                <div className="flex justify-between font-bold text-base">
+                <div className="flex justify-between font-bold text-lg">
                   <span>ยอดชำระสุทธิ:</span>
                   <span className="text-coffee-600">฿{total}</span>
                 </div>
               </div>
 
-              <div className="space-y-2 mt-3">
-                <Button 
-                  className="w-full bg-coffee-600 hover:bg-coffee-700"
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  disabled={cartItems.length === 0}
-                >
-                  ชำระ
-                </Button>
-                
-                <div className="grid grid-cols-4 gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsDiscountModalOpen(true)}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                    size="sm"
-                  >
-                    <Percent className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsHoldBillModalOpen(true)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    size="sm"
-                  >
-                    <Clock className="w-4 h-4" />
-                  </Button>
+            </div>
 
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsCodeModalOpen(true)}
-                    className="border-green-300 text-green-700 hover:bg-green-50"
-                    size="sm"
-                  >
-                    <QrCode className="w-4 h-4" />
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    onClick={onClearCart}
-                    size="sm"
-                  >
-                    เคลียร์
-                  </Button>
+            {/* Order Details Section */}
+            <div className="border border-coffee-200 rounded-lg p-4 mb-4 bg-white flex-shrink-0">
+              <h3 className="font-medium text-coffee-800 mb-4 flex items-center">
+                <Clock className="w-4 h-4 mr-2" />
+                รายละเอียดการสั่งซื้อ
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="pickup-time" className="text-sm font-medium text-coffee-700">
+                    เวลาที่ต้องการรับสินค้า
+                  </Label>
+                  <Input
+                    id="pickup-time"
+                    type="datetime-local"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="mt-1"
+                    placeholder="เลือกเวลาที่ต้องการรับสินค้า"
+                  />
                 </div>
+
+                <div>
+                  <Label htmlFor="notes" className="text-sm font-medium text-coffee-700">
+                    หมายเหตุ (ถ้ามี)
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-1 min-h-[80px]"
+                    placeholder="เช่น ไม่ใส่น้ำตาล, เพิ่มน้ำแข็ง..."
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-coffee-700 mb-3 block">
+                    วิธีการชำระเงิน
+                  </Label>
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-coffee-50">
+                      <RadioGroupItem value="qr" id="qr" />
+                      <Label htmlFor="qr" className="flex items-center cursor-pointer flex-1">
+                        <QrCode className="w-4 h-4 mr-2" />
+                        QR Code
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-coffee-50">
+                      <RadioGroupItem value="points" id="points" />
+                      <Label htmlFor="points" className="flex items-center cursor-pointer flex-1">
+                        <Gift className="w-4 h-4 mr-2" />
+                        ใช้แต้มแลก
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Button 
+                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-12"
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  disabled={total <= 0 || !pickupTime}
+                >
+                  ยืนยันการสั่งซื้อ (฿{total})
+                </Button>
               </div>
             </div>
 
             {/* Cart Items Section */}
             <div className="flex-1 min-h-0 overflow-hidden">
-              <div className="h-full overflow-y-auto space-y-3">
+              <div className="h-full overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin' }}>
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     ไม่มีสินค้าในตะกร้า
                   </div>
                 ) : (
                   cartItems.map((item) => (
-                    <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-3">
+                    <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h4 className="font-medium text-coffee-800">
+                          <h4 className="font-medium text-sm text-coffee-800">
                             {item.menu_item.name}
                           </h4>
                           {item.selected_addons.length > 0 && (
-                            <div className="text-sm text-coffee-600 mt-1">
+                            <div className="text-xs text-coffee-600 mt-1">
                               {item.selected_addons.map(addon => addon.name).join(', ')}
-                            </div>
-                          )}
-                          {item.item_discount > 0 && (
-                            <div className="text-sm text-orange-600 mt-1">
-                              ส่วนลด: {item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
                             </div>
                           )}
                         </div>
@@ -258,19 +279,19 @@ const MobileCart = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => onRemoveItem(item.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                            className="w-8 h-8"
+                            className="w-10 h-10 p-0 touch-manipulation"
                           >
                             <Minus className="w-4 h-4" />
                           </Button>
@@ -281,7 +302,7 @@ const MobileCart = ({
                             variant="outline"
                             size="sm"
                             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8"
+                            className="w-10 h-10 p-0 touch-manipulation"
                           >
                             <Plus className="w-4 h-4" />
                           </Button>
@@ -289,7 +310,7 @@ const MobileCart = ({
                             variant="outline"
                             size="sm"
                             onClick={() => handleItemDiscountClick(item)}
-                            className={`w-8 h-8 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                            className={`ml-2 w-10 h-10 p-0 touch-manipulation ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
                             title={item.item_discount > 0 
                               ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
                               : 'ส่วนลด'
@@ -299,7 +320,7 @@ const MobileCart = ({
                           </Button>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-coffee-600 text-lg">
+                          <div className="font-medium text-coffee-600">
                             ฿{item.total_price}
                           </div>
                         </div>
@@ -325,25 +346,6 @@ const MobileCart = ({
         selectedMember={selectedMember}
       />
 
-      <DiscountModal
-        isOpen={isDiscountModalOpen}
-        onClose={() => setIsDiscountModalOpen(false)}
-        onApplyDiscount={handleApplyDiscount}
-        currentDiscount={billDiscount}
-        currentType={billDiscountType}
-      />
-
-      <HoldBillModal
-        isOpen={isHoldBillModalOpen}
-        onClose={() => setIsHoldBillModalOpen(false)}
-        currentCart={cartItems}
-        currentDiscount={billDiscount}
-        currentDiscountType={billDiscountType}
-        currentTotal={total}
-        onHoldBill={handleHoldBill}
-        onRestoreBill={handleRestoreBill}
-      />
-
       {selectedItemForDiscount && (
         <ItemDiscountModal
           isOpen={isItemDiscountModalOpen}
@@ -357,16 +359,6 @@ const MobileCart = ({
           itemName={selectedItemForDiscount.menu_item.name}
         />
       )}
-
-      <CodeModal
-        isOpen={isCodeModalOpen}
-        onClose={() => setIsCodeModalOpen(false)}
-        onApplyCode={(giftData) => {
-          if (onCodeApply) {
-            onCodeApply(giftData);
-          }
-        }}
-      />
     </>
   );
 };
