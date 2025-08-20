@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -163,10 +162,13 @@ const Cart = ({
     <>
       <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
         <CardHeader className="pb-2 pt-3 flex-shrink-0">
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
             <CardTitle className="text-coffee-800 text-base">
-              ตะกร้าสินค้า ({cartItems.length} รายการ)
+              ตะกร้าสินค้า
             </CardTitle>
+            <span className="text-coffee-600 text-sm">
+              ({cartItems.length} รายการ)
+            </span>
           </div>
         </CardHeader>
         
