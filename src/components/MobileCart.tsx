@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -134,14 +135,16 @@ const MobileCart = ({
         <DrawerContent className="max-h-[90vh] flex flex-col">
           <DrawerHeader className="flex-shrink-0">
             <div className="flex items-center justify-between">
-              <DrawerTitle className="text-coffee-800">
-                ตะกร้าสินค้า ({cartItems.length} รายการ)
-              </DrawerTitle>
+              <div className="flex-1">
+                <DrawerTitle className="text-coffee-800 text-right pr-2">
+                  ตะกร้าสินค้า ({cartItems.length} รายการ)
+                </DrawerTitle>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="p-2"
+                className="p-2 flex-shrink-0"
               >
                 <X className="w-5 h-5" />
               </Button>
