@@ -178,8 +178,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           {/* User Profile Section */}
           <UserProfile />
           
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="p-2 pb-3 md:pb-1">
+          <ScrollArea className="h-[calc(100vh-180px)]">
+            <div className="p-2 pb-1">
               <nav className="space-y-1">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
