@@ -27,7 +27,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  console.log('🕰️ Daily report scheduled task started at:', new Date().toISOString())
+  const requestBody = await req.json().catch(() => ({}));
+  const isScheduledTrigger = requestBody.scheduled_trigger;
+  const isManualTrigger = requestBody.manual_trigger;
+
+  // Get current time in Bangkok timezone
+  const bangkokTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Bangkok"});
+  const currentTime = new Date(bangkokTime);
+  const currentTimeString = currentTime.toTimeString().substring(0, 5); // HH:MM format
+
+  console.log('🕰️ Daily report function called at:', new Date().toISOString())
+  console.log('📍 Bangkok time:', bangkokTime)
+  console.log('⏰ Current time string:', currentTimeString)
+  console.log('🔄 Trigger type:', { isScheduledTrigger, isManualTrigger })
+  console.log('📥 Request body:', requestBody)
 
   try {
     // Initialize Supabase client
@@ -47,9 +60,34 @@ serve(async (req) => {
       throw settingsError
     }
 
+    console.log('⚙️ Settings loaded:', settings)
+
     if (!settings?.daily_reports?.enabled) {
       console.log('ℹ️ Daily reports are disabled, skipping...')
-      return new Response(JSON.stringify({ success: true, message: 'Daily reports disabled' }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Daily reports disabled',
+        currentTime: currentTimeString,
+        bangkokTime: bangkokTime
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const scheduledTime = settings.daily_reports.time;
+    console.log('⏰ Scheduled time from settings:', scheduledTime)
+    console.log('🔍 Time comparison:', { currentTimeString, scheduledTime, matches: currentTimeString === scheduledTime })
+
+    // Check if this is the right time to send (for scheduled triggers) or if it's manual
+    if (isScheduledTrigger && currentTimeString !== scheduledTime) {
+      console.log('⏭️ Not the scheduled time yet, skipping...')
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Not scheduled time yet',
+        currentTime: currentTimeString,
+        scheduledTime: scheduledTime,
+        bangkokTime: bangkokTime
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -57,9 +95,11 @@ serve(async (req) => {
     console.log('📊 Generating daily report...')
 
     // Generate daily report data
-    const today = new Date()
+    const today = new Date(bangkokTime)
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     
+    console.log('📅 Report date range:', { startOfDay: startOfDay.toISOString(), today: today.toISOString() })
+
     // Get today's orders
     const { data: todayOrders, error: ordersError } = await supabase
       .from('orders')
@@ -70,6 +110,8 @@ serve(async (req) => {
       console.error('❌ Error fetching orders:', ordersError)
       throw ordersError
     }
+
+    console.log('📋 Orders found:', todayOrders?.length || 0)
 
     // Get today's order items for menu analysis
     const { data: orderItems, error: itemsError } = await supabase
@@ -86,6 +128,8 @@ serve(async (req) => {
       console.error('❌ Error fetching order items:', itemsError)
       throw itemsError
     }
+
+    console.log('🍽️ Order items found:', orderItems?.length || 0)
 
     // Calculate statistics
     const totalOrders = todayOrders?.length || 0
@@ -117,11 +161,14 @@ serve(async (req) => {
     const reportData = {
       date: today.toLocaleDateString('th-TH'),
       time: today.toLocaleTimeString('th-TH'),
+      currentTime: currentTimeString,
+      scheduledTime: scheduledTime,
       totalOrders,
       totalSales,
       totalDiscount,
       netSales,
-      topMenus
+      topMenus,
+      triggerType: isManualTrigger ? 'manual' : 'scheduled'
     }
 
     console.log('📈 Report data generated:', reportData)
@@ -136,6 +183,7 @@ serve(async (req) => {
     // Send to Discord
     if (dailySettings.platforms.discord.enabled && dailySettings.platforms.discord.token) {
       try {
+        console.log('📤 Sending to Discord...')
         await sendDiscordReport(reportData, dailySettings.platforms.discord.token)
         sentCount++
         console.log('✅ Discord notification sent successfully')
@@ -149,6 +197,7 @@ serve(async (req) => {
     // Send to LINE (placeholder for future implementation)
     if (dailySettings.platforms.line.enabled && dailySettings.platforms.line.token) {
       try {
+        console.log('📤 Sending to LINE...')
         await sendLineReport(reportData, dailySettings.platforms.line.token)
         sentCount++
         console.log('✅ LINE notification sent successfully')
@@ -162,6 +211,7 @@ serve(async (req) => {
     // Send to Telegram (placeholder for future implementation)
     if (dailySettings.platforms.telegram.enabled && dailySettings.platforms.telegram.token) {
       try {
+        console.log('📤 Sending to Telegram...')
         await sendTelegramReport(reportData, dailySettings.platforms.telegram.token)
         sentCount++
         console.log('✅ Telegram notification sent successfully')
@@ -175,6 +225,7 @@ serve(async (req) => {
     // Send to Instagram (placeholder for future implementation)
     if (dailySettings.platforms.instagram.enabled && dailySettings.platforms.instagram.token) {
       try {
+        console.log('📤 Sending to Instagram...')
         await sendInstagramReport(reportData, dailySettings.platforms.instagram.token)
         sentCount++
         console.log('✅ Instagram notification sent successfully')
@@ -191,7 +242,14 @@ serve(async (req) => {
       reportData,
       sentCount,
       errorCount,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      debugInfo: {
+        bangkokTime,
+        currentTime: currentTimeString,
+        scheduledTime,
+        triggerType: isManualTrigger ? 'manual' : 'scheduled',
+        timeMatched: currentTimeString === scheduledTime
+      }
     }
 
     console.log('🎉 Daily report task completed:', result)
@@ -206,7 +264,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      bangkokTime: new Date().toLocaleString("en-US", {timeZone: "Asia/Bangkok"}),
+      currentTime: currentTimeString
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -230,6 +290,16 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       {
         name: '📅 วันที่สร้างรายงาน',
         value: `${reportData.date} เวลา ${reportData.time}`,
+        inline: true
+      },
+      {
+        name: '⏰ ส่งเมื่อ',
+        value: `${reportData.currentTime} (กำหนด: ${reportData.scheduledTime})`,
+        inline: true
+      },
+      {
+        name: '🔄 ประเภท',
+        value: reportData.triggerType === 'manual' ? 'ส่งด้วยตนเอง' : 'ส่งอัตโนมัติ',
         inline: true
       },
       {
