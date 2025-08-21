@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -167,6 +167,36 @@ export type Database = {
           name?: string
           type?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      areas: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1138,6 +1168,80 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expense_date: string
+          id: string
+          receipt_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gift_usage_history: {
         Row: {
@@ -2684,9 +2788,11 @@ export type Database = {
       staff: {
         Row: {
           created_at: string
+          department: string
           email: string | null
           hire_date: string
           id: string
+          is_active: boolean
           name: string
           phone: string
           position: string
@@ -2697,9 +2803,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department?: string
           email?: string | null
           hire_date?: string
           id?: string
+          is_active?: boolean
           name: string
           phone: string
           position: string
@@ -2710,15 +2818,44 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department?: string
           email?: string | null
           hire_date?: string
           id?: string
+          is_active?: boolean
           name?: string
           phone?: string
           position?: string
           role?: string
           salary?: number
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          is_granted: boolean
+          permission_name: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_granted?: boolean
+          permission_name: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_granted?: boolean
+          permission_name?: string
+          staff_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -2969,6 +3106,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_tables_area_id"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tables_area_id_fkey"
             columns: ["area_id"]
             isOneToOne: false
@@ -3096,7 +3240,7 @@ export type Database = {
     }
     Functions: {
       authenticate_user: {
-        Args: { username_input: string; password_input: string }
+        Args: { password_input: string; username_input: string }
         Returns: Json
       }
       calculate_menu_cost: {
@@ -3112,7 +3256,7 @@ export type Database = {
         Returns: boolean
       }
       claim_limited_promotion: {
-        Args: { promotion_id_param: string; customer_id_param: string }
+        Args: { customer_id_param: string; promotion_id_param: string }
         Returns: Json
       }
       claim_limited_reward: {
@@ -3126,26 +3270,26 @@ export type Database = {
       get_active_promotions: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
+          apply_to: string
+          category_ids: string[]
           description: string
           discount_type: string
           discount_value: number
-          apply_to: string
+          id: string
           menu_item_ids: string[]
-          category_ids: string[]
+          name: string
         }[]
       }
       get_low_stock_ingredients: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
           category: string
-          quantity: number
-          unit: string
+          id: string
           minimum_stock: number
+          name: string
+          quantity: number
           shortage: number
+          unit: string
         }[]
       }
       hash_password: {
@@ -3159,10 +3303,10 @@ export type Database = {
       test_order_number_generation: {
         Args: { test_count?: number }
         Returns: {
-          test_num: number
+          error_message: string
           order_number: string
           success: boolean
-          error_message: string
+          test_num: number
         }[]
       }
       validate_input: {
