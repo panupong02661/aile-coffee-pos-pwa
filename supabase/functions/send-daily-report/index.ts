@@ -66,7 +66,7 @@ serve(async (req) => {
     const scheduledTime = settings.daily_reports.time;
     console.log('🎯 Scheduled time from database:', scheduledTime)
 
-    // สร้าง Bangkok time อย่างถูกต้อง
+    // สร้าง Bangkok time อย่างแม่นยำ
     const now = new Date();
     const bangkokTime = new Date(now.toLocaleString("en-US", {
       timeZone: "Asia/Bangkok"
@@ -86,20 +86,18 @@ serve(async (req) => {
       triggerType: isManualTrigger ? 'manual' : (isScheduledTrigger ? 'scheduled' : 'unknown')
     })
 
-    // ปรับปรุงการตรวจสอบเวลา - ให้ยืดหยุ่นมากขึ้น (+-1 นาที)
-    const timeMatches = currentTimeFormatted === scheduledTime;
-    const isNearScheduledTime = checkTimeRange(currentTimeFormatted, scheduledTime, 1);
+    // ตรวจสอบเวลาแบบเข้มงวดสำหรับ scheduled trigger
+    const isExactTimeMatch = currentTimeFormatted === scheduledTime;
     
     console.log('⏱️ Time validation:', {
-      exactMatch: timeMatches,
-      nearScheduledTime: isNearScheduledTime,
+      exactMatch: isExactTimeMatch,
       isScheduledTrigger,
       isManualTrigger,
-      shouldProceed: isManualTrigger || (isScheduledTrigger && isNearScheduledTime)
+      shouldProceed: isManualTrigger || (isScheduledTrigger && isExactTimeMatch)
     });
 
-    // ตรวจสอบเงื่อนไขการส่ง
-    const shouldProceed = isManualTrigger || (isScheduledTrigger && isNearScheduledTime);
+    // ตรวจสอบเงื่อนไขการส่ง - ต้องตรงเวลาพอดีสำหรับ scheduled
+    const shouldProceed = isManualTrigger || (isScheduledTrigger && isExactTimeMatch);
     
     if (!shouldProceed) {
       console.log('⏭️ Not the right time or trigger type, skipping...')
@@ -110,7 +108,7 @@ serve(async (req) => {
         currentTime: currentTimeFormatted,
         scheduledTime: scheduledTime,
         bangkokTime: bangkokTime.toISOString(),
-        timeMatches: timeMatches,
+        timeMatches: isExactTimeMatch,
         triggerType: isManualTrigger ? 'manual' : 'scheduled',
         debug: {
           hour: currentHour,
@@ -126,7 +124,7 @@ serve(async (req) => {
     }
 
     console.log('✅ Conditions met! Generating daily report...')
-    console.log(`📍 Trigger: ${isManualTrigger ? 'Manual' : 'Scheduled'}, Time match: ${isNearScheduledTime}`)
+    console.log(`📍 Trigger: ${isManualTrigger ? 'Manual' : 'Scheduled'}, Time match: ${isExactTimeMatch}`)
 
     // Generate daily report data - ใช้ Bangkok timezone สำหรับวันที่
     const startOfDay = new Date(bangkokTime.getFullYear(), bangkokTime.getMonth(), bangkokTime.getDate())
@@ -197,9 +195,8 @@ serve(async (req) => {
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10)
 
-    // กำหนดประเภทการส่งอย่างชัดเจน
+    // กำหนดประเภทการส่งอย่างแม่นยำ
     const actualTriggerType = isManualTrigger ? 'manual' : 'scheduled';
-    const isExactTimeMatch = timeMatches;
 
     const reportData = {
       date: bangkokTime.toLocaleDateString('th-TH'),
@@ -220,8 +217,7 @@ serve(async (req) => {
         isScheduledTrigger,
         isManualTrigger,
         exactTimeMatch: isExactTimeMatch,
-        timezoneOffset: bangkokTime.getTimezoneOffset(),
-        nearScheduledTime: isNearScheduledTime
+        timezoneOffset: bangkokTime.getTimezoneOffset()
       }
     }
 
@@ -303,7 +299,7 @@ serve(async (req) => {
         currentTime: currentTimeFormatted,
         scheduledTime,
         triggerType: actualTriggerType,
-        timeMatched: isNearScheduledTime,
+        timeMatched: isExactTimeMatch,
         exactMatch: isExactTimeMatch,
         timezoneDetails: {
           offset: bangkokTime.getTimezoneOffset(),
@@ -333,29 +329,6 @@ serve(async (req) => {
   }
 })
 
-// ฟังก์ชันตรวจสอบช่วงเวลา (ยืดหยุ่น +-n นาที)
-function checkTimeRange(currentTime: string, scheduledTime: string, toleranceMinutes: number = 1): boolean {
-  const [currentHour, currentMinute] = currentTime.split(':').map(Number);
-  const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
-  
-  const currentTotalMinutes = currentHour * 60 + currentMinute;
-  const scheduledTotalMinutes = scheduledHour * 60 + scheduledMinute;
-  
-  const difference = Math.abs(currentTotalMinutes - scheduledTotalMinutes);
-  
-  console.log('🕐 Time range check:', {
-    currentTime,
-    scheduledTime,
-    currentTotalMinutes,
-    scheduledTotalMinutes,
-    difference,
-    toleranceMinutes,
-    withinRange: difference <= toleranceMinutes
-  });
-  
-  return difference <= toleranceMinutes;
-}
-
 // Function to send Discord notification
 async function sendDiscordReport(reportData: any, webhookUrl: string) {
   const topMenusList = reportData.topMenus
@@ -364,22 +337,22 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     )
     .join('\n')
 
-  // ปรับปรุงการแสดงผลสถานะการส่ง
-  const isAutoSend = reportData.triggerType === 'scheduled';
-  const isExactTime = reportData.isExactTimeMatch;
+  // แสดงสถานะการส่งอย่างถูกต้อง
+  const isManualTrigger = reportData.triggerType === 'manual';
+  const isExactTimeMatch = reportData.isExactTimeMatch;
   
   let statusIcon = '🤖';
   let statusText = 'ส่งอัตโนมัติตามกำหนด';
   let colorCode = 0x00ff00; // เขียว
   
-  if (reportData.triggerType === 'manual') {
+  if (isManualTrigger) {
     statusIcon = '🖱️';
     statusText = 'ส่งด้วยตนเอง';
     colorCode = 0x0099ff; // น้ำเงิน
-  } else if (!isExactTime) {
-    statusIcon = '⏰';
-    statusText = 'ส่งอัตโนมัติ (ช่วงเวลาใกล้เคียง)';
-    colorCode = 0xffa500; // ส้ม
+  } else if (isExactTimeMatch) {
+    statusIcon = '🤖';
+    statusText = 'ส่งอัตโนมัติตามกำหนด';
+    colorCode = 0x00ff00; // เขียว
   }
 
   const embed = {
@@ -394,7 +367,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       },
       {
         name: '⏰ เวลาส่ง vs กำหนด',
-        value: `ส่งเมื่อ: ${reportData.currentTime}\nกำหนด: ${reportData.scheduledTime}\n${isExactTime ? '✅ ตรงเวลาพอดี' : '🎯 ภายในช่วงเวลา'}`,
+        value: `ส่งเมื่อ: ${reportData.currentTime}\nกำหนด: ${reportData.scheduledTime}\n${isExactTimeMatch ? '✅ ตรงเวลาพอดี' : '⚠️ เวลาไม่ตรง'}`,
         inline: true
       },
       {
