@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -28,11 +27,11 @@ serve(async (req) => {
   }
 
   const requestBody = await req.json().catch(() => ({}));
-  const isScheduledTrigger = requestBody.scheduled_trigger;
-  const isManualTrigger = requestBody.manual_trigger;
+  const isScheduledTrigger = requestBody.scheduled_trigger === true;
+  const isManualTrigger = requestBody.manual_trigger === true;
 
   console.log('🕰️ Daily report function triggered at:', new Date().toISOString())
-  console.log('🔄 Trigger type:', { isScheduledTrigger, isManualTrigger })
+  console.log('🔄 Trigger type:', { isScheduledTrigger, isManualTrigger, requestBody })
 
   try {
     // Initialize Supabase client
@@ -67,10 +66,8 @@ serve(async (req) => {
     const scheduledTime = settings.daily_reports.time;
     console.log('🎯 Scheduled time from database:', scheduledTime)
 
-    // แก้ไขการคำนวณเวลา Bangkok
-    const now = new Date();
-    
     // สร้าง Bangkok time อย่างถูกต้อง
+    const now = new Date();
     const bangkokTime = new Date(now.toLocaleString("en-US", {
       timeZone: "Asia/Bangkok"
     }));
@@ -86,14 +83,26 @@ serve(async (req) => {
       currentTime: currentTimeFormatted, 
       scheduledTime, 
       matches: currentTimeFormatted === scheduledTime,
-      triggerType: isManualTrigger ? 'manual' : 'scheduled'
+      triggerType: isManualTrigger ? 'manual' : (isScheduledTrigger ? 'scheduled' : 'unknown')
     })
 
-    // ตรวจสอบเวลาให้แม่นยำ
+    // ปรับปรุงการตรวจสอบเวลา - ให้ยืดหยุ่นมากขึ้น (+-1 นาที)
     const timeMatches = currentTimeFormatted === scheduledTime;
+    const isNearScheduledTime = checkTimeRange(currentTimeFormatted, scheduledTime, 1);
     
-    if (isScheduledTrigger && !timeMatches) {
-      console.log('⏭️ Not the scheduled time yet, skipping...')
+    console.log('⏱️ Time validation:', {
+      exactMatch: timeMatches,
+      nearScheduledTime: isNearScheduledTime,
+      isScheduledTrigger,
+      isManualTrigger,
+      shouldProceed: isManualTrigger || (isScheduledTrigger && isNearScheduledTime)
+    });
+
+    // ตรวจสอบเงื่อนไขการส่ง
+    const shouldProceed = isManualTrigger || (isScheduledTrigger && isNearScheduledTime);
+    
+    if (!shouldProceed) {
+      console.log('⏭️ Not the right time or trigger type, skipping...')
       console.log(`   Expected: ${scheduledTime}, Current: ${currentTimeFormatted}`)
       return new Response(JSON.stringify({ 
         success: true, 
@@ -102,17 +111,22 @@ serve(async (req) => {
         scheduledTime: scheduledTime,
         bangkokTime: bangkokTime.toISOString(),
         timeMatches: timeMatches,
+        triggerType: isManualTrigger ? 'manual' : 'scheduled',
         debug: {
           hour: currentHour,
           minute: currentMinute,
-          rawBangkokTime: bangkokTime.toString()
+          rawBangkokTime: bangkokTime.toString(),
+          isScheduledTrigger,
+          isManualTrigger,
+          shouldProceed
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('✅ Time matched or manual trigger! Generating daily report...')
+    console.log('✅ Conditions met! Generating daily report...')
+    console.log(`📍 Trigger: ${isManualTrigger ? 'Manual' : 'Scheduled'}, Time match: ${isNearScheduledTime}`)
 
     // Generate daily report data - ใช้ Bangkok timezone สำหรับวันที่
     const startOfDay = new Date(bangkokTime.getFullYear(), bangkokTime.getMonth(), bangkokTime.getDate())
@@ -183,6 +197,10 @@ serve(async (req) => {
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10)
 
+    // กำหนดประเภทการส่งอย่างชัดเจน
+    const actualTriggerType = isManualTrigger ? 'manual' : 'scheduled';
+    const isExactTimeMatch = timeMatches;
+
     const reportData = {
       date: bangkokTime.toLocaleDateString('th-TH'),
       time: bangkokTime.toLocaleTimeString('th-TH'),
@@ -193,15 +211,17 @@ serve(async (req) => {
       totalDiscount,
       netSales,
       topMenus,
-      triggerType: isManualTrigger ? 'manual' : 'scheduled',
+      triggerType: actualTriggerType,
+      isExactTimeMatch,
       debugInfo: {
         bangkokTime: bangkokTime.toISOString(),
         bangkokTimeString: bangkokTime.toString(),
-        timeMatches,
+        timeMatches: isExactTimeMatch,
         isScheduledTrigger,
         isManualTrigger,
-        exactTimeMatch: currentTimeFormatted === scheduledTime,
-        timezoneOffset: bangkokTime.getTimezoneOffset()
+        exactTimeMatch: isExactTimeMatch,
+        timezoneOffset: bangkokTime.getTimezoneOffset(),
+        nearScheduledTime: isNearScheduledTime
       }
     }
 
@@ -282,9 +302,9 @@ serve(async (req) => {
         bangkokTimeString: bangkokTime.toString(),
         currentTime: currentTimeFormatted,
         scheduledTime,
-        triggerType: isManualTrigger ? 'manual' : 'scheduled',
-        timeMatched: timeMatches,
-        exactMatch: currentTimeFormatted === scheduledTime,
+        triggerType: actualTriggerType,
+        timeMatched: isNearScheduledTime,
+        exactMatch: isExactTimeMatch,
         timezoneDetails: {
           offset: bangkokTime.getTimezoneOffset(),
           hour: currentHour,
@@ -313,6 +333,29 @@ serve(async (req) => {
   }
 })
 
+// ฟังก์ชันตรวจสอบช่วงเวลา (ยืดหยุ่น +-n นาที)
+function checkTimeRange(currentTime: string, scheduledTime: string, toleranceMinutes: number = 1): boolean {
+  const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+  const [scheduledHour, scheduledMinute] = scheduledTime.split(':').map(Number);
+  
+  const currentTotalMinutes = currentHour * 60 + currentMinute;
+  const scheduledTotalMinutes = scheduledHour * 60 + scheduledMinute;
+  
+  const difference = Math.abs(currentTotalMinutes - scheduledTotalMinutes);
+  
+  console.log('🕐 Time range check:', {
+    currentTime,
+    scheduledTime,
+    currentTotalMinutes,
+    scheduledTotalMinutes,
+    difference,
+    toleranceMinutes,
+    withinRange: difference <= toleranceMinutes
+  });
+  
+  return difference <= toleranceMinutes;
+}
+
 // Function to send Discord notification
 async function sendDiscordReport(reportData: any, webhookUrl: string) {
   const topMenusList = reportData.topMenus
@@ -321,10 +364,28 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     )
     .join('\n')
 
+  // ปรับปรุงการแสดงผลสถานะการส่ง
+  const isAutoSend = reportData.triggerType === 'scheduled';
+  const isExactTime = reportData.isExactTimeMatch;
+  
+  let statusIcon = '🤖';
+  let statusText = 'ส่งอัตโนมัติตามกำหนด';
+  let colorCode = 0x00ff00; // เขียว
+  
+  if (reportData.triggerType === 'manual') {
+    statusIcon = '🖱️';
+    statusText = 'ส่งด้วยตนเอง';
+    colorCode = 0x0099ff; // น้ำเงิน
+  } else if (!isExactTime) {
+    statusIcon = '⏰';
+    statusText = 'ส่งอัตโนมัติ (ช่วงเวลาใกล้เคียง)';
+    colorCode = 0xffa500; // ส้ม
+  }
+
   const embed = {
-    title: '📊 สรุปยอดขายประจำวัน - ส่งอัตโนมัติ ⏰',
+    title: `📊 สรุปยอดขายประจำวัน - ${statusText} ${statusIcon}`,
     description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
-    color: reportData.debugInfo?.exactTimeMatch ? 0x00ff00 : 0xff9900,
+    color: colorCode,
     fields: [
       {
         name: '📅 วันที่สร้างรายงาน',
@@ -333,12 +394,12 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       },
       {
         name: '⏰ เวลาส่ง vs กำหนด',
-        value: `ส่งเมื่อ: ${reportData.currentTime}\nกำหนด: ${reportData.scheduledTime}\n${reportData.debugInfo?.exactTimeMatch ? '✅ ตรงเวลา' : '⚠️ ไม่ตรงเวลา'}`,
+        value: `ส่งเมื่อ: ${reportData.currentTime}\nกำหนด: ${reportData.scheduledTime}\n${isExactTime ? '✅ ตรงเวลาพอดี' : '🎯 ภายในช่วงเวลา'}`,
         inline: true
       },
       {
         name: '🔄 ประเภทการส่ง',
-        value: reportData.triggerType === 'manual' ? '🖱️ ส่งด้วยตนเอง' : '🤖 ส่งอัตโนมัติตามกำหนด',
+        value: `${statusIcon} ${statusText}`,
         inline: true
       },
       {
@@ -379,7 +440,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `📊 **รายงานประจำวัน** - ${reportData.triggerType === 'manual' ? '🖱️ ส่งด้วยตนเอง' : '🤖 ส่งอัตโนมัติ'} ${reportData.debugInfo?.exactTimeMatch ? '🎯' : '⚠️'}`,
+      content: `📊 **รายงานประจำวัน** - ${statusText} ${statusIcon}`,
       embeds: [embed]
     })
   })
