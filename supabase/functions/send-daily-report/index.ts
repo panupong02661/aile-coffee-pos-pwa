@@ -21,13 +21,28 @@ interface NotificationSettings {
   };
 }
 
+// Helper function to get Bangkok time properly
+function getBangkokTime(): { date: Date; timeString: string } {
+  const now = new Date();
+  
+  // Convert to Bangkok timezone (UTC+7)
+  const bangkokOffset = 7 * 60; // 7 hours in minutes
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const bangkokTime = new Date(utc + (bangkokOffset * 60000));
+  
+  const timeString = bangkokTime.toTimeString().slice(0, 5); // HH:MM format
+  
+  return { date: bangkokTime, timeString };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  console.log('🕰️ Daily report function triggered at:', new Date().toISOString())
+  const timestamp = new Date().toISOString();
+  console.log('🕰️ Daily report function triggered at:', timestamp)
 
   try {
     const requestBody = await req.json().catch(() => ({}));
@@ -38,7 +53,7 @@ serve(async (req) => {
       isManualTrigger, 
       isCronTrigger, 
       requestBody,
-      headers: Object.fromEntries(req.headers.entries())
+      timestamp
     });
 
     // Initialize Supabase client
@@ -65,7 +80,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Daily reports disabled',
-        enabled: false
+        enabled: false,
+        timestamp
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -74,34 +90,18 @@ serve(async (req) => {
     const scheduledTime = settings.daily_reports.time;
     console.log('🎯 Scheduled time from settings:', scheduledTime)
 
-    // Get current Bangkok time properly
-    const now = new Date();
-    const bangkokTimeStr = now.toLocaleString("en-CA", {
-      timeZone: "Asia/Bangkok",
-      hour12: false
-    });
-    
-    // Parse Bangkok time properly
-    const [datePart, timePart] = bangkokTimeStr.split(', ');
-    const [year, month, day] = datePart.split('-');
-    const [hour, minute, second] = timePart.split(':');
-    
-    const bangkokTime = new Date();
-    bangkokTime.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
-    bangkokTime.setHours(parseInt(hour), parseInt(minute), parseInt(second), 0);
-    
-    const currentTimeFormatted = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    // Get current Bangkok time
+    const { date: bangkokTime, timeString: currentTimeFormatted } = getBangkokTime();
     
     console.log('🌏 Bangkok time details:', {
-      bangkokTimeStr,
       bangkokTime: bangkokTime.toISOString(),
       currentTimeFormatted,
       scheduledTime,
-      hour: parseInt(hour),
-      minute: parseInt(minute)
+      hour: bangkokTime.getHours(),
+      minute: bangkokTime.getMinutes()
     });
 
-    // Time comparison logic
+    // Time comparison logic - exact match for scheduled time
     const isExactTimeMatch = currentTimeFormatted === scheduledTime;
     const shouldProceed = isManualTrigger || (isCronTrigger && isExactTimeMatch);
     
@@ -123,7 +123,8 @@ serve(async (req) => {
         scheduledTime,
         timeMatches: isExactTimeMatch,
         triggerType: isManualTrigger ? 'manual' : (isCronTrigger ? 'cron' : 'unknown'),
-        shouldProceed
+        shouldProceed,
+        timestamp
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -214,7 +215,8 @@ serve(async (req) => {
       netSales,
       topMenus,
       triggerType: isManualTrigger ? 'manual' : 'scheduled',
-      isExactTimeMatch
+      isExactTimeMatch,
+      timestamp
     }
 
     console.log('📈 Report data generated:', reportData)
@@ -288,7 +290,8 @@ serve(async (req) => {
       reportData,
       sentCount,
       errorCount,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      timestamp
     }
 
     console.log('🎉 Daily report task completed:', result)
@@ -374,7 +377,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       },
       {
         name: '🏆 เมนูขายดี (Top 10)',
-        value: topMenusList || 'ไม่มีข้อมูล',
+        value: topMenusList || 'ไม่มีข้อมูル',
         inline: false
       }
     ],
