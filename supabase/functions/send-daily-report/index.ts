@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -26,14 +27,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const requestBody = await req.json().catch(() => ({}));
-  const isScheduledTrigger = requestBody.scheduled_trigger === true;
-  const isManualTrigger = requestBody.manual_trigger === true;
-
   console.log('🕰️ Daily report function triggered at:', new Date().toISOString())
-  console.log('🔄 Trigger type:', { isScheduledTrigger, isManualTrigger, requestBody })
 
   try {
+    const requestBody = await req.json().catch(() => ({}));
+    const isManualTrigger = requestBody.manual_trigger === true;
+    const isCronTrigger = requestBody.cron_trigger === true;
+    
+    console.log('🔄 Trigger details:', { 
+      isManualTrigger, 
+      isCronTrigger, 
+      requestBody,
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
     // Initialize Supabase client
     const supabaseUrl = "https://mzvzbxflwvksohrmxbsy.supabase.co"
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16dnpieGZsd3Zrc29ocm14YnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MDU3NTksImV4cCI6MjA2NTI4MTc1OX0.h3nU_8JyrAaDI6NwxvnxTeb3kuiLpSSueuKcDOd33Jo"
@@ -51,96 +58,97 @@ serve(async (req) => {
       throw settingsError
     }
 
-    console.log('⚙️ Raw settings from database:', settings)
+    console.log('⚙️ Settings from database:', settings)
 
     if (!settings?.daily_reports?.enabled) {
-      console.log('ℹ️ Daily reports are disabled, skipping...')
+      console.log('ℹ️ Daily reports are disabled')
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Daily reports disabled'
+        message: 'Daily reports disabled',
+        enabled: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
     const scheduledTime = settings.daily_reports.time;
-    console.log('🎯 Scheduled time from database:', scheduledTime)
+    console.log('🎯 Scheduled time from settings:', scheduledTime)
 
-    // สร้าง Bangkok time อย่างแม่นยำ
+    // Get current Bangkok time properly
     const now = new Date();
-    const bangkokTime = new Date(now.toLocaleString("en-US", {
-      timeZone: "Asia/Bangkok"
-    }));
+    const bangkokTimeStr = now.toLocaleString("en-CA", {
+      timeZone: "Asia/Bangkok",
+      hour12: false
+    });
     
-    // ดึงชั่วโมงและนาทีในรูปแบบ HH:MM
-    const currentHour = bangkokTime.getHours().toString().padStart(2, '0');
-    const currentMinute = bangkokTime.getMinutes().toString().padStart(2, '0');
-    const currentTimeFormatted = `${currentHour}:${currentMinute}`;
+    // Parse Bangkok time properly
+    const [datePart, timePart] = bangkokTimeStr.split(', ');
+    const [year, month, day] = datePart.split('-');
+    const [hour, minute, second] = timePart.split(':');
     
-    console.log('🌏 Current Bangkok time:', bangkokTime.toISOString())
-    console.log('⏰ Current time formatted (HH:MM):', currentTimeFormatted)
-    console.log('🔍 Time comparison:', { 
-      currentTime: currentTimeFormatted, 
-      scheduledTime, 
-      matches: currentTimeFormatted === scheduledTime,
-      triggerType: isManualTrigger ? 'manual' : (isScheduledTrigger ? 'scheduled' : 'unknown')
-    })
-
-    // ตรวจสอบเวลาแบบเข้มงวดสำหรับ scheduled trigger
-    const isExactTimeMatch = currentTimeFormatted === scheduledTime;
+    const bangkokTime = new Date();
+    bangkokTime.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+    bangkokTime.setHours(parseInt(hour), parseInt(minute), parseInt(second), 0);
     
-    console.log('⏱️ Time validation:', {
-      exactMatch: isExactTimeMatch,
-      isScheduledTrigger,
-      isManualTrigger,
-      shouldProceed: isManualTrigger || (isScheduledTrigger && isExactTimeMatch)
+    const currentTimeFormatted = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    
+    console.log('🌏 Bangkok time details:', {
+      bangkokTimeStr,
+      bangkokTime: bangkokTime.toISOString(),
+      currentTimeFormatted,
+      scheduledTime,
+      hour: parseInt(hour),
+      minute: parseInt(minute)
     });
 
-    // ตรวจสอบเงื่อนไขการส่ง - ต้องตรงเวลาพอดีสำหรับ scheduled
-    const shouldProceed = isManualTrigger || (isScheduledTrigger && isExactTimeMatch);
+    // Time comparison logic
+    const isExactTimeMatch = currentTimeFormatted === scheduledTime;
+    const shouldProceed = isManualTrigger || (isCronTrigger && isExactTimeMatch);
     
+    console.log('⏱️ Time validation:', {
+      currentTime: currentTimeFormatted,
+      scheduledTime,
+      isExactTimeMatch,
+      isManualTrigger,
+      isCronTrigger,
+      shouldProceed
+    });
+
     if (!shouldProceed) {
-      console.log('⏭️ Not the right time or trigger type, skipping...')
-      console.log(`   Expected: ${scheduledTime}, Current: ${currentTimeFormatted}`)
+      console.log('⏭️ Conditions not met for sending report')
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Not scheduled time yet',
+        message: 'Not scheduled time or wrong trigger type',
         currentTime: currentTimeFormatted,
-        scheduledTime: scheduledTime,
-        bangkokTime: bangkokTime.toISOString(),
+        scheduledTime,
         timeMatches: isExactTimeMatch,
-        triggerType: isManualTrigger ? 'manual' : 'scheduled',
-        debug: {
-          hour: currentHour,
-          minute: currentMinute,
-          rawBangkokTime: bangkokTime.toString(),
-          isScheduledTrigger,
-          isManualTrigger,
-          shouldProceed
-        }
+        triggerType: isManualTrigger ? 'manual' : (isCronTrigger ? 'cron' : 'unknown'),
+        shouldProceed
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('✅ Conditions met! Generating daily report...')
-    console.log(`📍 Trigger: ${isManualTrigger ? 'Manual' : 'Scheduled'}, Time match: ${isExactTimeMatch}`)
+    console.log('✅ Proceeding with report generation')
 
-    // Generate daily report data - ใช้ Bangkok timezone สำหรับวันที่
-    const startOfDay = new Date(bangkokTime.getFullYear(), bangkokTime.getMonth(), bangkokTime.getDate())
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1)
+    // Generate daily report data
+    const startOfDay = new Date(bangkokTime);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(bangkokTime);
+    endOfDay.setHours(23, 59, 59, 999);
     
     console.log('📅 Report date range:', { 
       startOfDay: startOfDay.toISOString(), 
-      endOfDay: endOfDay.toISOString() 
-    })
+      endOfDay: endOfDay.toISOString()
+    });
 
     // Get today's orders
     const { data: todayOrders, error: ordersError } = await supabase
       .from('orders')
       .select('id, total_amount, bill_discount, created_at')
       .gte('created_at', startOfDay.toISOString())
-      .lt('created_at', endOfDay.toISOString())
+      .lte('created_at', endOfDay.toISOString())
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError)
@@ -159,7 +167,7 @@ serve(async (req) => {
         order:orders!inner(created_at)
       `)
       .gte('order.created_at', startOfDay.toISOString())
-      .lt('order.created_at', endOfDay.toISOString())
+      .lte('order.created_at', endOfDay.toISOString())
 
     if (itemsError) {
       console.error('❌ Error fetching order items:', itemsError)
@@ -195,30 +203,18 @@ serve(async (req) => {
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10)
 
-    // กำหนดประเภทการส่งอย่างแม่นยำ
-    const actualTriggerType = isManualTrigger ? 'manual' : 'scheduled';
-
     const reportData = {
       date: bangkokTime.toLocaleDateString('th-TH'),
       time: bangkokTime.toLocaleTimeString('th-TH'),
       currentTime: currentTimeFormatted,
-      scheduledTime: scheduledTime,
+      scheduledTime,
       totalOrders,
       totalSales,
       totalDiscount,
       netSales,
       topMenus,
-      triggerType: actualTriggerType,
-      isExactTimeMatch,
-      debugInfo: {
-        bangkokTime: bangkokTime.toISOString(),
-        bangkokTimeString: bangkokTime.toString(),
-        timeMatches: isExactTimeMatch,
-        isScheduledTrigger,
-        isManualTrigger,
-        exactTimeMatch: isExactTimeMatch,
-        timezoneOffset: bangkokTime.getTimezoneOffset()
-      }
+      triggerType: isManualTrigger ? 'manual' : 'scheduled',
+      isExactTimeMatch
     }
 
     console.log('📈 Report data generated:', reportData)
@@ -244,7 +240,7 @@ serve(async (req) => {
       }
     }
 
-    // Send to LINE (placeholder for future implementation)
+    // Send to LINE
     if (dailySettings.platforms.line.enabled && dailySettings.platforms.line.token) {
       try {
         console.log('📤 Sending to LINE...')
@@ -258,7 +254,7 @@ serve(async (req) => {
       }
     }
 
-    // Send to Telegram (placeholder for future implementation)  
+    // Send to Telegram
     if (dailySettings.platforms.telegram.enabled && dailySettings.platforms.telegram.token) {
       try {
         console.log('📤 Sending to Telegram...')
@@ -272,7 +268,7 @@ serve(async (req) => {
       }
     }
 
-    // Send to Instagram (placeholder for future implementation)
+    // Send to Instagram
     if (dailySettings.platforms.instagram.enabled && dailySettings.platforms.instagram.token) {
       try {
         console.log('📤 Sending to Instagram...')
@@ -292,24 +288,10 @@ serve(async (req) => {
       reportData,
       sentCount,
       errorCount,
-      errors: errors.length > 0 ? errors : undefined,
-      debugInfo: {
-        bangkokTime: bangkokTime.toISOString(),
-        bangkokTimeString: bangkokTime.toString(),
-        currentTime: currentTimeFormatted,
-        scheduledTime,
-        triggerType: actualTriggerType,
-        timeMatched: isExactTimeMatch,
-        exactMatch: isExactTimeMatch,
-        timezoneDetails: {
-          offset: bangkokTime.getTimezoneOffset(),
-          hour: currentHour,
-          minute: currentMinute
-        }
-      }
+      errors: errors.length > 0 ? errors : undefined
     }
 
-    console.log('🎉 Daily report task completed successfully:', result)
+    console.log('🎉 Daily report task completed:', result)
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -337,7 +319,6 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     )
     .join('\n')
 
-  // แสดงสถานะการส่งอย่างถูกต้อง
   const isManualTrigger = reportData.triggerType === 'manual';
   const isExactTimeMatch = reportData.isExactTimeMatch;
   
@@ -349,10 +330,6 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     statusIcon = '🖱️';
     statusText = 'ส่งด้วยตนเอง';
     colorCode = 0x0099ff; // น้ำเงิน
-  } else if (isExactTimeMatch) {
-    statusIcon = '🤖';
-    statusText = 'ส่งอัตโนมัติตามกำหนด';
-    colorCode = 0x00ff00; // เขียว
   }
 
   const embed = {
@@ -402,7 +379,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       }
     ],
     footer: {
-      text: `ระบบแจ้งเตือนอัตโนมัติ - Bangkok Time: ${reportData.debugInfo?.bangkokTimeString || 'N/A'}`
+      text: `ระบบแจ้งเตือนอัตโนมัติ - Bangkok Time`
     },
     timestamp: new Date().toISOString()
   }
