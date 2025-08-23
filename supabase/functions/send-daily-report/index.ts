@@ -25,12 +25,20 @@ interface NotificationSettings {
 function getBangkokTime(): { date: Date; timeString: string } {
   const now = new Date();
   
-  // Convert to Bangkok timezone (UTC+7)
-  const bangkokOffset = 7 * 60; // 7 hours in minutes
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const bangkokTime = new Date(utc + (bangkokOffset * 60000));
+  // Convert to Bangkok timezone (UTC+7) - แก้ไขการคำนวณให้ถูกต้อง
+  const bangkokTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  const utcHours = bangkokTime.getUTCHours();
+  const utcMinutes = bangkokTime.getUTCMinutes();
   
-  const timeString = bangkokTime.toTimeString().slice(0, 5); // HH:MM format
+  const timeString = `${utcHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}`;
+  
+  console.log('🕐 Bangkok time calculation:', {
+    originalTime: now.toISOString(),
+    bangkokTime: bangkokTime.toISOString(),
+    timeString,
+    utcHours,
+    utcMinutes
+  });
   
   return { date: bangkokTime, timeString };
 }
@@ -90,28 +98,31 @@ serve(async (req) => {
     const scheduledTime = settings.daily_reports.time;
     console.log('🎯 Scheduled time from settings:', scheduledTime)
 
-    // Get current Bangkok time
+    // Get current Bangkok time - ใช้การคำนวณที่แก้ไขแล้ว
     const { date: bangkokTime, timeString: currentTimeFormatted } = getBangkokTime();
     
     console.log('🌏 Bangkok time details:', {
       bangkokTime: bangkokTime.toISOString(),
       currentTimeFormatted,
       scheduledTime,
-      hour: bangkokTime.getHours(),
-      minute: bangkokTime.getMinutes()
+      rawUTCHour: bangkokTime.getUTCHours(),
+      rawUTCMinute: bangkokTime.getUTCMinutes()
     });
 
-    // Time comparison logic - exact match for scheduled time
+    // แก้ไขการตรวจสอบเวลา - ใช้เงื่อนไขที่ง่ายขึ้น
     const isExactTimeMatch = currentTimeFormatted === scheduledTime;
+    
+    // ถ้าเป็น manual trigger หรือ (cron trigger และเวลาตรง) ให้ส่ง
     const shouldProceed = isManualTrigger || (isCronTrigger && isExactTimeMatch);
     
-    console.log('⏱️ Time validation:', {
+    console.log('⏱️ Time validation (SIMPLIFIED):', {
       currentTime: currentTimeFormatted,
       scheduledTime,
       isExactTimeMatch,
       isManualTrigger,
       isCronTrigger,
-      shouldProceed
+      shouldProceed,
+      comparisonResult: currentTimeFormatted === scheduledTime ? 'MATCH' : 'NO_MATCH'
     });
 
     if (!shouldProceed) {
@@ -124,20 +135,24 @@ serve(async (req) => {
         timeMatches: isExactTimeMatch,
         triggerType: isManualTrigger ? 'manual' : (isCronTrigger ? 'cron' : 'unknown'),
         shouldProceed,
+        debug: {
+          comparisonResult: currentTimeFormatted === scheduledTime ? 'MATCH' : 'NO_MATCH',
+          bangkokTimeCalculation: bangkokTime.toISOString()
+        },
         timestamp
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('✅ Proceeding with report generation')
+    console.log('✅ Proceeding with report generation - TIME MATCHED!')
 
     // Generate daily report data
     const startOfDay = new Date(bangkokTime);
-    startOfDay.setHours(0, 0, 0, 0);
+    startOfDay.setUTCHours(0, 0, 0, 0); // ใช้ setUTCHours แทน setHours
     
     const endOfDay = new Date(bangkokTime);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999); // ใช้ setUTCHours แทน setHours
     
     console.log('📅 Report date range:', { 
       startOfDay: startOfDay.toISOString(), 
@@ -286,15 +301,20 @@ serve(async (req) => {
 
     const result = {
       success: true,
-      message: `Daily report sent to ${sentCount} platform(s)`,
+      message: `Daily report sent to ${sentCount} platform(s) at exactly ${currentTimeFormatted}`,
       reportData,
       sentCount,
       errorCount,
       errors: errors.length > 0 ? errors : undefined,
+      debug: {
+        timeMatched: isExactTimeMatch,
+        calculatedBangkokTime: bangkokTime.toISOString(),
+        triggerType: isManualTrigger ? 'manual' : 'scheduled'
+      },
       timestamp
     }
 
-    console.log('🎉 Daily report task completed:', result)
+    console.log('🎉 Daily report task completed successfully:', result)
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -377,12 +397,12 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       },
       {
         name: '🏆 เมนูขายดี (Top 10)',
-        value: topMenusList || 'ไม่มีข้อมูル',
+        value: topMenusList || 'ไม่มีข้อมูล',
         inline: false
       }
     ],
     footer: {
-      text: `ระบบแจ้งเตือนอัตโนมัติ - Bangkok Time`
+      text: `ระบบแจ้งเตือนอัตโนมัติ - Bangkok Time - ส่งตรงเวลา ${reportData.currentTime}`
     },
     timestamp: new Date().toISOString()
   }
@@ -393,7 +413,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `📊 **รายงานประจำวัน** - ${statusText} ${statusIcon}`,
+      content: `📊 **รายงานประจำวัน** - ${statusText} ${statusIcon} (เวลา ${reportData.currentTime})`,
       embeds: [embed]
     })
   })
