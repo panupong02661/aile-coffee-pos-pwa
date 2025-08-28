@@ -412,18 +412,112 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
   }
 }
 
-// Placeholder functions for future implementation
+// Function to send LINE notification
 async function sendLineReport(reportData: any, token: string) {
-  console.log('📱 LINE notification - placeholder implementation')
-  // TODO: Implement LINE notification
+  const topMenusList = reportData.topMenus
+    .slice(0, 5) // LINE has message length limits
+    .map((menu: any, index: number) => 
+      `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
+    )
+    .join('\n')
+
+  const isManualTrigger = reportData.triggerType === 'manual';
+  const statusIcon = isManualTrigger ? '🖱️' : '🤖';
+  const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
+
+  const message = `📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+
+📅 วันที่: ${reportData.date} เวลา ${reportData.time}
+⏰ เวลาส่ง: ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
+
+🛒 จำนวนออเดอร์: ${reportData.totalOrders} รายการ
+💰 ยอดขายรวม: ${reportData.totalSales.toLocaleString()} บาท
+💸 ส่วนลดรวม: ${reportData.totalDiscount.toLocaleString()} บาท
+💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
+
+🏆 เมนูขายดี (Top 5):
+${topMenusList || 'ไม่มีข้อมูล'}
+
+ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
+
+  const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      messages: [{
+        type: 'text',
+        text: message
+      }]
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
+  }
 }
 
+// Function to send Telegram notification
 async function sendTelegramReport(reportData: any, token: string) {
-  console.log('📱 Telegram notification - placeholder implementation')
-  // TODO: Implement Telegram notification
+  const topMenusList = reportData.topMenus
+    .map((menu: any, index: number) => 
+      `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
+    )
+    .join('\n')
+
+  const isManualTrigger = reportData.triggerType === 'manual';
+  const statusIcon = isManualTrigger ? '🖱️' : '🤖';
+  const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
+
+  const message = `📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
+
+📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
+⏰ *เวลาส่ง:* ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
+
+🛒 *จำนวนออเดอร์:* ${reportData.totalOrders} รายการ
+💰 *ยอดขายรวม:* ${reportData.totalSales.toLocaleString()} บาท
+💸 *ส่วนลดรวม:* ${reportData.totalDiscount.toLocaleString()} บาท
+💵 *ยอดขายสุทธิ:* ${reportData.netSales.toLocaleString()} บาท
+
+🏆 *เมนูขายดี (Top 10):*
+${topMenusList || 'ไม่มีข้อมูล'}
+
+_ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time_`
+
+  // Extract chat_id from token (format: bot_token:chat_id)
+  const [botToken, chatId] = token.split(':')
+  if (!botToken || !chatId) {
+    throw new Error('Invalid Telegram token format. Expected format: bot_token:chat_id')
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'Markdown'
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Telegram API failed: ${response.status} - ${errorText}`)
+  }
 }
 
+// Function to send Instagram notification (via Instagram Basic Display API)
 async function sendInstagramReport(reportData: any, token: string) {
-  console.log('📱 Instagram notification - placeholder implementation')  
-  // TODO: Implement Instagram notification
+  console.log('📱 Instagram notification - อยู่ระหว่างการพัฒนา (Instagram API มีข้อจำกัดในการส่งข้อความอัตโนมัติ)')
+  
+  // Note: Instagram doesn't support automated messaging like other platforms
+  // This would require Instagram Business Account and special permissions
+  // For now, we'll just log that Instagram notifications are not fully supported
+  
+  throw new Error('Instagram automated notifications are not supported due to platform limitations. Consider using other platforms like Discord, LINE, or Telegram.')
 }
