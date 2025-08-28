@@ -95,9 +95,9 @@ serve(async (req) => {
       })
     }
 
-    // ตั้งเวลาเป็น 17:00 (5:00 PM) โดยตรง
-    const scheduledTime = "17:00";
-    console.log('🎯 Scheduled time set to:', scheduledTime)
+    // อ่านเวลาที่กำหนดจากการตั้งค่าในฐานข้อมูล
+    const scheduledTime = settings.daily_reports.time;
+    console.log('🎯 Scheduled time from settings:', scheduledTime)
 
     // Get current Bangkok time
     const { date: bangkokTime, timeString: currentTime } = getBangkokTime();
@@ -109,21 +109,21 @@ serve(async (req) => {
       isCronTrigger
     });
 
-    // ตรวจสอบเงื่อนไขการส่ง - ส่งเมื่อถึงเวลา 17:00
+    // ตรวจสอบเงื่อนไขการส่ง - ส่งเมื่อถึงเวลาที่กำหนด
     const isTimeMatch = currentTime === scheduledTime;
     const shouldSend = isManualTrigger || (isCronTrigger && isTimeMatch);
     
     console.log('⏱️ Should send report?', {
       isTimeMatch,
       shouldSend,
-      reason: isManualTrigger ? 'manual trigger' : isTimeMatch ? 'scheduled time (17:00)' : 'time not match'
+      reason: isManualTrigger ? 'manual trigger' : isTimeMatch ? `scheduled time (${scheduledTime})` : 'time not match'
     });
 
     if (!shouldSend) {
       console.log('⏭️ Not sending - conditions not met')
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Not scheduled time - will send at 17:00',
+        message: `Not scheduled time - will send at ${scheduledTime}`,
         currentTime,
         scheduledTime,
         isTimeMatch,
@@ -134,7 +134,7 @@ serve(async (req) => {
       })
     }
 
-    console.log('✅ Sending daily report at 17:00 - conditions met!')
+    console.log(`✅ Sending daily report at ${scheduledTime} - conditions met!`)
 
     // Generate daily report data
     const startOfDay = new Date(bangkokTime);
@@ -290,7 +290,7 @@ serve(async (req) => {
 
     const result = {
       success: true,
-      message: `รายงานประจำวัน - ส่งอัตโนมัติ ตอน 17:00 น. ส่งไปยัง ${sentCount} แพลตฟอร์ม`,
+      message: `รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด ส่งไปยัง ${sentCount} แพลตฟอร์ม`,
       reportData,
       sentCount,
       errorCount,
@@ -298,12 +298,12 @@ serve(async (req) => {
       debug: {
         timeMatched: isTimeMatch,
         bangkokTime: bangkokTime.toISOString(),
-        triggerType: isManualTrigger ? 'manual' : 'scheduled at 17:00'
+        triggerType: isManualTrigger ? 'manual' : `scheduled at ${scheduledTime}`
       },
       timestamp
     }
 
-    console.log('🎉 Daily report completed at 17:00:', result)
+    console.log(`🎉 Daily report completed at ${scheduledTime}:`, result)
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -334,7 +334,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
   const isManualTrigger = reportData.triggerType === 'manual';
   
   let statusIcon = '🤖';
-  let statusText = 'ส่งอัตโนมัติ ตอน 17:00 น.';
+  let statusText = `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   let colorCode = 0x00ff00; // เขียว
   
   if (isManualTrigger) {
@@ -355,7 +355,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       },
       {
         name: '⏰ เวลาส่ง',
-        value: `${reportData.currentTime} (กำหนดส่งตอน 17:00 น.)`,
+        value: `${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)`,
         inline: true
       },
       {
@@ -390,7 +390,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       }
     ],
     footer: {
-      text: `ระบบแจ้งเตือนอัตโนมัติ ตอน 17:00 น. - Bangkok Time`
+      text: `ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
     },
     timestamp: new Date().toISOString()
   }
@@ -401,7 +401,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตอน 17:00 น.** ${statusIcon} (เวลา ${reportData.currentTime})`,
+      content: `📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
       embeds: [embed]
     })
   })
