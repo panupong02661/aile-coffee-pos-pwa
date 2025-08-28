@@ -1840,6 +1840,7 @@ export type Database = {
           id: string
           monthly_reports: Json | null
           online_orders: Json | null
+          pos_orders: Json | null
           selected_sound_id: string | null
           sound_enabled: boolean | null
           updated_at: string | null
@@ -1852,6 +1853,7 @@ export type Database = {
           id?: string
           monthly_reports?: Json | null
           online_orders?: Json | null
+          pos_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -1864,6 +1866,7 @@ export type Database = {
           id?: string
           monthly_reports?: Json | null
           online_orders?: Json | null
+          pos_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
           updated_at?: string | null

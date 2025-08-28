@@ -13,6 +13,43 @@ import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
 import QRCodePromptPay from './QRCodePromptPay';
 
+// Function to send POS order notification
+const sendPosOrderNotification = async (order: any) => {
+  try {
+    console.log('🏪 Sending POS order notification for:', order.order_number);
+    
+    // Prepare order data for notification with POS source
+    const orderData = {
+      id: order.id,
+      order_number: order.order_number,
+      total_amount: order.total_amount,
+      items_count: order.items_count,
+      member_id: order.member_id,
+      payment_method: order.payment_method,
+      order_source: 'pos', // Mark as POS order
+      status: 'completed',
+      created_at: order.created_at || new Date().toISOString(),
+      customer_notes: '',
+      customer_name: order.customer_name || 'ลูกค้า',
+      customer_phone: order.customer_phone || '',
+      order_items: [] // Will be populated if needed by the notification system
+    };
+
+    // Call the notification edge function
+    const response = await supabase.functions.invoke('send-order-notification', {
+      body: { orderData }
+    });
+
+    if (response.error) {
+      console.error('POS notification failed:', response.error);
+    } else {
+      console.log('✅ POS notification sent successfully:', response.data);
+    }
+  } catch (error) {
+    console.error('Error sending POS notification:', error);
+  }
+};
+
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -520,12 +557,19 @@ const PaymentModal = ({
 
       // บันทึกข้อมูลในฐานข้อมูลในพื้นหลังโดยไม่รอ
       setTimeout(() => {
-        saveOrderToDatabase(paymentMethod).then(() => {
+        saveOrderToDatabase(paymentMethod).then((savedOrder) => {
           console.log('Background database save completed successfully');
           toast({
             title: "บันทึกข้อมูลสำเร็จ",
             description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
           });
+
+          // Send POS order notification
+          if (savedOrder) {
+            sendPosOrderNotification(savedOrder).catch(error => {
+              console.error('POS notification error:', error);
+            });
+          }
         }).catch(error => {
           console.error('Background save error:', error);
           toast({

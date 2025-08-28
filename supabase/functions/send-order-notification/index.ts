@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
 
 const corsHeaders = {
@@ -13,7 +12,7 @@ interface NotificationPlatforms {
   instagram: { enabled: boolean; token: string };
 }
 
-interface OnlineOrderSettings {
+interface OrderSettings {
   enabled: boolean;
   message: string;
   platforms: NotificationPlatforms;
@@ -57,7 +56,7 @@ Deno.serve(async (req) => {
     console.log('📋 Fetching notification settings...');
     const { data: settings, error: settingsError } = await supabase
       .from('notification_settings')
-      .select('online_orders')
+      .select('online_orders, pos_orders')
       .maybeSingle();
 
     if (settingsError) {
@@ -67,27 +66,47 @@ Deno.serve(async (req) => {
 
     console.log('📋 Settings fetched:', settings);
 
-    if (!settings?.online_orders) {
-      console.log('⚠️ No online order notification settings found');
+    // Determine if this is a POS order or online order based on order_source
+    const isPosOrder = orderData.order_source === 'pos' || !orderData.order_source;
+    const isOnlineOrder = orderData.order_source === 'online';
+
+    console.log('🔍 Order type detection:', {
+      order_source: orderData.order_source,
+      isPosOrder,
+      isOnlineOrder
+    });
+
+    let orderSettings: OrderSettings | null = null;
+    let orderType = '';
+
+    if (isPosOrder && settings?.pos_orders) {
+      orderSettings = settings.pos_orders;
+      orderType = 'POS';
+    } else if (isOnlineOrder && settings?.online_orders) {
+      orderSettings = settings.online_orders;
+      orderType = 'Online';
+    }
+
+    if (!orderSettings) {
+      console.log(`⚠️ No ${orderType} order notification settings found`);
       return new Response(
-        JSON.stringify({ success: false, message: 'No notification settings configured' }), 
+        JSON.stringify({ success: false, message: `No ${orderType} notification settings configured` }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const onlineOrderSettings: OnlineOrderSettings = settings.online_orders;
-    console.log('⚙️ Online order settings:', onlineOrderSettings);
+    console.log(`⚙️ ${orderType} order settings:`, orderSettings);
     
-    if (!onlineOrderSettings.enabled) {
-      console.log('⚠️ Online order notifications are disabled');
+    if (!orderSettings.enabled) {
+      console.log(`⚠️ ${orderType} order notifications are disabled`);
       return new Response(
-        JSON.stringify({ success: false, message: 'Online order notifications disabled' }), 
+        JSON.stringify({ success: false, message: `${orderType} order notifications disabled` }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Prepare notification message with variables
-    let message = onlineOrderSettings.message;
+    let message = orderSettings.message;
     message = message.replace(/\{\{orderNumber\}\}/g, orderData.order_number);
     message = message.replace(/\{\{amount\}\}/g, orderData.total_amount.toLocaleString());
     message = message.replace(/\{\{customerName\}\}/g, orderData.customer_name || 'ลูกค้า');
@@ -121,94 +140,79 @@ Deno.serve(async (req) => {
       console.log('📋 Formatted order items text:', orderItemsText);
     }
 
-    const results = [];
-    
     // Send notifications to enabled platforms
-    if (onlineOrderSettings.platforms.discord.enabled && onlineOrderSettings.platforms.discord.token) {
-      console.log('🔵 Sending Discord notification...');
+    let sentCount = 0;
+    let errorCount = 0;
+    const results: any = {};
+
+    // Send to Discord if enabled
+    if (orderSettings.platforms.discord.enabled && orderSettings.platforms.discord.token) {
+      console.log('🔵 Sending Discord notification to:', orderSettings.platforms.discord.token);
       try {
-        const result = await sendDiscordNotification(
-          onlineOrderSettings.platforms.discord.token,
-          message,
-          orderData,
-          orderItemsText
-        );
-        results.push({ platform: 'Discord', success: true, result });
+        await sendDiscordNotification(orderSettings.platforms.discord.token, message, orderData, orderItemsText, orderType);
         console.log('✅ Discord notification sent successfully');
+        results.discord = 'success';
+        sentCount++;
       } catch (error) {
         console.error('❌ Discord notification failed:', error);
-        results.push({ platform: 'Discord', success: false, error: error.message });
+        results.discord = error;
+        errorCount++;
       }
     } else {
       console.log('⚠️ Discord not enabled or no token');
     }
 
-    if (onlineOrderSettings.platforms.line.enabled && onlineOrderSettings.platforms.line.token) {
+    // Send to LINE if enabled
+    if (orderSettings.platforms.line.enabled && orderSettings.platforms.line.token) {
       console.log('🟢 Sending LINE notification...');
       try {
-        const result = await sendLineNotification(
-          onlineOrderSettings.platforms.line.token,
-          message,
-          orderData,
-          orderItemsText
-        );
-        results.push({ platform: 'LINE', success: true, result });
+        await sendLineNotification(orderSettings.platforms.line.token, message, orderData, orderItemsText);
         console.log('✅ LINE notification sent successfully');
+        results.line = 'success';
+        sentCount++;
       } catch (error) {
         console.error('❌ LINE notification failed:', error);
-        results.push({ platform: 'LINE', success: false, error: error.message });
+        results.line = error;
+        errorCount++;
       }
     } else {
       console.log('⚠️ LINE not enabled or no token');
     }
 
-    if (onlineOrderSettings.platforms.telegram.enabled && onlineOrderSettings.platforms.telegram.token) {
-      console.log('🔷 Sending Telegram notification...');
+    // Send to Telegram if enabled
+    if (orderSettings.platforms.telegram.enabled && orderSettings.platforms.telegram.token) {
+      console.log('🔵 Sending Telegram notification...');
       try {
-        const result = await sendTelegramNotification(
-          onlineOrderSettings.platforms.telegram.token,
-          message,
-          orderData,
-          orderItemsText
-        );
-        results.push({ platform: 'Telegram', success: true, result });
+        await sendTelegramNotification(orderSettings.platforms.telegram.token, message, orderData, orderItemsText);
         console.log('✅ Telegram notification sent successfully');
+        results.telegram = 'success';
+        sentCount++;
       } catch (error) {
         console.error('❌ Telegram notification failed:', error);
-        results.push({ platform: 'Telegram', success: false, error: error.message });
+        results.telegram = error;
+        errorCount++;
       }
     } else {
       console.log('⚠️ Telegram not enabled or no token');
     }
 
-    if (onlineOrderSettings.platforms.instagram.enabled && onlineOrderSettings.platforms.instagram.token) {
-      console.log('🟣 Sending Instagram notification...');
-      try {
-        const result = await sendInstagramNotification(
-          onlineOrderSettings.platforms.instagram.token,
-          message,
-          orderData,
-          orderItemsText
-        );
-        results.push({ platform: 'Instagram', success: true, result });
-        console.log('✅ Instagram notification sent successfully');
-      } catch (error) {
-        console.error('❌ Instagram notification failed:', error);
-        results.push({ platform: 'Instagram', success: false, error: error.message });
-      }
-    } else {
+    // Instagram is not supported for automated notifications
+    if (orderSettings.platforms.instagram.enabled) {
       console.log('⚠️ Instagram not enabled or no token');
     }
 
-    const successCount = results.filter(r => r.success).length;
-    console.log(`📊 Notifications sent: ${successCount}/${results.length} platforms`);
+    console.log(`📊 Notifications sent: ${sentCount}/${sentCount + errorCount} platforms`);
     
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Notifications sent to ${successCount}/${results.length} platforms`,
-        results 
-      }), 
+      JSON.stringify({
+        success: sentCount > 0,
+        message: sentCount > 0 
+          ? `${orderType} order notification sent to ${sentCount}/${sentCount + errorCount} platforms`
+          : `Failed to send ${orderType} order notification to any platform`,
+        results,
+        sentCount,
+        errorCount
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -230,7 +234,7 @@ Deno.serve(async (req) => {
 });
 
 // Discord notification function with comprehensive order details
-async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string) {
+async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string, orderType: string) {
   console.log('🔵 Sending Discord notification to:', webhookUrl);
   
   // Create comprehensive fields for Discord embed
@@ -303,9 +307,9 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   }
 
   const embed = {
-    title: '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!',
+    title: orderType === 'POS' ? '🏪 มีการสั่งซื้อใหม่ที่ร้าน!' : '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!',
     description: message,
-    color: 0x00ff00, // สีเขียว
+    color: orderType === 'POS' ? 0xff9500 : 0x00ff00, // สีส้มสำหรับ POS, เขียวสำหรับ Online
     fields: fields,
     footer: {
       text: `ระบบร้านอาหาร | เวลา: ${new Date().toLocaleString('th-TH')}`
@@ -314,7 +318,7 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   };
 
   const payload = {
-    content: '🔔 **ออเดอร์ใหม่เข้ามาแล้ว!**',
+    content: orderType === 'POS' ? '🏪 **ออเดอร์ POS ใหม่!**' : '🔔 **ออเดอร์ออนไลน์ใหม่!**',
     embeds: [embed]
   };
 
@@ -341,20 +345,85 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   return { status: 'Discord notification sent with complete details', response: responseData };
 }
 
-// LINE notification function (placeholder for now)
+// LINE notification function
 async function sendLineNotification(accessToken: string, message: string, orderData: any, orderItemsText: string) {
-  console.log('🟢 LINE notification (placeholder):', { accessToken, message, orderData, orderItemsText });
-  return { status: 'LINE notification not implemented yet' };
+  // Extract bot token and chat ID from the format: botToken:chatId
+  const [botToken, chatId] = accessToken.split(':');
+  
+  if (!botToken || !chatId) {
+    throw new Error('LINE token format should be "channelAccessToken:userId"');
+  }
+
+  const lineMessage = {
+    to: chatId,
+    messages: [
+      {
+        type: 'text',
+        text: `${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`
+      }
+    ]
+  };
+
+  console.log('🟢 Sending LINE message:', lineMessage);
+
+  const response = await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${botToken}`,
+    },
+    body: JSON.stringify(lineMessage)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🟢 LINE error response:', errorText);
+    throw new Error(`LINE API failed: ${response.status} - ${errorText}`);
+  }
+
+  const responseData = await response.text();
+  console.log('🟢 LINE success response:', responseData);
+  return { status: 'LINE notification sent', response: responseData };
 }
 
-// Telegram notification function (placeholder for now)
+// Telegram notification function  
 async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string) {
-  console.log('🔷 Telegram notification (placeholder):', { botToken, message, orderData, orderItemsText });
-  return { status: 'Telegram notification not implemented yet' };
+  // Extract bot token and chat ID from the format: botToken:chatId
+  const [token, chatId] = botToken.split(':');
+  
+  if (!token || !chatId) {
+    throw new Error('Telegram token format should be "botToken:chatId"');
+  }
+
+  const telegramMessage = `${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`;
+
+  console.log('🔷 Sending Telegram message to chat:', chatId);
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: telegramMessage,
+      parse_mode: 'HTML'
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🔷 Telegram error response:', errorText);
+    throw new Error(`Telegram API failed: ${response.status} - ${errorText}`);
+  }
+
+  const responseData = await response.json();
+  console.log('🔷 Telegram success response:', responseData);
+  return { status: 'Telegram notification sent', response: responseData };
 }
 
-// Instagram notification function (placeholder for now)
+// Instagram notification function (not supported for automated notifications)
 async function sendInstagramNotification(apiToken: string, message: string, orderData: any, orderItemsText: string) {
-  console.log('🟣 Instagram notification (placeholder):', { apiToken, message, orderData, orderItemsText });
-  return { status: 'Instagram notification not implemented yet' };
+  console.log('🟣 Instagram notification (not supported):', { apiToken, message, orderData, orderItemsText });
+  throw new Error('Instagram does not support automated notifications for businesses');
 }

@@ -52,6 +52,18 @@ const NotificationPage = () => {
       instantNotification: true,
       message: 'มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
     },
+    // การแจ้งเตือนออเดอร์ POS
+    posOrders: {
+      enabled: true,
+      platforms: {
+        line: { enabled: false, token: '' },
+        instagram: { enabled: false, token: '' },
+        discord: { enabled: true, token: '' },
+        telegram: { enabled: false, token: '' }
+      },
+      instantNotification: true,
+      message: 'มีการสั่งซื้อใหม่ที่ร้าน! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
+    },
     // รายงานประจำวัน
     dailyReports: {
       enabled: true,
@@ -99,6 +111,7 @@ const NotificationPage = () => {
       if (data) {
         setSettings({
           onlineOrders: (data as any).online_orders || settings.onlineOrders,
+          posOrders: (data as any).pos_orders || settings.posOrders,
           dailyReports: (data as any).daily_reports || settings.dailyReports,
           monthlyReports: (data as any).monthly_reports || settings.monthlyReports
         });
@@ -130,6 +143,7 @@ const NotificationPage = () => {
 
       const settingsData = {
         online_orders: settings.onlineOrders,
+        pos_orders: settings.posOrders,
         daily_reports: settings.dailyReports,
         monthly_reports: settings.monthlyReports,
         updated_at: new Date().toISOString()
@@ -619,10 +633,14 @@ const NotificationPage = () => {
         </div>
 
         <Tabs defaultValue="online-orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="online-orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               ออเดอร์ออนไลน์
+            </TabsTrigger>
+            <TabsTrigger value="pos-orders" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              ออเดอร์ POS
             </TabsTrigger>
             <TabsTrigger value="daily-reports" className="flex items-center gap-2">
               <BarChart className="w-4 h-4" />
@@ -710,6 +728,96 @@ const NotificationPage = () => {
                                 ...prev.onlineOrders.platforms,
                                 [platform]: {
                                   ...prev.onlineOrders.platforms[platform as keyof typeof prev.onlineOrders.platforms],
+                                  [field]: value
+                                }
+                              }
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* การแจ้งเตือนออเดอร์ POS */}
+          <TabsContent value="pos-orders">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-6 h-6 text-orange-600" />
+                    <div>
+                      <CardTitle>การแจ้งเตือนออเดอร์ POS</CardTitle>
+                      <CardDescription>
+                        แจ้งเตือนทันทีเมื่อมีการสั่งซื้อใหม่ในหน้า POS
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <Badge variant="outline">ส่งทันที</Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pos-orders-enabled" className="text-base font-medium">
+                    เปิดใช้งานการแจ้งเตือนออเดอร์ POS
+                  </Label>
+                  <Switch
+                    id="pos-orders-enabled"
+                    checked={settings.posOrders.enabled}
+                    onCheckedChange={(checked) =>
+                      setSettings(prev => ({
+                        ...prev,
+                        posOrders: { ...prev.posOrders, enabled: checked }
+                      }))
+                    }
+                  />
+                </div>
+
+                {settings.posOrders.enabled && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="pos-message">ข้อความแจ้งเตือน</Label>
+                        <Textarea
+                          id="pos-message"
+                          value={settings.posOrders.message}
+                          onChange={(e) =>
+                            setSettings(prev => ({
+                              ...prev,
+                              posOrders: { ...prev.posOrders, message: e.target.value }
+                            }))
+                          }
+                          placeholder="ข้อความที่จะส่งเมื่อมีการสั่งซื้อใหม่ที่ร้าน"
+                          className="min-h-[80px]"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                          ใช้ {`{{orderNumber}}, {{amount}}, {{customerName}}`} เป็นตัวแปร
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
+                      <PlatformSettings
+                        type="ออเดอร์ POS"
+                        platforms={settings.posOrders.platforms}
+                        onChange={(platform, field, value) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            posOrders: {
+                              ...prev.posOrders,
+                              platforms: {
+                                ...prev.posOrders.platforms,
+                                [platform]: {
+                                  ...prev.posOrders.platforms[platform as keyof typeof prev.posOrders.platforms],
                                   [field]: value
                                 }
                               }
