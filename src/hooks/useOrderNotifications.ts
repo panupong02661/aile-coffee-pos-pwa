@@ -7,7 +7,7 @@ import { useAutoPrint } from './useAutoPrint';
 let globalNotificationInstance: any = null;
 let isGlobalSetup = false;
 let globalProcessedOrders = new Set<string>();
-let globalChannelRef: any = null;
+let globalPollingInterval: any = null;
 
 export const useOrderNotifications = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -228,7 +228,7 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // SINGLETON PATTERN: Single notification subscription per application
+  // ENHANCED REAL-TIME POLLING: Check every second for new online orders
   useEffect(() => {
     // Check if this instance should be the global singleton
     const shouldBeSingleton = !globalNotificationInstance || !isGlobalSetup;
@@ -242,230 +242,200 @@ export const useOrderNotifications = () => {
     globalNotificationInstance = instanceIdRef.current;
     isGlobalSetup = true;
     
-    console.log(`🏆 Instance ${instanceIdRef.current} - Claimed SINGLETON status for order notifications`);
+    console.log(`🏆 Instance ${instanceIdRef.current} - Claimed SINGLETON status for REAL-TIME POLLING every second`);
     
-    // Create unique channel name for this singleton instance
-    const singletonChannelName = `orders-singleton-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    let lastCheckedTime = new Date();
     
-    const channel = supabase
-      .channel(singletonChannelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders'
-        },
-        async (payload) => {
-          const order = payload.new as any;
+    // Real-time polling function - checks every second
+    const pollForNewOnlineOrders = async () => {
+      try {
+        console.log(`⏰ POLLING - Checking for new online orders since ${lastCheckedTime.toISOString()}`);
+        
+        // Query for new online orders since last check
+        const { data: newOrders, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            members (
+              name,
+              phone
+            ),
+            order_items (
+              id,
+              menu_item_name,
+              quantity,
+              unit_price,
+              total_price,
+              selected_addons
+            )
+          `)
+          .eq('order_source', 'online')
+          .gte('created_at', lastCheckedTime.toISOString())
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('❌ POLLING - Error fetching new orders:', error);
+          return;
+        }
+
+        if (newOrders && newOrders.length > 0) {
+          console.log(`🔔 POLLING - Found ${newOrders.length} new online orders!`);
           
-          // CRITICAL: Filter out test/trigger orders
-          if (order.order_number && order.order_number.includes('-TRIGGER')) {
-            console.log(`🚫 SINGLETON - Skipping trigger/test order: ${order.order_number}`);
-            return;
-          }
-          
-          // CRITICAL: Prevent duplicate processing with global tracking
-          if (globalProcessedOrders.has(order.id)) {
-            console.log(`🚫 SINGLETON - Order ${order.id} already processed globally, skipping`);
-            return;
-          }
-          
-          // Add order to global processed set IMMEDIATELY
-          globalProcessedOrders.add(order.id);
-          
-          console.log(`🔔 SINGLETON - Processing NEW order: ${order.order_number} (ID: ${order.id})`);
-          
-          // Only process online orders
-          if (order.order_source === 'online') {
-            console.log(`📱 SINGLETON - Processing online order notification: ${order.order_number}`);
-            
-            try {
-              // Wait longer for ALL order items to be inserted completely
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              
-              // Fetch complete order details including ALL items and customer info with retry
-              let completeOrder = null;
-              let attempts = 0;
-              const maxAttempts = 5;
-              
-              while (attempts < maxAttempts && !completeOrder) {
-                attempts++;
-                console.log(`📋 SINGLETON - Fetching order attempt ${attempts}/${maxAttempts}`);
-                
-                const { data: orderData, error: orderError } = await supabase
-                  .from('orders')
-                  .select(`
-                    *,
-                    members (
-                      name,
-                      phone
-                    ),
-                    order_items (
-                      id,
-                      menu_item_name,
-                      quantity,
-                      unit_price,
-                      total_price,
-                      selected_addons
-                    )
-                  `)
-                  .eq('id', order.id)
-                  .single();
-
-                if (orderError) {
-                  console.error(`❌ SINGLETON - Attempt ${attempts} error:`, orderError);
-                } else if (orderData && orderData.order_items && orderData.order_items.length > 0) {
-                  completeOrder = orderData;
-                  console.log(`✅ SINGLETON - Successfully fetched order with ${orderData.order_items.length} items on attempt ${attempts}`);
-                  break;
-                } else {
-                  console.log(`⏳ SINGLETON - Attempt ${attempts}: Order items not ready yet, waiting...`);
-                  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between attempts
-                }
-              }
-
-              if (completeOrder && completeOrder.order_items && completeOrder.order_items.length > 0) {
-                console.log(`📋 SINGLETON - Final order data: ${completeOrder.order_items.length} items for order ${completeOrder.order_number}`);
-                
-                // Format order items for display with FULL addon details
-                const orderItemsText = completeOrder.order_items.map((item: any) => {
-                  let itemText = `${item.menu_item_name} x${item.quantity}`;
-                  
-                  // Add detailed addon information
-                  if (item.selected_addons && item.selected_addons.length > 0) {
-                    const addons = item.selected_addons.map((addon: any) => {
-                      if (addon.price && addon.price > 0) {
-                        return `+${addon.name} (+฿${addon.price})`;
-                      } else {
-                        return `+${addon.name}`;
-                      }
-                    }).join(', ');
-                    itemText += ` (${addons})`;
-                  }
-                  
-                  itemText += ` - ฿${item.total_price}`;
-                  return itemText;
-                }).join('\n');
-
-                const customerInfo = completeOrder.members ? 
-                  `ลูกค้า: ${completeOrder.members.name} (${completeOrder.members.phone})` : 
-                  'ลูกค้าทั่วไป';
-
-                // Play sound notification
-                await playBellSound();
-                
-                // Show detailed toast notification with ALL items and addons
-                toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                  description: `ออเดอร์ #${completeOrder.order_number}\n${customerInfo}\n\nรายการ (${completeOrder.order_items.length} เมนู):\n${orderItemsText}\n\nรวม: ฿${completeOrder.total_amount}`,
-                  duration: 20000, // Show longer for detailed content
-                  action: {
-                    label: 'ดูรายละเอียด',
-                    onClick: () => {
-                      window.location.href = '/online-orders';
-                    }
-                  }
-                });
-
-                // Auto-print receipt if enabled
-                if (isAutoPrintEnabled) {
-                  console.log('🖨️ SINGLETON - Auto-printing enabled, printing receipt...');
-                  
-                  const printOrderData = {
-                    id: completeOrder.id,
-                    order_number: completeOrder.order_number,
-                    total_amount: completeOrder.total_amount,
-                    created_at: completeOrder.created_at,
-                    customer_name: completeOrder.members?.name,
-                    customer_phone: completeOrder.members?.phone,
-                    customer_notes: completeOrder.customer_notes,
-                    payment_method: completeOrder.payment_method,
-                    order_items: completeOrder.order_items
-                  };
-                  
-                  await printOrderReceipt(printOrderData);
-                }
-
-                // Send external notification with detailed order info including ALL items and addons
-                const { data, error } = await supabase.functions.invoke('send-order-notification', {
-                  body: {
-                    orderData: {
-                      id: completeOrder.id,
-                      order_number: completeOrder.order_number,
-                      total_amount: completeOrder.total_amount,
-                      items_count: completeOrder.order_items.length,
-                      member_id: completeOrder.member_id,
-                      payment_method: completeOrder.payment_method,
-                      order_source: completeOrder.order_source,
-                      status: completeOrder.status,
-                      created_at: completeOrder.created_at,
-                      customer_notes: completeOrder.customer_notes,
-                      customer_name: completeOrder.members?.name || 'ลูกค้าทั่วไป',
-                      customer_phone: completeOrder.members?.phone || '',
-                      order_items: completeOrder.order_items
-                    }
-                  }
-                });
-
-                if (error) {
-                  console.error('❌ SINGLETON - Failed to send external notifications:', error);
-                } else {
-                  console.log('✅ SINGLETON - External notifications sent successfully');
-                }
-              } else {
-                console.error('❌ SINGLETON - Failed to fetch complete order data after all attempts');
-              }
-            } catch (error) {
-              console.error('❌ SINGLETON - Error processing order notification:', error);
+          for (const order of newOrders) {
+            // Skip trigger orders
+            if (order.order_number && order.order_number.includes('-TRIGGER')) {
+              console.log(`🚫 POLLING - Skipping trigger order: ${order.order_number}`);
+              continue;
             }
             
-            console.log(`📱 SINGLETON - Order notification processed for: ${order.order_number}`);
-          } else {
-            console.log(`📝 SINGLETON - Non-online order ignored: ${order.order_number} (source: ${order.order_source})`);
+            // Prevent duplicate processing
+            if (globalProcessedOrders.has(order.id)) {
+              console.log(`🚫 POLLING - Order ${order.id} already processed, skipping`);
+              continue;
+            }
+            
+            // Mark as processed immediately
+            globalProcessedOrders.add(order.id);
+            console.log(`📱 POLLING - Processing online order: ${order.order_number}`);
+            
+            try {
+              // Format order items for display with FULL addon details
+              const orderItemsText = order.order_items.map((item: any) => {
+                let itemText = `${item.menu_item_name} x${item.quantity}`;
+                
+                // Add detailed addon information
+                if (item.selected_addons && item.selected_addons.length > 0) {
+                  const addons = item.selected_addons.map((addon: any) => {
+                    if (addon.price && addon.price > 0) {
+                      return `+${addon.name} (+฿${addon.price})`;
+                    } else {
+                      return `+${addon.name}`;
+                    }
+                  }).join(', ');
+                  itemText += ` (${addons})`;
+                }
+                
+                itemText += ` - ฿${item.total_price}`;
+                return itemText;
+              }).join('\n');
+
+              const customerInfo = order.members ? 
+                `ลูกค้า: ${order.members.name} (${order.members.phone})` : 
+                'ลูกค้าทั่วไป';
+
+              // Play sound notification IMMEDIATELY
+              await playBellSound();
+              
+              // Show detailed toast notification IMMEDIATELY
+              toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
+                description: `ออเดอร์ #${order.order_number}\n${customerInfo}\n\nรายการ (${order.order_items.length} เมนู):\n${orderItemsText}\n\nรวม: ฿${order.total_amount}`,
+                duration: 20000,
+                action: {
+                  label: 'ดูรายละเอียด',
+                  onClick: () => {
+                    window.location.href = '/online-orders';
+                  }
+                }
+              });
+
+              // Auto-print receipt if enabled
+              if (isAutoPrintEnabled) {
+                console.log('🖨️ POLLING - Auto-printing enabled, printing receipt...');
+                
+                const printOrderData = {
+                  id: order.id,
+                  order_number: order.order_number,
+                  total_amount: order.total_amount,
+                  created_at: order.created_at,
+                  customer_name: order.members?.name || 'ลูกค้าทั่วไป',
+                  customer_phone: order.members?.phone || '',
+                  customer_notes: order.customer_notes || '',
+                  payment_method: order.payment_method,
+                  order_items: order.order_items.map((item: any) => ({
+                    ...item,
+                    selected_addons: Array.isArray(item.selected_addons) ? item.selected_addons : []
+                  }))
+                };
+                
+                await printOrderReceipt(printOrderData);
+              }
+
+              // Send Discord notification IMMEDIATELY
+              console.log(`🚀 POLLING - Sending immediate Discord notification for ${order.order_number}`);
+              const { data, error: notifyError } = await supabase.functions.invoke('send-order-notification', {
+                body: {
+                  orderData: {
+                    id: order.id,
+                    order_number: order.order_number,
+                    total_amount: order.total_amount,
+                    items_count: order.order_items.length,
+                    member_id: order.member_id,
+                    payment_method: order.payment_method,
+                    order_source: order.order_source,
+                    status: order.status,
+                    created_at: order.created_at,
+                    customer_notes: order.customer_notes,
+                    customer_name: order.members?.name || 'ลูกค้าทั่วไป',
+                    customer_phone: order.members?.phone || '',
+                    order_items: order.order_items
+                  }
+                }
+              });
+
+              if (notifyError) {
+                console.error('❌ POLLING - Failed to send Discord notification:', notifyError);
+              } else {
+                console.log('✅ POLLING - Discord notification sent IMMEDIATELY!');
+              }
+              
+            } catch (error) {
+              console.error('❌ POLLING - Error processing order:', error);
+            }
+            
+            // Clean up processed order after 10 minutes to prevent memory leak
+            setTimeout(() => {
+              globalProcessedOrders.delete(order.id);
+              console.log(`🗑️ POLLING - Cleaned up processed order: ${order.id}`);
+            }, 10 * 60 * 1000);
           }
-          
-          // Clean up processed order after 10 minutes to prevent memory leak
-          setTimeout(() => {
-            globalProcessedOrders.delete(order.id);
-            console.log(`🗑️ SINGLETON - Cleaned up processed order: ${order.id}`);
-          }, 10 * 60 * 1000);
-        }
-      )
-      .subscribe((status, err) => {
-        console.log(`📡 SINGLETON - Subscription status: ${status}`);
-        if (err) {
-          console.error('❌ SINGLETON - Subscription error:', err);
         }
         
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ SINGLETON - Order notifications subscription ACTIVE');
-        } else if (status === 'TIMED_OUT') {
-          console.log('⏰ SINGLETON - Subscription timed out, will retry automatically');
-        }
-      });
+        // Update last checked time for next poll
+        lastCheckedTime = new Date();
+        
+      } catch (error) {
+        console.error('❌ POLLING - Critical error:', error);
+      }
+    };
 
-    globalChannelRef = channel;
+    // Start polling every second
+    globalPollingInterval = setInterval(pollForNewOnlineOrders, 1000);
+    console.log('⏰ POLLING - Started real-time polling every 1 second for online orders');
+
+    // Initial poll
+    pollForNewOnlineOrders();
 
     return () => {
-      console.log(`🧹 SINGLETON - Cleanup for instance: ${instanceIdRef.current}`);
+      console.log(`🧹 POLLING - Cleanup for instance: ${instanceIdRef.current}`);
       
       // Only cleanup if this instance is the current singleton
       if (globalNotificationInstance === instanceIdRef.current) {
-        console.log('🧹 SINGLETON - Releasing singleton status and cleaning up');
+        console.log('🧹 POLLING - Releasing singleton status and cleaning up');
         
         isGlobalSetup = false;
         globalNotificationInstance = null;
         globalProcessedOrders.clear();
         
-        if (globalChannelRef) {
-          supabase.removeChannel(globalChannelRef);
-          globalChannelRef = null;
+        if (globalPollingInterval) {
+          clearInterval(globalPollingInterval);
+          globalPollingInterval = null;
+          console.log('⏹️ POLLING - Stopped real-time polling');
         }
         
         stopBellSound();
       }
     };
-  }, []);
+  }, [playBellSound, printOrderReceipt, isAutoPrintEnabled]);
 
   return {
     playBellSound,
