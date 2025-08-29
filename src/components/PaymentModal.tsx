@@ -479,6 +479,7 @@ const PaymentModal = ({
           description: "กรุณาเพิ่มสินค้าก่อนชำระเงิน",
           variant: "destructive"
         });
+        setIsProcessing(false);
         return;
       }
 
@@ -491,6 +492,7 @@ const PaymentModal = ({
             description: `กรุณากรอกจำนวนเงินที่รับมา (ขั้นต่ำ ฿${total})`,
             variant: "destructive"
           });
+          setIsProcessing(false);
           return;
         }
       } else if (paymentMethod === 'points') {
@@ -500,6 +502,7 @@ const PaymentModal = ({
             description: "การชำระด้วยแต้มต้องเป็นสมาชิกเท่านั้น",
             variant: "destructive"
           });
+          setIsProcessing(false);
           return;
         }
 
@@ -513,6 +516,7 @@ const PaymentModal = ({
             description: `ต้องใช้แต้มขั้นต่ำ ${minimumPoints} แต้ม`,
             variant: "destructive"
           });
+          setIsProcessing(false);
           return;
         }
 
@@ -522,6 +526,7 @@ const PaymentModal = ({
             description: `สามารถใช้แต้มได้สูงสุด ${maximumPoints} แต้ม`,
             variant: "destructive"
           });
+          setIsProcessing(false);
           return;
         }
       } else if (paymentMethod === 'promptpay') {
@@ -531,33 +536,30 @@ const PaymentModal = ({
             description: "การชำระด้วย PromptPay ต้องระบุหมายเลขโทรศัพท์",
             variant: "destructive"
           });
+          setIsProcessing(false);
           return;
         }
       }
 
-      // เล่นเสียงกระดิ่งทันทีเมื่อเริ่มประมวลผล
-      try {
-        await playPaymentSuccessBell();
-      } catch (soundError) {
-        console.log('เสียงกระดิ่งเล่นไม่ได้:', soundError);
-      }
+      // เล่นเสียงกระดิ่งและดำเนินการ UI อย่างรวดเร็ว
+      playPaymentSuccessBell().catch(err => console.log('เสียงกระดิ่งเล่นไม่ได้:', err));
 
-      // ทำ payment ทันทีโดยไม่รอการบันทึกฐานข้อมูล
+      // ทำ UI updates ทันทีเพื่อความเร็ว
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
       
-      // แสดงข้อความสำเร็จทันที
+      // แสดงข้อความสำเร็จและปิด modal ทันที
       toast({
         title: "✅ ชำระเงินสำเร็จ",
-        description: `ยอดชำระ ฿${total.toLocaleString()} - ระบบกำลังบันทึกข้อมูล`,
+        description: `ยอดชำระ ฿${total.toLocaleString()}`,
       });
       
-      // ปิด modal ทันที
+      setIsProcessing(false);
       onClose();
 
-      // บันทึกข้อมูลในฐานข้อมูลในพื้นหลังโดยไม่รอ
-      setTimeout(() => {
-        saveOrderToDatabase(paymentMethod).then((savedOrder) => {
+      // บันทึกข้อมูลในฐานข้อมูลในพื้นหลังแบบ async
+      saveOrderToDatabase(paymentMethod)
+        .then((savedOrder) => {
           console.log('Background database save completed successfully');
           toast({
             title: "บันทึกข้อมูลสำเร็จ",
@@ -570,15 +572,15 @@ const PaymentModal = ({
               console.error('POS notification error:', error);
             });
           }
-        }).catch(error => {
+        })
+        .catch(error => {
           console.error('Background save error:', error);
           toast({
-            title: "คำเตือน",
-            description: "การชำระเงินสำเร็จแล้ว แต่อาจมีปัญหาในการบันทึกข้อมูล",
+            title: "เกิดข้อผิดพลาดในการบันทึก",
+            description: "การชำระเงินสำเร็จแล้ว แต่มีปัญหาในการบันทึกข้อมูล",
             variant: "destructive"
           });
         });
-      }, 100); // เริ่มบันทึกหลังจาก UI อัปเดตแล้ว
       
     } catch (error) {
       console.error(`[PaymentModal] Payment process failed:`, error);
@@ -587,7 +589,6 @@ const PaymentModal = ({
         description: "ไม่สามารถประมวลผลการชำระเงินได้",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
