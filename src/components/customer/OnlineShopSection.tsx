@@ -1083,9 +1083,20 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       // Show immediate success message to user
       toast({ 
-        title: 'กำลังดำเนินการ...', 
-        description: 'ระบบกำลังบันทึกข้อมูลออเดอร์ของคุณ' 
+        title: 'สั่งซื้อสำเร็จ!', 
+        description: 'ขอบคุณสำหรับการสั่งซื้อ ระบบกำลังจัดเตรียมออเดอร์ของคุณ' 
       });
+
+      // Clear cart and reset UI immediately for better UX
+      setCartItems([]);
+      setReceiptFile(null);
+      setQrCodeUrl('');
+      setPickupTime('');
+      setCustomerNotes('');
+      setPointsToUse('');
+      
+      // Reset processing state immediately after showing success
+      setIsProcessing(false);
 
       // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
       const orderNumber = generateOrderNumber();
@@ -1227,16 +1238,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           });
         }
       }, 100); // Start background process after 100ms
-
-      // Clear form immediately - don't wait for database
-      setCartItems([]);
-      setPickupTime('');
-      setCustomerNotes('');
-      setReceiptFile(null);
-      setShowPayment(false);
-      setQrCodeUrl('');
-      setPaymentMethod('qr');
-      setPointsToUse('');
       
     } catch (error: any) {
       console.error('Order submission error:', error);
@@ -1245,8 +1246,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         description: error.message || 'ไม่สามารถสั่งซื้อได้', 
         variant: 'destructive' 
       });
-    } finally {
-      // Reset processing state quickly
       setIsProcessing(false);
     }
   };
