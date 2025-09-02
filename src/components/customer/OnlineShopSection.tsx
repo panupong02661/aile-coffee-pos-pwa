@@ -1072,20 +1072,14 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     setIsProcessing(true);
     
     try {
-      // 🔔 PLAY NOTIFICATION SOUND IMMEDIATELY - DON'T WAIT FOR DATABASE
-      console.log('🔔 Playing immediate notification sound...');
-      try {
-        await playOrderSuccessNotification();
-        console.log('✅ Notification sound played successfully');
-      } catch (soundError) {
-        console.log('⚠️ Notification sound failed, continuing with order:', soundError);
-      }
-
       // Show immediate success message to user
       toast({ 
         title: 'สั่งซื้อสำเร็จ!', 
         description: 'ขอบคุณสำหรับการสั่งซื้อ ระบบกำลังจัดเตรียมออเดอร์ของคุณ' 
       });
+
+      // Reset processing state immediately - don't wait for anything
+      setIsProcessing(false);
 
       // Clear cart and reset UI immediately for better UX
       setCartItems([]);
@@ -1095,8 +1089,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setCustomerNotes('');
       setPointsToUse('');
       
-      // Reset processing state immediately after showing success
-      setIsProcessing(false);
+      // 🔔 PLAY NOTIFICATION SOUND IN BACKGROUND - DON'T BLOCK UI
+      console.log('🔔 Playing notification sound in background...');
+      playOrderSuccessNotification()
+        .then(() => console.log('✅ Notification sound played successfully'))
+        .catch(soundError => console.log('⚠️ Notification sound failed:', soundError));
 
       // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
       const orderNumber = generateOrderNumber();
