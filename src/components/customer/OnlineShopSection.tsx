@@ -1095,10 +1095,16 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         .then(() => console.log('✅ Notification sound played successfully'))
         .catch(soundError => console.log('⚠️ Notification sound failed:', soundError));
 
-      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
+      // 📢 SEND NOTIFICATION IMMEDIATELY - Don't wait for database
       const orderNumber = generateOrderNumber();
+      console.log('📢 Sending immediate order notification for mobile...');
       
-      // Start all database operations in background without waiting
+      // Send notification immediately without waiting
+      triggerGlobalOrderNotification(orderNumber, finalAmount)
+        .then(() => console.log('✅ Immediate notification sent successfully'))
+        .catch(notifError => console.log('⚠️ Immediate notification failed:', notifError));
+
+      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
       setTimeout(async () => {
         try {
           let receiptUrl = null;
