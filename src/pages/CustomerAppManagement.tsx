@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
+import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
+import BirthdayGiftManager from '@/components/BirthdayGiftManager';
+import MemberList from '@/components/MemberList';
 
 const CustomerAppManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,61 +45,22 @@ const CustomerAppManagement = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="promotions" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="promotions">โปรโมชั่น</TabsTrigger>
-                    <TabsTrigger value="coupons">คูปอง</TabsTrigger>
-                    <TabsTrigger value="settings">ตั้งค่าแอป</TabsTrigger>
-                    <TabsTrigger value="analytics">การวิเคราะห์</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="promotions">ส่งของรางวัล</TabsTrigger>
+                    <TabsTrigger value="gifts">ของรางวัลพิเศษ</TabsTrigger>
+                    <TabsTrigger value="members">ของรางวัลวันเกิด</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="promotions" className="mt-6">
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">จัดการโปรโมชั่น</h3>
-                      <p className="text-gray-600">กำหนดและจัดการโปรโมชั่นสำหรับลูกค้า</p>
-                      
-                      {/* Content for promotions management */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card>
-                          <CardContent className="p-4">
-                            <h4 className="font-semibold mb-2">โปรโมชั่นปัจจุบัน</h4>
-                            <p className="text-sm text-gray-600">ดูและจัดการโปรโมชั่นที่กำลังใช้งาน</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-4">
-                            <h4 className="font-semibold mb-2">สร้างโปรโมชั่นใหม่</h4>
-                            <p className="text-sm text-gray-600">เพิ่มโปรโมชั่นใหม่สำหรับลูกค้า</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-4">
-                            <h4 className="font-semibold mb-2">รายงานโปรโมชั่น</h4>
-                            <p className="text-sm text-gray-600">ดูสถิติและผลลัพธ์ของโปรโมชั่น</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
+                    <SpecialPromotionsManager />
                   </TabsContent>
                   
-                  <TabsContent value="coupons" className="mt-6">
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">จัดการคูปอง</h3>
-                      <p className="text-gray-600">สร้างและจัดการคูปองส่วนลดสำหรับลูกค้า</p>
-                    </div>
+                  <TabsContent value="gifts" className="mt-6">
+                    <BirthdayGiftManager />
                   </TabsContent>
                   
-                  <TabsContent value="settings" className="mt-6">
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">ตั้งค่าแอป</h3>
-                      <p className="text-gray-600">กำหนดค่าการทำงานของแอพลูกค้า</p>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="analytics" className="mt-6">
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">การวิเคราะห์</h3>
-                      <p className="text-gray-600">ดูสถิติและการใช้งานของแอพลูกค้า</p>
-                    </div>
+                  <TabsContent value="members" className="mt-6">
+                    <MemberList />
                   </TabsContent>
                 </Tabs>
               </CardContent>
