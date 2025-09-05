@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
-import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
+import CustomerAppOverview from '@/components/CustomerAppOverview';
 import BirthdayGiftManager from '@/components/BirthdayGiftManager';
-import MemberList from '@/components/MemberList';
+import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
+import CustomerCoupons from '@/components/CustomerCoupons';
+import GiftSender from '@/components/GiftSender';
 
 const CustomerAppManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
