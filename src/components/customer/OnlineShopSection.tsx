@@ -566,30 +566,39 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         try {
           console.log('🚀 Calling send-order-notification edge function...');
           
-          // Prepare complete order data for notifications
-          const orderData = {
-            order_number: orderNumber,
-            total_amount: totalAmount,
-            items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-            member_id: currentUser.id,
-            payment_method: paymentMethod === 'points' ? 'points' : 'online',
-            order_source: 'online', // CRITICAL: This identifies it as online order
-            status: 'confirmed',
-            created_at: new Date().toISOString(),
-            customer_notes: customerNotes || null,
-            customer_name: currentUser.full_name,
-            customer_phone: currentUser.phone,
-            order_items: cartItems.map(item => ({
-              menu_item_name: item.menu_item.name,
-              quantity: item.quantity,
-              unit_price: item.menu_item.price,
-              total_price: item.menu_item.price * item.quantity,
-              selected_addons: item.selected_addons?.map(addon => ({
-                name: addon.name,
-                price: addon.price || 0
-              })) || []
-            }))
-          };
+           // Prepare complete order data for notifications with proper addon calculation
+           const orderData = {
+             order_number: orderNumber,
+             total_amount: totalAmount,
+             items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+             member_id: currentUser.id,
+             payment_method: paymentMethod === 'points' ? 'points' : 'online',
+             order_source: 'online', // CRITICAL: This identifies it as online order
+             status: 'confirmed',
+             created_at: new Date().toISOString(),
+             customer_notes: customerNotes || null,
+             customer_name: currentUser.full_name,
+             customer_phone: currentUser.phone,
+             order_items: cartItems.map(item => {
+               // Calculate total price including addons
+               const addonsPrice = item.selected_addons?.reduce((sum, addon) => sum + (addon.price || 0), 0) || 0;
+               const itemTotalPrice = (item.menu_item.price * item.quantity) + (addonsPrice * item.quantity);
+               
+               console.log(`🍽️ Item: ${item.menu_item.name}, Addons:`, item.selected_addons);
+               
+               return {
+                 menu_item_name: item.menu_item.name,
+                 quantity: item.quantity,
+                 unit_price: item.menu_item.price,
+                 total_price: itemTotalPrice,
+                 selected_addons: item.selected_addons?.map(addon => ({
+                   id: addon.id || null,
+                   name: addon.name,
+                   price: addon.price || 0
+                 })) || []
+               };
+             })
+           };
           
           console.log('📦 Complete order data being sent to edge function:', orderData);
           

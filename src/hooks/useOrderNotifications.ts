@@ -308,14 +308,15 @@ export const useOrderNotifications = () => {
             console.log(`📱 POLLING - Processing online order: ${order.order_number}`);
             
             try {
-              // Format order items for display with COMPLETE addon details
+              // Format order items for display with COMPLETE addon details (ฮอตช็อกโกแลต + วิปครีม + ช็อกโกแลตชิป)
               const orderItemsText = order.order_items.map((item: any, index: number) => {
                 let itemText = `${index + 1}. ${item.menu_item_name} x${item.quantity}`;
                 
-                // Add COMPLETE addon information with prices
+                // Add COMPLETE addon information with prices - วิปครีม, ช็อกโกแลตชิป, etc.
                 if (item.selected_addons && item.selected_addons.length > 0) {
+                  console.log(`📎 Add-ons found for ${item.menu_item_name}:`, item.selected_addons);
+                  
                   const addons = item.selected_addons.map((addon: any) => {
-                    // Show addon name and price (even if free)
                     const addonPrice = addon.price || 0;
                     if (addonPrice > 0) {
                       return `+${addon.name} (+฿${addonPrice})`;
@@ -323,7 +324,9 @@ export const useOrderNotifications = () => {
                       return `+${addon.name} (ฟรี)`;
                     }
                   }).join(', ');
-                  itemText += `\n   📎 Add-ons: ${addons}`;
+                  itemText += `\n   📎 เพิ่มเติม: ${addons}`;
+                } else {
+                  console.log(`ℹ️ No add-ons for ${item.menu_item_name}`);
                 }
                 
                 // Show unit price and total
