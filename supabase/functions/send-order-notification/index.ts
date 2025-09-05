@@ -121,16 +121,17 @@ Deno.serve(async (req) => {
       orderItemsText = orderData.order_items.map((item: any, index: number) => {
         let itemText = `${index + 1}. ${item.menu_item_name} x${item.quantity}`;
         
-        // Add comprehensive addon details with pricing
+        // Add COMPLETE addon details with prices
         if (item.selected_addons && item.selected_addons.length > 0) {
           const addons = item.selected_addons.map((addon: any) => {
-            if (addon.price && addon.price > 0) {
-              return `+${addon.name} (+฿${addon.price})`;
+            const addonPrice = addon.price || 0;
+            if (addonPrice > 0) {
+              return `+${addon.name} (+฿${addonPrice})`;
             } else {
-              return `+${addon.name}`;
+              return `+${addon.name} (ฟรี)`;
             }
           }).join(', ');
-          itemText += `\n   └─ ${addons}`;
+          itemText += `\n   📎 Add-ons: ${addons}`;
         }
         
         itemText += `\n   💰 ราคา: ฿${item.total_price}`;

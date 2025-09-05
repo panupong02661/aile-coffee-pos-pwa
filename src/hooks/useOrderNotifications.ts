@@ -308,25 +308,28 @@ export const useOrderNotifications = () => {
             console.log(`📱 POLLING - Processing online order: ${order.order_number}`);
             
             try {
-              // Format order items for display with FULL addon details
-              const orderItemsText = order.order_items.map((item: any) => {
-                let itemText = `${item.menu_item_name} x${item.quantity}`;
+              // Format order items for display with COMPLETE addon details
+              const orderItemsText = order.order_items.map((item: any, index: number) => {
+                let itemText = `${index + 1}. ${item.menu_item_name} x${item.quantity}`;
                 
-                // Add detailed addon information
+                // Add COMPLETE addon information with prices
                 if (item.selected_addons && item.selected_addons.length > 0) {
                   const addons = item.selected_addons.map((addon: any) => {
-                    if (addon.price && addon.price > 0) {
-                      return `+${addon.name} (+฿${addon.price})`;
+                    // Show addon name and price (even if free)
+                    const addonPrice = addon.price || 0;
+                    if (addonPrice > 0) {
+                      return `+${addon.name} (+฿${addonPrice})`;
                     } else {
-                      return `+${addon.name}`;
+                      return `+${addon.name} (ฟรี)`;
                     }
                   }).join(', ');
-                  itemText += ` (${addons})`;
+                  itemText += `\n   📎 Add-ons: ${addons}`;
                 }
                 
-                itemText += ` - ฿${item.total_price}`;
+                // Show unit price and total
+                itemText += `\n   💰 ราคา: ฿${item.unit_price} x ${item.quantity} = ฿${item.total_price}`;
                 return itemText;
-              }).join('\n');
+              }).join('\n\n');
 
               const customerInfo = order.members ? 
                 `ลูกค้า: ${order.members.name} (${order.members.phone})` : 
@@ -335,10 +338,10 @@ export const useOrderNotifications = () => {
               // Play sound notification IMMEDIATELY
               await playBellSound();
               
-              // Show detailed toast notification IMMEDIATELY
-              toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                description: `ออเดอร์ #${order.order_number}\n${customerInfo}\n\nรายการ (${order.order_items.length} เมนู):\n${orderItemsText}\n\นรวม: ฿${order.total_amount}`,
-                duration: 20000,
+              // Show DETAILED toast notification with COMPLETE order info
+              toast.success('🔔 มีออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!', {
+                description: `📋 ออเดอร์ #${order.order_number}\n👤 ${customerInfo}\n${order.customer_notes ? `📝 หมายเหตุ: ${order.customer_notes}\n` : ''}\n🛍️ รายการสินค้า (${order.order_items.length} เมนู):\n${orderItemsText}\n\n💳 วิธีชำระ: ${order.payment_method === 'points' ? 'แต้ม' : order.payment_method === 'online' ? 'ออนไลน์' : order.payment_method}\n💵 ยอดรวมทั้งหมด: ฿${order.total_amount}`,
+                duration: 25000,
                 action: {
                   label: 'ดูรายละเอียด',
                   onClick: () => {
