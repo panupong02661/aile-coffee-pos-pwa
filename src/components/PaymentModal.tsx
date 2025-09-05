@@ -13,27 +13,42 @@ import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
 import QRCodePromptPay from './QRCodePromptPay';
 
-// Function to send POS order notification
-const sendPosOrderNotification = async (order: any) => {
+// Function to send POS order notification with complete details
+const sendPosOrderNotification = async (order: any, orderItems: any[] = []) => {
   try {
     console.log('🏪 Sending POS order notification for:', order.order_number);
     
-    // Prepare order data for notification with POS source
+    // Format order items for notification with COMPLETE addon details
+    const formattedOrderItems = orderItems.map((item: any) => ({
+      id: item.id || null,
+      menu_item_name: item.menu_item_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total_price: item.total_price,
+      selected_addons: item.selected_addons ? 
+        (typeof item.selected_addons === 'string' ? 
+          JSON.parse(item.selected_addons) : 
+          item.selected_addons) : []
+    }));
+
+    // Prepare complete order data for notification with POS source
     const orderData = {
       id: order.id,
       order_number: order.order_number,
       total_amount: order.total_amount,
-      items_count: order.items_count,
+      items_count: formattedOrderItems.reduce((sum, item) => sum + item.quantity, 0),
       member_id: order.member_id,
       payment_method: order.payment_method,
       order_source: 'pos', // Mark as POS order
       status: 'completed',
       created_at: order.created_at || new Date().toISOString(),
       customer_notes: '',
-      customer_name: order.customer_name || 'ลูกค้า',
-      customer_phone: order.customer_phone || '',
-      order_items: [] // Will be populated if needed by the notification system
+      customer_name: order.member_name || order.customer_name || 'ลูกค้า',
+      customer_phone: order.member_phone || order.customer_phone || '',
+      order_items: formattedOrderItems // Include complete order items
     };
+
+    console.log('🏪 POS order data with items:', orderData);
 
     // Call the notification edge function
     const response = await supabase.functions.invoke('send-order-notification', {
@@ -455,7 +470,13 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order processing completed successfully`);
       
-      return order;
+      // Return both order and order items for notification
+      return {
+        ...order,
+        order_items: orderItems,
+        member_name: selectedMember?.name || null,
+        member_phone: selectedMember?.phone || null
+      };
 
     } catch (error) {
       console.error(`[PaymentModal] Save order failed:`, error);
@@ -537,8 +558,8 @@ const PaymentModal = ({
             description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
           });
 
-          // Send POS order notification
-          sendPosOrderNotification(savedOrder).catch(error => {
+          // Send POS order notification with complete order items data
+          sendPosOrderNotification(savedOrder, savedOrder.order_items).catch(error => {
             console.error('POS notification error:', error);
           });
         }
