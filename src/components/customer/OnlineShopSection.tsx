@@ -637,7 +637,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       }
 
       // Also insert into orders table for GlobalNotificationProvider
-      const { data: createdOrder, error: orderError } = await supabase
+      const { error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber + '-TRIGGER',
@@ -656,38 +656,6 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         console.error('Failed to trigger orders notification:', orderError);
       } else {
         console.log('✅ orders notification triggered successfully');
-        
-        // Insert order items with complete addon details for notification system
-        if (createdOrder) {
-          const orderItemsToInsert = cartItems.map(item => {
-            const addonsPrice = item.selected_addons?.reduce((sum, addon) => sum + (addon.price || 0), 0) || 0;
-            const itemTotalPrice = (item.menu_item.price * item.quantity) + (addonsPrice * item.quantity);
-            
-            return {
-              order_id: createdOrder.id,
-              menu_item_id: item.menu_item.id,
-              menu_item_name: item.menu_item.name,
-              quantity: item.quantity,
-              unit_price: item.menu_item.price,
-              total_price: itemTotalPrice,
-              selected_addons: item.selected_addons?.map(addon => ({
-                id: addon.id || null,
-                name: addon.name,
-                price: addon.price || 0
-              })) || []
-            };
-          });
-          
-          const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(orderItemsToInsert);
-            
-          if (itemsError) {
-            console.error('❌ Failed to insert order items for notification:', itemsError);
-          } else {
-            console.log('✅ Order items inserted successfully with complete addon details');
-          }
-        }
       }
 
       // Additional broadcast to notification channel for immediate cross-device sync
