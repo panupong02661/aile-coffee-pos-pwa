@@ -46,23 +46,33 @@ const CustomerAppManagement = () => {
                 <CardDescription>จัดการและกำหนดค่าแอพลูกค้า คูปอง และโปรโมชั่น</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="promotions" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="promotions">ส่งของรางวัล</TabsTrigger>
-                    <TabsTrigger value="gifts">ของรางวัลพิเศษ</TabsTrigger>
-                    <TabsTrigger value="members">ของรางวัลวันเกิด</TabsTrigger>
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
+                    <TabsTrigger value="birthday-gifts">ของขวัญวันเกิด</TabsTrigger>
+                    <TabsTrigger value="special-rewards">ของรางวัลพิเศษ</TabsTrigger>
+                    <TabsTrigger value="coupons">คูปองลูกค้า</TabsTrigger>
+                    <TabsTrigger value="send-gifts">ส่งของขวัญ</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="promotions" className="mt-6">
-                    <SpecialPromotionsManager />
+                  <TabsContent value="overview" className="mt-6">
+                    <CustomerAppOverview />
                   </TabsContent>
                   
-                  <TabsContent value="gifts" className="mt-6">
+                  <TabsContent value="birthday-gifts" className="mt-6">
                     <BirthdayGiftManager />
                   </TabsContent>
                   
-                  <TabsContent value="members" className="mt-6">
-                    <MemberList />
+                  <TabsContent value="special-rewards" className="mt-6">
+                    <SpecialPromotionsManager />
+                  </TabsContent>
+                  
+                  <TabsContent value="coupons" className="mt-6">
+                    <CustomerCoupons />
+                  </TabsContent>
+                  
+                  <TabsContent value="send-gifts" className="mt-6">
+                    <GiftSender />
                   </TabsContent>
                 </Tabs>
               </CardContent>
