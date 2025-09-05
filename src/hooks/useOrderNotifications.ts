@@ -294,7 +294,16 @@ export const useOrderNotifications = () => {
               continue;
             }
             
-            // Mark as processed immediately
+            // Create unique identifier for this order notification cycle
+            const notificationId = `${order.id}-${Date.now()}`;
+            
+            // Mark as processed with timestamp-based ID to prevent duplicates within same cycle
+            if (globalProcessedOrders.has(order.id)) {
+              console.log(`🚫 POLLING - Order ${order.id} already processed in this cycle, skipping`);
+              continue;
+            }
+            
+            // Mark as processed for this notification cycle only
             globalProcessedOrders.add(order.id);
             console.log(`📱 POLLING - Processing online order: ${order.order_number}`);
             
@@ -328,7 +337,7 @@ export const useOrderNotifications = () => {
               
               // Show detailed toast notification IMMEDIATELY
               toast.success('🔔 มีออเดอร์ออนไลน์ใหม่!', {
-                description: `ออเดอร์ #${order.order_number}\n${customerInfo}\n\nรายการ (${order.order_items.length} เมนู):\n${orderItemsText}\n\nรวม: ฿${order.total_amount}`,
+                description: `ออเดอร์ #${order.order_number}\n${customerInfo}\n\nรายการ (${order.order_items.length} เมนู):\n${orderItemsText}\n\นรวม: ฿${order.total_amount}`,
                 duration: 20000,
                 action: {
                   label: 'ดูรายละเอียด',
@@ -360,43 +369,21 @@ export const useOrderNotifications = () => {
                 await printOrderReceipt(printOrderData);
               }
 
-              // Send Discord notification IMMEDIATELY
-              console.log(`🚀 POLLING - Sending immediate Discord notification for ${order.order_number}`);
-              const { data, error: notifyError } = await supabase.functions.invoke('send-order-notification', {
-                body: {
-                  orderData: {
-                    id: order.id,
-                    order_number: order.order_number,
-                    total_amount: order.total_amount,
-                    items_count: order.order_items.length,
-                    member_id: order.member_id,
-                    payment_method: order.payment_method,
-                    order_source: order.order_source,
-                    status: order.status,
-                    created_at: order.created_at,
-                    customer_notes: order.customer_notes,
-                    customer_name: order.members?.name || 'ลูกค้าทั่วไป',
-                    customer_phone: order.members?.phone || '',
-                    order_items: order.order_items
-                  }
-                }
-              });
-
-              if (notifyError) {
-                console.error('❌ POLLING - Failed to send Discord notification:', notifyError);
-              } else {
-                console.log('✅ POLLING - Discord notification sent IMMEDIATELY!');
-              }
+              // NOTE: Platform notifications (Discord, LINE, etc.) are now sent immediately 
+              // from the customer app to prevent duplicates. This polling only handles 
+              // POS-side notifications (sound, toast, auto-print)
+              console.log(`✅ POLLING - POS notification completed for ${order.order_number}`);
               
             } catch (error) {
               console.error('❌ POLLING - Error processing order:', error);
             }
             
-            // Clean up processed order after 10 minutes to prevent memory leak
+            // Clean up processed order after 30 seconds to prevent duplicates in same session
+            // but allow new notifications for subsequent orders
             setTimeout(() => {
               globalProcessedOrders.delete(order.id);
               console.log(`🗑️ POLLING - Cleaned up processed order: ${order.id}`);
-            }, 10 * 60 * 1000);
+            }, 30 * 1000);
           }
         }
         
