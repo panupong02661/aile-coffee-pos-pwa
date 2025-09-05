@@ -566,21 +566,32 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         try {
           console.log('🚀 Calling send-order-notification edge function...');
           
+          // Prepare complete order data for notifications
           const orderData = {
             order_number: orderNumber,
             total_amount: totalAmount,
+            items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+            member_id: currentUser.id,
+            payment_method: paymentMethod === 'points' ? 'points' : 'online',
+            order_source: 'online', // CRITICAL: This identifies it as online order
+            status: 'confirmed',
+            created_at: new Date().toISOString(),
+            customer_notes: customerNotes || null,
             customer_name: currentUser.full_name,
             customer_phone: currentUser.phone,
-            payment_method: paymentMethod,
-            order_status: 'confirmed',
-            items: cartItems.map(item => ({
-              name: item.menu_item.name,
+            order_items: cartItems.map(item => ({
+              menu_item_name: item.menu_item.name,
               quantity: item.quantity,
-              price: item.menu_item.price
+              unit_price: item.menu_item.price,
+              total_price: item.menu_item.price * item.quantity,
+              selected_addons: item.selected_addons?.map(addon => ({
+                name: addon.name,
+                price: addon.price || 0
+              })) || []
             }))
           };
           
-          console.log('📦 Order data being sent to edge function:', orderData);
+          console.log('📦 Complete order data being sent to edge function:', orderData);
           
           const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
             body: { orderData }
@@ -596,12 +607,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               variant: 'destructive'
             });
           } else {
-            console.log('✅ Order notifications sent successfully:', notificationResult);
+            console.log('✅ Order notifications sent successfully to all platforms:', notificationResult);
             
             // Show success notification to user
             toast({
-              title: 'แจ้งเตือนสำเร็จ',
-              description: 'ส่งการแจ้งเตือนไปยังแพลตฟอร์มที่เปิดใช้งานแล้ว',
+              title: 'แจ้งเตือนสำเร็จ!',
+              description: 'ส่งการแจ้งเตือนออเดอร์ออนไลน์ไปยังแพลตฟอร์มที่เปิดใช้งานแล้ว',
             });
           }
         } catch (notificationError) {
