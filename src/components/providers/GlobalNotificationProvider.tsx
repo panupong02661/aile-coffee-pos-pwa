@@ -79,6 +79,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     notificationChannelRef.current = syncChannel;
 
     // Listen for new orders from the main notification system
+    console.log('🔔 Setting up real-time order listener...');
     const orderChannel = supabase
       .channel(`ui-order-listener-${instanceIdRef.current}`)
       .on(
@@ -89,6 +90,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           table: 'orders'
         },
         async (payload) => {
+          console.log('🔔 REAL-TIME ORDER INSERT DETECTED:', payload);
           const order = payload.new as any;
           
           // CRITICAL: Filter out test/trigger orders
@@ -185,7 +187,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 Real-time subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time order listener is ACTIVE');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time subscription failed');
+        }
+      });
 
     return () => {
       console.log(`🧹 UI SINGLETON - Cleanup for: ${instanceIdRef.current}`);
