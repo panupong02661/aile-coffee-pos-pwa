@@ -1416,6 +1416,37 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             <div className="space-y-3">
               <Button 
                 onClick={async () => {
+                  console.log('🧪 Testing notification system...');
+                  try {
+                    const { data, error } = await supabase.functions.invoke('test-notification');
+                    if (error) {
+                      toast({
+                        title: 'ทดสอบล้มเหลว',
+                        description: error.message,
+                        variant: 'destructive'
+                      });
+                    } else {
+                      toast({
+                        title: 'ทดสอบสำเร็จ!',
+                        description: 'การแจ้งเตือนถูกส่งไปยัง Discord แล้ว',
+                      });
+                    }
+                  } catch (error: any) {
+                    toast({
+                      title: 'ข้อผิดพลาด',
+                      description: error.message,
+                      variant: 'destructive'
+                    });
+                  }
+                }}
+                variant="outline"
+                className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-medium"
+              >
+                🧪 ทดสอบการแจ้งเตือน Discord
+              </Button>
+
+              <Button 
+                onClick={async () => {
                   console.log('🔔 Testing iOS notification sound...');
                   await playOrderSuccessNotification();
                 }}
