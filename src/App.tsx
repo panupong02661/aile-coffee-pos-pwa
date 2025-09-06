@@ -4,7 +4,7 @@ import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
-import SimpleNotificationProvider from './components/providers/SimpleNotificationProvider';
+import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
 
 const queryClient = new QueryClient();
 
@@ -43,7 +43,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <SimpleNotificationProvider>
+          <GlobalNotificationProvider>
             <div className="min-h-screen bg-background">
               <Suspense fallback={
                 <div className="flex items-center justify-center h-64">
@@ -114,7 +114,7 @@ function App() {
               <Toaster />
               <SonnerToaster />
             </div>
-          </SimpleNotificationProvider>
+          </GlobalNotificationProvider>
         </Router>
       </AuthProvider>
     </QueryClientProvider>

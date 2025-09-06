@@ -18,10 +18,9 @@ interface OrderSettings {
   platforms: NotificationPlatforms;
 }
 
-// Enhanced in-memory cache with order number + timestamp key for preventing duplicate processing
-const processedOrdersCache = new Map<string, { timestamp: number; count: number }>();
+// Simple in-memory cache for preventing duplicate processing (cleared on restart)
+const processedOrdersCache = new Map<string, number>();
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-const MAX_DUPLICATE_ATTEMPTS = 3; // Maximum duplicates allowed before blocking
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -49,48 +48,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Enhanced edge function level duplicate prevention with order number + time
-    const orderKey = `${orderData.order_number}_${orderData.total_amount}_${orderData.items_count}`;
-    const cacheKey = `processed_order_${orderKey}`;
+    // Add edge function level duplicate prevention
+    const cacheKey = `processed_order_${orderData.order_number}_${orderData.created_at}`;
     console.log('🔍 Checking edge function cache for:', cacheKey);
     
     const now = Date.now();
-    const cacheEntry = processedOrdersCache.get(cacheKey);
-    
-    if (cacheEntry) {
-      // Increment duplicate count
-      cacheEntry.count++;
-      console.log(`🚫 Order already processed ${cacheEntry.count} times in edge function, skipping:`, cacheKey);
-      
-      // Block if too many duplicates
-      if (cacheEntry.count >= MAX_DUPLICATE_ATTEMPTS) {
-        console.log(`🛑 Blocking order due to excessive duplicates (${cacheEntry.count}):`, cacheKey);
-        return new Response(
-          JSON.stringify({ success: false, message: `Order blocked due to ${cacheEntry.count} duplicate attempts` }), 
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
+    if (processedOrdersCache.has(cacheKey)) {
+      console.log('🚫 Order already processed in edge function, skipping:', cacheKey);
       return new Response(
-        JSON.stringify({ success: false, message: `Order already processed ${cacheEntry.count} times` }), 
+        JSON.stringify({ success: false, message: 'Order already processed' }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Mark as processed immediately with count tracking
-    processedOrdersCache.set(cacheKey, { timestamp: now, count: 1 });
+    // Mark as processed immediately
+    processedOrdersCache.set(cacheKey, now);
     console.log('✅ Marked order as processed in edge function cache:', cacheKey);
     
-    // Enhanced cleanup of expired entries
-    let cleanedCount = 0;
-    for (const [key, entry] of processedOrdersCache.entries()) {
-      if (now - entry.timestamp > CACHE_DURATION) {
+    // Clean up expired entries (simple cleanup)
+    for (const [key, timestamp] of processedOrdersCache.entries()) {
+      if (now - timestamp > CACHE_DURATION) {
         processedOrdersCache.delete(key);
-        cleanedCount++;
       }
-    }
-    if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned up ${cleanedCount} expired cache entries`);
     }
 
     // Initialize Supabase client
