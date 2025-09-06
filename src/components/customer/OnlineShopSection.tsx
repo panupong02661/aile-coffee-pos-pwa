@@ -1074,41 +1074,24 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
           if (orderError) throw orderError;
 
-          // Save order items
-          for (const item of cartItems) {
-            const { data: orderItem, error: itemError } = await supabase
-              .from('order_items')
-              .insert({
-                order_id: order.id,
-                menu_item_id: item.menu_item.id,
-                menu_item_name: item.menu_item.name,
-                quantity: item.quantity,
-                unit_price: item.menu_item.price,
-                total_price: item.quantity * item.menu_item.price
-              })
-              .select()
-              .single();
+          // Prepare order items for batch insert
+          const orderItemsToInsert = cartItems.map(item => ({
+            order_id: order.id,
+            menu_item_id: item.menu_item.id,
+            menu_item_name: item.menu_item.name,
+            quantity: item.quantity,
+            unit_price: item.menu_item.price,
+            total_price: item.quantity * item.menu_item.price,
+            selected_addons: JSON.parse(JSON.stringify(item.selected_addons || []))
+          }));
 
-            if (itemError) throw itemError;
+          // Save all order items at once
+          const { data: orderItems, error: itemError } = await supabase
+            .from('order_items')
+            .insert(orderItemsToInsert)
+            .select();
 
-            if (item.selected_addons && item.selected_addons.length > 0) {
-              const addonItems = item.selected_addons.map(addon => ({
-                order_id: order.id,
-                order_item_id: orderItem.id,
-                addon_id: addon.id,
-                addon_name: addon.name,
-                quantity: item.quantity,
-                unit_price: Number(addon.price),
-                total_price: item.quantity * Number(addon.price)
-              }));
-
-              const { error: addonError } = await supabase
-                .from('order_addons')
-                .insert(addonItems);
-
-              if (addonError) throw addonError;
-            }
-          }
+          if (itemError) throw itemError;
 
           // Handle points and member updates
           if (paymentMethod === 'points' && pointsUsed > 0) {

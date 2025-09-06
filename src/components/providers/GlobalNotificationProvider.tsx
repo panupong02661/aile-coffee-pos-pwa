@@ -106,7 +106,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               console.log('🚀 GlobalNotificationProvider - Calling send-order-notification edge function...');
               
               // Wait a bit for order items to be inserted
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
               // Fetch the complete order with items for notification
               const { data: completeOrder, error } = await supabase
