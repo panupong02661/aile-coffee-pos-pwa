@@ -25,7 +25,6 @@ let globalUIProcessedOrders = new Set<string>();
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
-  const [isSetup, setIsSetup] = useState(false);
   
   const notificationChannelRef = useRef<any>(null);
   const orderChannelRef = useRef<any>(null);
@@ -35,11 +34,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
 
-  console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname, 'isSetup:', isSetup);
+  console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname);
   console.log('🔔 FORCE DEBUG - Component is running at:', new Date().toISOString());
 
   useEffect(() => {
-    console.log('🔔 GlobalNotificationProvider - useEffect triggered, current setup:', isSetup);
+    console.log('🔔 GlobalNotificationProvider - useEffect triggered');
     
     // Skip customer mobile app but don't skip if already setup (allow re-setup)
     if (location.pathname === '/customer-mobile-app') {
@@ -47,8 +46,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // Force setup regardless of isSetup state to ensure notifications work
+    // Force setup regardless of previous state to ensure notifications work
     console.log('🎯 GlobalNotificationProvider - Starting setup...');
+    
+    // Clear any existing notifications from previous sessions
+    setShowOrderAlert(false);
+    setNewOrder(null);
     
     // Setup cross-device sync channel
     const syncChannelName = `ui-notification-sync-${Date.now()}`;
@@ -83,6 +86,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Skip test/trigger orders
           if (order.order_number && order.order_number.includes('-TRIGGER')) {
             console.log(`🚫 Skipping trigger/test order: ${order.order_number}`);
+            return;
+          }
+          
+          // Skip old orders (more than 10 minutes old)
+          const orderTime = new Date(order.created_at);
+          const now = new Date();
+          const timeDiff = now.getTime() - orderTime.getTime();
+          const minutesDiff = timeDiff / (1000 * 60);
+          
+          if (minutesDiff > 10) {
+            console.log(`🚫 Skipping old order: ${order.order_number} (${minutesDiff.toFixed(1)} minutes old)`);
             return;
           }
           
