@@ -107,11 +107,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
 
-  console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname);
-  console.log('🔔 FORCE DEBUG - Component is running at:', new Date().toISOString());
+  console.log('🔔 GlobalNotificationProvider - STARTING on path:', location.pathname);
+  console.log('🔔 GlobalNotificationProvider - Component is running at:', new Date().toISOString());
+  console.log('🔔 GlobalNotificationProvider - Setup completed status:', setupCompleted.current);
+  console.log('🔔 GlobalNotificationProvider - Has active channels:', notificationManager.hasActiveChannels());
 
   useEffect(() => {
     console.log('🔔 GlobalNotificationProvider - useEffect triggered');
+    console.log('🔔 Setup completed status:', setupCompleted.current);
+    console.log('🔔 Has active channels:', notificationManager.hasActiveChannels());
     
     // Skip customer mobile app
     if (location.pathname === '/customer-mobile-app') {
@@ -119,14 +123,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // Prevent multiple setups
-    if (setupCompleted.current || notificationManager.hasActiveChannels()) {
-      console.log('🚫 Setup already completed or has active channels, skipping');
-      return;
+    // Reset and cleanup first
+    if (setupCompleted.current) {
+      console.log('🔄 Resetting previous setup...');
+      notificationManager.cleanupAll();
+      setupCompleted.current = false;
     }
 
     setupCompleted.current = true;
-    console.log('🎯 Starting notification setup...');
+    console.log('🎯 Starting fresh notification setup...');
 
     // Setup cross-device sync channel
     const syncChannelName = `ui-notification-sync-${Date.now()}-${Math.random()}`;
@@ -291,7 +296,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       clearInterval(cleanupTimer);
       notificationManager.cleanupAll();
     };
-  }, []); // เปลี่ยนเป็น empty dependency เพื่อป้องกันการ re-run
+  }, [location.pathname]); // รีเซ็ตเมื่อเปลี่ยน route
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
