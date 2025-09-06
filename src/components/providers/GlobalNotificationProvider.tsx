@@ -46,6 +46,12 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
+    // ป้องกันการสร้าง subscription ซ้ำ
+    if (orderChannelRef.current) {
+      console.log('🚫 Already has active subscription, skipping setup');
+      return;
+    }
+
     console.log('🎯 GlobalNotificationProvider - Starting setup...');
     
     // Setup cross-device sync channel
@@ -203,7 +209,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         orderChannelRef.current = null;
       }
     };
-  }, [location.pathname]); // Re-run when pathname changes to ensure notifications are active
+  }, []); // เปลี่ยนเป็น empty dependency เพื่อป้องกันการ re-run
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
