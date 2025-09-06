@@ -19,8 +19,9 @@ interface OnlineOrder {
   order_items?: any[];
 }
 
-// Global UI state management
+// Global state management for processed orders (both UI and Discord notifications)
 let globalUIProcessedOrders = new Set<string>();
+let globalDiscordProcessedOrders = new Set<string>();
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
@@ -95,6 +96,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           // Send Discord notifications only for online orders
           if (order.order_source === 'online') {
+            // Prevent duplicate Discord notifications
+            if (globalDiscordProcessedOrders.has(order.id)) {
+              console.log(`🚫 Discord notification already sent for order: ${order.id}, skipping`);
+              return;
+            }
+            
+            globalDiscordProcessedOrders.add(order.id);
+            
             try {
               // Call notification edge function immediately for online orders
               console.log('🚀 Calling send-order-notification edge function...');
@@ -125,6 +134,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
               if (error || !completeOrder) {
                 console.error('❌ Failed to fetch complete order:', error);
+                // Remove from processed set on failure so it can be retried
+                globalDiscordProcessedOrders.delete(order.id);
                 return;
               }
 
@@ -153,12 +164,22 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
               if (edgeFunctionError) {
                 console.error('❌ Failed to send notifications:', edgeFunctionError);
+                // Remove from processed set on failure so it can be retried
+                globalDiscordProcessedOrders.delete(order.id);
               } else {
                 console.log('✅ Notifications sent successfully:', notificationResult);
+                
+                // Clean up Discord processed order after 30 minutes
+                setTimeout(() => {
+                  globalDiscordProcessedOrders.delete(order.id);
+                  console.log(`🗑️ Cleaned up Discord processed order: ${order.id}`);
+                }, 30 * 60 * 1000);
               }
               
             } catch (notificationError) {
               console.error('❌ Error in notification process:', notificationError);
+              // Remove from processed set on error so it can be retried
+              globalDiscordProcessedOrders.delete(order.id);
             }
           }
           
