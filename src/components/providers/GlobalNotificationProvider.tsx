@@ -41,15 +41,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     console.log('🔔 GlobalNotificationProvider - useEffect triggered, current setup:', isSetup);
     
-    // Only run once and skip customer mobile app
-    if (isSetup || location.pathname === '/customer-mobile-app') {
-      if (location.pathname === '/customer-mobile-app') {
-        console.log('🚫 Skipping setup on customer mobile app');
-      }
+    // Skip customer mobile app but don't skip if already setup (allow re-setup)
+    if (location.pathname === '/customer-mobile-app') {
+      console.log('🚫 Skipping setup on customer mobile app');
       return;
     }
 
-    setIsSetup(true);
+    // Force setup regardless of isSetup state to ensure notifications work
     console.log('🎯 GlobalNotificationProvider - Starting setup...');
     
     // Setup cross-device sync channel
@@ -185,7 +183,6 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return () => {
       console.log('🧹 Cleaning up GlobalNotificationProvider');
-      setIsSetup(false);
       
       if (notificationChannelRef.current) {
         try {
@@ -207,7 +204,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         orderChannelRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, [location.pathname]); // Re-run when pathname changes to ensure notifications are active
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
