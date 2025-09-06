@@ -17,6 +17,7 @@ interface OnlineOrder {
     phone: string;
   };
   order_items?: any[];
+  created_at?: string; // เพิ่มเวลาที่สั่งซื้อ
 }
 
 // Global state management for processed orders (both UI and Discord notifications)
@@ -91,17 +92,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
+          // ป้องกันการประมวลผลซ้ำทั้งหมด - ตรวจสอบทั้ง UI และ Discord
+          if (globalUIProcessedOrders.has(order.id) || globalDiscordProcessedOrders.has(order.id)) {
+            console.log(`🚫 Order ${order.id} already processed, skipping all notifications`);
+            return;
+          }
+          
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
           
           // Send Discord notifications only for online orders
           if (order.order_source === 'online') {
-            // Prevent duplicate Discord notifications
-            if (globalDiscordProcessedOrders.has(order.id)) {
-              console.log(`🚫 Discord notification already sent for order: ${order.id}, skipping`);
-              return;
-            }
-            
             globalDiscordProcessedOrders.add(order.id);
             
             try {
@@ -185,15 +186,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           // Show UI notification for both POS and online orders
           console.log(`🔔 Preparing UI notification for order: ${order.order_number} (${order.order_source || 'pos'})`);
-          setTimeout(async () => {
-            await handleNewOrderUI({
-              orderId: order.id,
-              orderNumber: order.order_number,
-              totalAmount: order.total_amount,
-              memberId: order.member_id,
-              orderSource: order.order_source || 'pos'
-            });
-          }, 1000); // Reduced delay
+          // ลบ setTimeout และเรียกทันที เพื่อป้องกันการซ้ำ
+          await handleNewOrderUI({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            totalAmount: order.total_amount,
+            memberId: order.member_id,
+            orderSource: order.order_source || 'pos',
+            orderCreatedAt: order.created_at // เพิ่มเวลาที่สั่งซื้อจริง
+          });
         }
       )
       .subscribe((status) => {
@@ -234,14 +235,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
-      // Prevent duplicate UI processing
-      if (globalUIProcessedOrders.has(orderData.orderId)) {
-        console.log(`🚫 Order ${orderData.orderId} already processed for UI, skipping`);
-        return;
-      }
-      
-      globalUIProcessedOrders.add(orderData.orderId);
-      console.log(`🎯 Processing order for UI display: ${orderData.orderNumber}`);
+      // เพิ่มเวลาที่สั่งซื้อจริงสำหรับแสดงผล
+      console.log(`🎯 Processing order for UI display: ${orderData.orderNumber} at ${orderData.orderCreatedAt}`);
       
       // Fetch complete order data for UI with retry logic
       let completeOrder = null;
@@ -296,7 +291,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           customer_profiles: completeOrder.members ? {
             full_name: completeOrder.members.name,
             phone: completeOrder.members.phone
-          } : undefined
+          } : undefined,
+          created_at: orderData.orderCreatedAt || completeOrder.created_at // ใช้เวลาที่สั่งซื้อจริง
         };
         
         setNewOrder(orderForNotification);
@@ -431,6 +427,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 <p className="text-3xl font-bold text-orange-600 mt-3">
                   💰 รวมทั้งสิ้น: ฿{newOrder.total_amount.toFixed(2)}
                 </p>
+                
+                {/* แสดงเวลาที่สั่งซื้อจริง */}
+                {newOrder.created_at && (
+                  <div className="mt-3 pt-3 border-t border-orange-200">
+                    <p className="text-sm text-gray-600">
+                      🕐 เวลาสั่งซื้อ: {new Date(newOrder.created_at).toLocaleString('th-TH', {
+                        timeZone: 'Asia/Bangkok',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-3">
