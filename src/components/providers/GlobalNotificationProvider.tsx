@@ -39,17 +39,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Check if current page is customer mobile app
   const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
 
+  console.log('🔔 GlobalNotificationProvider - Initialized');
+  console.log('🔔 Current path:', location.pathname);
+  console.log('🔔 Is customer mobile app:', isCustomerMobileApp);
+
   useEffect(() => {
+    console.log('🔔 GlobalNotificationProvider - useEffect triggered');
+    
     // Skip setup on customer mobile app
     if (isCustomerMobileApp) {
       console.log('🚫 GlobalNotificationProvider - Skipping setup on customer mobile app');
       return;
     }
 
-    // Singleton pattern for UI notifications
-    if (globalUIInstance) {
-      console.log(`🚫 GlobalNotificationProvider - UI singleton already exists: ${globalUIInstance}`);
-      return;
+    // Singleton pattern for UI notifications - but allow debugging
+    if (globalUIInstance && globalUIInstance !== instanceIdRef.current) {
+      console.log(`🚫 GlobalNotificationProvider - UI singleton already exists: ${globalUIInstance}, current: ${instanceIdRef.current}`);
+      // Don't return early, continue for debugging
     }
 
     // Claim UI singleton status
@@ -207,13 +213,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       
       if (notificationChannelRef.current) {
-        supabase.removeChannel(notificationChannelRef.current);
+        try {
+          supabase.removeChannel(notificationChannelRef.current);
+          console.log('🧹 Removed sync channel');
+        } catch (e) {
+          console.error('Error removing sync channel:', e);
+        }
         notificationChannelRef.current = null;
       }
       
-      supabase.removeChannel(orderChannel);
+      try {
+        supabase.removeChannel(orderChannel);
+        console.log('🧹 Removed order channel');
+      } catch (e) {
+        console.error('Error removing order channel:', e);
+      }
     };
-  }, [isCustomerMobileApp]);
+  }, [isCustomerMobileApp, location.pathname]); // Add location.pathname as dependency
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
