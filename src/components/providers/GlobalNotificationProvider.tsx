@@ -88,13 +88,16 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // Only handle online orders
-          if (order.order_source === 'online') {
-            console.log(`🎯 New online order detected: ${order.order_number}`);
+          // Handle both online and POS orders
+          if (order.order_source === 'online' || order.order_source === 'pos' || !order.order_source) {
+            const orderType = order.order_source === 'online' ? 'ออนไลน์' : 'หน้าร้าน';
+            console.log(`🎯 New ${orderType} order detected: ${order.order_number}`);
             
             try {
-              // Call notification edge function immediately
-              console.log('🚀 Calling send-order-notification edge function...');
+              // Call notification edge function for online orders only (to avoid duplicate Discord notifications for POS)
+              if (order.order_source === 'online') {
+                console.log('🚀 Calling send-order-notification edge function...');
+              }
               
               // Wait briefly for order items to be inserted
               await new Promise(resolve => setTimeout(resolve, 1500));
@@ -143,28 +146,31 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               
               console.log('📦 Order data for notification:', orderData);
               
-              // Send notification
-              const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
-                body: { orderData }
-              });
+              // Send notification for online orders only
+              if (order.order_source === 'online') {
+                const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+                  body: { orderData }
+                });
 
-              if (edgeFunctionError) {
-                console.error('❌ Failed to send notifications:', edgeFunctionError);
-              } else {
-                console.log('✅ Notifications sent successfully:', notificationResult);
+                if (edgeFunctionError) {
+                  console.error('❌ Failed to send notifications:', edgeFunctionError);
+                } else {
+                  console.log('✅ Notifications sent successfully:', notificationResult);
+                }
               }
               
             } catch (notificationError) {
               console.error('❌ Error in notification process:', notificationError);
             }
             
-            // Show UI notification after a longer delay to ensure data is ready
+            // Show UI notification for both online and POS orders
             setTimeout(async () => {
               await handleNewOrderUI({
                 orderId: order.id,
                 orderNumber: order.order_number,
                 totalAmount: order.total_amount,
-                memberId: order.member_id
+                memberId: order.member_id,
+                orderSource: order.order_source || 'pos'
               });
             }, 2000);
           }
@@ -216,7 +222,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       
       globalUIProcessedOrders.add(orderData.orderId);
-      console.log(`🎯 Processing order for UI display: ${orderData.orderNumber}`);
+      const orderType = orderData.orderSource === 'online' ? 'ออนไลน์' : 'หน้าร้าน';
+      console.log(`🎯 Processing ${orderType} order for UI display: ${orderData.orderNumber}`);
       
       // Fetch complete order data for UI with retry logic
       let completeOrder = null;
@@ -351,7 +358,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             <DialogTitle className="flex items-center justify-between text-orange-600 text-xl font-bold">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-6 w-6 animate-bounce" />
-                🔔 ออเดอร์ออนไลน์ใหม่!
+                🔔 {newOrder.order_items && newOrder.order_items[0]?.order_source === 'online' ? 'ออเดอร์ออนไลน์ใหม่!' : 'ออเดอร์ใหม่!'}
               </div>
               <Button
                 variant="ghost"
