@@ -88,12 +88,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // Only handle online orders
+          // Handle both POS and online orders for UI notifications
+          console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
+          
+          // Send Discord notifications only for online orders
           if (order.order_source === 'online') {
-            console.log(`🎯 New online order detected: ${order.order_number}`);
-            
             try {
-              // Call notification edge function immediately
+              // Call notification edge function immediately for online orders
               console.log('🚀 Calling send-order-notification edge function...');
               
               // Wait briefly for order items to be inserted
@@ -157,17 +158,18 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             } catch (notificationError) {
               console.error('❌ Error in notification process:', notificationError);
             }
-            
-            // Show UI notification after a longer delay to ensure data is ready
-            setTimeout(async () => {
-              await handleNewOrderUI({
-                orderId: order.id,
-                orderNumber: order.order_number,
-                totalAmount: order.total_amount,
-                memberId: order.member_id
-              });
-            }, 2000);
           }
+          
+          // Show UI notification for both POS and online orders
+          setTimeout(async () => {
+            await handleNewOrderUI({
+              orderId: order.id,
+              orderNumber: order.order_number,
+              totalAmount: order.total_amount,
+              memberId: order.member_id,
+              orderSource: order.order_source || 'pos'
+            });
+          }, 2000);
         }
       )
       .subscribe((status) => {
@@ -351,7 +353,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             <DialogTitle className="flex items-center justify-between text-orange-600 text-xl font-bold">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-6 w-6 animate-bounce" />
-                🔔 ออเดอร์ออนไลน์ใหม่!
+                🔔 ออเดอร์ใหม่!
               </div>
               <Button
                 variant="ghost"
