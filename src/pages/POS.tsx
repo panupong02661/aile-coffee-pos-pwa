@@ -10,7 +10,7 @@ import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useOrderNotifications } from '@/hooks/useOrderNotifications';
+
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
@@ -38,8 +38,26 @@ const POS = () => {
   
   console.log('📱 isMobile:', isMobile);
   
-  // Initialize order notifications for iPad compatibility
-  const { playBellSound, initializeAudio } = useOrderNotifications();
+  // Simple audio functions for testing
+  const playBellSound = async () => {
+    try {
+      const audio = new Audio('/sounds/default-notification.mp3');
+      audio.volume = 0.8;
+      await audio.play();
+    } catch (error) {
+      console.log('Failed to play notification sound:', error);
+    }
+  };
+  
+  const initializeAudio = async () => {
+    try {
+      const audio = new Audio('/sounds/default-notification.mp3');
+      audio.volume = 0;
+      await audio.play();
+    } catch (error) {
+      console.log('Audio initialization failed:', error);
+    }
+  };
   
   // โหลดการตั้งค่าจาก localStorage
   const [gridColumns, setGridColumns] = useState(() => {

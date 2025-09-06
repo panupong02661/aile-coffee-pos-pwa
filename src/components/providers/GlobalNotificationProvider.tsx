@@ -159,6 +159,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
           
           // Show UI notification for both POS and online orders
+          console.log(`🔔 Preparing UI notification for order: ${order.order_number} (${order.order_source || 'pos'})`);
           setTimeout(async () => {
             await handleNewOrderUI({
               orderId: order.id,
@@ -167,7 +168,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               memberId: order.member_id,
               orderSource: order.order_source || 'pos'
             });
-          }, 2000);
+          }, 1000); // Reduced delay
         }
       )
       .subscribe((status) => {
