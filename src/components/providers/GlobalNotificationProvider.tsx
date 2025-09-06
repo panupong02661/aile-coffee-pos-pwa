@@ -25,26 +25,32 @@ let globalUIProcessedOrders = new Set<string>();
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
+  const [isSetup, setIsSetup] = useState(false);
   
   const notificationChannelRef = useRef<any>(null);
+  const orderChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
 
-  console.log('🔔 GlobalNotificationProvider - Initialized on path:', location.pathname);
+  console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname, 'isSetup:', isSetup);
+  console.log('🔔 FORCE DEBUG - Component is running at:', new Date().toISOString());
 
   useEffect(() => {
-    console.log('🔔 GlobalNotificationProvider - useEffect triggered');
+    console.log('🔔 GlobalNotificationProvider - useEffect triggered, current setup:', isSetup);
     
-    // Skip setup on customer mobile app
-    if (location.pathname === '/customer-mobile-app') {
-      console.log('🚫 GlobalNotificationProvider - Skipping setup on customer mobile app');
+    // Only run once and skip customer mobile app
+    if (isSetup || location.pathname === '/customer-mobile-app') {
+      if (location.pathname === '/customer-mobile-app') {
+        console.log('🚫 Skipping setup on customer mobile app');
+      }
       return;
     }
 
-    console.log('🎯 GlobalNotificationProvider - Setting up notification system');
+    setIsSetup(true);
+    console.log('🎯 GlobalNotificationProvider - Starting setup...');
     
     // Setup cross-device sync channel
     const syncChannelName = `ui-notification-sync-${Date.now()}`;
@@ -173,8 +179,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       });
 
+    orderChannelRef.current = orderChannel;
+
     return () => {
       console.log('🧹 Cleaning up GlobalNotificationProvider');
+      setIsSetup(false);
       
       if (notificationChannelRef.current) {
         try {
@@ -186,14 +195,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         notificationChannelRef.current = null;
       }
       
-      try {
-        supabase.removeChannel(orderChannel);
-        console.log('🧹 Removed order channel');
-      } catch (e) {
-        console.error('Error removing order channel:', e);
+      if (orderChannelRef.current) {
+        try {
+          supabase.removeChannel(orderChannelRef.current);
+          console.log('🧹 Removed order channel');
+        } catch (e) {
+          console.error('Error removing order channel:', e);
+        }
+        orderChannelRef.current = null;
       }
     };
-  }, [location.pathname]);
+  }, []); // Empty dependency array - only run once
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
