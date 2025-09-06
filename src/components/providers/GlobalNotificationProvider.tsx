@@ -20,21 +20,89 @@ interface OnlineOrder {
   created_at?: string; // เพิ่มเวลาที่สั่งซื้อ
 }
 
-// Global state management for processed orders (single unified set)
-let globalProcessedOrders = new Set<string>();
-
-// Active subscription tracking to prevent multiple subscriptions
-let activeSubscriptionCount = 0;
-let lastOrderId: string | null = null;
+// Singleton notification manager to prevent duplicate subscriptions
+class NotificationManager {
+  private static instance: NotificationManager;
+  private processedOrders = new Set<string>();
+  private activeChannels = new Map<string, any>();
+  private lastProcessedOrderId: string | null = null;
+  
+  static getInstance(): NotificationManager {
+    if (!NotificationManager.instance) {
+      NotificationManager.instance = new NotificationManager();
+    }
+    return NotificationManager.instance;
+  }
+  
+  isProcessed(orderId: string): boolean {
+    return this.processedOrders.has(orderId);
+  }
+  
+  markAsProcessed(orderId: string): void {
+    this.processedOrders.add(orderId);
+    this.lastProcessedOrderId = orderId;
+    console.log(`✅ Marked order ${orderId} as processed. Total processed: ${this.processedOrders.size}`);
+  }
+  
+  isConsecutiveDuplicate(orderId: string): boolean {
+    return this.lastProcessedOrderId === orderId;
+  }
+  
+  addChannel(key: string, channel: any): void {
+    if (this.activeChannels.has(key)) {
+      console.warn(`Channel ${key} already exists, removing old one`);
+      this.removeChannel(key);
+    }
+    this.activeChannels.set(key, channel);
+  }
+  
+  removeChannel(key: string): void {
+    const channel = this.activeChannels.get(key);
+    if (channel) {
+      try {
+        supabase.removeChannel(channel);
+        this.activeChannels.delete(key);
+        console.log(`🧹 Removed channel: ${key}`);
+      } catch (e) {
+        console.error(`Error removing channel ${key}:`, e);
+      }
+    }
+  }
+  
+  hasActiveChannels(): boolean {
+    return this.activeChannels.size > 0;
+  }
+  
+  cleanupAll(): void {
+    for (const [key] of this.activeChannels) {
+      this.removeChannel(key);
+    }
+  }
+  
+  getChannel(key: string): any {
+    return this.activeChannels.get(key);
+  }
+  
+  
+  // Clean up old processed orders (keep only recent ones)
+  cleanupProcessedOrders(): void {
+    if (this.processedOrders.size > 100) {
+      const ordersArray = Array.from(this.processedOrders);
+      // Keep only the last 50 orders
+      this.processedOrders = new Set(ordersArray.slice(-50));
+      console.log(`🧹 Cleaned up processed orders, kept ${this.processedOrders.size} recent orders`);
+    }
+  }
+}
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
   
-  const notificationChannelRef = useRef<any>(null);
-  const orderChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const setupCompleted = useRef(false);
+  const notificationManager = NotificationManager.getInstance();
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
@@ -51,20 +119,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // Enhanced duplicate subscription prevention
-    if (orderChannelRef.current || activeSubscriptionCount > 0) {
-      console.log('🚫 Already has active subscription, skipping setup. Count:', activeSubscriptionCount);
+    // Prevent multiple setups
+    if (setupCompleted.current || notificationManager.hasActiveChannels()) {
+      console.log('🚫 Setup already completed or has active channels, skipping');
       return;
     }
 
-    // Increment active subscription counter
-    activeSubscriptionCount++;
-    console.log('📈 Incrementing subscription count to:', activeSubscriptionCount);
+    setupCompleted.current = true;
+    console.log('🎯 Starting notification setup...');
 
-    console.log('🎯 GlobalNotificationProvider - Starting setup...');
-    
     // Setup cross-device sync channel
-    const syncChannelName = `ui-notification-sync-${Date.now()}`;
+    const syncChannelName = `ui-notification-sync-${Date.now()}-${Math.random()}`;
     const syncChannel = supabase
       .channel(syncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
@@ -76,12 +141,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.log(`📡 Sync channel status: ${status}`);
       });
 
-    notificationChannelRef.current = syncChannel;
+    notificationManager.addChannel('sync', syncChannel);
 
     // Listen for new orders from the orders table
     console.log('🔔 Setting up real-time order listener...');
+    const orderChannelName = `order-listener-${Date.now()}-${Math.random()}`;
     const orderChannel = supabase
-      .channel(`order-listener-${Date.now()}`)
+      .channel(orderChannelName)
       .on(
         'postgres_changes',
         {
@@ -99,23 +165,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // Enhanced duplicate prevention with multiple checks
-          if (globalProcessedOrders.has(order.id)) {
-            console.log(`🚫 Order ${order.id} already processed, skipping all notifications`);
+          // Enhanced duplicate prevention with singleton manager
+          if (notificationManager.isProcessed(order.id)) {
+            console.log(`🚫 Order ${order.id} already processed by manager, skipping`);
             return;
           }
 
           // Additional check for consecutive same order
-          if (lastOrderId === order.id) {
+          if (notificationManager.isConsecutiveDuplicate(order.id)) {
             console.log(`🚫 Same order ${order.id} received consecutively, skipping`);
             return;
           }
 
           // Mark as processing immediately to prevent race conditions
-          globalProcessedOrders.add(order.id);
-          lastOrderId = order.id;
-          
-          console.log(`🎯 Processing unique order: ${order.id} | Processed set size: ${globalProcessedOrders.size}`);
+          notificationManager.markAsProcessed(order.id);
           
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
@@ -152,8 +215,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
               if (error || !completeOrder) {
                 console.error('❌ Failed to fetch complete order:', error);
-                // Remove from processed set on failure so it can be retried
-                globalProcessedOrders.delete(order.id);
+                // Don't remove from processed set to prevent retry spam
                 return;
               }
 
@@ -182,16 +244,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
               if (edgeFunctionError) {
                 console.error('❌ Failed to send notifications:', edgeFunctionError);
-                // Remove from processed set on failure so it can be retried
-                globalProcessedOrders.delete(order.id);
+                // Don't remove from processed set to prevent retry spam
               } else {
                 console.log('✅ Notifications sent successfully:', notificationResult);
               }
               
             } catch (notificationError) {
               console.error('❌ Error in notification process:', notificationError);
-              // Remove from processed set on error so it can be retried
-              globalProcessedOrders.delete(order.id);
+              // Don't remove from processed set to prevent retry spam
             }
           }
           
@@ -217,34 +277,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       });
 
-    orderChannelRef.current = orderChannel;
+    notificationManager.addChannel('orders', orderChannel);
+
+    // Cleanup old processed orders periodically
+    const cleanupTimer = setInterval(() => {
+      notificationManager.cleanupProcessedOrders();
+    }, 10 * 60 * 1000); // Every 10 minutes
 
     return () => {
       console.log('🧹 Cleaning up GlobalNotificationProvider');
       
-      // Decrement active subscription counter
-      activeSubscriptionCount = Math.max(0, activeSubscriptionCount - 1);
-      console.log('📉 Decremented subscription count to:', activeSubscriptionCount);
-      
-      if (notificationChannelRef.current) {
-        try {
-          supabase.removeChannel(notificationChannelRef.current);
-          console.log('🧹 Removed sync channel');
-        } catch (e) {
-          console.error('Error removing sync channel:', e);
-        }
-        notificationChannelRef.current = null;
-      }
-      
-      if (orderChannelRef.current) {
-        try {
-          supabase.removeChannel(orderChannelRef.current);
-          console.log('🧹 Removed order channel');
-        } catch (e) {
-          console.error('Error removing order channel:', e);
-        }
-        orderChannelRef.current = null;
-      }
+      setupCompleted.current = false;
+      clearInterval(cleanupTimer);
+      notificationManager.cleanupAll();
     };
   }, []); // เปลี่ยนเป็น empty dependency เพื่อป้องกันการ re-run
 
@@ -328,11 +373,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.error('❌ Failed to fetch complete order data for UI after all attempts');
       }
       
-      // Clean up processed order after 10 minutes
+      // Clean up processed order after 15 minutes (longer to prevent duplicates)
       setTimeout(() => {
-        globalProcessedOrders.delete(orderData.orderId);
-        console.log(`🗑️ Cleaned up processed order: ${orderData.orderId}`);
-      }, 10 * 60 * 1000);
+        // Don't clean up, let the singleton manager handle cleanup
+        console.log(`🔄 Order ${orderData.orderId} cleanup deferred to manager`);
+      }, 15 * 60 * 1000);
       
     } catch (error) {
       console.error('❌ Error processing new order UI notification:', error);
@@ -340,8 +385,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleDismiss = () => {
-    if (notificationChannelRef.current) {
-      notificationChannelRef.current.send({
+    const syncChannel = notificationManager.getChannel('sync');
+    if (syncChannel) {
+      syncChannel.send({
         type: 'broadcast',
         event: 'dismiss-notification'
       });
