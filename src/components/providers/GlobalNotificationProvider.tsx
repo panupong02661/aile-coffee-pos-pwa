@@ -23,6 +23,10 @@ interface OnlineOrder {
 // Global state management for processed orders (single unified set)
 let globalProcessedOrders = new Set<string>();
 
+// Active subscription tracking to prevent multiple subscriptions
+let activeSubscriptionCount = 0;
+let lastOrderId: string | null = null;
+
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
@@ -47,11 +51,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    // ป้องกันการสร้าง subscription ซ้ำ
-    if (orderChannelRef.current) {
-      console.log('🚫 Already has active subscription, skipping setup');
+    // Enhanced duplicate subscription prevention
+    if (orderChannelRef.current || activeSubscriptionCount > 0) {
+      console.log('🚫 Already has active subscription, skipping setup. Count:', activeSubscriptionCount);
       return;
     }
+
+    // Increment active subscription counter
+    activeSubscriptionCount++;
+    console.log('📈 Incrementing subscription count to:', activeSubscriptionCount);
 
     console.log('🎯 GlobalNotificationProvider - Starting setup...');
     
@@ -91,14 +99,23 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // ป้องกันการประมวลผลซ้ำ - ตรวจสอบในชุดเดียว
+          // Enhanced duplicate prevention with multiple checks
           if (globalProcessedOrders.has(order.id)) {
             console.log(`🚫 Order ${order.id} already processed, skipping all notifications`);
             return;
           }
-          
-          // เพิ่มลงในชุดที่ประมวลผลแล้วทันที
+
+          // Additional check for consecutive same order
+          if (lastOrderId === order.id) {
+            console.log(`🚫 Same order ${order.id} received consecutively, skipping`);
+            return;
+          }
+
+          // Mark as processing immediately to prevent race conditions
           globalProcessedOrders.add(order.id);
+          lastOrderId = order.id;
+          
+          console.log(`🎯 Processing unique order: ${order.id} | Processed set size: ${globalProcessedOrders.size}`);
           
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
@@ -204,6 +221,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return () => {
       console.log('🧹 Cleaning up GlobalNotificationProvider');
+      
+      // Decrement active subscription counter
+      activeSubscriptionCount = Math.max(0, activeSubscriptionCount - 1);
+      console.log('📉 Decremented subscription count to:', activeSubscriptionCount);
       
       if (notificationChannelRef.current) {
         try {

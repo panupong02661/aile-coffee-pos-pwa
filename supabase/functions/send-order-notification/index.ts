@@ -18,6 +18,10 @@ interface OrderSettings {
   platforms: NotificationPlatforms;
 }
 
+// Simple in-memory cache for preventing duplicate processing (cleared on restart)
+const processedOrdersCache = new Map<string, number>();
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -35,13 +39,37 @@ Deno.serve(async (req) => {
     const { orderData } = body;
     console.log('🔔 Processing order notification:', orderData);
 
-    // CRITICAL: Filter out test/trigger orders
+    // CRITICAL: Filter out test/trigger orders and add edge function duplicate prevention
     if (orderData.order_number && orderData.order_number.includes('-TRIGGER')) {
       console.log('🚫 Skipping trigger/test order notification:', orderData.order_number);
       return new Response(
         JSON.stringify({ success: false, message: 'Test/trigger order ignored' }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Add edge function level duplicate prevention
+    const cacheKey = `processed_order_${orderData.order_number}_${orderData.created_at}`;
+    console.log('🔍 Checking edge function cache for:', cacheKey);
+    
+    const now = Date.now();
+    if (processedOrdersCache.has(cacheKey)) {
+      console.log('🚫 Order already processed in edge function, skipping:', cacheKey);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Order already processed' }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Mark as processed immediately
+    processedOrdersCache.set(cacheKey, now);
+    console.log('✅ Marked order as processed in edge function cache:', cacheKey);
+    
+    // Clean up expired entries (simple cleanup)
+    for (const [key, timestamp] of processedOrdersCache.entries()) {
+      if (now - timestamp > CACHE_DURATION) {
+        processedOrdersCache.delete(key);
+      }
     }
 
     // Initialize Supabase client
