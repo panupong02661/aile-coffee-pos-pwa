@@ -527,159 +527,83 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
   };
 
-  // Enhanced global notification trigger for all platforms (except customer page)
+  // Simplified notification trigger using main orders table only
   const triggerGlobalOrderNotification = async (orderNumber: string, totalAmount: number) => {
     try {
-      console.log('📡 Triggering enhanced global order notification...', { orderNumber, totalAmount });
+      console.log('📡 Triggering simplified global order notification...', { orderNumber, totalAmount });
       
-      // Insert into customer_orders table for useOrderNotifications hook
-      const { data: insertedOrder, error: customerOrderError } = await supabase
-        .from('customer_orders')
-        .insert({
-          customer_id: currentUser.id,
-          order_number: orderNumber,
-          total_amount: totalAmount,
-          items: cartItems.map(item => ({
-            name: item.menu_item.name,
-            quantity: item.quantity,
-            price: item.menu_item.price,
-            addons: item.selected_addons?.map(addon => ({
-              name: addon.name,
-              price: addon.price
-            })) || []
-          })),
-          subtotal: totalAmount,
-          payment_method: paymentMethod,
-          order_status: 'confirmed',
-          delivery_type: 'pickup',
-          notes: customerNotes
-        })
-        .select()
-        .single();
-
-      if (customerOrderError) {
-        console.error('Failed to trigger customer_orders notification:', customerOrderError);
-      } else {
-        console.log('✅ customer_orders notification triggered successfully');
+      // Call edge function to send notifications immediately
+      try {
+        console.log('🚀 Calling send-order-notification edge function...');
         
-        // Call edge function to send notifications
-        try {
-          console.log('🚀 Calling send-order-notification edge function...');
-          
-           // Prepare complete order data for notifications with proper addon calculation
-           const orderData = {
-             order_number: orderNumber,
-             total_amount: totalAmount,
-             items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-             member_id: currentUser.id,
-             payment_method: paymentMethod === 'points' ? 'points' : 'online',
-             order_source: 'online', // CRITICAL: This identifies it as online order
-             status: 'confirmed',
-             created_at: new Date().toISOString(),
-             customer_notes: customerNotes || null,
-             customer_name: currentUser.full_name,
-             customer_phone: currentUser.phone,
-             order_items: cartItems.map(item => {
-               // Calculate total price including addons
-               const addonsPrice = item.selected_addons?.reduce((sum, addon) => sum + (addon.price || 0), 0) || 0;
-               const itemTotalPrice = (item.menu_item.price * item.quantity) + (addonsPrice * item.quantity);
-               
-               console.log(`🍽️ Item: ${item.menu_item.name}, Addons:`, item.selected_addons);
-               
-               return {
-                 menu_item_name: item.menu_item.name,
-                 quantity: item.quantity,
-                 unit_price: item.menu_item.price,
-                 total_price: itemTotalPrice,
-                 selected_addons: item.selected_addons?.map(addon => ({
-                   id: addon.id || null,
-                   name: addon.name,
-                   price: addon.price || 0
-                 })) || []
-               };
-             })
-           };
-          
-          console.log('📦 Complete order data being sent to edge function:', orderData);
-          
-          const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
-            body: { orderData }
-          });
+         // Prepare complete order data for notifications with proper addon calculation
+         const orderData = {
+           order_number: orderNumber,
+           total_amount: totalAmount,
+           items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+           member_id: currentUser.id,
+           payment_method: paymentMethod === 'points' ? 'points' : 'online',
+           order_source: 'online', // CRITICAL: This identifies it as online order
+           status: 'confirmed',
+           created_at: new Date().toISOString(),
+           customer_notes: customerNotes || null,
+           customer_name: currentUser.full_name || currentUser.name,
+           customer_phone: currentUser.phone,
+           order_items: cartItems.map(item => {
+             // Calculate total price including addons
+             const addonsPrice = item.selected_addons?.reduce((sum, addon) => sum + (addon.price || 0), 0) || 0;
+             const itemTotalPrice = (item.menu_item.price * item.quantity) + (addonsPrice * item.quantity);
+             
+             console.log(`🍽️ Item: ${item.menu_item.name}, Addons:`, item.selected_addons);
+             
+             return {
+               menu_item_name: item.menu_item.name,
+               quantity: item.quantity,
+               unit_price: item.menu_item.price,
+               total_price: itemTotalPrice,
+               selected_addons: item.selected_addons?.map(addon => ({
+                 id: addon.id || null,
+                 name: addon.name,
+                 price: addon.price || 0
+               })) || []
+             };
+           })
+         };
+        
+        console.log('📦 Complete order data being sent to edge function:', orderData);
+        
+        const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+          body: { orderData }
+        });
 
-          if (edgeFunctionError) {
-            console.error('❌ Failed to send order notifications:', edgeFunctionError);
-            
-            // Show user notification about edge function error
-            toast({
-              title: 'การแจ้งเตือนล้มเหลว',
-              description: 'ไม่สามารถส่งการแจ้งเตือนได้ แต่ออเดอร์ถูกบันทึกเรียบร้อยแล้ว',
-              variant: 'destructive'
-            });
-          } else {
-            console.log('✅ Order notifications sent successfully to all platforms:', notificationResult);
-            
-            // Show success notification to user
-            toast({
-              title: 'แจ้งเตือนสำเร็จ!',
-              description: 'ส่งการแจ้งเตือนออเดอร์ออนไลน์ไปยังแพลตฟอร์มที่เปิดใช้งานแล้ว',
-            });
-          }
-        } catch (notificationError) {
-          console.error('❌ Error calling notification edge function:', notificationError);
+        if (edgeFunctionError) {
+          console.error('❌ Failed to send order notifications:', edgeFunctionError);
           
           // Show user notification about edge function error
           toast({
-            title: 'ข้อผิดพลาดในการแจ้งเตือน',
-            description: 'เกิดข้อผิดพลาดในการส่งการแจ้งเตือน',
+            title: 'การแจ้งเตือนล้มเหลว',
+            description: 'ไม่สามารถส่งการแจ้งเตือนได้ แต่ออเดอร์ถูกบันทึกเรียบร้อยแล้ว',
             variant: 'destructive'
           });
+        } else {
+          console.log('✅ Order notifications sent successfully to all platforms:', notificationResult);
+          
+          // Show success notification to user
+          toast({
+            title: 'แจ้งเตือนสำเร็จ!',
+            description: 'ส่งการแจ้งเตือนออเดอร์ออนไลน์ไปยังแพลตฟอร์มที่เปิดใช้งานแล้ว',
+          });
         }
+      } catch (notificationError) {
+        console.error('❌ Error calling notification edge function:', notificationError);
+        
+        // Show user notification about edge function error
+        toast({
+          title: 'ข้อผิดพลาดในการแจ้งเตือน',
+          description: 'เกิดข้อผิดพลาดในการส่งการแจ้งเตือน',
+          variant: 'destructive'
+        });
       }
-
-      // Also insert into orders table for GlobalNotificationProvider
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber + '-TRIGGER',
-          member_id: currentUser.id,
-          total_amount: totalAmount,
-          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          payment_method: paymentMethod === 'points' ? 'points' : 'online',
-          order_source: 'online',
-          pickup_time: pickupTime,
-          customer_notes: customerNotes
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error('Failed to trigger orders notification:', orderError);
-      } else {
-        console.log('✅ orders notification triggered successfully');
-      }
-
-      // Additional broadcast to notification channel for immediate cross-device sync
-      const channel = supabase.channel('immediate-order-notification');
-      
-      await channel.send({
-        type: 'broadcast',
-        event: 'new-order-immediate',
-        payload: {
-          orderId: orderNumber,
-          orderNumber: orderNumber,
-          totalAmount: totalAmount,
-          items: cartItems.map(item => ({
-            name: item.menu_item.name,
-            quantity: item.quantity,
-            price: item.menu_item.price
-          })),
-          customerInfo: currentUser ? {
-            full_name: currentUser.name,
-            phone: currentUser.phone
-          } : undefined,
-          timestamp: new Date().toISOString()
-        }
-      });
 
       console.log('✅ Enhanced global notification triggered successfully');
     } catch (error) {
@@ -1119,10 +1043,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       const orderNumber = generateOrderNumber();
       console.log('📢 Sending immediate order notification for mobile...');
       
-      // Send notification immediately without waiting
-      triggerGlobalOrderNotification(orderNumber, finalAmount)
-        .then(() => console.log('✅ Immediate notification sent successfully'))
-        .catch(notifError => console.log('⚠️ Immediate notification failed:', notifError));
+      // Edge function will be called after the actual order is saved via realtime notifications
 
       // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
       setTimeout(async () => {
@@ -1236,8 +1157,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             }
           }
 
-          // Trigger enhanced global notification AFTER order is saved
-          await triggerGlobalOrderNotification(orderNumber, finalAmount);
+          // Don't call notification trigger here - the GlobalNotificationProvider will handle it via realtime
 
           // Show final success message
           toast({ 

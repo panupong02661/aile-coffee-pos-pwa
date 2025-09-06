@@ -101,8 +101,73 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           if (order.order_source === 'online') {
             console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
             
-            // Wait longer for order items to be inserted completely
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            // Call edge function immediately to send notifications
+            try {
+              console.log('🚀 GlobalNotificationProvider - Calling send-order-notification edge function...');
+              
+              // Wait a bit for order items to be inserted
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Fetch the complete order with items for notification
+              const { data: completeOrder, error } = await supabase
+                .from('orders')
+                .select(`
+                  *,
+                  members (
+                    name,
+                    phone
+                  ),
+                  order_items (
+                    id,
+                    menu_item_name,
+                    quantity,
+                    unit_price,
+                    total_price,
+                    selected_addons
+                  )
+                `)
+                .eq('id', order.id)
+                .single();
+
+              if (error || !completeOrder) {
+                console.error('❌ Failed to fetch complete order for notifications:', error);
+                return;
+              }
+
+              // Prepare order data for notifications
+              const orderData = {
+                order_number: order.order_number,
+                total_amount: order.total_amount,
+                items_count: order.items_count,
+                member_id: order.member_id,
+                payment_method: order.payment_method,
+                order_source: 'online',
+                status: order.status || 'confirmed',
+                created_at: order.created_at,
+                customer_notes: order.customer_notes,
+                customer_name: completeOrder.members?.name || 'ลูกค้า',
+                customer_phone: completeOrder.members?.phone || '',
+                order_items: completeOrder.order_items || []
+              };
+              
+              console.log('📦 Complete order data being sent to edge function:', orderData);
+              
+              const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+                body: { orderData }
+              });
+
+              if (edgeFunctionError) {
+                console.error('❌ Failed to send order notifications:', edgeFunctionError);
+              } else {
+                console.log('✅ Order notifications sent successfully to all platforms:', notificationResult);
+              }
+              
+            } catch (notificationError) {
+              console.error('❌ Error calling notification edge function:', notificationError);
+            }
+            
+            // Wait longer for order items to be inserted completely for UI
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Broadcast to sync channel for cross-device UI sync
             if (notificationChannelRef.current) {
