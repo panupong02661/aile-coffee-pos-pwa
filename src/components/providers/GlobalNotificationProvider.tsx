@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,7 +21,6 @@ interface OnlineOrder {
 
 // Global UI state management
 let globalUIProcessedOrders = new Set<string>();
-let globalUIInstance: string | null = null;
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
@@ -31,63 +29,42 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const notificationChannelRef = useRef<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const instanceIdRef = useRef<string>(`ui-${Date.now()}-${Math.random()}`);
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
 
-  // Check if current page is customer mobile app
-  const isCustomerMobileApp = location.pathname === '/customer-mobile-app';
-
-  console.log('🔔 GlobalNotificationProvider - Initialized');
-  console.log('🔔 Current path:', location.pathname);
-  console.log('🔔 Is customer mobile app:', isCustomerMobileApp);
+  console.log('🔔 GlobalNotificationProvider - Initialized on path:', location.pathname);
 
   useEffect(() => {
     console.log('🔔 GlobalNotificationProvider - useEffect triggered');
     
     // Skip setup on customer mobile app
-    if (isCustomerMobileApp) {
+    if (location.pathname === '/customer-mobile-app') {
       console.log('🚫 GlobalNotificationProvider - Skipping setup on customer mobile app');
       return;
     }
 
-    // Singleton pattern for UI notifications - but allow debugging
-    if (globalUIInstance && globalUIInstance !== instanceIdRef.current) {
-      console.log(`🚫 GlobalNotificationProvider - UI singleton already exists: ${globalUIInstance}, current: ${instanceIdRef.current}`);
-      // Don't return early, continue for debugging
-    }
-
-    // Claim UI singleton status
-    globalUIInstance = instanceIdRef.current;
-    console.log(`🎯 GlobalNotificationProvider - Claimed UI SINGLETON: ${instanceIdRef.current}`);
+    console.log('🎯 GlobalNotificationProvider - Setting up notification system');
     
-    // Setup UI-specific cross-device sync channel
-    const uiSyncChannelName = `ui-notification-sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Setup cross-device sync channel
+    const syncChannelName = `ui-notification-sync-${Date.now()}`;
     const syncChannel = supabase
-      .channel(uiSyncChannelName)
+      .channel(syncChannelName)
       .on('broadcast', { event: 'dismiss-notification' }, () => {
-        console.log('📡 UI SINGLETON - Received dismiss broadcast');
+        console.log('📡 Received dismiss broadcast');
         setShowOrderAlert(false);
         setNewOrder(null);
       })
-      .on('broadcast', { event: 'new-order-ui' }, async (payload) => {
-        console.log('📡 UI SINGLETON - Received new order UI broadcast:', payload.payload);
-        await handleNewOrderUI(payload.payload);
-      })
       .subscribe((status) => {
-        console.log(`📡 UI SINGLETON - Sync subscription status: ${status}`);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ UI SINGLETON - Cross-device sync active');
-        }
+        console.log(`📡 Sync channel status: ${status}`);
       });
 
     notificationChannelRef.current = syncChannel;
 
-    // Listen for new orders from the main notification system
+    // Listen for new orders from the orders table
     console.log('🔔 Setting up real-time order listener...');
     const orderChannel = supabase
-      .channel(`ui-order-listener-${instanceIdRef.current}`)
+      .channel(`order-listener-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -99,24 +76,24 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.log('🔔 REAL-TIME ORDER INSERT DETECTED:', payload);
           const order = payload.new as any;
           
-          // CRITICAL: Filter out test/trigger orders
+          // Skip test/trigger orders
           if (order.order_number && order.order_number.includes('-TRIGGER')) {
-            console.log(`🚫 UI SINGLETON - Skipping trigger/test order: ${order.order_number}`);
+            console.log(`🚫 Skipping trigger/test order: ${order.order_number}`);
             return;
           }
           
-          // Only handle online orders for UI display
+          // Only handle online orders
           if (order.order_source === 'online') {
-            console.log(`🎯 UI SINGLETON - New online order for UI: ${order.order_number}`);
+            console.log(`🎯 New online order detected: ${order.order_number}`);
             
-            // Call edge function immediately to send notifications
             try {
-              console.log('🚀 GlobalNotificationProvider - Calling send-order-notification edge function...');
+              // Call notification edge function immediately
+              console.log('🚀 Calling send-order-notification edge function...');
               
-              // Wait a bit for order items to be inserted
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Wait briefly for order items to be inserted
+              await new Promise(resolve => setTimeout(resolve, 1500));
               
-              // Fetch the complete order with items for notification
+              // Fetch complete order with items for notification
               const { data: completeOrder, error } = await supabase
                 .from('orders')
                 .select(`
@@ -138,7 +115,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 .single();
 
               if (error || !completeOrder) {
-                console.error('❌ Failed to fetch complete order for notifications:', error);
+                console.error('❌ Failed to fetch complete order:', error);
                 return;
               }
 
@@ -158,38 +135,32 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 order_items: completeOrder.order_items || []
               };
               
-              console.log('📦 Complete order data being sent to edge function:', orderData);
+              console.log('📦 Order data for notification:', orderData);
               
+              // Send notification
               const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
                 body: { orderData }
               });
 
               if (edgeFunctionError) {
-                console.error('❌ Failed to send order notifications:', edgeFunctionError);
+                console.error('❌ Failed to send notifications:', edgeFunctionError);
               } else {
-                console.log('✅ Order notifications sent successfully to all platforms:', notificationResult);
+                console.log('✅ Notifications sent successfully:', notificationResult);
               }
               
             } catch (notificationError) {
-              console.error('❌ Error calling notification edge function:', notificationError);
+              console.error('❌ Error in notification process:', notificationError);
             }
             
-            // Wait longer for order items to be inserted completely for UI
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Broadcast to sync channel for cross-device UI sync
-            if (notificationChannelRef.current) {
-              notificationChannelRef.current.send({
-                type: 'broadcast',
-                event: 'new-order-ui',
-                payload: {
-                  orderId: order.id,
-                  orderNumber: order.order_number,
-                  totalAmount: order.total_amount,
-                  memberId: order.member_id
-                }
+            // Show UI notification after a longer delay to ensure data is ready
+            setTimeout(async () => {
+              await handleNewOrderUI({
+                orderId: order.id,
+                orderNumber: order.order_number,
+                totalAmount: order.total_amount,
+                memberId: order.member_id
               });
-            }
+            }, 2000);
           }
         }
       )
@@ -203,14 +174,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
 
     return () => {
-      console.log(`🧹 UI SINGLETON - Cleanup for: ${instanceIdRef.current}`);
-      
-      // Only cleanup if this is the current UI singleton
-      if (globalUIInstance === instanceIdRef.current) {
-        console.log('🧹 UI SINGLETON - Releasing UI singleton status');
-        globalUIInstance = null;
-        globalUIProcessedOrders.clear();
-      }
+      console.log('🧹 Cleaning up GlobalNotificationProvider');
       
       if (notificationChannelRef.current) {
         try {
@@ -229,27 +193,27 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.error('Error removing order channel:', e);
       }
     };
-  }, [isCustomerMobileApp, location.pathname]); // Add location.pathname as dependency
+  }, [location.pathname]);
 
   const handleNewOrderUI = async (orderData: any) => {
     try {
       // Prevent duplicate UI processing
       if (globalUIProcessedOrders.has(orderData.orderId)) {
-        console.log(`🚫 UI SINGLETON - Order ${orderData.orderId} already processed for UI, skipping`);
+        console.log(`🚫 Order ${orderData.orderId} already processed for UI, skipping`);
         return;
       }
       
       globalUIProcessedOrders.add(orderData.orderId);
-      console.log(`🎯 UI SINGLETON - Processing order for UI display: ${orderData.orderNumber}`);
+      console.log(`🎯 Processing order for UI display: ${orderData.orderNumber}`);
       
-      // Fetch complete order data for UI with ALL items and retry logic
+      // Fetch complete order data for UI with retry logic
       let completeOrder = null;
       let attempts = 0;
       const maxAttempts = 5;
       
       while (attempts < maxAttempts && !completeOrder) {
         attempts++;
-        console.log(`📋 UI SINGLETON - UI fetch attempt ${attempts}/${maxAttempts}`);
+        console.log(`📋 UI fetch attempt ${attempts}/${maxAttempts}`);
         
         const { data: orderResult, error } = await supabase
           .from('orders')
@@ -272,19 +236,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           .single();
 
         if (error) {
-          console.error(`❌ UI SINGLETON - UI fetch attempt ${attempts} error:`, error);
+          console.error(`❌ UI fetch attempt ${attempts} error:`, error);
         } else if (orderResult && orderResult.order_items && orderResult.order_items.length > 0) {
           completeOrder = orderResult;
-          console.log(`✅ UI SINGLETON - UI successfully fetched order with ${orderResult.order_items.length} items on attempt ${attempts}`);
+          console.log(`✅ Successfully fetched order with ${orderResult.order_items.length} items on attempt ${attempts}`);
           break;
         } else {
-          console.log(`⏳ UI SINGLETON - UI attempt ${attempts}: Order items not ready, waiting...`);
+          console.log(`⏳ Attempt ${attempts}: Order items not ready, waiting...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
 
       if (completeOrder && completeOrder.order_items && completeOrder.order_items.length > 0) {
-        console.log(`📋 UI SINGLETON - Final UI order data: ${completeOrder.order_items.length} items`);
+        console.log(`📋 Final UI order data: ${completeOrder.order_items.length} items`);
         
         const orderForNotification: OnlineOrder = {
           id: completeOrder.id,
@@ -303,7 +267,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         
         // Enhanced iOS notification
         if (isIOS) {
-          console.log('🍎 UI SINGLETON - Triggering iOS notification');
+          console.log('🍎 Triggering iOS notification');
           await triggerIOSNotification({
             orderNumber: completeOrder.order_number,
             totalAmount: completeOrder.total_amount,
@@ -311,19 +275,19 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        console.log(`✅ UI SINGLETON - UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items.length} items`);
+        console.log(`✅ UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items.length} items`);
       } else {
-        console.error('❌ UI SINGLETON - Failed to fetch complete order data for UI after all attempts');
+        console.error('❌ Failed to fetch complete order data for UI after all attempts');
       }
       
-      // Clean up UI processed order after 10 minutes
+      // Clean up processed order after 10 minutes
       setTimeout(() => {
         globalUIProcessedOrders.delete(orderData.orderId);
-        console.log(`🗑️ UI SINGLETON - Cleaned up UI processed order: ${orderData.orderId}`);
+        console.log(`🗑️ Cleaned up processed order: ${orderData.orderId}`);
       }, 10 * 60 * 1000);
       
     } catch (error) {
-      console.error('❌ UI SINGLETON - Error processing new order UI notification:', error);
+      console.error('❌ Error processing new order UI notification:', error);
     }
   };
 
