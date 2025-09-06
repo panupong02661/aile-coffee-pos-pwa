@@ -20,9 +20,8 @@ interface OnlineOrder {
   created_at?: string; // เพิ่มเวลาที่สั่งซื้อ
 }
 
-// Global state management for processed orders (both UI and Discord notifications)
-let globalUIProcessedOrders = new Set<string>();
-let globalDiscordProcessedOrders = new Set<string>();
+// Global state management for processed orders (single unified set)
+let globalProcessedOrders = new Set<string>();
 
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
@@ -92,19 +91,20 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
           }
           
-          // ป้องกันการประมวลผลซ้ำทั้งหมด - ตรวจสอบทั้ง UI และ Discord
-          if (globalUIProcessedOrders.has(order.id) || globalDiscordProcessedOrders.has(order.id)) {
+          // ป้องกันการประมวลผลซ้ำ - ตรวจสอบในชุดเดียว
+          if (globalProcessedOrders.has(order.id)) {
             console.log(`🚫 Order ${order.id} already processed, skipping all notifications`);
             return;
           }
+          
+          // เพิ่มลงในชุดที่ประมวลผลแล้วทันที
+          globalProcessedOrders.add(order.id);
           
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
           
           // Send Discord notifications only for online orders
           if (order.order_source === 'online') {
-            globalDiscordProcessedOrders.add(order.id);
-            
             try {
               // Call notification edge function immediately for online orders
               console.log('🚀 Calling send-order-notification edge function...');
@@ -136,7 +136,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               if (error || !completeOrder) {
                 console.error('❌ Failed to fetch complete order:', error);
                 // Remove from processed set on failure so it can be retried
-                globalDiscordProcessedOrders.delete(order.id);
+                globalProcessedOrders.delete(order.id);
                 return;
               }
 
@@ -166,21 +166,15 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               if (edgeFunctionError) {
                 console.error('❌ Failed to send notifications:', edgeFunctionError);
                 // Remove from processed set on failure so it can be retried
-                globalDiscordProcessedOrders.delete(order.id);
+                globalProcessedOrders.delete(order.id);
               } else {
                 console.log('✅ Notifications sent successfully:', notificationResult);
-                
-                // Clean up Discord processed order after 30 minutes
-                setTimeout(() => {
-                  globalDiscordProcessedOrders.delete(order.id);
-                  console.log(`🗑️ Cleaned up Discord processed order: ${order.id}`);
-                }, 30 * 60 * 1000);
               }
               
             } catch (notificationError) {
               console.error('❌ Error in notification process:', notificationError);
               // Remove from processed set on error so it can be retried
-              globalDiscordProcessedOrders.delete(order.id);
+              globalProcessedOrders.delete(order.id);
             }
           }
           
@@ -315,7 +309,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       // Clean up processed order after 10 minutes
       setTimeout(() => {
-        globalUIProcessedOrders.delete(orderData.orderId);
+        globalProcessedOrders.delete(orderData.orderId);
         console.log(`🗑️ Cleaned up processed order: ${orderData.orderId}`);
       }, 10 * 60 * 1000);
       

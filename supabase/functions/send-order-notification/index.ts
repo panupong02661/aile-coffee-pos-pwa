@@ -313,9 +313,17 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
     color: orderType === 'POS' ? 0xff9500 : 0x00ff00, // สีส้มสำหรับ POS, เขียวสำหรับ Online
     fields: fields,
     footer: {
-      text: `ระบบร้านอาหาร | เวลา: ${new Date().toLocaleString('th-TH')}`
+      text: `ระบบร้านอาหาร | เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })}`
     },
-    timestamp: new Date().toISOString()
+    timestamp: orderData.created_at
   };
 
   const payload = {
