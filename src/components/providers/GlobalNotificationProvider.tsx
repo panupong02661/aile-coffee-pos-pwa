@@ -17,7 +17,9 @@ interface OnlineOrder {
     phone: string;
   };
   order_items?: any[];
-  created_at?: string; // เพิ่มเวลาที่สั่งซื้อ
+  created_at?: string;
+  bill_discount?: number;
+  bill_discount_type?: string;
 }
 
 // Global state management for processed orders (single unified set)
@@ -144,7 +146,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     quantity,
                     unit_price,
                     total_price,
-                    selected_addons
+                    selected_addons,
+                    item_discount,
+                    item_discount_type
                   )
                 `)
                 .eq('id', order.id)
@@ -276,7 +280,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               quantity,
               unit_price,
               total_price,
-              selected_addons
+              selected_addons,
+              item_discount,
+              item_discount_type
             )
           `)
           .eq('id', orderData.orderId)
@@ -307,7 +313,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             full_name: completeOrder.members.name,
             phone: completeOrder.members.phone
           } : undefined,
-          created_at: orderData.orderCreatedAt || completeOrder.created_at // ใช้เวลาที่สั่งซื้อจริง
+          created_at: orderData.orderCreatedAt || completeOrder.created_at,
+          bill_discount: completeOrder.bill_discount,
+          bill_discount_type: completeOrder.bill_discount_type
         };
         
         setNewOrder(orderForNotification);
@@ -370,6 +378,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
         }).join(', ');
         itemText += ` (${addons})`;
+      }
+      
+      // Add item discount information
+      if (item.item_discount && item.item_discount > 0) {
+        const discountText = item.item_discount_type === 'percent' 
+          ? `ส่วนลด ${item.item_discount}%`
+          : `ส่วนลด ฿${item.item_discount}`;
+        itemText += ` [${discountText}]`;
       }
       
       return itemText;
@@ -435,6 +451,21 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show discount information */}
+                {newOrder.bill_discount > 0 && (
+                  <div className="mb-4 pb-4 border-b border-orange-200">
+                    <p className="text-lg font-semibold text-orange-700 mb-2">
+                      💰 ส่วนลด:
+                    </p>
+                    <div className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border-l-4 border-yellow-300">
+                      <span className="font-medium">ส่วนลดท้ายบิล: </span>
+                      {newOrder.bill_discount_type === 'percent' 
+                        ? `${newOrder.bill_discount}%`
+                        : `฿${newOrder.bill_discount}`}
                     </div>
                   </div>
                 )}

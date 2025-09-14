@@ -266,7 +266,9 @@ export const useOrderNotifications = () => {
               quantity,
               unit_price,
               total_price,
-              selected_addons
+              selected_addons,
+              item_discount,
+              item_discount_type
             )
           `)
           .eq('order_source', 'online')
@@ -329,6 +331,14 @@ export const useOrderNotifications = () => {
                   console.log(`ℹ️ No add-ons for ${item.menu_item_name}`);
                 }
                 
+                // Add item discount information
+                if (item.item_discount && item.item_discount > 0) {
+                  const discountText = item.item_discount_type === 'percent' 
+                    ? `ส่วนลดรายการ ${item.item_discount}%`
+                    : `ส่วนลดรายการ ฿${item.item_discount}`;
+                  itemText += `\n   🏷️ ${discountText}`;
+                }
+                
                 // Show unit price and total
                 itemText += `\n   💰 ราคา: ฿${item.unit_price} x ${item.quantity} = ฿${item.total_price}`;
                 return itemText;
@@ -338,12 +348,21 @@ export const useOrderNotifications = () => {
                 `ลูกค้า: ${order.members.name} (${order.members.phone})` : 
                 'ลูกค้าทั่วไป';
 
+              // Format discount information
+              let discountInfo = '';
+              if (order.bill_discount && order.bill_discount > 0) {
+                const discountText = order.bill_discount_type === 'percent' 
+                  ? `ส่วนลดท้ายบิล ${order.bill_discount}%`
+                  : `ส่วนลดท้ายบิล ฿${order.bill_discount}`;
+                discountInfo += `\n🏷️ ${discountText}`;
+              }
+
               // Play sound notification IMMEDIATELY
               await playBellSound();
               
               // Show DETAILED toast notification with COMPLETE order info
               toast.success('🔔 มีออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!', {
-                description: `📋 ออเดอร์ #${order.order_number}\n👤 ${customerInfo}\n${order.customer_notes ? `📝 หมายเหตุ: ${order.customer_notes}\n` : ''}\n🛍️ รายการสินค้า (${order.order_items.length} เมนู):\n${orderItemsText}\n\n💳 วิธีชำระ: ${order.payment_method === 'points' ? 'แต้ม' : order.payment_method === 'online' ? 'ออนไลน์' : order.payment_method}\n💵 ยอดรวมทั้งหมด: ฿${order.total_amount}`,
+                description: `📋 ออเดอร์ #${order.order_number}\n👤 ${customerInfo}\n${order.customer_notes ? `📝 หมายเหตุ: ${order.customer_notes}\n` : ''}\n🛍️ รายการสินค้า (${order.order_items.length} เมนู):\n${orderItemsText}${discountInfo}\n\n💳 วิธีชำระ: ${order.payment_method === 'points' ? 'แต้ม' : order.payment_method === 'online' ? 'ออนไลน์' : order.payment_method}\n💵 ยอดรวมทั้งหมด: ฿${order.total_amount}`,
                 duration: 25000,
                 action: {
                   label: 'ดูรายละเอียด',

@@ -162,11 +162,28 @@ Deno.serve(async (req) => {
           itemText += `\n   📎 Add-ons: ${addons}`;
         }
         
+        // Add item discount information
+        if (item.item_discount && item.item_discount > 0) {
+          const discountText = item.item_discount_type === 'percent' 
+            ? `ส่วนลดรายการ ${item.item_discount}%`
+            : `ส่วนลดรายการ ฿${item.item_discount}`;
+          itemText += `\n   🏷️ ${discountText}`;
+        }
+        
         itemText += `\n   💰 ราคา: ฿${item.total_price}`;
         return itemText;
       }).join('\n\n');
       
       console.log('📋 Formatted order items text:', orderItemsText);
+    }
+
+    // Format discount information for notification
+    let discountText = '';
+    if (orderData.bill_discount && orderData.bill_discount > 0) {
+      const billDiscountText = orderData.bill_discount_type === 'percent' 
+        ? `ส่วนลดท้ายบิล ${orderData.bill_discount}%`
+        : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
+      discountText += `\n🏷️ ${billDiscountText}`;
     }
 
     // Send notifications to enabled platforms
@@ -178,7 +195,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.discord.enabled && orderSettings.platforms.discord.token) {
       console.log('🔵 Sending Discord notification to:', orderSettings.platforms.discord.token);
       try {
-        await sendDiscordNotification(orderSettings.platforms.discord.token, message, orderData, orderItemsText, orderType);
+        await sendDiscordNotification(orderSettings.platforms.discord.token, `${message}${discountText}`, orderData, orderItemsText, orderType);
         console.log('✅ Discord notification sent successfully');
         results.discord = 'success';
         sentCount++;
@@ -195,7 +212,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.line.enabled && orderSettings.platforms.line.token) {
       console.log('🟢 Sending LINE notification...');
       try {
-        await sendLineNotification(orderSettings.platforms.line.token, message, orderData, orderItemsText);
+        await sendLineNotification(orderSettings.platforms.line.token, `${message}${discountText}`, orderData, orderItemsText);
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
         sentCount++;
@@ -212,7 +229,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.telegram.enabled && orderSettings.platforms.telegram.token) {
       console.log('🔵 Sending Telegram notification...');
       try {
-        await sendTelegramNotification(orderSettings.platforms.telegram.token, message, orderData, orderItemsText);
+        await sendTelegramNotification(orderSettings.platforms.telegram.token, `${message}${discountText}`, orderData, orderItemsText);
         console.log('✅ Telegram notification sent successfully');
         results.telegram = 'success';
         sentCount++;
@@ -333,6 +350,23 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
         inline: false
       });
     }
+  }
+
+  // Add discount information to Discord fields
+  if (orderData.bill_discount > 0) {
+    let discountInfo = '';
+    if (orderData.bill_discount > 0) {
+      const discountText = orderData.bill_discount_type === 'percent' 
+        ? `ส่วนลดท้ายบิล ${orderData.bill_discount}%`
+        : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
+      discountInfo += discountText;
+    }
+    
+    fields.push({
+      name: '🏷️ ส่วนลด',
+      value: discountInfo,
+      inline: false
+    });
   }
 
   const embed = {
