@@ -42,6 +42,8 @@ const OnlineOrderManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all'); // all, today, month, year, custom
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [orderStats, setOrderStats] = useState<OrderStats>({ today: 0, thisMonth: 0, thisYear: 0 });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -136,13 +138,13 @@ const OnlineOrderManagement = () => {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, activeTab, searchTerm, statusFilter]);
+  }, [orders, activeTab, searchTerm, statusFilter, dateFilter, customDateRange]);
 
   const filterOrders = () => {
     let filtered = orders;
 
+    // Filter by status tabs
     if (activeTab !== 'all') {
-      // Map Thai status names to values that might be in the database
       const statusMapping: Record<string, string> = {
         'pending': 'pending',
         'confirmed': 'confirmed', 
@@ -153,12 +155,11 @@ const OnlineOrderManagement = () => {
       
       const mappedStatus = statusMapping[activeTab] || activeTab;
       filtered = filtered.filter(order => {
-        // Since orders table doesn't have order_status, we'll use payment_status for now
-        // or we can create a simple status based on other fields
         return order.payment_status === mappedStatus;
       });
     }
 
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(order =>
         order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,8 +168,62 @@ const OnlineOrderManagement = () => {
       );
     }
 
+    // Filter by payment method
     if (statusFilter !== 'all') {
       filtered = filtered.filter(order => order.payment_method === statusFilter);
+    }
+
+    // Filter by date range
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const orderDate = new Date();
+      
+      switch (dateFilter) {
+        case 'today': {
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          filtered = filtered.filter(order => {
+            const orderDate = new Date(order.created_at);
+            return orderDate >= today && orderDate < tomorrow;
+          });
+          break;
+        }
+        case 'month': {
+          const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          
+          filtered = filtered.filter(order => {
+            const orderDate = new Date(order.created_at);
+            return orderDate >= thisMonth && orderDate < nextMonth;
+          });
+          break;
+        }
+        case 'year': {
+          const thisYear = new Date(now.getFullYear(), 0, 1);
+          const nextYear = new Date(now.getFullYear() + 1, 0, 1);
+          
+          filtered = filtered.filter(order => {
+            const orderDate = new Date(order.created_at);
+            return orderDate >= thisYear && orderDate < nextYear;
+          });
+          break;
+        }
+        case 'custom': {
+          if (customDateRange.start && customDateRange.end) {
+            const startDate = new Date(customDateRange.start);
+            const endDate = new Date(customDateRange.end);
+            endDate.setDate(endDate.getDate() + 1); // Include end date
+            
+            filtered = filtered.filter(order => {
+              const orderDate = new Date(order.created_at);
+              return orderDate >= startDate && orderDate < endDate;
+            });
+          }
+          break;
+        }
+      }
     }
 
     setFilteredOrders(filtered);
@@ -352,7 +407,7 @@ const OnlineOrderManagement = () => {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <Input
                 placeholder="ค้นหาเลขออเดอร์, ชื่อลูกค้า, หรือเบอร์โทร..."
@@ -360,19 +415,56 @@ const OnlineOrderManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="วิธีการชำระเงิน" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกประเภท</SelectItem>
-                <SelectItem value="cash">เงินสด</SelectItem>
-                <SelectItem value="card">บัตรเครดิต</SelectItem>
-                <SelectItem value="mobile_banking">โมบายแบงก์กิ้ง</SelectItem>
-                <SelectItem value="points">แต้ม</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col md:flex-row gap-4">
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="ช่วงเวลา" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="today">วันนี้</SelectItem>
+                  <SelectItem value="month">เดือนนี้</SelectItem>
+                  <SelectItem value="year">ปีนี้</SelectItem>
+                  <SelectItem value="custom">กำหนดเอง</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="วิธีการชำระเงิน" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกประเภท</SelectItem>
+                  <SelectItem value="cash">เงินสด</SelectItem>
+                  <SelectItem value="card">บัตรเครดิต</SelectItem>
+                  <SelectItem value="mobile_banking">โมบายแบงก์กิ้ง</SelectItem>
+                  <SelectItem value="points">แต้ม</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {/* Custom Date Range */}
+          {dateFilter === 'custom' && (
+            <div className="flex flex-col md:flex-row gap-4 mt-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">วันที่เริ่มต้น</label>
+                <Input
+                  type="date"
+                  value={customDateRange.start}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">วันที่สิ้นสุด</label>
+                <Input
+                  type="date"
+                  value={customDateRange.end}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
