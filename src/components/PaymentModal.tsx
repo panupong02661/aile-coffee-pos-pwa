@@ -18,13 +18,16 @@ const sendPosOrderNotification = async (order: any, orderItems: any[] = [], disc
   try {
     console.log('🏪 Sending POS order notification for:', order.order_number);
     
-    // Format order items for notification with COMPLETE addon details
+    // Format order items for notification with COMPLETE addon details (including item-level discounts)
     const formattedOrderItems = orderItems.map((item: any) => ({
       id: item.id || null,
       menu_item_name: item.menu_item_name,
       quantity: item.quantity,
       unit_price: item.unit_price,
       total_price: item.total_price,
+      // include item discount fields so notifications can show them
+      item_discount: item.item_discount || 0,
+      item_discount_type: item.item_discount_type || 'amount',
       selected_addons: item.selected_addons ? 
         (typeof item.selected_addons === 'string' ? 
           JSON.parse(item.selected_addons) : 
