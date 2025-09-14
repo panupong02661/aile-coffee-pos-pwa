@@ -549,6 +549,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
            customer_notes: customerNotes || null,
            customer_name: currentUser.full_name || currentUser.name,
            customer_phone: currentUser.phone,
+           bill_discount: 0,
+           bill_discount_type: 'amount',
            order_items: cartItems.map(item => {
              // Calculate total price including addons
              const addonsPrice = item.selected_addons?.reduce((sum, addon) => sum + (addon.price || 0), 0) || 0;

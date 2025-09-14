@@ -14,7 +14,7 @@ import { reduceStockForOrder } from '@/utils/stockUtils';
 import QRCodePromptPay from './QRCodePromptPay';
 
 // Function to send POS order notification with complete details
-const sendPosOrderNotification = async (order: any, orderItems: any[] = []) => {
+const sendPosOrderNotification = async (order: any, orderItems: any[] = [], discountCode?: string) => {
   try {
     console.log('🏪 Sending POS order notification for:', order.order_number);
     
@@ -45,6 +45,9 @@ const sendPosOrderNotification = async (order: any, orderItems: any[] = []) => {
       customer_notes: '',
       customer_name: order.member_name || order.customer_name || 'ลูกค้า',
       customer_phone: order.member_phone || order.customer_phone || '',
+      bill_discount: order.bill_discount || 0,
+      bill_discount_type: order.bill_discount_type || 'amount',
+      discount_code: discountCode || null,
       order_items: formattedOrderItems // Include complete order items
     };
 
@@ -82,6 +85,7 @@ interface PaymentModalProps {
     points: number;
     total_spent: number;
   } | null;
+  appliedGiftCode?: any;
 }
 
 const PaymentModal = ({ 
@@ -92,7 +96,8 @@ const PaymentModal = ({
   cartItems = [], 
   billDiscount = 0, 
   billDiscountType = 'amount',
-  selectedMember = null 
+  selectedMember = null,
+  appliedGiftCode = null
 }: PaymentModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState<string>(total.toString());
@@ -559,7 +564,11 @@ const PaymentModal = ({
           });
 
           // Send POS order notification with complete order items data
-          sendPosOrderNotification(savedOrder, savedOrder.order_items).catch(error => {
+          sendPosOrderNotification(
+            savedOrder,
+            savedOrder.order_items,
+            appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
+          ).catch(error => {
             console.error('POS notification error:', error);
           });
         }

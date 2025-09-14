@@ -174,6 +174,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 customer_notes: order.customer_notes,
                 customer_name: completeOrder.members?.name || 'ลูกค้า',
                 customer_phone: completeOrder.members?.phone || '',
+                bill_discount: completeOrder.bill_discount || 0,
+                bill_discount_type: completeOrder.bill_discount_type || 'amount',
                 order_items: completeOrder.order_items || []
               };
               

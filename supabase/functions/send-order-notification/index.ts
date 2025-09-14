@@ -185,6 +185,9 @@ Deno.serve(async (req) => {
         : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
       discountText += `\n🏷️ ${billDiscountText}`;
     }
+    if (orderData.discount_code) {
+      discountText += `\n🏷️ โค้ดส่วนลด: ${orderData.discount_code}`;
+    }
 
     // Send notifications to enabled platforms
     let sentCount = 0;
@@ -353,13 +356,16 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   }
 
   // Add discount information to Discord fields
-  if (orderData.bill_discount > 0) {
+  if ((orderData.bill_discount && orderData.bill_discount > 0) || orderData.discount_code) {
     let discountInfo = '';
-    if (orderData.bill_discount > 0) {
+    if (orderData.bill_discount && orderData.bill_discount > 0) {
       const discountText = orderData.bill_discount_type === 'percent' 
         ? `ส่วนลดท้ายบิล ${orderData.bill_discount}%`
         : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
       discountInfo += discountText;
+    }
+    if (orderData.discount_code) {
+      discountInfo += (discountInfo ? '\n' : '') + `โค้ดส่วนลด: ${orderData.discount_code}`;
     }
     
     fields.push({

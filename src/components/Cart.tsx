@@ -351,6 +351,7 @@ const Cart = ({
         billDiscount={billDiscount}
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
+        appliedGiftCode={appliedGiftCode}
       />
 
       <DiscountModal
