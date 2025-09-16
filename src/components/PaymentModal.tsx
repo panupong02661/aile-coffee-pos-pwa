@@ -208,6 +208,13 @@ const PaymentModal = ({
     }
   }, [paymentMethod, selectedMember, currentTierSettings, total]);
 
+  // Reset payment method to cash if points is selected but no member is selected
+  useEffect(() => {
+    if (paymentMethod === 'points' && !selectedMember) {
+      setPaymentMethod('cash');
+    }
+  }, [paymentMethod, selectedMember]);
+
   const loadMembershipSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -669,13 +676,16 @@ const PaymentModal = ({
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="points" id="points" className="w-5 h-5" />
-                  <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
-                    <Gift className="w-5 h-5" />
-                    แต้มสะสม
-                  </Label>
-                </div>
+                {/* Only show points payment option when a customer is selected */}
+                {selectedMember && (
+                  <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                    <RadioGroupItem value="points" id="points" className="w-5 h-5" />
+                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
+                      <Gift className="w-5 h-5" />
+                      แต้มสะสม
+                    </Label>
+                  </div>
+                )}
 
                 <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
                   <RadioGroupItem value="promptpay" id="promptpay" className="w-5 h-5" />
