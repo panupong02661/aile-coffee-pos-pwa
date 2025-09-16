@@ -85,7 +85,9 @@ interface DashboardStats {
   newMembersToday: number;
   newMembersMonth: number;
   // Growth & Performance
-  salesGrowthRate: number;
+  salesGrowthRate: number; // vs yesterday
+  weekSalesGrowthRate: number; // last 7 days vs previous 7 days
+  monthSalesGrowthRate: number; // vs last month
   ordersGrowthRate: number;
   membersGrowthRate: number;
   // Business Performance
@@ -103,6 +105,7 @@ interface DashboardStats {
   // Member Analysis
   memberTierStats: MemberTierStats[];
   pointsUsageToday: number;
+  pointsUsageMonth: number;
   memberEngagementRate: number;
 }
 
@@ -125,6 +128,8 @@ export const useDashboardStats = () => {
     newMembersToday: 0,
     newMembersMonth: 0,
     salesGrowthRate: 0,
+    weekSalesGrowthRate: 0,
+    monthSalesGrowthRate: 0,
     ordersGrowthRate: 0,
     membersGrowthRate: 0,
     averageOrderValue: 0,
@@ -136,6 +141,7 @@ export const useDashboardStats = () => {
     promotionStats: [],
     memberTierStats: [],
     pointsUsageToday: 0,
+    pointsUsageMonth: 0,
     memberEngagementRate: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -486,7 +492,6 @@ export const useDashboardStats = () => {
         totalMembers: allMembers?.length || 0,
         newMembersToday: todayMembers?.length || 0,
         newMembersMonth: monthMembers?.length || 0,
-        salesGrowthRate,
         ordersGrowthRate,
         membersGrowthRate,
         averageOrderValue,

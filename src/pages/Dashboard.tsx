@@ -96,7 +96,7 @@ const Dashboard = () => {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-coffee-800">แดชบอร์ดรายงาน</h1>
-              <p className="text-coffee-600 mt-2">ภาพรวมการดำเนินงานและการจัดการคลังสินค้า</p>
+              <p className="text-coffee-600 mt-2">ภาพรวมการดำเนินงาน: ยอดขาย, วิธีชำระเงิน, สมาชิก, โปรโมชั่น</p>
             </div>
             <Button onClick={refreshData} variant="outline" className="gap-2">
               <RefreshCw className="w-4 h-4" />
@@ -164,7 +164,28 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Business Performance Cards */}
+          {/* Trend Indicators (Week/Month) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">แนวโน้มยอดขาย</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">เทียบ 7 วันก่อน:</span>
+                  <span className={`font-medium ${dashboardStats.weekSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardStats.weekSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.weekSalesGrowthRate.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">เทียบเดือนก่อน:</span>
+                  <span className={`font-medium ${dashboardStats.monthSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardStats.monthSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.monthSalesGrowthRate.toFixed(1)}%
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardHeader>
@@ -211,6 +232,10 @@ const Dashboard = () => {
                   <span className="text-sm text-muted-foreground">แต้มใช้วันนี้:</span>
                   <span className="font-medium text-purple-600">{dashboardStats.pointsUsageToday.toLocaleString()} แต้ม</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">แต้มใช้เดือนนี้:</span>
+                  <span className="font-medium text-purple-600">{dashboardStats.pointsUsageMonth.toLocaleString()} แต้ม</span>
+                </div>
               </CardContent>
             </Card>
 
@@ -219,19 +244,49 @@ const Dashboard = () => {
                 <CardTitle className="text-lg">ช่วงเวลาเร่งด่วน</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {dashboardStats.peakHours.map((peak, index) => (
-                  <div key={peak.hour} className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      #{index + 1} - {peak.hour.toString().padStart(2, '0')}:00:
-                    </span>
-                    <span className="font-medium">{peak.orders} orders</span>
-                  </div>
-                ))}
+                {dashboardStats.peakHours.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลวันนี้</p>
+                ) : (
+                  dashboardStats.peakHours.map((peak, index) => (
+                    <div key={peak.hour} className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        #{index + 1} - {peak.hour.toString().padStart(2, '0')}:00:
+                      </span>
+                      <span className="font-medium">{peak.orders} orders</span>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Monthly Summary */}
+          {/* Promotions / Coupons */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>โปรโมชั่น / คูปอง</CardTitle>
+              <CardDescription>ยอดใช้และประสิทธิภาพของโปรโมชั่น</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {dashboardStats.promotionStats.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">ยังไม่มีการใช้โปรโมชั่นในช่วงนี้</p>
+                ) : (
+                  dashboardStats.promotionStats.map((p) => (
+                    <div key={p.name} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{p.name}</p>
+                        <p className="text-sm text-muted-foreground">ใช้ {p.usage_count} ครั้ง</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm">ส่วนลดรวม ≈ ฿{p.total_discount.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">ผลต่อรายได้ ≈ ฿{p.revenue_impact.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardHeader>
@@ -253,6 +308,12 @@ const Dashboard = () => {
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">จำนวนออเดอร์:</span>
                   <span className="font-medium">{dashboardStats.monthOrders.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">แนวโน้มเทียบเดือนก่อน:</span>
+                  <span className={`font-medium ${dashboardStats.monthSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardStats.monthSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.monthSalesGrowthRate.toFixed(1)}%
+                  </span>
                 </div>
               </CardContent>
             </Card>
