@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -85,9 +84,9 @@ interface DashboardStats {
   newMembersToday: number;
   newMembersMonth: number;
   // Growth & Performance
-  salesGrowthRate: number; // vs yesterday
-  weekSalesGrowthRate: number; // last 7 days vs previous 7 days
-  monthSalesGrowthRate: number; // vs last month
+  salesGrowthRate: number;
+  weekSalesGrowthRate: number;
+  monthSalesGrowthRate: number;
   ordersGrowthRate: number;
   membersGrowthRate: number;
   // Business Performance
@@ -303,10 +302,24 @@ export const useDashboardStats = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const thisMonth = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
-      const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1)).getFullYear() + '-' + String(new Date(new Date().setMonth(new Date().getMonth() - 1)).getMonth() + 1).padStart(2, '0');
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      const lastMonthDate = new Date(now);
+      lastMonthDate.setMonth(now.getMonth() - 1);
+      const lastMonth = lastMonthDate.getFullYear() + '-' + String(lastMonthDate.getMonth() + 1).padStart(2, '0');
+
+      // 7-day windows
+      const this7Start = new Date(now);
+      this7Start.setDate(now.getDate() - 6);
+      this7Start.setHours(0,0,0,0);
+      const prev7Start = new Date(now);
+      prev7Start.setDate(now.getDate() - 13);
+      prev7Start.setHours(0,0,0,0);
+      const prev7End = new Date(now);
+      prev7End.setDate(now.getDate() - 7);
+      prev7End.setHours(23,59,59,999);
       
       // Today's stats
       const { data: todayOrders } = await supabase
@@ -335,6 +348,19 @@ export const useDashboardStats = () => {
         .gte('created_at', lastMonth + '-01T00:00:00')
         .lt('created_at', thisMonth + '-01T00:00:00');
 
+      // 7-day comparisons
+      const { data: this7Orders } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', this7Start.toISOString())
+        .lte('created_at', now.toISOString());
+
+      const { data: prev7Orders } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', prev7Start.toISOString())
+        .lte('created_at', prev7End.toISOString());
+
       // Member stats
       const { data: allMembers } = await supabase
         .from('members')
@@ -351,13 +377,7 @@ export const useDashboardStats = () => {
         .select('id')
         .gte('created_at', thisMonth + '-01T00:00:00');
 
-      const { data: lastMonthMemberCount } = await supabase
-        .from('members')
-        .select('id', { count: 'exact' })
-        .gte('created_at', lastMonth + '-01T00:00:00')
-        .lt('created_at', thisMonth + '-01T00:00:00');
-
-      // Top products from order items
+      // Top products from order items (month-to-date)
       const { data: orderItems } = await supabase
         .from('order_items')
         .select(`
@@ -369,7 +389,17 @@ export const useDashboardStats = () => {
         `)
         .gte('orders.created_at', thisMonth + '-01T00:00:00');
 
-      // Payment methods breakdown
+      // Promotions usage (month-to-date)
+      const { data: promoClaims } = await supabase
+        .from('customer_promotion_claims')
+        .select('promotion_id, claimed_at, is_used, used_at')
+        .gte('claimed_at', thisMonth + '-01T00:00:00');
+
+      const { data: promotions } = await supabase
+        .from('limited_promotions')
+        .select('id, title, discount_value, discount_type');
+
+      // Payment methods breakdown (today)
       const paymentMethods: PaymentMethodStats[] = [];
       const paymentGroups = todayOrders?.reduce((acc: any, order) => {
         const method = order.payment_method || 'cash';
@@ -407,12 +437,12 @@ export const useDashboardStats = () => {
           name,
           quantity: data.quantity,
           revenue: data.revenue,
-          profit: data.revenue * 0.6 // Assume 60% profit margin
+          profit: data.revenue * 0.6 // Approx margin
         }))
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5);
 
-      // Peak hours analysis
+      // Peak hours analysis (top 3 by orders)
       const hourlyOrders = todayOrders?.reduce((acc: any, order) => {
         const hour = new Date(order.created_at).getHours();
         if (!acc[hour]) {
@@ -458,27 +488,61 @@ export const useDashboardStats = () => {
       const monthSales = monthOrders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const lastMonthSales = lastMonthOrders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
 
+      const this7Sales = this7Orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const prev7Sales = prev7Orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+
       const salesGrowthRate = yesterdaySales > 0 ? ((todaySales - yesterdaySales) / yesterdaySales) * 100 : 0;
-      const ordersGrowthRate = yesterdayOrders?.length ? (((todayOrders?.length || 0) - yesterdayOrders.length) / yesterdayOrders.length) * 100 : 0;
-      const membersGrowthRate = lastMonthMemberCount?.length ? ((monthMembers?.length || 0) / lastMonthMemberCount.length) * 100 : 0;
+      const weekSalesGrowthRate = prev7Sales > 0 ? ((this7Sales - prev7Sales) / prev7Sales) * 100 : 0;
+      const monthSalesGrowthRate = lastMonthSales > 0 ? ((monthSales - lastMonthSales) / lastMonthSales) * 100 : 0;
+      const ordersGrowthRate = (yesterdayOrders?.length || 0) > 0 ? (((todayOrders?.length || 0) - (yesterdayOrders?.length || 0)) / (yesterdayOrders?.length || 1)) * 100 : 0;
 
       // Business performance metrics
       const uniqueCustomers = new Set(monthOrders?.filter(o => o.member_id).map(o => o.member_id)).size;
       const averageOrderValue = monthOrders?.length ? monthSales / monthOrders.length : 0;
       const ordersPerCustomer = uniqueCustomers > 0 ? (monthOrders?.length || 0) / uniqueCustomers : 0;
       
-      // Points usage today
-      const { data: pointTransactions } = await supabase
+      // Points usage today & month
+      const { data: pointTransactionsToday } = await supabase
         .from('point_transactions')
         .select('points_change')
-        .eq('transaction_type', 'redemption')
+        .eq('transaction_type', 'redeem')
         .gte('created_at', today + 'T00:00:00')
         .lt('created_at', today + 'T23:59:59');
 
-      const pointsUsageToday = pointTransactions?.reduce((sum, tx) => sum + Math.abs(tx.points_change), 0) || 0;
+      const { data: pointTransactionsMonth } = await supabase
+        .from('point_transactions')
+        .select('points_change')
+        .eq('transaction_type', 'redeem')
+        .gte('created_at', thisMonth + '-01T00:00:00');
+
+      const pointsUsageToday = pointTransactionsToday?.reduce((sum, tx) => sum + Math.abs(tx.points_change), 0) || 0;
+      const pointsUsageMonth = pointTransactionsMonth?.reduce((sum, tx) => sum + Math.abs(tx.points_change), 0) || 0;
 
       const todayDiscount = todayOrders?.reduce((sum, order) => sum + Number(order.bill_discount || 0), 0) || 0;
       const monthDiscount = monthOrders?.reduce((sum, order) => sum + Number(order.bill_discount || 0), 0) || 0;
+
+      // Promotion stats aggregation
+      const claimsByPromo: Record<string, { usage_count: number; used_count: number; }> = {};
+      promoClaims?.forEach((c) => {
+        const pid = c.promotion_id;
+        if (!claimsByPromo[pid]) claimsByPromo[pid] = { usage_count: 0, used_count: 0 };
+        claimsByPromo[pid].usage_count += 1;
+        if (c.is_used) claimsByPromo[pid].used_count += 1;
+      });
+
+      const promoMap = new Map((promotions || []).map((p) => [p.id, p]));
+      const promotionStats: PromotionStats[] = Object.entries(claimsByPromo).map(([pid, stats]) => {
+        const promo = promoMap.get(pid);
+        const discountValue = Number(promo?.discount_value || 0);
+        const total_discount = promo?.discount_type === 'amount' ? discountValue * stats.usage_count : 0;
+        const revenue_impact = total_discount; // approximation
+        return {
+          name: promo?.title || 'ไม่ทราบชื่อ',
+          usage_count: stats.usage_count,
+          total_discount,
+          revenue_impact,
+        };
+      }).sort((a,b) => b.usage_count - a.usage_count).slice(0,5);
 
       setDashboardStats({
         todaySales,
@@ -492,17 +556,21 @@ export const useDashboardStats = () => {
         totalMembers: allMembers?.length || 0,
         newMembersToday: todayMembers?.length || 0,
         newMembersMonth: monthMembers?.length || 0,
+        salesGrowthRate,
+        weekSalesGrowthRate,
+        monthSalesGrowthRate,
         ordersGrowthRate,
-        membersGrowthRate,
+        membersGrowthRate: 0,
         averageOrderValue,
         ordersPerCustomer,
         customerReturnRate: uniqueCustomers > 0 ? (uniqueCustomers / (allMembers?.length || 1)) * 100 : 0,
         paymentMethods,
         topProducts,
         peakHours,
-        promotionStats: [], // TODO: Implement promotion stats
+        promotionStats,
         memberTierStats,
         pointsUsageToday,
+        pointsUsageMonth,
         memberEngagementRate: allMembers?.length ? (uniqueCustomers / allMembers.length) * 100 : 0,
       });
       
