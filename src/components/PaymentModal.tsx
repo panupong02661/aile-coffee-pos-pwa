@@ -627,15 +627,15 @@ const PaymentModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Order Summary - Increased size */}
-          <div className="bg-gray-50 p-3 rounded-lg">
+        <div className="space-y-3">
+          {/* Order Summary - Reduced padding */}
+          <div className="bg-gray-50 p-2 rounded-lg">
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>ยอดชำระ:</span>
               <span className="text-green-600">฿{total.toLocaleString()}</span>
             </div>
             {selectedMember && (
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-1 text-sm text-gray-600">
                 {selectedMember.name} ({selectedMember.phone})
                 <div className="text-blue-600">
                   {getTierDisplayName(selectedMember.tier)} | {selectedMember.points.toLocaleString()} แต้ม
@@ -644,43 +644,43 @@ const PaymentModal = ({
             )}
           </div>
 
-          {/* Payment Method Selection - Increased size */}
+          {/* Payment Method Selection - Larger buttons */}
           <div>
             <Label className="text-base font-medium">วิธีการชำระเงิน</Label>
             <RadioGroup 
               value={paymentMethod} 
               onValueChange={handleMethodChange}
-              className="mt-2"
+              className="mt-1"
             >
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="cash" id="cash" className="w-4 h-4" />
-                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
-                    <DollarSign className="w-4 h-4" />
+                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="cash" id="cash" className="w-5 h-5" />
+                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
+                    <DollarSign className="w-5 h-5" />
                     เงินสด
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="qr" id="qr" className="w-4 h-4" />
-                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
-                    <CreditCard className="w-4 h-4" />
+                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="qr" id="qr" className="w-5 h-5" />
+                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
+                    <CreditCard className="w-5 h-5" />
                     QR Code
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="points" id="points" className="w-4 h-4" />
-                  <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
-                    <Gift className="w-4 h-4" />
+                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="points" id="points" className="w-5 h-5" />
+                  <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
+                    <Gift className="w-5 h-5" />
                     แต้มสะสม
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
-                  <RadioGroupItem value="promptpay" id="promptpay" className="w-4 h-4" />
-                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-sm">
-                    <QrCode className="w-4 h-4" />
+                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                  <RadioGroupItem value="promptpay" id="promptpay" className="w-5 h-5" />
+                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
+                    <QrCode className="w-5 h-5" />
                     PromptPay
                   </Label>
                 </div>
@@ -688,9 +688,9 @@ const PaymentModal = ({
             </RadioGroup>
           </div>
 
-          {/* Cash Input and Banknotes - Increased size */}
+          {/* Cash Input and Banknotes - Larger buttons */}
           {paymentMethod === 'cash' && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div>
                 <Label htmlFor="cash-received" className="text-base">จำนวนเงินที่รับ (บาท)</Label>
                 <Input
@@ -700,20 +700,20 @@ const PaymentModal = ({
                   onChange={(e) => setCashReceived(e.target.value)}
                   min={total}
                   step="0.01"
-                  className="mt-2 h-10 text-base"
+                  className="mt-1 h-12 text-base"
                 />
               </div>
 
-              {/* Banknote Buttons - Increased size */}
+              {/* Banknote Buttons - Larger size */}
               <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">ธนบัตร</Label>
-                <div className="grid grid-cols-5 gap-2 mb-3">
+                <Label className="text-sm font-medium text-gray-700 mb-1 block">ธนบัตร</Label>
+                <div className="grid grid-cols-5 gap-2 mb-2">
                   {banknotes.map((amount) => (
                     <Button
                       key={amount}
                       variant="outline"
                       onClick={() => handleBanknoteClick(amount)}
-                      className="h-10 text-sm font-medium"
+                      className="h-12 text-base font-medium"
                     >
                       ฿{amount}
                     </Button>
@@ -725,14 +725,14 @@ const PaymentModal = ({
                   <Button
                     variant="outline"
                     onClick={handleExactPayment}
-                    className="flex-1 h-10 text-sm font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                    className="flex-1 h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>
                   
                   {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-3 bg-blue-50 rounded border">
-                      <span className="text-blue-700 font-medium text-sm">
+                    <div className="flex-1 flex items-center justify-center p-2 bg-blue-50 rounded border">
+                      <span className="text-blue-700 font-medium text-base">
                         เงินทอน: ฿{change.toLocaleString()}
                       </span>
                     </div>
@@ -742,9 +742,9 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* Points Payment Input - Increased size */}
+          {/* Points Payment Input - Larger buttons */}
           {paymentMethod === 'points' && selectedMember && currentTierSettings && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div>
                 <Label htmlFor="points-input" className="text-base">จำนวนแต้มที่ต้องการใช้</Label>
                 <Input
@@ -754,13 +754,13 @@ const PaymentModal = ({
                   onChange={(e) => setPointsToUse(e.target.value)}
                   min={getMinimumPoints()}
                   max={getMaximumPoints()}
-                  className="mt-2 h-10 text-base"
+                  className="mt-1 h-12 text-base"
                   placeholder={`ขั้นต่ำ ${getMinimumPoints()} แต้ม`}
                 />
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-purple-50 rounded border">
+                <div className="p-2 bg-purple-50 rounded border">
                   <div className="text-sm text-purple-700 space-y-1">
                     <div className="font-medium text-purple-800 text-base">
                       สมาชิกระดับ{getTierDisplayName(selectedMember.tier)}
@@ -786,7 +786,7 @@ const PaymentModal = ({
                 <Button
                   variant="outline"
                   onClick={handleUseAllPoints}
-                  className="w-full h-10 text-sm border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                  className="w-full h-12 text-base border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
                 >
                   ใช้แต้มสูงสุด ({getMaximumPoints().toLocaleString()} แต้ม)
                 </Button>
@@ -794,14 +794,14 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* QR Code Payment Info - Increased size */}
+          {/* QR Code Payment Info - Reduced padding */}
           {paymentMethod === 'qr' && (
-            <div className="space-y-2">
-              <div className="p-3 bg-blue-50 rounded border text-center">
-                <div className="text-sm text-blue-700">
+            <div className="space-y-1">
+              <div className="p-2 bg-blue-50 rounded border text-center">
+                <div className="text-base text-blue-700">
                   แสดง QR Code สำหรับการชำระเงิน
                 </div>
-                <div className="text-lg font-semibold text-blue-800 mt-2">
+                <div className="text-xl font-semibold text-blue-800 mt-1">
                   ฿{total.toLocaleString()}
                 </div>
               </div>
@@ -831,20 +831,20 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons - Increased size */}
+          {/* Action Buttons - Larger size */}
           <div className="flex gap-3">
             <Button 
               variant="outline" 
               onClick={onClose}
-              className="flex-1 h-12 text-base"
+              className="flex-1 h-14 text-lg"
               disabled={isProcessing}
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-5 h-5 mr-2" />
               ยกเลิก
             </Button>
             <Button 
               onClick={handlePayment}
-              className="flex-1 h-12 text-base bg-green-600 hover:bg-green-700"
+              className="flex-1 h-14 text-lg bg-green-600 hover:bg-green-700"
               disabled={isProcessing || !cartItems || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
