@@ -113,8 +113,13 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">฿{dashboardStats.todaySales.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
                   {dashboardStats.todayOrders} ออเดอร์
+                  {dashboardStats.salesGrowthRate !== 0 && (
+                    <span className={`text-xs ${dashboardStats.salesGrowthRate > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ({dashboardStats.salesGrowthRate > 0 ? '+' : ''}{dashboardStats.salesGrowthRate.toFixed(1)}%)
+                    </span>
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -155,6 +160,73 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">
                   +{dashboardStats.newMembersToday} วันนี้
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Business Performance Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">ประสิทธิภาพธุรกิจ</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">AOV:</span>
+                  <span className="font-medium">฿{dashboardStats.averageOrderValue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">ออเดอร์/ลูกค้า:</span>
+                  <span className="font-medium">{dashboardStats.ordersPerCustomer.toFixed(1)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">อัตราผลตอบแทน:</span>
+                  <span className="font-medium">{dashboardStats.customerReturnRate.toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">การมีส่วนร่วม:</span>
+                  <span className="font-medium">{dashboardStats.memberEngagementRate.toFixed(1)}%</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">วิธีการชำระเงิน</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dashboardStats.paymentMethods.map((method) => (
+                  <div key={method.method} className="flex justify-between">
+                    <span className="text-sm text-muted-foreground capitalize">
+                      {method.method === 'cash' ? 'เงินสด' : 
+                       method.method === 'promptpay' ? 'PromptPay' : 
+                       method.method === 'points' ? 'แต้มสะสม' : method.method}:
+                    </span>
+                    <span className="font-medium">
+                      ฿{method.amount.toLocaleString()} ({method.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">แต้มใช้วันนี้:</span>
+                  <span className="font-medium text-purple-600">{dashboardStats.pointsUsageToday.toLocaleString()} แต้ม</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">ช่วงเวลาเร่งด่วน</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dashboardStats.peakHours.map((peak, index) => (
+                  <div key={peak.hour} className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      #{index + 1} - {peak.hour.toString().padStart(2, '0')}:00:
+                    </span>
+                    <span className="font-medium">{peak.orders} orders</span>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -297,11 +369,7 @@ const Dashboard = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Member Statistics */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-coffee-800 mb-4">สถิติสมาชิก</h2>
-            <MemberStatsChart genderData={genderStats} tierData={tierStats} />
-          </div>
+          {/* Member Statistics - Remove original section */}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Low Stock Alert */}
@@ -355,30 +423,101 @@ const Dashboard = () => {
             {/* Best Sellers with Profit */}
             <Card>
               <CardHeader>
-                <CardTitle>เมนูขายดี & กำไร</CardTitle>
+                <CardTitle>สินค้าขายดีจริง</CardTitle>
                 <CardDescription>
-                  เมนูที่ขายดีพร้อมข้อมูลต้นทุนและกำไร
+                  สินค้าที่ขายดีที่สุดจากออเดอร์จริง
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {bestSellers.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div>
-                        <p className="font-medium text-green-800">{item.name}</p>
-                        <p className="text-sm text-green-600">
-                          ราคา ฿{item.price} | ต้นทุน ฿{item.cost.toFixed(2)}
-                        </p>
+                  {dashboardStats.topProducts.length > 0 ? (
+                    dashboardStats.topProducts.map((product, index) => (
+                      <div key={product.name} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary">#{index + 1}</Badge>
+                          <div>
+                            <p className="font-medium text-green-800">{product.name}</p>
+                            <p className="text-sm text-green-600">
+                              ขาย {product.quantity} ชิ้น | รายได้ ฿{product.revenue.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-700">฿{product.profit.toFixed(2)}</p>
+                          <p className="text-sm text-green-600">กำไรประมาณ</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-green-700">฿{item.profit.toFixed(2)}</p>
-                        <p className="text-sm text-green-600">{item.margin.toFixed(1)}% margin</p>
+                    ))
+                  ) : (
+                    bestSellers.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div>
+                          <p className="font-medium text-green-800">{item.name}</p>
+                          <p className="text-sm text-green-600">
+                            ราคา ฿{item.price} | ต้นทุน ฿{item.cost.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-700">฿{item.profit.toFixed(2)}</p>
+                          <p className="text-sm text-green-600">{item.margin.toFixed(1)}% margin</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Member Tier Analysis */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-coffee-800 mb-4">การวิเคราะห์สมาชิกเชิงลึก</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>แยกตามระดับสมาชิก</CardTitle>
+                  <CardDescription>การกระจายสมาชิกในแต่ละระดับและพฤติกรรมการใช้จ่าย</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {dashboardStats.memberTierStats.map((tier) => (
+                      <div key={tier.tier} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-3">
+                          <Badge 
+                            variant={tier.tier === 'platinum' ? 'default' : tier.tier === 'gold' ? 'secondary' : 'outline'}
+                            className={
+                              tier.tier === 'platinum' ? 'bg-purple-600' : 
+                              tier.tier === 'gold' ? 'bg-yellow-600' : 
+                              'bg-gray-400'
+                            }
+                          >
+                            {tier.tier.toUpperCase()}
+                          </Badge>
+                          <div>
+                            <p className="font-medium text-blue-800">{tier.count} คน</p>
+                            <p className="text-sm text-blue-600">{tier.percentage.toFixed(1)}% ของสมาชิก</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-blue-700">฿{tier.avg_spent.toLocaleString()}</p>
+                          <p className="text-sm text-blue-600">เฉลี่ยต่อคน</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>สถิติสมาชิกทั่วไป</CardTitle>
+                  <CardDescription>ข้อมูลรวมพฤติกรรมสมาชิก</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MemberStatsChart genderData={genderStats} tierData={tierStats} />
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Quick Actions */}
