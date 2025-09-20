@@ -66,11 +66,6 @@ const OnlineSystem = () => {
     ? convertedMenuItems 
     : convertedMenuItems.filter(item => item.category_id === selectedCategory);
 
-  // Debug log to check menu items
-  console.log('Debug - convertedMenuItems:', convertedMenuItems);
-  console.log('Debug - filteredMenuItems:', filteredMenuItems);
-  console.log('Debug - selectedCategory:', selectedCategory);
-
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
