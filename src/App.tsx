@@ -30,6 +30,11 @@ const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 const MobileSettings = lazy(() => import('./pages/MobileSettings'));
 
+// Additional Dashboard pages
+const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
+const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
+const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'));
+
 // New 5 main system pages
 const AdvancedReports = lazy(() => import('./pages/AdvancedReports'));
 const StaffManagement = lazy(() => import('./pages/StaffManagement'));
@@ -73,6 +78,17 @@ function App() {
                   
                   {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />
+                  
+                  {/* Additional Dashboard Routes */}
+                  <Route path="/security-dashboard" element={<SecurityDashboard />} />
+                  <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
+                  <Route path="/financial-dashboard" element={<FinancialDashboard />} />
+                  <Route path="/error-tracking" element={<SecurityDashboard />} />
+                  <Route path="/session-management" element={<SecurityDashboard />} />
+                  <Route path="/data-backup-monitor" element={<SecurityDashboard />} />
+                  <Route path="/predictive-analytics" element={<AnalyticsDashboard />} />
+                  <Route path="/customer-behavior-analysis" element={<AnalyticsDashboard />} />
+                  <Route path="/inventory-forecasting" element={<AnalyticsDashboard />} />
                   
                   {/* New 5 main system routes */}
                   <Route path="/advanced-reports" element={<AdvancedReports />} />

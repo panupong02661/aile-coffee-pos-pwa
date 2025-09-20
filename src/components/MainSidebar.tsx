@@ -51,7 +51,8 @@ import {
   Database,
   HardDrive,
   FileCheck,
-  Lock
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -75,12 +76,17 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/digital-payment', '/credit-card', '/api-system', '/external-integration',
     '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
     '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
-    '/notifications'
+    '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
+    '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
+    '/customer-behavior-analysis', '/inventory-forecasting'
   ];
   
   const menuItems = [
     // POS และ Dashboard หลัก
     { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
+    { id: 'security-dashboard', label: 'Security Dashboard', icon: Shield, path: '/security-dashboard' },
+    { id: 'analytics-dashboard', label: 'Analytics Dashboard', icon: TrendingUp, path: '/analytics-dashboard' },
+    { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'orders', label: 'คิวสั่งซื้อ', icon: Clock, path: '/orders' },
     { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
@@ -95,6 +101,11 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'sales-reports', label: 'รายงานยอดขาย', icon: BarChart, path: '/sales-reports' },
     { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
     { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
+    
+    // ระบบรายงานขั้นสูง
+    { id: 'predictive-analytics', label: 'Predictive Analytics', icon: Brain, path: '/predictive-analytics' },
+    { id: 'customer-behavior-analysis', label: 'Customer Behavior Analysis', icon: Users, path: '/customer-behavior-analysis' },
+    { id: 'inventory-forecasting', label: 'Inventory Forecasting', icon: Package, path: '/inventory-forecasting' },
     { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
     { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
     { id: 'permissions', label: 'กำหนดสิทธิ์', icon: Shield, path: '/permissions' },
@@ -127,8 +138,11 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'staff-mobile-app', label: 'Mobile App พนักงาน', icon: Smartphone, path: '/staff-mobile-app' },
     { id: 'customer-mobile-app', label: 'แอปมือถือลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
     
-    // ระบบรักษาความปลอดภัย
+    // ระบบรักษาความปลอดภัย & ตรวจสอบ
     { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
+    { id: 'error-tracking', label: 'Error Tracking', icon: AlertTriangle, path: '/error-tracking' },
+    { id: 'session-management', label: 'Session Management', icon: UserCheck, path: '/session-management' },
+    { id: 'data-backup-monitor', label: 'Data Backup Monitor', icon: HardDrive, path: '/data-backup-monitor' },
     { id: 'data-backup', label: 'สำรองข้อมูล', icon: HardDrive, path: '/data-backup' },
     { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
     { id: 'system-logs', label: 'ระบบ Log', icon: FileCheck, path: '/system-logs' },
