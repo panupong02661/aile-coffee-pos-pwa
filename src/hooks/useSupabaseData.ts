@@ -242,6 +242,7 @@ export const useSupabaseData = () => {
   };
 
   const fetchMenuItems = async () => {
+    console.log('Fetching menu items...');
     const { data, error } = await supabase
       .from('menu_items')
       .select(`
@@ -254,9 +255,11 @@ export const useSupabaseData = () => {
       .order('created_at', { ascending: false });
     
     if (error) {
+      console.error('Error fetching menu items:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดเมนูได้', variant: 'destructive' });
       return;
     }
+    console.log('Menu items fetched:', data);
     setMenuItems(data || []);
   };
 
