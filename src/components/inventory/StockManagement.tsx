@@ -50,7 +50,7 @@ const StockManagement = () => {
 
   const categories = [
     { value: 'coffee', label: 'กาแฟ' },
-    { value: 'dairy', label: 'นม & ของแทน' },
+    { value: 'dairy', label: 'นม & ของหวาน' },
     { value: 'sweetener', label: 'สารให้ความหวาน' },
     { value: 'syrup', label: 'ไซรัป' },
     { value: 'bakery', label: 'เบเกอรี่' },
