@@ -569,15 +569,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>สถิติสมาชิกทั่วไป</CardTitle>
-                  <CardDescription>ข้อมูลรวมพฤติกรรมสมาชิก</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <MemberStatsChart genderData={genderStats} tierData={tierStats} />
-                </CardContent>
-              </Card>
+              <MemberStatsChart genderData={genderStats} tierData={tierStats} />
             </div>
           </div>
 
