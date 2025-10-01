@@ -1787,6 +1787,24 @@ export type Database = {
           },
         ]
       }
+      notification_outbox: {
+        Row: {
+          created_at: string
+          event_key: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          id?: string
+        }
+        Relationships: []
+      }
       notification_schedules: {
         Row: {
           created_at: string
