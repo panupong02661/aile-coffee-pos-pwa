@@ -10,7 +10,7 @@ import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-
+import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
@@ -113,6 +113,8 @@ const POS = () => {
     getAddonGroupsForCategory 
   } = useSupabaseData();
 
+  const { toast } = useToast();
+
   console.log('📊 Data status:', {
     loading,
     categoriesCount: categories?.length || 0,
@@ -140,6 +142,46 @@ const POS = () => {
   useEffect(() => {
     localStorage.setItem('pos-item-size', itemSize);
   }, [itemSize]);
+
+  // Listen for online orders in realtime
+  useEffect(() => {
+    console.log('🔔 Setting up online order listener for POS...');
+    
+    const channel = supabase
+      .channel('pos-online-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: 'order_source=eq.online'
+        },
+        async (payload) => {
+          console.log('🛒 New online order detected:', payload);
+          
+          const order = payload.new as any;
+          
+          // Play notification sound
+          await playBellSound();
+          
+          // Show toast notification
+          toast({
+            title: "🛒 มีออเดอร์ออนไลน์ใหม่!",
+            description: `ออเดอร์ #${order.order_number || 'N/A'} - ฿${order.total_amount || 0}`,
+            duration: 10000,
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 POS online order subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔌 Cleaning up online order listener');
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
 
   const convertedCategories = [
     { 
