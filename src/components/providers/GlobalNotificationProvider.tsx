@@ -124,80 +124,90 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           
           // Send Discord notifications only for online orders
           if (order.order_source === 'online') {
-            try {
-              // Call notification edge function immediately for online orders
-              console.log('🚀 Calling send-order-notification edge function...');
-              
-              // Wait briefly for order items to be inserted
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              
-              // Fetch complete order with items for notification
-              const { data: completeOrder, error } = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  members (
-                    name,
-                    phone
-                  ),
-                  order_items (
-                    id,
-                    menu_item_name,
-                    quantity,
-                    unit_price,
-                    total_price,
-                    selected_addons,
-                    item_discount,
-                    item_discount_type
-                  )
-                `)
-                .eq('id', order.id)
-                .single();
+            // Use cache key to prevent duplicate calls
+            const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
+            
+            if (globalProcessedOrders.has(notificationCacheKey)) {
+              console.log(`🚫 Notification already sent for order ${order.order_number}, skipping edge function call`);
+            } else {
+              try {
+                // Mark notification as being sent
+                globalProcessedOrders.add(notificationCacheKey);
+                
+                // Call notification edge function immediately for online orders
+                console.log('🚀 Calling send-order-notification edge function (ONCE)...');
+                
+                // Wait briefly for order items to be inserted
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Fetch complete order with items for notification
+                const { data: completeOrder, error } = await supabase
+                  .from('orders')
+                  .select(`
+                    *,
+                    members (
+                      name,
+                      phone
+                    ),
+                    order_items (
+                      id,
+                      menu_item_name,
+                      quantity,
+                      unit_price,
+                      total_price,
+                      selected_addons,
+                      item_discount,
+                      item_discount_type
+                    )
+                  `)
+                  .eq('id', order.id)
+                  .single();
 
-              if (error || !completeOrder) {
-                console.error('❌ Failed to fetch complete order:', error);
-                // Remove from processed set on failure so it can be retried
-                globalProcessedOrders.delete(order.id);
-                return;
+                if (error || !completeOrder) {
+                  console.error('❌ Failed to fetch complete order:', error);
+                  // Remove from notification cache on failure
+                  globalProcessedOrders.delete(notificationCacheKey);
+                  return;
+                }
+
+                // Prepare order data for notifications
+                const orderData = {
+                  order_number: order.order_number,
+                  total_amount: order.total_amount,
+                  items_count: order.items_count,
+                  member_id: order.member_id,
+                  payment_method: order.payment_method,
+                  order_source: 'online',
+                  status: order.status || 'confirmed',
+                  created_at: order.created_at,
+                  customer_notes: order.customer_notes,
+                  customer_name: completeOrder.members?.name || 'ลูกค้า',
+                  customer_phone: completeOrder.members?.phone || '',
+                  bill_discount: completeOrder.bill_discount || 0,
+                  bill_discount_type: completeOrder.bill_discount_type || 'amount',
+                  order_items: completeOrder.order_items || []
+                };
+                
+                console.log('📦 Order data for notification (SINGLE CALL):', orderData);
+                
+                // Send notification ONCE
+                const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+                  body: { orderData }
+                });
+
+                if (edgeFunctionError) {
+                  console.error('❌ Failed to send notifications:', edgeFunctionError);
+                  // Remove from notification cache on failure
+                  globalProcessedOrders.delete(notificationCacheKey);
+                } else {
+                  console.log('✅ Notifications sent successfully (ONCE):', notificationResult);
+                }
+                
+              } catch (notificationError) {
+                console.error('❌ Error in notification process:', notificationError);
+                // Remove from notification cache on error
+                globalProcessedOrders.delete(notificationCacheKey);
               }
-
-              // Prepare order data for notifications
-              const orderData = {
-                order_number: order.order_number,
-                total_amount: order.total_amount,
-                items_count: order.items_count,
-                member_id: order.member_id,
-                payment_method: order.payment_method,
-                order_source: 'online',
-                status: order.status || 'confirmed',
-                created_at: order.created_at,
-                customer_notes: order.customer_notes,
-                customer_name: completeOrder.members?.name || 'ลูกค้า',
-                customer_phone: completeOrder.members?.phone || '',
-                bill_discount: completeOrder.bill_discount || 0,
-                bill_discount_type: completeOrder.bill_discount_type || 'amount',
-                order_items: completeOrder.order_items || []
-              };
-              
-              console.log('📦 Order data for notification:', orderData);
-              
-              // Send notification
-              const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
-                body: { orderData }
-              });
-
-              if (edgeFunctionError) {
-                console.error('❌ Failed to send notifications:', edgeFunctionError);
-                // Remove from processed set on failure so it can be retried
-                globalProcessedOrders.delete(order.id);
-              } else {
-                console.log('✅ Notifications sent successfully:', notificationResult);
-              }
-              
-            } catch (notificationError) {
-              console.error('❌ Error in notification process:', notificationError);
-              // Remove from processed set on error so it can be retried
-              globalProcessedOrders.delete(order.id);
             }
           }
           
