@@ -48,31 +48,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Add edge function level duplicate prevention
-    const cacheKey = `processed_order_${orderData.order_number}_${orderData.created_at}`;
-    console.log('🔍 Checking edge function cache for:', cacheKey);
-    
-    const now = Date.now();
-    if (processedOrdersCache.has(cacheKey)) {
-      console.log('🚫 Order already processed in edge function, skipping:', cacheKey);
-      return new Response(
-        JSON.stringify({ success: false, message: 'Order already processed' }), 
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Mark as processed immediately
-    processedOrdersCache.set(cacheKey, now);
-    console.log('✅ Marked order as processed in edge function cache:', cacheKey);
-    
-    // Clean up expired entries (simple cleanup)
-    for (const [key, timestamp] of processedOrdersCache.entries()) {
-      if (now - timestamp > CACHE_DURATION) {
-        processedOrdersCache.delete(key);
-      }
-    }
+    // Initialize Supabase client FIRST
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    console.log('🔗 Supabase client initialized');
 
-    // Initialize Supabase client
+    // CRITICAL: Database-backed idempotency using outbox table
+    const eventKey = `order_${orderData.order_number}_${orderData.created_at}`;
+    console.log('🔍 Checking database outbox for:', eventKey);
+    
+    // Try to insert into outbox - if unique constraint fails, we've already processed
+    const { error: outboxError } = await supabase
+      .from('notification_outbox')
+      .insert({ event_key: eventKey });
+    
+    if (outboxError) {
+      // Unique constraint violation = already processed
+      if (outboxError.code === '23505') {
+        console.log('🚫 Order already processed (database check), skipping:', eventKey);
+        return new Response(
+          JSON.stringify({ success: false, message: 'Order already processed' }), 
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Other errors should not block notification
+      console.error('⚠️ Outbox insert error (proceeding anyway):', outboxError);
+    } else {
+      console.log('✅ Marked order as processing in database outbox:', eventKey);
+    }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
