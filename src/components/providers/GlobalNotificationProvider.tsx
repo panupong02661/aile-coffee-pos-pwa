@@ -35,11 +35,54 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   
   const notificationChannelRef = useRef<any>(null);
   const orderChannelRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
+
+  // Initialize audio context for notification sound
+  useEffect(() => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContext && !audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+      console.log('🔊 Audio context initialized for notifications');
+    }
+  }, []);
+
+  // Play notification sound
+  const playNotificationSound = async () => {
+    try {
+      console.log('🔔 Playing notification sound...');
+      
+      if (audioContextRef.current) {
+        const audioContext = audioContextRef.current;
+        
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        // Create beep sound
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+        console.log('✅ Notification sound played');
+      }
+    } catch (error) {
+      console.error('❌ Failed to play notification sound:', error);
+    }
+  };
 
   console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname);
   console.log('🔔 FORCE DEBUG - Component is running at:', new Date().toISOString());
@@ -332,6 +375,9 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         
         setNewOrder(orderForNotification);
         setShowOrderAlert(true);
+        
+        // Play notification sound
+        await playNotificationSound();
         
         // Enhanced iOS notification
         if (isIOS) {
