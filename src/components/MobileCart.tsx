@@ -200,37 +200,25 @@ const MobileCart = ({
                       <Separator />
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                            className="w-10 h-10 p-0 touch-manipulation"
+                            className="w-10 h-10 p-0 flex items-center justify-center"
                           >
-                            <Minus className="w-4 h-4" />
+                            <Minus className="w-5 h-5" />
                           </Button>
-                          <span className="w-8 text-center font-medium">
+                          <span className="w-10 text-center font-medium text-base">
                             {item.quantity}
                           </span>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                            className="w-10 h-10 p-0 touch-manipulation"
+                            className="w-10 h-10 p-0 flex items-center justify-center"
                           >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleItemDiscountClick(item)}
-                            className={`ml-2 w-10 h-10 p-0 touch-manipulation ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
-                            title={item.item_discount > 0 
-                              ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
-                              : 'ส่วนลด'
-                            }
-                          >
-                            <Tag className="w-4 h-4" />
+                            <Plus className="w-5 h-5" />
                           </Button>
                         </div>
                         <div className="text-right">
