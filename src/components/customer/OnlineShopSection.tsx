@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -676,10 +676,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       
       if (error) throw error;
       if (data?.phone) {
+        console.log('📱 PromptPay phone number loaded:', data.phone);
         setPromptPayPhone(data.phone);
+      } else {
+        console.log('⚠️ No PromptPay phone number found in settings');
       }
     } catch (error) {
-      console.error('Error fetching shop settings:', error);
+      console.error('❌ Error fetching shop settings:', error);
     }
   };
 
