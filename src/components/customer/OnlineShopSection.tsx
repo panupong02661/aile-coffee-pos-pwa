@@ -948,12 +948,18 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setPickupTime('');
       setCustomerNotes('');
       setPointsToUse('');
+      setShowPayment(false);
       
       // 🔔 PLAY NOTIFICATION SOUND IN BACKGROUND - DON'T BLOCK UI
       console.log('🔔 Playing notification sound in background...');
       playOrderSuccessNotification()
         .then(() => console.log('✅ Notification sound played successfully'))
         .catch(soundError => console.log('⚠️ Notification sound failed:', soundError));
+
+      // รีเฟรชหน้าเว็บหลังจาก 1.5 วินาที
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
 
       // 📢 SEND NOTIFICATION IMMEDIATELY - Don't wait for database
       const orderNumber = generateOrderNumber();
