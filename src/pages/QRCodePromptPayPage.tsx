@@ -79,23 +79,21 @@ const QRCodePromptPayPage = () => {
     }
   };
 
-  // โหลดเบอร์จาก shop_settings เมื่อเริ่มต้น
+  // โหลดเบอร์จาก shop_settings ผ่าน Edge Function เมื่อเริ่มต้น (ปลอด RLS)
   useEffect(() => {
     const loadPhone = async () => {
       try {
-        const { data } = await supabase
-          .from('shop_settings')
-          .select('phone')
-          .limit(1)
-          .maybeSingle();
-        if (data?.phone) {
-          console.log('📱 Loaded PromptPay phone from DB:', data.phone);
-          setSelectedPhone(data.phone);
+        const res = await fetch('https://mzvzbxflwvksohrmxbsy.supabase.co/functions/v1/get-promptpay-phone');
+        if (!res.ok) throw new Error(`Edge function HTTP ${res.status}`);
+        const json = await res.json();
+        if (json?.phone) {
+          console.log('📱 Loaded PromptPay phone (edge):', json.phone);
+          setSelectedPhone(json.phone);
         } else {
-          console.log('⚠️ No phone number found in shop_settings');
+          console.log('⚠️ No phone number returned by edge function', json);
         }
       } catch (err) {
-        console.error('Error loading PromptPay phone:', err);
+        console.error('Error loading PromptPay phone via edge:', err);
       }
     };
     loadPhone();

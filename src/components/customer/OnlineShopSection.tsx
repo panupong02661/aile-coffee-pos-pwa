@@ -669,20 +669,17 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
   const fetchShopSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('shop_settings')
-        .select('phone')
-        .maybeSingle();
-      
-      if (error) throw error;
-      if (data?.phone) {
-        console.log('📱 PromptPay phone number loaded:', data.phone);
-        setPromptPayPhone(data.phone);
+      const res = await fetch('https://mzvzbxflwvksohrmxbsy.supabase.co/functions/v1/get-promptpay-phone');
+      if (!res.ok) throw new Error(`Edge function HTTP ${res.status}`);
+      const json = await res.json();
+      if (json?.phone) {
+        console.log('📱 PromptPay phone (edge):', json.phone);
+        setPromptPayPhone(json.phone);
       } else {
-        console.log('⚠️ No PromptPay phone number found in settings');
+        console.log('⚠️ Edge function returned no phone', json);
       }
     } catch (error) {
-      console.error('❌ Error fetching shop settings:', error);
+      console.error('❌ Error fetching PromptPay phone via edge:', error);
     }
   };
 
