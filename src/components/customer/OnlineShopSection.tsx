@@ -14,6 +14,7 @@ import QRCode from 'qrcode';
 import AddonModal from '@/components/AddonModal';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import MobileCart from '@/components/MobileCart';
+import QRCodePromptPay from '@/components/QRCodePromptPay';
 
 interface MenuItem {
   id: string;
@@ -83,6 +84,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [promptPayPhone, setPromptPayPhone] = useState<string>('');
   
   const { toast } = useToast();
 
@@ -644,7 +646,8 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
           fetchMenuItems(),
           fetchCategories(),
           fetchAddons(),
-          fetchMembershipSettings()
+          fetchMembershipSettings(),
+          fetchShopSettings()
         ]);
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -656,6 +659,22 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
     initializeData();
   }, []);
+
+  const fetchShopSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shop_settings')
+        .select('phone')
+        .single();
+      
+      if (error) throw error;
+      if (data?.phone) {
+        setPromptPayPhone(data.phone);
+      }
+    } catch (error) {
+      console.error('Error fetching shop settings:', error);
+    }
+  };
 
   const getRelevantAddons = async (menuItem: MenuItem) => {
     console.log('Getting addons for menu item:', menuItem);
@@ -1303,85 +1322,24 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               </RadioGroup>
             </div>
 
-            <div className="space-y-3">
-              <Button 
-                onClick={async () => {
-                  console.log('🧪 Testing notification system...');
-                  try {
-                    const { data, error } = await supabase.functions.invoke('test-notification');
-                    if (error) {
-                      toast({
-                        title: 'ทดสอบล้มเหลว',
-                        description: error.message,
-                        variant: 'destructive'
-                      });
-                    } else {
-                      toast({
-                        title: 'ทดสอบสำเร็จ!',
-                        description: 'การแจ้งเตือนถูกส่งไปยัง Discord แล้ว',
-                      });
-                    }
-                  } catch (error: any) {
-                    toast({
-                      title: 'ข้อผิดพลาด',
-                      description: error.message,
-                      variant: 'destructive'
-                    });
-                  }
-                }}
-                variant="outline"
-                className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-medium"
-              >
-                🧪 ทดสอบการแจ้งเตือน Discord
-              </Button>
+            {/* QR Code Payment Section - Auto-display when cart has items */}
+            {paymentMethod === 'qr' && promptPayPhone && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-center">ชำระเงิน</h3>
+                <p className="text-center text-xl font-bold text-orange-600 mb-4">
+                  ยอดชำระ: ฿{getTotalAmount().toLocaleString()}
+                </p>
+                <QRCodePromptPay 
+                  amount={getTotalAmount()} 
+                  defaultPhoneNumber={promptPayPhone}
+                  compact={true}
+                />
+              </div>
+            )}
 
-              <Button 
-                onClick={async () => {
-                  console.log('🔔 Testing iOS notification sound...');
-                  await playOrderSuccessNotification();
-                }}
-                variant="outline"
-                className="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium"
-              >
-                🔊 ทดสอบเสียงแจ้งเตือน iOS (7 วินาที)
-              </Button>
-
-              <Button 
-                onClick={generateQRCode}
-                className="w-full"
-                disabled={!pickupTime}
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                {paymentMethod === 'qr' ? 'สร้าง QR Code ชำระเงิน' : 'ดำเนินการชำระเงิน'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Payment Section */}
-      {showPayment && (
-        <Card>
-          <CardHeader>
-            <CardTitle>ชำระเงิน</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            {/* Receipt Upload and Submit Button */}
             {paymentMethod === 'qr' && (
-              <>
-                <div className="text-center">
-                  <p className="text-lg font-bold mb-4">
-                    ยอดชำระ: ฿{pointsToUse ? 
-                      Math.max(0, getTotalAmount() - calculatePointsValue(parseInt(pointsToUse))).toLocaleString() : 
-                      getTotalAmount().toLocaleString()
-                    }
-                  </p>
-                  {qrCodeUrl && (
-                    <div className="flex justify-center mb-4">
-                      <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
-                    </div>
-                  )}
-                </div>
-                
+              <div className="space-y-3 mt-4">
                 <div>
                   <Label htmlFor="receipt">แนบสลีปการชำระเงิน</Label>
                   <Input
@@ -1397,19 +1355,31 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                     </p>
                   )}
                 </div>
-              </>
+
+                <Button 
+                  onClick={submitOrder}
+                  className="w-full"
+                  disabled={isProcessing || !pickupTime || !receiptFile}
+                >
+                  {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+                </Button>
+              </div>
             )}
 
-            <Button 
-              onClick={submitOrder}
-              className="w-full"
-              disabled={isProcessing || (paymentMethod === 'qr' && qrCodeUrl && !receiptFile)}
-            >
-              {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
-            </Button>
+            {/* Points Payment Button */}
+            {paymentMethod === 'points' && (
+              <Button 
+                onClick={submitOrder}
+                className="w-full mt-4"
+                disabled={isProcessing || !pickupTime}
+              >
+                {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
+
 
       {/* Display Settings Modal */}
       <DisplaySettingsModal
