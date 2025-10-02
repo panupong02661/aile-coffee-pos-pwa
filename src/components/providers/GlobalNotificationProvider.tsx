@@ -419,7 +419,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const handleViewOrder = () => {
     handleDismiss();
-    navigate('/online-orders');
+    // Force refresh by adding timestamp
+    navigate(`/online-orders?t=${Date.now()}`);
   };
 
   const formatOrderItems = (items: any[]) => {

@@ -134,6 +134,32 @@ const OnlineOrderManagement = () => {
 
   useEffect(() => {
     fetchOnlineOrders();
+    
+    // Setup real-time listener for new orders
+    console.log('🔔 Setting up real-time order updates...');
+    const channel = supabase
+      .channel('online-orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('🔔 Order change detected:', payload);
+          // Refresh orders when any change occurs
+          fetchOnlineOrders();
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 Real-time subscription status:', status);
+      });
+
+    return () => {
+      console.log('🧹 Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
