@@ -1470,10 +1470,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         onProceedToPayment={() => {
           setIsCartOpen(false);
           setTimeout(() => {
-            const paymentSection = document.getElementById('payment-section');
-            if (paymentSection) {
-              paymentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           }, 300);
         }}
       />
