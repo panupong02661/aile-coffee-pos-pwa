@@ -25,11 +25,10 @@ interface OrderHistory {
     quantity: number;
     unit_price: number;
     total_price: number;
-    order_addons?: Array<{
-      addon_name: string;
-      quantity: number;
-      unit_price: number;
-      total_price: number;
+    selected_addons?: Array<{
+      id: string;
+      name: string;
+      price: number;
     }>;
   }>;
 }
@@ -78,7 +77,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
         return;
       }
 
-      // ดึงข้อมูลออเดอร์จากตาราง orders โดยใช้ member_id จากที่ค้นหาได้ รวมถึง add-ons
+      // ดึงข้อมูลออเดอร์จากตาราง orders โดยใช้ member_id จากที่ค้นหาได้ รวมถึง selected_addons
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -93,12 +92,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
             quantity,
             unit_price,
             total_price,
-            order_addons (
-              addon_name,
-              quantity,
-              unit_price,
-              total_price
-            )
+            selected_addons
           )
         `)
         .eq('member_id', memberData.id)
@@ -114,7 +108,18 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
         return;
       }
 
-      setOrders(data || []);
+      // แปลง selected_addons จาก JSON เป็น array
+      const ordersWithParsedAddons = (data || []).map(order => ({
+        ...order,
+        order_items: order.order_items?.map(item => ({
+          ...item,
+          selected_addons: Array.isArray(item.selected_addons) 
+            ? item.selected_addons as Array<{ id: string; name: string; price: number }> 
+            : []
+        }))
+      }));
+
+      setOrders(ordersWithParsedAddons);
     } catch (error) {
       console.error('Error fetching order history:', error);
       toast({ 
@@ -259,19 +264,31 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
                           <h4 className="font-medium mb-3">รายการสินค้า</h4>
                           <div className="space-y-2">
                             {selectedOrder.order_items?.map((item, index) => (
-                              <div key={index} className="flex justify-between items-center p-2 border rounded">
-                                 <div>
-                                   <p className="font-medium">{item.menu_item_name}</p>
-                                   {item.order_addons && item.order_addons.length > 0 && (
-                                     <p className="text-sm text-gray-600">
-                                       + {item.order_addons.map(addon => addon.addon_name).join(', ')}
-                                     </p>
-                                   )}
-                                   <p className="text-sm text-gray-600">
-                                     ฿{item.unit_price} x {item.quantity}
-                                   </p>
-                                 </div>
-                                <p className="font-bold">฿{item.total_price}</p>
+                              <div key={index} className="p-3 border rounded-lg bg-gray-50">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900">{item.menu_item_name}</p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      ฿{item.unit_price} x {item.quantity}
+                                    </p>
+                                    
+                                    {/* แสดงแอดออน */}
+                                    {item.selected_addons && item.selected_addons.length > 0 && (
+                                      <div className="mt-2 space-y-1">
+                                        <p className="text-xs font-medium text-gray-500">ตัวเลือกเพิ่มเติม:</p>
+                                        {item.selected_addons.map((addon, addonIndex) => (
+                                          <div key={addonIndex} className="flex items-center gap-2 text-sm text-gray-600 ml-3">
+                                            <span className="text-orange-500">+</span>
+                                            <span>{addon.name}</span>
+                                            <span className="text-gray-400">•</span>
+                                            <span className="text-green-600">฿{addon.price}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="font-bold text-green-600">฿{item.total_price}</p>
+                                </div>
                               </div>
                             ))}
                           </div>
