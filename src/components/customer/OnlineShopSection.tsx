@@ -1362,18 +1362,32 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             </div>
 
             {/* QR Code Payment Section - Auto-display when cart has items */}
-            {paymentMethod === 'qr' && promptPayPhone && (
+            {paymentMethod === 'qr' && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-center">ชำระเงิน</h3>
                 <p className="text-center text-xl font-bold text-orange-600 mb-4">
                   ยอดชำระ: ฿{getTotalAmount().toLocaleString()}
                 </p>
-                <QRCodePromptPay 
-                  key={`qr-${getTotalAmount()}`}
-                  amount={getTotalAmount()} 
-                  defaultPhoneNumber={promptPayPhone}
-                  compact={true}
-                />
+                {promptPayPhone ? (
+                  <QRCodePromptPay 
+                    key={`qr-${getTotalAmount()}`}
+                    amount={getTotalAmount()} 
+                    defaultPhoneNumber={promptPayPhone}
+                    compact={true}
+                  />
+                ) : (
+                  <div className="text-center py-8 space-y-3">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                      <AlertCircle className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <p className="text-gray-600 font-medium">
+                      ยังไม่ได้ตั้งค่าเบอร์โทรศัพท์ PromptPay
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่าเบอร์โทรศัพท์ PromptPay
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
