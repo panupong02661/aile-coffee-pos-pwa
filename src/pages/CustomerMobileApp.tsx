@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
@@ -693,11 +693,22 @@ const CustomerMobileApp: React.FC = () => {
   if (isLoading) {
     return (
       <Shell>
-        <Card className="p-4 text-center">
-          <p>กำลังโหลด...</p>
-          {connectionStatus === 'checking' && (
-            <p className="text-sm text-gray-500 mt-2">กำลังตรวจสอบการเชื่อมต่อฐานข้อมูล...</p>
-          )}
+        <Card className="p-4 text-center space-y-4">
+          <div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="mt-4">กำลังโหลด...</p>
+            {connectionStatus === 'checking' && (
+              <p className="text-sm text-gray-500 mt-2">กำลังตรวจสอบการเชื่อมต่อฐานข้อมูล...</p>
+            )}
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => window.location.reload()} 
+            className="w-full flex items-center justify-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            รีเฟรชหน้าเว็บ
+          </Button>
         </Card>
       </Shell>
     );
@@ -706,9 +717,9 @@ const CustomerMobileApp: React.FC = () => {
   return (
     <Shell>
       <div className="flex flex-col h-screen">
-        {/* Header with Back Button only */}
-        {activeTab !== 'home' && (
-          <div className="p-4 border-b bg-white sticky top-0 z-10">
+        {/* Header with Back Button and Refresh Button */}
+        <div className="p-4 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
+          {activeTab !== 'home' ? (
             <Button
               variant="ghost"
               size="sm"
@@ -718,8 +729,23 @@ const CustomerMobileApp: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               กลับหน้าแรก
             </Button>
-          </div>
-        )}
+          ) : (
+            <div className="text-lg font-semibold text-orange-600">
+              แอปสมาชิก
+            </div>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2"
+            title="รีเฟรชหน้าเว็บ"
+          >
+            <RefreshCw className="w-4 h-4" />
+            รีเฟรช
+          </Button>
+        </div>
 
         {/* Content Section */}
         <div className="flex-grow overflow-y-auto">

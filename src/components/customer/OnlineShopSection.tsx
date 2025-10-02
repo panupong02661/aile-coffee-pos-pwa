@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -1140,15 +1140,34 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              สั่งสินค้าออนไลน์
+            <CardTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                สั่งสินค้าออนไลน์
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className="w-4 h-4" />
+                รีเฟรช
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
+            <div className="text-center py-8 space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
               <p className="mt-2 text-gray-600">กำลังโหลดเมนู...</p>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.reload()} 
+                className="mx-auto flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                รีเฟรชหน้าเว็บ
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1165,15 +1184,26 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               <ShoppingCart className="w-5 h-5" />
               สั่งสินค้าออนไลน์
             </div>
-            <Button
-              onClick={() => setShowDisplaySettings(true)}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              ตั้งค่าการแสดงผล
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                title="รีเฟรชหน้าเว็บ"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={() => setShowDisplaySettings(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                ตั้งค่า
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
       </Card>
