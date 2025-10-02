@@ -793,7 +793,9 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
   };
 
   const getTotalAmount = () => {
-    return cartItems.reduce((sum, item) => sum + item.total_price, 0);
+    const total = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+    console.log('💰 Total amount:', total, 'Cart items:', cartItems.length);
+    return total;
   };
 
   const getCurrentTierSettings = () => {
@@ -1367,6 +1369,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
                   ยอดชำระ: ฿{getTotalAmount().toLocaleString()}
                 </p>
                 <QRCodePromptPay 
+                  key={`qr-${getTotalAmount()}`}
                   amount={getTotalAmount()} 
                   defaultPhoneNumber={promptPayPhone}
                   compact={true}

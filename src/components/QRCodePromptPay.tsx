@@ -41,13 +41,19 @@ const QRCodePromptPay = ({
     }
     
     try {
+      console.log('🔍 Generating QR with amount:', qrAmount);
+      
       const promptPayData: PromptPayData = {
         phoneNumber: phoneNumber,
         amount: qrAmount > 0 ? qrAmount : undefined
       };
       
+      console.log('📱 PromptPay Data:', promptPayData);
+      
       const qrString = generatePromptPayQR(promptPayData);
       setQrData(qrString);
+      
+      console.log('✅ QR String generated:', qrString);
       
       const qrCodeDataURL = await QRCode.toDataURL(qrString, {
         width: compact ? 200 : 256,
@@ -70,6 +76,7 @@ const QRCodePromptPay = ({
   };
 
   useEffect(() => {
+    console.log('📊 Amount prop changed:', amount);
     if (amount !== undefined) {
       setQrAmount(amount);
     }
@@ -83,17 +90,28 @@ const QRCodePromptPay = ({
 
   // Auto-generate QR when amount or phone changes (if both are valid)
   useEffect(() => {
-    if (phoneNumber && validateThaiPhoneNumber(phoneNumber) && qrAmount >= 0) {
-      generateQR();
+    if (phoneNumber && validateThaiPhoneNumber(phoneNumber)) {
+      // Only generate QR if qrAmount is > 0
+      if (qrAmount > 0) {
+        console.log('🔄 Auto-generating QR with amount:', qrAmount);
+        generateQR();
+      }
     }
   }, [phoneNumber, qrAmount]);
 
   // Compact mode - show only QR code
   if (compact) {
     return (
-      <div className="text-center">
+      <div className="text-center space-y-2">
         {qrCode ? (
-          <img src={qrCode} alt="PromptPay QR Code" className="mx-auto" />
+          <>
+            <img src={qrCode} alt="PromptPay QR Code" className="mx-auto" />
+            {qrAmount > 0 && (
+              <p className="text-sm font-semibold text-orange-600">
+                ยอดชำระ: ฿{qrAmount.toLocaleString()}
+              </p>
+            )}
+          </>
         ) : (
           <div className="w-[200px] h-[200px] bg-gray-100 rounded flex items-center justify-center mx-auto">
             <QrCode className="w-12 h-12 text-gray-400" />
