@@ -1470,19 +1470,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         onProceedToPayment={() => {
           setIsCartOpen(false);
           setTimeout(() => {
-            // Scroll to bottom of page
-            const maxScroll = Math.max(
-              document.body.scrollHeight,
-              document.body.offsetHeight,
-              document.documentElement.clientHeight,
-              document.documentElement.scrollHeight,
-              document.documentElement.offsetHeight
-            );
+            // Scroll to absolute bottom of page
             window.scrollTo({ 
-              top: maxScroll, 
+              top: document.documentElement.scrollHeight, 
               behavior: 'smooth' 
             });
-          }, 400);
+          }, 500);
         }}
       />
 

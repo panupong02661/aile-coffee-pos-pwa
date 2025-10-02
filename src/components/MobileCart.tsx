@@ -155,11 +155,11 @@ const MobileCart = ({
             </div>
           </DrawerHeader>
           
-          <div className="flex-1 flex flex-col min-h-0 px-4 pb-4 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 px-4 pb-4">
             {/* Cart Items Section - Show first */}
-            <div className="flex-1 min-h-0 overflow-hidden mb-4">
-              <h3 className="font-medium text-coffee-800 mb-3">รายการสินค้า</h3>
-              <div className="h-full overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex-1 min-h-0 mb-4 flex flex-col">
+              <h3 className="font-medium text-coffee-800 mb-3 flex-shrink-0">รายการสินค้า</h3>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin', minHeight: '200px' }}>
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     ไม่มีสินค้าในตะกร้า
