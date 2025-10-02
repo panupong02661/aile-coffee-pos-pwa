@@ -46,6 +46,7 @@ interface MobileCartProps {
     points: number;
     total_spent: number;
   } | null;
+  onProceedToPayment?: () => void;
 }
 
 const MobileCart = ({ 
@@ -64,7 +65,8 @@ const MobileCart = ({
   onCodeApply,
   appliedGiftCode,
   onPaymentComplete,
-  selectedMember
+  selectedMember,
+  onProceedToPayment
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
@@ -250,11 +252,17 @@ const MobileCart = ({
               
               <div className="mt-4">
                 <Button 
-                  className="w-full bg-coffee-600 hover:bg-coffee-700 h-12"
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  disabled={total <= 0 || !pickupTime}
+                  className="w-full bg-orange-500 hover:bg-orange-600 h-12 text-white font-medium"
+                  onClick={() => {
+                    if (onProceedToPayment) {
+                      onProceedToPayment();
+                    } else {
+                      setIsPaymentModalOpen(true);
+                    }
+                  }}
+                  disabled={total <= 0}
                 >
-                  ยืนยันการสั่งซื้อ (฿{total})
+                  {onProceedToPayment ? 'ดำเนินการชำระเงิน' : 'ยืนยันการสั่งซื้อ'} (฿{total})
                 </Button>
               </div>
             </div>

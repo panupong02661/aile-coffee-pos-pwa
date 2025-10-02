@@ -1139,30 +1139,15 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               <ShoppingCart className="w-5 h-5" />
               สั่งสินค้าออนไลน์
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setIsCartOpen(true)}
-                className="relative flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
-                size="sm"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>ตะกร้า</span>
-                {cartItems.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white min-w-[18px] h-5 flex items-center justify-center rounded-full text-xs">
-                    {cartItems.length}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                onClick={() => setShowDisplaySettings(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                ตั้งค่าการแสดงผล
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowDisplaySettings(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              ตั้งค่าการแสดงผล
+            </Button>
           </CardTitle>
         </CardHeader>
       </Card>
@@ -1261,7 +1246,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
 
       {/* Order Details */}
       {cartItems.length > 0 && (
-        <Card>
+        <Card id="payment-section">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
@@ -1482,7 +1467,34 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         appliedGiftCode={null}
         onPaymentComplete={() => {}} // Not used in online ordering
         selectedMember={currentUser}
+        onProceedToPayment={() => {
+          setIsCartOpen(false);
+          setTimeout(() => {
+            const paymentSection = document.getElementById('payment-section');
+            if (paymentSection) {
+              paymentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 300);
+        }}
       />
+
+      {/* Floating Cart Button */}
+      {cartItems.length > 0 && (
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          aria-label="ตะกร้าสินค้า"
+        >
+          <div className="relative">
+            <ShoppingCart className="w-7 h-7" />
+            {cartItems.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartItems.length}
+              </span>
+            )}
+          </div>
+        </button>
+      )}
     </div>
   );
 };
