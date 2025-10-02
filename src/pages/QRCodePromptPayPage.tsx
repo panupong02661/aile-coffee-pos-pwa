@@ -79,6 +79,7 @@ const QRCodePromptPayPage = () => {
     }
   };
 
+  // โหลดเบอร์จาก shop_settings เมื่อเริ่มต้น
   useEffect(() => {
     const loadPhone = async () => {
       try {
@@ -88,7 +89,10 @@ const QRCodePromptPayPage = () => {
           .limit(1)
           .maybeSingle();
         if (data?.phone) {
+          console.log('📱 Loaded PromptPay phone from DB:', data.phone);
           setSelectedPhone(data.phone);
+        } else {
+          console.log('⚠️ No phone number found in shop_settings');
         }
       } catch (err) {
         console.error('Error loading PromptPay phone:', err);
@@ -207,11 +211,38 @@ const QRCodePromptPayPage = () => {
                 </CardContent>
               </Card>
 
-              {/* QR Code Generator */}
-              <QRCodePromptPay 
-                defaultPhoneNumber={selectedPhone}
-                amount={customAmount}
-              />
+              {/* QR Code Display */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-coffee-800">
+                    <QrCode className="w-5 h-5" />
+                    QR Code PromptPay
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedPhone ? (
+                    <>
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-700">
+                          <span className="font-semibold">หมายเลขโทรศัพท์:</span> {selectedPhone}
+                        </p>
+                      </div>
+                      <QRCodePromptPay 
+                        key={selectedPhone}
+                        defaultPhoneNumber={selectedPhone}
+                        amount={customAmount}
+                      />
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">ยังไม่มีเบอร์โทรศัพท์ในระบบ</p>
+                      <p className="text-sm text-gray-400">
+                        กรุณาเพิ่มหมายเลขโทรศัพท์และกด "เลือก" เพื่อบันทึกลงฐานข้อมูล
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
