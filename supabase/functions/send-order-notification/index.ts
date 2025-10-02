@@ -18,9 +18,7 @@ interface OrderSettings {
   platforms: NotificationPlatforms;
 }
 
-// Simple in-memory cache for preventing duplicate processing (cleared on restart)
-const processedOrdersCache = new Map<string, number>();
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+// Database-backed idempotency - no in-memory cache needed
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -78,12 +76,6 @@ Deno.serve(async (req) => {
     } else {
       console.log('✅ Marked order as processing in database outbox:', eventKey);
     }
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    console.log('🔗 Supabase client initialized');
 
     // Get notification settings
     console.log('📋 Fetching notification settings...');
