@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,8 @@ import QRCodePromptPay from '@/components/QRCodePromptPay';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { Settings, QrCode } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const QRCodePromptPayPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -19,7 +21,7 @@ const QRCodePromptPayPage = () => {
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
   const [selectedPhone, setSelectedPhone] = useState('');
   const [customAmount, setCustomAmount] = useState<number>(0);
-
+  const { toast } = useToast();
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -37,6 +39,37 @@ const QRCodePromptPayPage = () => {
     }
   };
 
+  const setActivePhone = async (phone: string) => {
+    try {
+      setSelectedPhone(phone);
+      const { data: existing, error } = await supabase
+        .from('shop_settings')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (existing?.id) {
+        const { error: uerr } = await supabase
+          .from('shop_settings')
+          .update({ phone })
+          .eq('id', existing.id);
+        if (uerr) throw uerr;
+      } else {
+        const { error: ierr } = await supabase
+          .from('shop_settings')
+          .insert({ phone });
+        if (ierr) throw ierr;
+      }
+
+      toast({ title: 'บันทึกหมายเลขสำเร็จ', description: `อัปเดตเบอร์ PromptPay เป็น ${phone}` });
+    } catch (e) {
+      console.error('Error saving PromptPay phone:', e);
+      toast({ title: 'บันทึกไม่สำเร็จ', description: 'ไม่สามารถอัปเดตหมายเลข PromptPay', variant: 'destructive' });
+    }
+  };
+
   const removePhoneNumber = (phone: string) => {
     const updated = savedPhoneNumbers.filter(p => p !== phone);
     setSavedPhoneNumbers(updated);
@@ -46,6 +79,23 @@ const QRCodePromptPayPage = () => {
     }
   };
 
+  useEffect(() => {
+    const loadPhone = async () => {
+      try {
+        const { data } = await supabase
+          .from('shop_settings')
+          .select('phone')
+          .limit(1)
+          .maybeSingle();
+        if (data?.phone) {
+          setSelectedPhone(data.phone);
+        }
+      } catch (err) {
+        console.error('Error loading PromptPay phone:', err);
+      }
+    };
+    loadPhone();
+  }, []);
   return (
     <div className="h-screen bg-cream-50 flex overflow-hidden">
       <MainSidebar 
@@ -120,7 +170,7 @@ const QRCodePromptPayPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedPhone(phone)}
+                                onClick={() => setActivePhone(phone)}
                                 className="text-xs"
                               >
                                 เลือก

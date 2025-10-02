@@ -672,7 +672,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       const { data, error } = await supabase
         .from('shop_settings')
         .select('phone')
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       if (data?.phone) {
