@@ -121,26 +121,44 @@ const CustomerMobileApp: React.FC = () => {
     const initializeApp = async () => {
       setIsLoading(true);
       
-      const isConnected = await testDatabaseConnection();
-      
-      if (isConnected) {
-        const savedUser = localStorage.getItem('customerAuth');
-        if (savedUser) {
-          try {
-            const userData = JSON.parse(savedUser);
-            setCurrentUser(userData);
-            setIsAuthenticated(true);
-            await loadCustomerData(userData.phone);
-          } catch (error) {
-            console.error('Error parsing saved user data:', error);
-            localStorage.removeItem('customerAuth');
-          }
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('App initialization timeout - forcing load complete');
+        setIsLoading(false);
+        if (connectionStatus === 'checking') {
+          setConnectionStatus('connected');
         }
-        
-        await loadRewards();
-      }
+      }, 10000); // 10 second timeout
       
-      setIsLoading(false);
+      try {
+        const isConnected = await testDatabaseConnection();
+        
+        if (isConnected) {
+          // Load saved user if exists
+          const savedUser = localStorage.getItem('customerAuth');
+          if (savedUser) {
+            try {
+              const userData = JSON.parse(savedUser);
+              setCurrentUser(userData);
+              setIsAuthenticated(true);
+              await loadCustomerData(userData.phone);
+            } catch (error) {
+              console.error('Error parsing saved user data:', error);
+              localStorage.removeItem('customerAuth');
+            }
+          }
+          
+          // Load rewards (non-blocking)
+          await loadRewards().catch(err => {
+            console.error('Failed to load rewards, continuing anyway:', err);
+          });
+        }
+      } catch (error) {
+        console.error('Error during app initialization:', error);
+      } finally {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      }
     };
 
     initializeApp();

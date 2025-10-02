@@ -641,6 +641,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       console.log('🚀 Initializing online shop data...');
       setIsLoading(true);
       
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('Online shop initialization timeout - forcing load complete');
+        setIsLoading(false);
+      }, 10000); // 10 second timeout
+      
       try {
         await Promise.all([
           fetchMenuItems(),
@@ -652,6 +658,7 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       } catch (error) {
         console.error('Error during initialization:', error);
       } finally {
+        clearTimeout(timeoutId);
         setIsLoading(false);
         console.log('✅ Online shop data initialization complete');
       }
