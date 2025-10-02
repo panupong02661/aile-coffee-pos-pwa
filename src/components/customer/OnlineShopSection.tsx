@@ -1470,12 +1470,12 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         onProceedToPayment={() => {
           setIsCartOpen(false);
           setTimeout(() => {
-            // Scroll to absolute bottom of page
-            window.scrollTo({ 
-              top: document.documentElement.scrollHeight, 
-              behavior: 'smooth' 
-            });
-          }, 500);
+            // Scroll to payment section
+            const paymentSection = document.getElementById('payment-section');
+            if (paymentSection) {
+              paymentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 300);
         }}
       />
 
