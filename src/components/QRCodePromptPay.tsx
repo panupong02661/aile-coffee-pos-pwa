@@ -88,14 +88,11 @@ const QRCodePromptPay = ({
     }
   }, [defaultPhoneNumber]);
 
-  // Auto-generate QR when amount or phone changes (if both are valid)
+  // Auto-generate QR whenever phone is valid (amount optional)
   useEffect(() => {
     if (phoneNumber && validateThaiPhoneNumber(phoneNumber)) {
-      // Only generate QR if qrAmount is > 0
-      if (qrAmount > 0) {
-        console.log('🔄 Auto-generating QR with amount:', qrAmount);
-        generateQR();
-      }
+      console.log('🔄 Auto-generating QR (amount optional):', qrAmount);
+      generateQR();
     }
   }, [phoneNumber, qrAmount]);
 
