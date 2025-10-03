@@ -628,7 +628,7 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[540px] max-w-[95vw] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <CreditCard className="w-5 h-5" />
