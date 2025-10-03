@@ -2130,6 +2130,7 @@ export type Database = {
           member_id: string | null
           order_number: string
           order_source: string | null
+          order_type: string
           payment_method: string
           pickup_time: string | null
           receipt_image_url: string | null
@@ -2147,6 +2148,7 @@ export type Database = {
           member_id?: string | null
           order_number: string
           order_source?: string | null
+          order_type?: string
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
@@ -2164,6 +2166,7 @@ export type Database = {
           member_id?: string | null
           order_number?: string
           order_source?: string | null
+          order_type?: string
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
