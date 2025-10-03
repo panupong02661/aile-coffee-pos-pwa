@@ -675,11 +675,26 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       if (json?.phone) {
         console.log('📱 PromptPay phone (edge):', json.phone);
         setPromptPayPhone(json.phone);
+        return;
+      }
+      // Fallback: ใช้เบอร์จาก localStorage หากไม่มีในฐานข้อมูล
+      const saved = localStorage.getItem('promptpay-phone-numbers');
+      const list: string[] = saved ? JSON.parse(saved) : [];
+      if (list.length > 0) {
+        console.log('📱 Fallback to localStorage phone:', list[0]);
+        setPromptPayPhone(list[0]);
       } else {
-        console.log('⚠️ Edge function returned no phone', json);
+        console.log('⚠️ ไม่พบเบอร์ทั้งใน Edge และ localStorage', json);
       }
     } catch (error) {
       console.error('❌ Error fetching PromptPay phone via edge:', error);
+      // Error Fallback: localStorage
+      const saved = localStorage.getItem('promptpay-phone-numbers');
+      const list: string[] = saved ? JSON.parse(saved) : [];
+      if (list.length > 0) {
+        console.log('📱 Fallback (error) to localStorage phone:', list[0]);
+        setPromptPayPhone(list[0]);
+      }
     }
   };
 

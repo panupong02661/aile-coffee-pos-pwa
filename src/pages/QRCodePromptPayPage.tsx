@@ -31,11 +31,14 @@ const QRCodePromptPayPage = () => {
   };
 
   const savePhoneNumber = () => {
-    if (newPhoneNumber.trim() && !savedPhoneNumbers.includes(newPhoneNumber.trim())) {
-      const updated = [...savedPhoneNumbers, newPhoneNumber.trim()];
+    const trimmed = newPhoneNumber.trim();
+    if (trimmed && !savedPhoneNumbers.includes(trimmed)) {
+      const updated = [...savedPhoneNumbers, trimmed];
       setSavedPhoneNumbers(updated);
       localStorage.setItem('promptpay-phone-numbers', JSON.stringify(updated));
       setNewPhoneNumber('');
+      // บันทึกขึ้นฐานข้อมูลทันทีโดยไม่ต้องกด "เลือก"
+      setActivePhone(trimmed);
     }
   };
 
