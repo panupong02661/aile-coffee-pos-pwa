@@ -172,7 +172,7 @@ export const SalesCalendar = () => {
         ) : (
           <div className="space-y-1">
             {/* Day names header */}
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 gap-1">
               {dayNames.map((day) => (
                 <div
                   key={day}
