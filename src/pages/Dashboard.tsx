@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SalesChart from '@/components/charts/SalesChart';
 import MemberStatsChart from '@/components/charts/MemberStatsChart';
+import { SalesCalendar } from '@/components/SalesCalendar';
 import { AlertTriangle, Package, TrendingUp, DollarSign, ShoppingCart, Users, Clock, Calendar, CalendarDays, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -341,6 +342,11 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Sales Calendar */}
+          <div className="mb-6">
+            <SalesCalendar />
           </div>
 
           {/* Charts Section */}
