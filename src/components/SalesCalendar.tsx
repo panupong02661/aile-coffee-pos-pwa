@@ -129,33 +129,33 @@ export const SalesCalendar = () => {
   const maxSales = Math.max(...dailySales.map(d => d.sales), 1);
 
   return (
-    <Card className="max-w-2xl">
-      <CardHeader className="pb-1 pt-3 px-3">
+    <Card className="max-w-4xl">
+      <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xs">ปฏิทินยอดขาย</CardTitle>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={goToToday} className="h-5 text-[9px] px-1.5">
+          <CardTitle className="text-base">ปฏิทินยอดขาย</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={goToToday} className="h-7 text-xs px-3">
               วันนี้
             </Button>
             <Select value={currentMonth.toString()} onValueChange={handleMonthChange}>
-              <SelectTrigger className="w-[70px] h-5 text-[9px]">
+              <SelectTrigger className="w-[100px] h-7 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {monthNames.map((month, index) => (
-                  <SelectItem key={index} value={index.toString()} className="text-[9px]">
+                  <SelectItem key={index} value={index.toString()} className="text-xs">
                     {month}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={currentYear.toString()} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-[60px] h-5 text-[9px]">
+              <SelectTrigger className="w-[85px] h-7 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((year) => (
-                  <SelectItem key={year} value={year.toString()} className="text-[9px]">
+                  <SelectItem key={year} value={year.toString()} className="text-xs">
                     {year + 543}
                   </SelectItem>
                 ))}
@@ -164,19 +164,19 @@ export const SalesCalendar = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pb-2 px-3">
+      <CardContent className="pb-3 px-4">
         {loading ? (
-          <div className="flex items-center justify-center py-3">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          <div className="flex items-center justify-center py-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {/* Day names header */}
-            <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+            <div className="grid grid-cols-7 gap-1 mb-1">
               {dayNames.map((day) => (
                 <div
                   key={day}
-                  className="text-center font-semibold text-[8px] py-0.5 text-muted-foreground"
+                  className="text-center font-semibold text-xs py-1 text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -184,7 +184,7 @@ export const SalesCalendar = () => {
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-0.5">
+            <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
                 if (day === null) {
                   return <div key={`empty-${index}`} className="aspect-square" />;
@@ -198,8 +198,8 @@ export const SalesCalendar = () => {
                   <div
                     key={day}
                     className={`
-                      h-12 w-full rounded border transition-all hover:scale-105 hover:shadow-sm
-                      ${isToday(day) ? 'ring-1 ring-primary' : ''}
+                      h-16 w-full rounded border transition-all hover:scale-105 hover:shadow-sm
+                      ${isToday(day) ? 'ring-2 ring-primary' : ''}
                       ${hasSales ? 'cursor-pointer' : 'bg-muted/30'}
                     `}
                     style={{
@@ -213,22 +213,22 @@ export const SalesCalendar = () => {
                         : 'ไม่มียอดขาย'
                     }
                   >
-                    <div className="h-full flex flex-col items-center justify-center p-0.5">
+                    <div className="h-full flex flex-col items-center justify-center p-1">
                       <span
-                        className={`text-[10px] font-medium ${
+                        className={`text-xs font-medium ${
                           hasSales ? 'text-primary-foreground' : 'text-muted-foreground'
                         } ${isToday(day) ? 'font-bold' : ''}`}
                       >
                         {day}
                       </span>
                       {hasSales && (
-                        <div className="text-center">
-                          <div className="text-xs font-bold text-primary-foreground leading-tight">
+                        <div className="text-center mt-0.5">
+                          <div className="text-sm font-bold text-primary-foreground leading-tight">
                             ฿{salesData.sales >= 1000
                               ? `${(salesData.sales / 1000).toFixed(1)}k`
                               : salesData.sales.toFixed(0)}
                           </div>
-                          <div className="text-[9px] text-primary-foreground/90 font-medium leading-tight">
+                          <div className="text-xs text-primary-foreground/90 font-medium leading-tight">
                             {salesData.orders}
                           </div>
                         </div>
@@ -240,24 +240,24 @@ export const SalesCalendar = () => {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-1.5 pt-1 mt-1 border-t">
-              <div className="flex items-center gap-0.5">
-                <div className="w-2 h-2 rounded bg-muted/30 border"></div>
-                <span className="text-[8px] text-muted-foreground">ไม่มียอดขาย</span>
+            <div className="flex items-center justify-center gap-4 pt-2 mt-2 border-t">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-muted/30 border"></div>
+                <span className="text-xs text-muted-foreground">ไม่มียอดขาย</span>
               </div>
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-1.5">
                 <div
-                  className="w-2 h-2 rounded border"
+                  className="w-3 h-3 rounded border"
                   style={{ backgroundColor: 'hsl(var(--primary) / 30%)' }}
                 ></div>
-                <span className="text-[8px] text-muted-foreground">ยอดขายต่ำ</span>
+                <span className="text-xs text-muted-foreground">ยอดขายต่ำ</span>
               </div>
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-1.5">
                 <div
-                  className="w-2 h-2 rounded border"
+                  className="w-3 h-3 rounded border"
                   style={{ backgroundColor: 'hsl(var(--primary) / 100%)' }}
                 ></div>
-                <span className="text-[8px] text-muted-foreground">ยอดขายสูง</span>
+                <span className="text-xs text-muted-foreground">ยอดขายสูง</span>
               </div>
             </div>
           </div>
