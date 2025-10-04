@@ -130,15 +130,15 @@ export const SalesCalendar = () => {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">ปฏิทินยอดขาย</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={goToToday} className="h-8 text-xs">
+          <CardTitle className="text-sm">ปฏิทินยอดขาย</CardTitle>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" onClick={goToToday} className="h-6 text-[10px] px-2">
               วันนี้
             </Button>
             <Select value={currentMonth.toString()} onValueChange={handleMonthChange}>
-              <SelectTrigger className="w-[110px] h-8 text-xs">
+              <SelectTrigger className="w-[80px] h-6 text-[10px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -150,7 +150,7 @@ export const SalesCalendar = () => {
               </SelectContent>
             </Select>
             <Select value={currentYear.toString()} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-[90px] h-8 text-xs">
+              <SelectTrigger className="w-[70px] h-6 text-[10px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -164,19 +164,19 @@ export const SalesCalendar = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pb-3">
+      <CardContent className="pb-2">
         {loading ? (
-          <div className="flex items-center justify-center py-6">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {/* Day names header */}
             <div className="grid grid-cols-7 gap-0.5 mb-0.5">
               {dayNames.map((day) => (
                 <div
                   key={day}
-                  className="text-center font-semibold text-[10px] py-0.5 text-muted-foreground"
+                  className="text-center font-semibold text-[9px] py-0.5 text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -215,20 +215,20 @@ export const SalesCalendar = () => {
                   >
                     <div className="h-full flex flex-col items-center justify-center p-0.5">
                       <span
-                        className={`text-[10px] font-medium ${
+                        className={`text-xs font-medium ${
                           hasSales ? 'text-primary-foreground' : 'text-muted-foreground'
                         } ${isToday(day) ? 'font-bold' : ''}`}
                       >
                         {day}
                       </span>
                       {hasSales && (
-                        <div className="text-center">
-                          <div className="text-[11px] font-bold text-primary-foreground leading-tight">
+                        <div className="text-center mt-0.5">
+                          <div className="text-sm font-bold text-primary-foreground leading-tight">
                             ฿{salesData.sales >= 1000
                               ? `${(salesData.sales / 1000).toFixed(1)}k`
                               : salesData.sales.toFixed(0)}
                           </div>
-                          <div className="text-[9px] text-primary-foreground/90 font-medium leading-tight">
+                          <div className="text-xs text-primary-foreground/90 font-medium leading-tight">
                             {salesData.orders}
                           </div>
                         </div>
@@ -240,24 +240,24 @@ export const SalesCalendar = () => {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-3 pt-2 mt-2 border-t">
+            <div className="flex items-center justify-center gap-2 pt-1.5 mt-1.5 border-t">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-muted/30 border"></div>
-                <span className="text-[10px] text-muted-foreground">ไม่มียอดขาย</span>
+                <div className="w-2.5 h-2.5 rounded bg-muted/30 border"></div>
+                <span className="text-[9px] text-muted-foreground">ไม่มียอดขาย</span>
               </div>
               <div className="flex items-center gap-1">
                 <div
-                  className="w-3 h-3 rounded border"
+                  className="w-2.5 h-2.5 rounded border"
                   style={{ backgroundColor: 'hsl(var(--primary) / 30%)' }}
                 ></div>
-                <span className="text-[10px] text-muted-foreground">ยอดขายต่ำ</span>
+                <span className="text-[9px] text-muted-foreground">ยอดขายต่ำ</span>
               </div>
               <div className="flex items-center gap-1">
                 <div
-                  className="w-3 h-3 rounded border"
+                  className="w-2.5 h-2.5 rounded border"
                   style={{ backgroundColor: 'hsl(var(--primary) / 100%)' }}
                 ></div>
-                <span className="text-[10px] text-muted-foreground">ยอดขายสูง</span>
+                <span className="text-[9px] text-muted-foreground">ยอดขายสูง</span>
               </div>
             </div>
           </div>
