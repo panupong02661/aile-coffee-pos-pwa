@@ -9,6 +9,8 @@ import { Calendar, Plus, Edit, Trash2, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import BirthdayGiftManager from '@/components/BirthdayGiftManager';
+import MainSidebar from '@/components/MainSidebar';
+import Header from '@/components/Header';
 
 interface Promotion {
   id: string;
@@ -28,6 +30,7 @@ const Promotions = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -39,6 +42,14 @@ const Promotions = () => {
     promo_code: ''
   });
   const { toast } = useToast();
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
 
   const fetchPromotions = async () => {
     try {
@@ -235,59 +246,81 @@ const Promotions = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">จัดการแอปลูกค้า</h1>
-      </div>
+    <div className="min-h-screen bg-coffee-50 flex">
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={handleCloseSidebar} 
+      />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
+          <div className="container mx-auto space-y-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold">จัดการแอปลูกค้า</h1>
+            </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Promotion Management */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Limited Promotions Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  สร้างของรางวัลพิเศษใหม่
-                </CardTitle>
-                <Button onClick={() => setIsFormOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  เพิ่มโปรโมชั่น
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Form for creating/editing promotions */}
-              {isFormOpen && (
-                <div className="space-y-4 p-4 border rounded-lg mb-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="title">ชื่อรางวัล *</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        placeholder="เช่น ส่วนลด 20% พิเศษ"
-                      />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Promotion Management */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Limited Promotions Section */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="flex items-center gap-2">
+                        <Gift className="w-5 h-5" />
+                        สร้างของรางวัลพิเศษใหม่
+                      </CardTitle>
+                      <Button onClick={() => setIsFormOpen(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        เพิ่มโปรโมชั่น
+                      </Button>
                     </div>
-                    <div>
-                      <Label htmlFor="promo_code">รหัสคูปอง *</Label>
-                      <Input
-                        id="promo_code"
-                        value={formData.promo_code}
-                        onChange={(e) => setFormData({...formData, promo_code: e.target.value.toUpperCase()})}
-                        placeholder="เช่น SAVE30"
-                        maxLength={10}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">รหัสนี้จะใช้สำหรับลูกค้าใส่ในระบบ POS</p>
-                    </div>
-                  </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Form for creating/editing promotions */}
+                    {isFormOpen && (
+                      <div className="space-y-4 p-4 border rounded-lg mb-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="title">ชื่อรางวัล *</Label>
+                            <Input
+                              id="title"
+                              value={formData.title}
+                              onChange={(e) => setFormData({...formData, title: e.target.value})}
+                              placeholder="เช่น ส่วนลด 20% พิเศษ"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="promo_code">รหัสคูปอง *</Label>
+                            <Input
+                              id="promo_code"
+                              value={formData.promo_code}
+                              onChange={(e) => setFormData({...formData, promo_code: e.target.value.toUpperCase()})}
+                              placeholder="เช่น SAVE30"
+                              maxLength={10}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">รหัสนี้จะใช้สำหรับลูกค้าใส่ในระบบ POS</p>
+                          </div>
+                        </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="discount_type">ประเภทส่วนลด</Label>
-                      <Select 
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="discount_type">ประเภทส่วนลด</Label>
+                            <Select
                         value={formData.discount_type} 
                         onValueChange={(value: 'percentage' | 'amount') => 
                           setFormData({...formData, discount_type: value})
@@ -434,18 +467,21 @@ const Promotions = () => {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Right Column - Birthday Gift Manager */}
-        <div className="space-y-6">
-          <BirthdayGiftManager />
+          {/* Right Column - Birthday Gift Manager */}
+          <div className="space-y-6">
+            <BirthdayGiftManager />
+          </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

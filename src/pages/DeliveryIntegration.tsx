@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Truck, Key, Webhook, TestTube, RotateCcw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import MainSidebar from '@/components/MainSidebar';
+import Header from '@/components/Header';
 
 interface DeliveryIntegration {
   id: string;
@@ -42,7 +44,16 @@ const DeliveryIntegration = () => {
   const [loading, setLoading] = useState(true);
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
 
   const platforms = [
     { id: 'line-man', name: 'LINE MAN', color: 'bg-green-500' },
@@ -296,13 +307,38 @@ const DeliveryIntegration = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-64 bg-gray-200 rounded"></div>
-            ))}
+      <div className="min-h-screen bg-coffee-50 flex">
+        <MainSidebar 
+          isOpen={isSidebarOpen} 
+          onClose={handleCloseSidebar} 
+        />
+        
+        <div className={`flex-1 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        }`}>
+          <div className="p-4">
+            <Header 
+              onToggleSidebar={handleToggleSidebar}
+              categories={[]}
+              selectedCategory=""
+              onCategorySelect={() => {}}
+              gridColumns={4}
+              setGridColumns={() => {}}
+              itemSize="medium"
+              setItemSize={() => {}}
+              page="other"
+            />
+            
+            <div className="container mx-auto">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                <div className="grid gap-6 md:grid-cols-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-64 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -310,14 +346,36 @@ const DeliveryIntegration = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Truck className="w-8 h-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold">Delivery Integration</h1>
-          <p className="text-muted-foreground">เชื่อมต่อกับแพลตฟอร์มการส่งอาหารออนไลน์</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-coffee-50 flex">
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={handleCloseSidebar} 
+      />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
+          <div className="container mx-auto space-y-6">
+            <div className="flex items-center gap-3">
+              <Truck className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-bold">Delivery Integration</h1>
+                <p className="text-muted-foreground">เชื่อมต่อกับแพลตฟอร์มการส่งอาหารออนไลน์</p>
+              </div>
+            </div>
 
       {/* Debug Info - แสดงเฉพาะเมื่อ development */}
       {process.env.NODE_ENV === 'development' && (
@@ -552,6 +610,9 @@ const DeliveryIntegration = () => {
           </Card>
         </TabsContent>
       </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
