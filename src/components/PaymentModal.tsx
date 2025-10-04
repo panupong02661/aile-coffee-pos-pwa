@@ -629,32 +629,32 @@ const PaymentModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[92vh] overflow-y-auto rounded-3xl">
-        <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            <div className="bg-gradient-to-br from-primary to-primary/70 p-2 rounded-xl">
-              <CreditCard className="w-6 h-6 text-white" />
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <div className="bg-gradient-to-br from-primary to-primary/70 p-1.5 rounded-xl">
+              <CreditCard className="w-5 h-5 text-white" />
             </div>
             ชำระเงิน
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           {/* Order Summary - Enhanced with gradient */}
-          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 rounded-2xl border-2 border-primary/20 shadow-sm">
-            <div className="flex justify-between items-center text-lg font-semibold">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
+            <div className="flex justify-between items-center text-base font-semibold">
               <span className="text-foreground">ยอดชำระ:</span>
-              <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 ฿{total.toLocaleString()}
               </span>
             </div>
             {selectedMember && (
-              <div className="mt-2 text-sm">
+              <div className="mt-1.5 text-xs">
                 <div className="font-medium text-foreground">{selectedMember.name} ({selectedMember.phone})</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-medium">
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-[10px] font-medium">
                     {getTierDisplayName(selectedMember.tier)}
                   </span>
-                  <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-xs font-medium">
+                  <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[10px] font-medium">
                     {selectedMember.points.toLocaleString()} แต้ม
                   </span>
                 </div>
@@ -664,90 +664,90 @@ const PaymentModal = ({
 
           {/* Order Type Selection - Enhanced with colorful buttons */}
           <div>
-            <Label className="text-base font-semibold mb-2 block text-foreground">ประเภทการสั่ง</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <Label className="text-sm font-semibold mb-1.5 block text-foreground">ประเภทการสั่ง</Label>
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => setOrderType('dine_in')}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'dine_in'
                     ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-md scale-105'
                     : 'border-border bg-card hover:border-orange-300'
                 }`}
               >
-                <svg className={`w-7 h-7 mb-1 ${orderType === 'dine_in' ? 'text-orange-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'dine_in' ? 'text-orange-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                   <path d="M3 9h18M9 21V9"/>
                 </svg>
-                <span className={`text-xs font-semibold ${orderType === 'dine_in' ? 'text-orange-700' : 'text-muted-foreground'}`}>ทานที่ร้าน</span>
+                <span className={`text-[10px] font-semibold ${orderType === 'dine_in' ? 'text-orange-700' : 'text-muted-foreground'}`}>ทานที่ร้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('takeaway')}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'takeaway'
                     ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md scale-105'
                     : 'border-border bg-card hover:border-blue-300'
                 }`}
               >
-                <svg className={`w-7 h-7 mb-1 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                   <path d="M9 22V12h6v10"/>
                 </svg>
-                <span className={`text-xs font-semibold ${orderType === 'takeaway' ? 'text-blue-700' : 'text-muted-foreground'}`}>นำกลับบ้าน</span>
+                <span className={`text-[10px] font-semibold ${orderType === 'takeaway' ? 'text-blue-700' : 'text-muted-foreground'}`}>นำกลับบ้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('delivery')}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'delivery'
                     ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md scale-105'
                     : 'border-border bg-card hover:border-purple-300'
                 }`}
               >
-                <svg className={`w-7 h-7 mb-1 ${orderType === 'delivery' ? 'text-purple-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'delivery' ? 'text-purple-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="1" y="3" width="15" height="13" rx="2"/>
                   <path d="M16 8h5l3 3v5h-2m-4 0H3M7 19a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4z"/>
                 </svg>
-                <span className={`text-xs font-semibold ${orderType === 'delivery' ? 'text-purple-700' : 'text-muted-foreground'}`}>จัดส่ง</span>
+                <span className={`text-[10px] font-semibold ${orderType === 'delivery' ? 'text-purple-700' : 'text-muted-foreground'}`}>จัดส่ง</span>
               </button>
             </div>
           </div>
 
           {/* Payment Method Selection - Enhanced with colorful cards */}
           <div>
-            <Label className="text-base font-semibold mb-2 block text-foreground">วิธีการชำระเงิน</Label>
+            <Label className="text-sm font-semibold mb-1.5 block text-foreground">วิธีการชำระเงิน</Label>
             <RadioGroup 
               value={paymentMethod} 
               onValueChange={handleMethodChange}
-              className="mt-1"
+              className="mt-0.5"
             >
-              <div className="grid grid-cols-2 gap-3">
-                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   paymentMethod === 'cash' 
                     ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md' 
                     : 'border-border bg-card hover:border-emerald-300'
                 }`}>
-                  <RadioGroupItem value="cash" id="cash" className="w-5 h-5" />
-                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
-                    <div className={`p-2 rounded-xl ${paymentMethod === 'cash' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <DollarSign className="w-5 h-5" />
+                  <RadioGroupItem value="cash" id="cash" className="w-4 h-4" />
+                  <Label htmlFor="cash" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
+                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'cash' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <DollarSign className="w-4 h-4" />
                     </div>
                     <span className={paymentMethod === 'cash' ? 'text-emerald-700' : 'text-foreground'}>เงินสด</span>
                   </Label>
                 </div>
                 
-                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   paymentMethod === 'qr' 
                     ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md' 
                     : 'border-border bg-card hover:border-blue-300'
                 }`}>
-                  <RadioGroupItem value="qr" id="qr" className="w-5 h-5" />
-                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
-                    <div className={`p-2 rounded-xl ${paymentMethod === 'qr' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <CreditCard className="w-5 h-5" />
+                  <RadioGroupItem value="qr" id="qr" className="w-4 h-4" />
+                  <Label htmlFor="qr" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
+                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'qr' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <CreditCard className="w-4 h-4" />
                     </div>
                     <span className={paymentMethod === 'qr' ? 'text-blue-700' : 'text-foreground'}>QR Code</span>
                   </Label>
@@ -755,30 +755,30 @@ const PaymentModal = ({
 
                 {/* Only show points payment option when a customer is selected */}
                 {selectedMember && (
-                  <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                  <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                     paymentMethod === 'points' 
                       ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md' 
                       : 'border-border bg-card hover:border-purple-300'
                   }`}>
-                    <RadioGroupItem value="points" id="points" className="w-5 h-5" />
-                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
-                      <div className={`p-2 rounded-xl ${paymentMethod === 'points' ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                        <Gift className="w-5 h-5" />
+                    <RadioGroupItem value="points" id="points" className="w-4 h-4" />
+                    <Label htmlFor="points" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
+                      <div className={`p-1.5 rounded-lg ${paymentMethod === 'points' ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Gift className="w-4 h-4" />
                       </div>
                       <span className={paymentMethod === 'points' ? 'text-purple-700' : 'text-foreground'}>แต้มสะสม</span>
                     </Label>
                   </div>
                 )}
 
-                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   paymentMethod === 'promptpay' 
                     ? 'border-pink-500 bg-gradient-to-br from-pink-50 to-pink-100 shadow-md' 
                     : 'border-border bg-card hover:border-pink-300'
                 }`}>
-                  <RadioGroupItem value="promptpay" id="promptpay" className="w-5 h-5" />
-                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
-                    <div className={`p-2 rounded-xl ${paymentMethod === 'promptpay' ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <QrCode className="w-5 h-5" />
+                  <RadioGroupItem value="promptpay" id="promptpay" className="w-4 h-4" />
+                  <Label htmlFor="promptpay" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
+                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'promptpay' ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <QrCode className="w-4 h-4" />
                     </div>
                     <span className={paymentMethod === 'promptpay' ? 'text-pink-700' : 'text-foreground'}>PromptPay</span>
                   </Label>
@@ -787,11 +787,11 @@ const PaymentModal = ({
             </RadioGroup>
           </div>
 
-          {/* Cash Input and Banknotes - Larger buttons */}
+          {/* Cash Input and Banknotes - Compact */}
           {paymentMethod === 'cash' && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div>
-                <Label htmlFor="cash-received" className="text-base">จำนวนเงินที่รับ (บาท)</Label>
+                <Label htmlFor="cash-received" className="text-sm">จำนวนเงินที่รับ (บาท)</Label>
                 <Input
                   id="cash-received"
                   type="number"
@@ -799,14 +799,14 @@ const PaymentModal = ({
                   onChange={(e) => setCashReceived(e.target.value)}
                   min={total}
                   step="0.01"
-                  className="mt-1 h-12 text-base"
+                  className="mt-0.5 h-9 text-sm"
                 />
               </div>
 
-              {/* Banknote Buttons - Colorful enhanced buttons */}
+              {/* Banknote Buttons - Compact */}
               <div>
-                <Label className="text-base font-semibold mb-2 block text-foreground">ธนบัตร</Label>
-                <div className="grid grid-cols-5 gap-2 mb-3">
+                <Label className="text-sm font-semibold mb-1 block text-foreground">ธนบัตร</Label>
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {banknotes.map((amount, index) => {
                     const colors = [
                       'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
@@ -819,7 +819,7 @@ const PaymentModal = ({
                       <Button
                         key={amount}
                         onClick={() => handleBanknoteClick(amount)}
-                        className={`h-14 text-base font-bold bg-gradient-to-br ${colors[index]} text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl`}
+                        className={`h-10 text-sm font-bold bg-gradient-to-br ${colors[index]} text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-xl`}
                       >
                         ฿{amount}
                       </Button>
@@ -828,17 +828,17 @@ const PaymentModal = ({
                 </div>
                 
                 {/* Exact Payment and Change display */}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <Button
                     onClick={handleExactPayment}
-                    className="flex-1 h-14 text-base font-bold bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl"
+                    className="flex-1 h-10 text-sm font-bold bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-xl"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>
                   
                   {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-3 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 shadow-sm">
-                      <span className="text-cyan-700 font-bold text-base">
+                    <div className="flex-1 flex items-center justify-center p-2 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border-2 border-cyan-300 shadow-sm">
+                      <span className="text-cyan-700 font-bold text-sm">
                         เงินทอน: ฿{change.toLocaleString()}
                       </span>
                     </div>
@@ -937,19 +937,19 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons - Enhanced with gradients */}
-          <div className="flex gap-4 pt-2">
+          {/* Action Buttons - Compact */}
+          <div className="flex gap-2 pt-1">
             <Button 
               onClick={onClose}
-              className="flex-1 h-16 text-lg font-bold bg-gradient-to-br from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl"
+              className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-xl"
               disabled={isProcessing}
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
               ยกเลิก
             </Button>
             <Button 
               onClick={handlePayment}
-              className="flex-1 h-16 text-lg font-bold bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all rounded-2xl"
+              className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all rounded-xl"
               disabled={isProcessing || !cartItems || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
