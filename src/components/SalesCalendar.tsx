@@ -153,11 +153,11 @@ export const SalesCalendar = () => {
         ) : (
           <div className="space-y-2">
             {/* Day names header */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+            <div className="grid grid-cols-7 gap-1 mb-1">
               {dayNames.map((day) => (
                 <div
                   key={day}
-                  className="text-center font-semibold text-sm py-2 text-muted-foreground"
+                  className="text-center font-semibold text-xs py-1 text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -165,7 +165,7 @@ export const SalesCalendar = () => {
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
                 if (day === null) {
                   return <div key={`empty-${index}`} className="aspect-square" />;
@@ -179,8 +179,8 @@ export const SalesCalendar = () => {
                   <div
                     key={day}
                     className={`
-                      aspect-square rounded-lg border transition-all hover:scale-105 hover:shadow-md
-                      ${isToday(day) ? 'ring-2 ring-primary ring-offset-2' : ''}
+                      aspect-square rounded-md border transition-all hover:scale-105 hover:shadow-md
+                      ${isToday(day) ? 'ring-2 ring-primary ring-offset-1' : ''}
                       ${hasSales ? 'cursor-pointer' : 'bg-muted/30'}
                     `}
                     style={{
@@ -194,9 +194,9 @@ export const SalesCalendar = () => {
                         : 'ไม่มียอดขาย'
                     }
                   >
-                    <div className="h-full flex flex-col items-center justify-center p-1">
+                    <div className="h-full flex flex-col items-center justify-center p-0.5">
                       <span
-                        className={`text-sm font-medium ${
+                        className={`text-xs font-medium ${
                           hasSales ? 'text-primary-foreground' : 'text-muted-foreground'
                         } ${isToday(day) ? 'font-bold' : ''}`}
                       >
@@ -204,12 +204,12 @@ export const SalesCalendar = () => {
                       </span>
                       {hasSales && (
                         <div className="text-center mt-0.5">
-                          <div className="text-[10px] font-bold text-primary-foreground leading-tight">
+                          <div className="text-xs font-bold text-primary-foreground leading-tight">
                             ฿{salesData.sales >= 1000
                               ? `${(salesData.sales / 1000).toFixed(1)}k`
                               : salesData.sales.toFixed(0)}
                           </div>
-                          <div className="text-[9px] text-primary-foreground/80">
+                          <div className="text-[10px] text-primary-foreground/90 font-medium">
                             {salesData.orders} ออเดอร์
                           </div>
                         </div>
