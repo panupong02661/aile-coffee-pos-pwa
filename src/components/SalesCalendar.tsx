@@ -187,7 +187,7 @@ export const SalesCalendar = () => {
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
                 if (day === null) {
-                  return <div key={`empty-${index}`} className="aspect-square" />;
+                  return <div key={`empty-${index}`} className="h-16 w-full" />;
                 }
 
                 const salesData = getSalesForDay(day);
