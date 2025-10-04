@@ -170,9 +170,9 @@ export const SalesCalendar = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-1">
             {/* Day names header */}
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 gap-1">
               {dayNames.map((day) => (
                 <div
                   key={day}
