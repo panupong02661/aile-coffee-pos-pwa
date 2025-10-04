@@ -628,126 +628,159 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[92vh] overflow-y-auto">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <CreditCard className="w-5 h-5" />
+      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[92vh] overflow-y-auto rounded-3xl">
+        <DialogHeader className="pb-3">
+          <DialogTitle className="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <div className="bg-gradient-to-br from-primary to-primary/70 p-2 rounded-xl">
+              <CreditCard className="w-6 h-6 text-white" />
+            </div>
             ชำระเงิน
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {/* Order Summary - Reduced padding */}
-          <div className="bg-gray-50 p-2 rounded-lg">
+        <div className="space-y-4">
+          {/* Order Summary - Enhanced with gradient */}
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 rounded-2xl border-2 border-primary/20 shadow-sm">
             <div className="flex justify-between items-center text-lg font-semibold">
-              <span>ยอดชำระ:</span>
-              <span className="text-green-600">฿{total.toLocaleString()}</span>
+              <span className="text-foreground">ยอดชำระ:</span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                ฿{total.toLocaleString()}
+              </span>
             </div>
             {selectedMember && (
-              <div className="mt-1 text-sm text-gray-600">
-                {selectedMember.name} ({selectedMember.phone})
-                <div className="text-blue-600">
-                  {getTierDisplayName(selectedMember.tier)} | {selectedMember.points.toLocaleString()} แต้ม
+              <div className="mt-2 text-sm">
+                <div className="font-medium text-foreground">{selectedMember.name} ({selectedMember.phone})</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-xs font-medium">
+                    {getTierDisplayName(selectedMember.tier)}
+                  </span>
+                  <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-xs font-medium">
+                    {selectedMember.points.toLocaleString()} แต้ม
+                  </span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Order Type Selection */}
+          {/* Order Type Selection - Enhanced with colorful buttons */}
           <div>
-            <Label className="text-sm font-medium mb-1 block">ประเภทการสั่ง</Label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <Label className="text-base font-semibold mb-2 block text-foreground">ประเภทการสั่ง</Label>
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setOrderType('dine_in')}
-                className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'dine_in'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300'
+                    ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-md scale-105'
+                    : 'border-border bg-card hover:border-orange-300'
                 }`}
               >
-                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg className={`w-7 h-7 mb-1 ${orderType === 'dine_in' ? 'text-orange-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                   <path d="M3 9h18M9 21V9"/>
                 </svg>
-                <span className="text-xs font-medium">ทานที่ร้าน</span>
+                <span className={`text-xs font-semibold ${orderType === 'dine_in' ? 'text-orange-700' : 'text-muted-foreground'}`}>ทานที่ร้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('takeaway')}
-                className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'takeaway'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300'
+                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md scale-105'
+                    : 'border-border bg-card hover:border-blue-300'
                 }`}
               >
-                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg className={`w-7 h-7 mb-1 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                   <path d="M9 22V12h6v10"/>
                 </svg>
-                <span className="text-xs font-medium">นำกลับบ้าน</span>
+                <span className={`text-xs font-semibold ${orderType === 'takeaway' ? 'text-blue-700' : 'text-muted-foreground'}`}>นำกลับบ้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('delivery')}
-                className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
                   orderType === 'delivery'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300'
+                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md scale-105'
+                    : 'border-border bg-card hover:border-purple-300'
                 }`}
               >
-                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg className={`w-7 h-7 mb-1 ${orderType === 'delivery' ? 'text-purple-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="1" y="3" width="15" height="13" rx="2"/>
                   <path d="M16 8h5l3 3v5h-2m-4 0H3M7 19a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4z"/>
                 </svg>
-                <span className="text-xs font-medium">จัดส่ง</span>
+                <span className={`text-xs font-semibold ${orderType === 'delivery' ? 'text-purple-700' : 'text-muted-foreground'}`}>จัดส่ง</span>
               </button>
             </div>
           </div>
 
-          {/* Payment Method Selection - Larger buttons */}
+          {/* Payment Method Selection - Enhanced with colorful cards */}
           <div>
-            <Label className="text-base font-medium">วิธีการชำระเงิน</Label>
+            <Label className="text-base font-semibold mb-2 block text-foreground">วิธีการชำระเงิน</Label>
             <RadioGroup 
               value={paymentMethod} 
               onValueChange={handleMethodChange}
               className="mt-1"
             >
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+              <div className="grid grid-cols-2 gap-3">
+                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                  paymentMethod === 'cash' 
+                    ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md' 
+                    : 'border-border bg-card hover:border-emerald-300'
+                }`}>
                   <RadioGroupItem value="cash" id="cash" className="w-5 h-5" />
-                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
-                    <DollarSign className="w-5 h-5" />
-                    เงินสด
+                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
+                    <div className={`p-2 rounded-xl ${paymentMethod === 'cash' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <span className={paymentMethod === 'cash' ? 'text-emerald-700' : 'text-foreground'}>เงินสด</span>
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                  paymentMethod === 'qr' 
+                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md' 
+                    : 'border-border bg-card hover:border-blue-300'
+                }`}>
                   <RadioGroupItem value="qr" id="qr" className="w-5 h-5" />
-                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
-                    <CreditCard className="w-5 h-5" />
-                    QR Code
+                  <Label htmlFor="qr" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
+                    <div className={`p-2 rounded-xl ${paymentMethod === 'qr' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <span className={paymentMethod === 'qr' ? 'text-blue-700' : 'text-foreground'}>QR Code</span>
                   </Label>
                 </div>
 
                 {/* Only show points payment option when a customer is selected */}
                 {selectedMember && (
-                  <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                  <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                    paymentMethod === 'points' 
+                      ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md' 
+                      : 'border-border bg-card hover:border-purple-300'
+                  }`}>
                     <RadioGroupItem value="points" id="points" className="w-5 h-5" />
-                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
-                      <Gift className="w-5 h-5" />
-                      แต้มสะสม
+                    <Label htmlFor="points" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
+                      <div className={`p-2 rounded-xl ${paymentMethod === 'points' ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Gift className="w-5 h-5" />
+                      </div>
+                      <span className={paymentMethod === 'points' ? 'text-purple-700' : 'text-foreground'}>แต้มสะสม</span>
                     </Label>
                   </div>
                 )}
 
-                <div className="flex items-center space-x-2 p-4 border rounded hover:bg-gray-50">
+                <div className={`flex items-center space-x-3 p-4 border-2 rounded-2xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                  paymentMethod === 'promptpay' 
+                    ? 'border-pink-500 bg-gradient-to-br from-pink-50 to-pink-100 shadow-md' 
+                    : 'border-border bg-card hover:border-pink-300'
+                }`}>
                   <RadioGroupItem value="promptpay" id="promptpay" className="w-5 h-5" />
-                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-base">
-                    <QrCode className="w-5 h-5" />
-                    PromptPay
+                  <Label htmlFor="promptpay" className="flex items-center gap-2 cursor-pointer flex-1 text-base font-semibold">
+                    <div className={`p-2 rounded-xl ${paymentMethod === 'promptpay' ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <QrCode className="w-5 h-5" />
+                    </div>
+                    <span className={paymentMethod === 'promptpay' ? 'text-pink-700' : 'text-foreground'}>PromptPay</span>
                   </Label>
                 </div>
               </div>
@@ -770,35 +803,42 @@ const PaymentModal = ({
                 />
               </div>
 
-              {/* Banknote Buttons - Larger size */}
+              {/* Banknote Buttons - Colorful enhanced buttons */}
               <div>
-                <Label className="text-sm font-medium text-gray-700 mb-1 block">ธนบัตร</Label>
-                <div className="grid grid-cols-5 gap-2 mb-2">
-                  {banknotes.map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      onClick={() => handleBanknoteClick(amount)}
-                      className="h-12 text-base font-medium"
-                    >
-                      ฿{amount}
-                    </Button>
-                  ))}
+                <Label className="text-base font-semibold mb-2 block text-foreground">ธนบัตร</Label>
+                <div className="grid grid-cols-5 gap-2 mb-3">
+                  {banknotes.map((amount, index) => {
+                    const colors = [
+                      'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
+                      'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
+                      'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
+                      'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700',
+                      'from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700'
+                    ];
+                    return (
+                      <Button
+                        key={amount}
+                        onClick={() => handleBanknoteClick(amount)}
+                        className={`h-14 text-base font-bold bg-gradient-to-br ${colors[index]} text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl`}
+                      >
+                        ฿{amount}
+                      </Button>
+                    );
+                  })}
                 </div>
                 
                 {/* Exact Payment and Change display */}
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
-                    variant="outline"
                     onClick={handleExactPayment}
-                    className="flex-1 h-12 text-base font-medium border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700"
+                    className="flex-1 h-14 text-base font-bold bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>
                   
                   {change > 0 && (
-                    <div className="flex-1 flex items-center justify-center p-2 bg-blue-50 rounded border">
-                      <span className="text-blue-700 font-medium text-base">
+                    <div className="flex-1 flex items-center justify-center p-3 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 shadow-sm">
+                      <span className="text-cyan-700 font-bold text-base">
                         เงินทอน: ฿{change.toLocaleString()}
                       </span>
                     </div>
@@ -825,34 +865,34 @@ const PaymentModal = ({
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="p-2 bg-purple-50 rounded border">
-                  <div className="text-sm text-purple-700 space-y-1">
-                    <div className="font-medium text-purple-800 text-base">
+              <div className="space-y-3">
+                <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-50 to-pink-50 rounded-2xl border-2 border-purple-300 shadow-sm">
+                  <div className="text-sm space-y-2">
+                    <div className="font-bold text-purple-900 text-lg flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
                       สมาชิกระดับ{getTierDisplayName(selectedMember.tier)}
                     </div>
-                    <div>แต้มที่มี: {selectedMember.points.toLocaleString()} แต้ม</div>
-                    <div className="font-medium">
+                    <div className="text-purple-700 font-medium">แต้มที่มี: {selectedMember.points.toLocaleString()} แต้ม</div>
+                    <div className="font-semibold text-purple-800 bg-white/50 p-2 rounded-xl">
                       อัตราแลกแต้ม: {currentTierSettings.points_to_redeem} แต้ม = ฿{currentTierSettings.redeem_value}
                     </div>
-                    <div>ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม = ฿{currentTierSettings.redeem_value}</div>
-                    <div>สามารถใช้ได้สูงสุด: {getMaximumPoints().toLocaleString()} แต้ม</div>
+                    <div className="text-purple-700">ขั้นต่ำการแลก: {getMinimumPoints()} แต้ม = ฿{currentTierSettings.redeem_value}</div>
+                    <div className="text-purple-700">สามารถใช้ได้สูงสุด: {getMaximumPoints().toLocaleString()} แต้ม</div>
                     {pointsToUse && (
                       <>
-                        <div className="font-medium text-purple-800">แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{pointsValue.toLocaleString()}</div>
+                        <div className="font-bold text-purple-900 bg-white/70 p-2 rounded-xl">แต้มที่ใช้: {parseInt(pointsToUse).toLocaleString()} แต้ม = ฿{pointsValue.toLocaleString()}</div>
                         {remainingAmount > 0 && (
-                          <div className="text-orange-700 font-medium">ยอดคงเหลือ: ฿{remainingAmount.toLocaleString()}</div>
+                          <div className="text-orange-700 font-bold bg-orange-100 p-2 rounded-xl">ยอดคงเหลือ: ฿{remainingAmount.toLocaleString()}</div>
                         )}
-                        <div>แต้มคงเหลือ: {(selectedMember.points - parseInt(pointsToUse)).toLocaleString()} แต้ม</div>
+                        <div className="text-purple-700">แต้มคงเหลือ: {(selectedMember.points - parseInt(pointsToUse)).toLocaleString()} แต้ม</div>
                       </>
                     )}
                   </div>
                 </div>
 
                 <Button
-                  variant="outline"
                   onClick={handleUseAllPoints}
-                  className="w-full h-12 text-base border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                  className="w-full h-14 text-base font-bold bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl"
                 >
                   ใช้แต้มสูงสุด ({getMaximumPoints().toLocaleString()} แต้ม)
                 </Button>
@@ -860,14 +900,14 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* QR Code Payment Info - Reduced padding */}
+          {/* QR Code Payment Info - Enhanced design */}
           {paymentMethod === 'qr' && (
-            <div className="space-y-1">
-              <div className="p-2 bg-blue-50 rounded border text-center">
-                <div className="text-base text-blue-700">
+            <div className="space-y-2">
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-300 text-center shadow-sm">
+                <div className="text-base text-blue-700 font-semibold">
                   แสดง QR Code สำหรับการชำระเงิน
                 </div>
-                <div className="text-xl font-semibold text-blue-800 mt-1">
+                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mt-2">
                   ฿{total.toLocaleString()}
                 </div>
               </div>
@@ -897,12 +937,11 @@ const PaymentModal = ({
 
           <Separator />
 
-          {/* Action Buttons - Larger size */}
-          <div className="flex gap-3">
+          {/* Action Buttons - Enhanced with gradients */}
+          <div className="flex gap-4 pt-2">
             <Button 
-              variant="outline" 
               onClick={onClose}
-              className="flex-1 h-14 text-lg"
+              className="flex-1 h-16 text-lg font-bold bg-gradient-to-br from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-2xl"
               disabled={isProcessing}
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -910,7 +949,7 @@ const PaymentModal = ({
             </Button>
             <Button 
               onClick={handlePayment}
-              className="flex-1 h-14 text-lg bg-green-600 hover:bg-green-700"
+              className="flex-1 h-16 text-lg font-bold bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all rounded-2xl"
               disabled={isProcessing || !cartItems || cartItems.length === 0}
             >
               {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
