@@ -75,7 +75,7 @@ const MembershipSettings = () => {
           minimum_spend_for_upgrade: settingToUpdate.minimum_spend_for_upgrade,
           updated_at: new Date().toISOString()
         })
-        .eq('tier', tier)
+        .eq('id', settingToUpdate.id)
         .select();
 
       if (error) {
@@ -93,6 +93,10 @@ const MembershipSettings = () => {
         title: 'สำเร็จ', 
         description: `บันทึกการตั้งค่าระดับ ${getTierName(tier)} เรียบร้อยแล้ว - ค่าใหม่จะถูกใช้ในระบบทันที` 
       });
+
+      // อัปเดตสถานะในหน้าแบบ optimistic เพื่อไม่ให้ค่าดีดกลับระหว่างโหลด
+      setSettings(prev => prev.map(s => s.id === settingToUpdate.id ? { ...s, ...settingToUpdate } : s));
+      setEditingSettings(prev => ({ ...prev, [tier]: { ...settingToUpdate } }));
       
       // โหลดข้อมูลใหม่เพื่อแสดงค่าที่บันทึกแล้ว
       await fetchSettings();
