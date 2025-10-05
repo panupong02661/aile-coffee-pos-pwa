@@ -616,21 +616,24 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         .order('tier');
 
       if (error) {
-        console.warn('Failed to load membership settings, using defaults:', error);
+        console.warn('[OnlineShop] Failed to load membership settings, using defaults:', error);
+        // ใช้ค่า fallback ที่ตรงกับฐานข้อมูล
         setMembershipSettings([
-          { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
-          { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
-          { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+          { tier: 'silver', points_to_redeem: 110, redeem_value: 10, points_per_baht: 1.2, discount_percentage: 5, minimum_spend_for_upgrade: 0 },
+          { tier: 'gold', points_to_redeem: 80, redeem_value: 10, points_per_baht: 1.5, discount_percentage: 10, minimum_spend_for_upgrade: 5000 },
+          { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2, discount_percentage: 15, minimum_spend_for_upgrade: 15000 }
         ]);
       } else {
+        console.log('[OnlineShop] Loaded membership settings from database:', data);
         setMembershipSettings(data);
       }
     } catch (error) {
-      console.warn('Error loading membership settings, using defaults:', error);
+      console.warn('[OnlineShop] Error loading membership settings, using defaults:', error);
+      // ใช้ค่า fallback ที่ตรงกับฐานข้อมูล
       setMembershipSettings([
-        { tier: 'silver', points_to_redeem: 100, redeem_value: 10, points_per_baht: 1 },
-        { tier: 'gold', points_to_redeem: 80, redeem_value: 15, points_per_baht: 1.5 },
-        { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2 }
+        { tier: 'silver', points_to_redeem: 110, redeem_value: 10, points_per_baht: 1.2, discount_percentage: 5, minimum_spend_for_upgrade: 0 },
+        { tier: 'gold', points_to_redeem: 80, redeem_value: 10, points_per_baht: 1.5, discount_percentage: 10, minimum_spend_for_upgrade: 5000 },
+        { tier: 'platinum', points_to_redeem: 60, redeem_value: 20, points_per_baht: 2, discount_percentage: 15, minimum_spend_for_upgrade: 15000 }
       ]);
     }
   };

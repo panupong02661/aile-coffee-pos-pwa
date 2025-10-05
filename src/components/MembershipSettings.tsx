@@ -63,7 +63,9 @@ const MembershipSettings = () => {
     try {
       const settingToUpdate = editingSettings[tier];
       
-      const { error } = await supabase
+      console.log('Saving membership settings:', { tier, settingToUpdate });
+      
+      const { data, error } = await supabase
         .from('membership_settings')
         .update({
           discount_percentage: settingToUpdate.discount_percentage,
@@ -71,18 +73,36 @@ const MembershipSettings = () => {
           points_to_redeem: settingToUpdate.points_to_redeem,
           redeem_value: settingToUpdate.redeem_value,
           minimum_spend_for_upgrade: settingToUpdate.minimum_spend_for_upgrade,
+          updated_at: new Date().toISOString()
         })
-        .eq('tier', tier);
+        .eq('tier', tier)
+        .select();
 
       if (error) {
-        toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถบันทึกการตั้งค่าได้', variant: 'destructive' });
+        console.error('Error saving membership settings:', error);
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: `ไม่สามารถบันทึกการตั้งค่าได้: ${error.message}`, 
+          variant: 'destructive' 
+        });
         return;
       }
 
-      toast({ title: 'สำเร็จ', description: `บันทึกการตั้งค่าระดับ ${getTierName(tier)} เรียบร้อยแล้ว` });
-      fetchSettings();
-    } catch (error) {
-      toast({ title: 'ข้อผิดพลาด', description: 'เกิดข้อผิดพลาดที่ไม่คาดคิด', variant: 'destructive' });
+      console.log('Membership settings saved successfully:', data);
+      toast({ 
+        title: 'สำเร็จ', 
+        description: `บันทึกการตั้งค่าระดับ ${getTierName(tier)} เรียบร้อยแล้ว - ค่าใหม่จะถูกใช้ในระบบทันที` 
+      });
+      
+      // โหลดข้อมูลใหม่เพื่อแสดงค่าที่บันทึกแล้ว
+      await fetchSettings();
+    } catch (error: any) {
+      console.error('Unexpected error saving membership settings:', error);
+      toast({ 
+        title: 'ข้อผิดพลาด', 
+        description: `เกิดข้อผิดพลาด: ${error.message}`, 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }
