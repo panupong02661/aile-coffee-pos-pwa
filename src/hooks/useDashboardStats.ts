@@ -148,13 +148,16 @@ export const useDashboardStats = () => {
 
   const fetchHourlyData = async () => {
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const nowBangkok = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+      const todayBangkok = new Date(nowBangkok);
+      todayBangkok.setHours(0, 0, 0, 0);
+      
+      const startOfDayUTC = new Date(todayBangkok.getTime() - (7 * 60 * 60 * 1000)).toISOString();
       
       const { data, error } = await supabase
         .from('orders')
         .select('created_at, total_amount, bill_discount')
-        .gte('created_at', startOfDay.toISOString())
+        .gte('created_at', startOfDayUTC)
         .order('created_at');
 
       if (error) throw error;
@@ -168,7 +171,8 @@ export const useDashboardStats = () => {
       }
 
       data?.forEach(order => {
-        const hour = new Date(order.created_at).getHours().toString().padStart(2, '0') + ':00';
+        const bangkokTime = new Date(new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const hour = bangkokTime.getHours().toString().padStart(2, '0') + ':00';
         const existing = hourlyMap.get(hour);
         if (existing) {
           existing.sales += Number(order.total_amount) || 0;
@@ -200,7 +204,8 @@ export const useDashboardStats = () => {
       const dailyMap = new Map();
 
       data?.forEach(order => {
-        const date = new Date(order.created_at).toISOString().split('T')[0];
+        const bangkokTime = new Date(new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const date = bangkokTime.toISOString().split('T')[0];
         const existing = dailyMap.get(date) || { date, sales: 0, orders: 0, discount: 0, net_sales: 0 };
         
         const totalAmount = Number(order.total_amount) || 0;
@@ -237,8 +242,8 @@ export const useDashboardStats = () => {
       const monthlyMap = new Map();
 
       data?.forEach(order => {
-        const date = new Date(order.created_at);
-        const month = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        const bangkokTime = new Date(new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const month = `${bangkokTime.getFullYear()}-${(bangkokTime.getMonth() + 1).toString().padStart(2, '0')}`;
         const existing = monthlyMap.get(month) || { month, sales: 0, orders: 0, discount: 0, net_sales: 0 };
         
         const totalAmount = Number(order.total_amount) || 0;
@@ -302,58 +307,75 @@ export const useDashboardStats = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-      const lastMonthDate = new Date(now);
-      lastMonthDate.setMonth(now.getMonth() - 1);
+      // Use Bangkok timezone for all date calculations
+      const nowBangkok = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+      const today = nowBangkok.toISOString().split('T')[0];
+      
+      const yesterdayBangkok = new Date(nowBangkok);
+      yesterdayBangkok.setDate(yesterdayBangkok.getDate() - 1);
+      const yesterday = yesterdayBangkok.toISOString().split('T')[0];
+      
+      const thisMonth = nowBangkok.getFullYear() + '-' + String(nowBangkok.getMonth() + 1).padStart(2, '0');
+      
+      const lastMonthDate = new Date(nowBangkok);
+      lastMonthDate.setMonth(nowBangkok.getMonth() - 1);
       const lastMonth = lastMonthDate.getFullYear() + '-' + String(lastMonthDate.getMonth() + 1).padStart(2, '0');
 
-      // 7-day windows
-      const this7Start = new Date(now);
-      this7Start.setDate(now.getDate() - 6);
+      // 7-day windows using Bangkok timezone
+      const this7Start = new Date(nowBangkok);
+      this7Start.setDate(nowBangkok.getDate() - 6);
       this7Start.setHours(0,0,0,0);
-      const prev7Start = new Date(now);
-      prev7Start.setDate(now.getDate() - 13);
+      const prev7Start = new Date(nowBangkok);
+      prev7Start.setDate(nowBangkok.getDate() - 13);
       prev7Start.setHours(0,0,0,0);
-      const prev7End = new Date(now);
-      prev7End.setDate(now.getDate() - 7);
+      const prev7End = new Date(nowBangkok);
+      prev7End.setDate(nowBangkok.getDate() - 7);
       prev7End.setHours(23,59,59,999);
       
-      // Today's stats
+      // Today's stats - convert Bangkok time to UTC for query
+      const todayStartUTC = new Date(today + 'T00:00:00+07:00').toISOString();
+      const todayEndUTC = new Date(today + 'T23:59:59+07:00').toISOString();
+      
       const { data: todayOrders } = await supabase
         .from('orders')
         .select('total_amount, bill_discount, payment_method, member_id, created_at')
-        .gte('created_at', today + 'T00:00:00')
-        .lt('created_at', today + 'T23:59:59');
+        .gte('created_at', todayStartUTC)
+        .lte('created_at', todayEndUTC);
 
       // Yesterday's stats for comparison
+      const yesterdayStartUTC = new Date(yesterday + 'T00:00:00+07:00').toISOString();
+      const yesterdayEndUTC = new Date(yesterday + 'T23:59:59+07:00').toISOString();
+      
       const { data: yesterdayOrders } = await supabase
         .from('orders')
         .select('total_amount, bill_discount')
-        .gte('created_at', yesterday + 'T00:00:00')
-        .lt('created_at', yesterday + 'T23:59:59');
+        .gte('created_at', yesterdayStartUTC)
+        .lte('created_at', yesterdayEndUTC);
 
       // This month's stats
+      const monthStartUTC = new Date(thisMonth + '-01T00:00:00+07:00').toISOString();
+      
       const { data: monthOrders } = await supabase
         .from('orders')
         .select('total_amount, bill_discount, member_id')
-        .gte('created_at', thisMonth + '-01T00:00:00');
+        .gte('created_at', monthStartUTC);
 
       // Last month's stats for comparison
+      const lastMonthStartUTC = new Date(lastMonth + '-01T00:00:00+07:00').toISOString();
+      const thisMonthStartUTC = new Date(thisMonth + '-01T00:00:00+07:00').toISOString();
+      
       const { data: lastMonthOrders } = await supabase
         .from('orders')
         .select('total_amount, bill_discount')
-        .gte('created_at', lastMonth + '-01T00:00:00')
-        .lt('created_at', thisMonth + '-01T00:00:00');
+        .gte('created_at', lastMonthStartUTC)
+        .lt('created_at', thisMonthStartUTC);
 
       // 7-day comparisons
       const { data: this7Orders } = await supabase
         .from('orders')
         .select('total_amount')
         .gte('created_at', this7Start.toISOString())
-        .lte('created_at', now.toISOString());
+        .lte('created_at', nowBangkok.toISOString());
 
       const { data: prev7Orders } = await supabase
         .from('orders')
@@ -369,13 +391,13 @@ export const useDashboardStats = () => {
       const { data: todayMembers } = await supabase
         .from('members')
         .select('id')
-        .gte('created_at', today + 'T00:00:00')
-        .lt('created_at', today + 'T23:59:59');
+        .gte('created_at', todayStartUTC)
+        .lte('created_at', todayEndUTC);
 
       const { data: monthMembers } = await supabase
         .from('members')
         .select('id')
-        .gte('created_at', thisMonth + '-01T00:00:00');
+        .gte('created_at', monthStartUTC);
 
       // Top products from order items (month-to-date)
       const { data: orderItems } = await supabase
@@ -387,13 +409,13 @@ export const useDashboardStats = () => {
           total_price,
           orders!inner(created_at)
         `)
-        .gte('orders.created_at', thisMonth + '-01T00:00:00');
+        .gte('orders.created_at', monthStartUTC);
 
       // Promotions usage (month-to-date)
       const { data: promoClaims } = await supabase
         .from('customer_promotion_claims')
         .select('promotion_id, claimed_at, is_used, used_at')
-        .gte('claimed_at', thisMonth + '-01T00:00:00');
+        .gte('claimed_at', monthStartUTC);
 
       const { data: promotions } = await supabase
         .from('limited_promotions')
@@ -442,9 +464,10 @@ export const useDashboardStats = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5);
 
-      // Peak hours analysis (top 3 by orders)
+      // Peak hours analysis (top 3 by orders) - using Bangkok timezone
       const hourlyOrders = todayOrders?.reduce((acc: any, order) => {
-        const hour = new Date(order.created_at).getHours();
+        const bangkokTime = new Date(new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const hour = bangkokTime.getHours();
         if (!acc[hour]) {
           acc[hour] = { orders: 0, revenue: 0 };
         }
