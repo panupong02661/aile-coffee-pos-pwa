@@ -6,7 +6,7 @@ import Cart from '@/components/Cart';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
-import DebugCodeChecker from '@/components/DebugCodeChecker';
+
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
@@ -50,7 +50,6 @@ const Index = () => {
   const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
-  const [showDebug, setShowDebug] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const {
@@ -253,10 +252,6 @@ const Index = () => {
   };
 
   const handlePaymentComplete = async () => {
-    // เล่นเสียงแจ้งเตือนเมื่อยืนยันการสั่งซื้อ
-    console.log('🔔 Playing notification sound for order confirmation...');
-    await playBellSound();
-    
     // อัปเดตสถานะโค้ดเป็น "ใช้แล้ว" เมื่อชำระเงินสำเร็จแล้วเท่านั้น
     if (appliedGiftCode) {
       try {
@@ -445,8 +440,6 @@ const Index = () => {
         />
       )}
 
-      {/* Debug Code Checker */}
-      {showDebug && <DebugCodeChecker />}
     </div>
   );
 };
