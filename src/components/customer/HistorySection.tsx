@@ -49,6 +49,32 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
     }
   }, [currentUser]);
 
+  // Real-time subscription for new orders
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase
+      .channel('order-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('New order detected:', payload);
+          // Refetch orders when a new one is inserted
+          fetchOrderHistory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
+
   const fetchOrderHistory = async () => {
     setLoading(true);
     try {
