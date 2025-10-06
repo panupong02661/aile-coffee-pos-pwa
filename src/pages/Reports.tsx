@@ -29,6 +29,18 @@ const Reports = () => {
   };
 
   const downloadDailyReport = () => {
+    console.log('📊 Attempting to download daily report');
+    console.log('Daily data:', dailyData);
+    
+    if (!dailyData || dailyData.length === 0) {
+      toast({
+        title: 'ไม่มีข้อมูล',
+        description: 'ไม่มีข้อมูลรายงานรายวันให้ดาวน์โหลด',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const worksheet = XLSX.utils.json_to_sheet(
         dailyData.map(item => ({
@@ -44,22 +56,38 @@ const Reports = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานรายวัน');
       
       const fileName = `รายงานยอดขายรายวัน_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+      console.log('📄 Attempting to write file:', fileName);
+      
       XLSX.writeFile(workbook, fileName);
       
+      console.log('✅ File download initiated successfully');
       toast({
         title: 'ดาวน์โหลดสำเร็จ',
         description: 'รายงานยอดขายรายวันถูกดาวน์โหลดแล้ว',
       });
     } catch (error) {
+      console.error('❌ Download error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถดาวน์โหลดรายงานได้',
+        description: `ไม่สามารถดาวน์โหลดรายงานได้: ${error.message}`,
         variant: 'destructive',
       });
     }
   };
 
   const downloadMonthlyReport = () => {
+    console.log('📊 Attempting to download monthly report');
+    console.log('Monthly data:', monthlyData);
+    
+    if (!monthlyData || monthlyData.length === 0) {
+      toast({
+        title: 'ไม่มีข้อมูล',
+        description: 'ไม่มีข้อมูลรายงานรายเดือนให้ดาวน์โหลด',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const worksheet = XLSX.utils.json_to_sheet(
         monthlyData.map(item => ({
@@ -75,16 +103,20 @@ const Reports = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานรายเดือน');
       
       const fileName = `รายงานยอดขายรายเดือน_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+      console.log('📄 Attempting to write file:', fileName);
+      
       XLSX.writeFile(workbook, fileName);
       
+      console.log('✅ File download initiated successfully');
       toast({
         title: 'ดาวน์โหลดสำเร็จ',
         description: 'รายงานยอดขายรายเดือนถูกดาวน์โหลดแล้ว',
       });
     } catch (error) {
+      console.error('❌ Download error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถดาวน์โหลดรายงานได้',
+        description: `ไม่สามารถดาวน์โหลดรายงานได้: ${error.message}`,
         variant: 'destructive',
       });
     }
