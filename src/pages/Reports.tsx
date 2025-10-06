@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
@@ -9,11 +10,15 @@ import AllOrdersList from '@/components/AllOrdersList';
 import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { supabase } from '@/integrations/supabase/client';
+import { Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const Reports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { dailyData, monthlyData, loading, refreshData } = useDashboardStats();
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const { toast } = useToast();
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -21,6 +26,68 @@ const Reports = () => {
 
   const handleCloseSidebar = () => {
     setIsSidebarOpen(false);
+  };
+
+  const downloadDailyReport = () => {
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(
+        dailyData.map(item => ({
+          'วันที่': item.date,
+          'ยอดขายรวม': item.sales,
+          'ส่วนลด': item.discount,
+          'ยอดขายสุทธิ': item.net_sales,
+          'จำนวนบิล': item.orders
+        }))
+      );
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานรายวัน');
+      
+      const fileName = `รายงานยอดขายรายวัน_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      toast({
+        title: 'ดาวน์โหลดสำเร็จ',
+        description: 'รายงานยอดขายรายวันถูกดาวน์โหลดแล้ว',
+      });
+    } catch (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถดาวน์โหลดรายงานได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const downloadMonthlyReport = () => {
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(
+        monthlyData.map(item => ({
+          'เดือน': item.month,
+          'ยอดขายรวม': item.sales,
+          'ส่วนลด': item.discount,
+          'ยอดขายสุทธิ': item.net_sales,
+          'จำนวนบิล': item.orders
+        }))
+      );
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานรายเดือน');
+      
+      const fileName = `รายงานยอดขายรายเดือน_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      toast({
+        title: 'ดาวน์โหลดสำเร็จ',
+        description: 'รายงานยอดขายรายเดือนถูกดาวน์โหลดแล้ว',
+      });
+    } catch (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถดาวน์โหลดรายงานได้',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Auto-refresh data every 30 seconds for real-time updates
@@ -108,8 +175,17 @@ const Reports = () => {
 
             <TabsContent value="daily-sales">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>รายงานยอดขายรายวัน</CardTitle>
+                  <Button 
+                    onClick={downloadDailyReport} 
+                    disabled={loading || dailyData.length === 0}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    ดาวน์โหลด Excel
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
@@ -130,8 +206,17 @@ const Reports = () => {
 
             <TabsContent value="monthly-sales">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>รายงานยอดขายรายเดือน</CardTitle>
+                  <Button 
+                    onClick={downloadMonthlyReport} 
+                    disabled={loading || monthlyData.length === 0}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    ดาวน์โหลด Excel
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
