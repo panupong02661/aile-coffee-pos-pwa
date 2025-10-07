@@ -1099,12 +1099,36 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
         console.log('✅ Points earned');
       }
 
-      // Update currentUser state immediately to reflect new points
-      const updatedUser = {
+      // Update currentUser state with the TRUTH from database (avoid stale UI)
+      let updatedUser = {
         ...currentUser,
         points: newPoints,
         total_spent: newTotalSpent
-      };
+      } as any;
+
+      try {
+        const { data: freshMember } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (freshMember) {
+          updatedUser = {
+            id: freshMember.id,
+            name: freshMember.name,
+            phone: freshMember.phone,
+            email: freshMember.email || '',
+            tier: freshMember.tier,
+            points: freshMember.points,
+            total_spent: freshMember.total_spent,
+            birth_date: freshMember.birth_date,
+            gender: freshMember.gender
+          };
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not refetch member, falling back to computed values');
+      }
       
       // Directly update parent state if provided
       if (typeof setCurrentUser === 'function') {
@@ -1121,7 +1145,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
         
         // Also update localStorage so the new points persist
         localStorage.setItem('customerAuth', JSON.stringify(updatedUser));
-        console.log('✅ Updated currentUser state with new points:', newPoints);
+        console.log('✅ Updated currentUser state with new points:', updatedUser.points);
       }
 
       console.log('🎉 Order completed successfully!');

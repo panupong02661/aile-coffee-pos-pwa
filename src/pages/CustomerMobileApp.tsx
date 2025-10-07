@@ -177,6 +177,32 @@ const CustomerMobileApp: React.FC = () => {
     };
   }, []);
 
+  // Realtime subscription for member updates (points/total_spent)
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const channel = supabase
+      .channel('members-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'members', filter: `id=eq.${currentUser.id}` }, (payload) => {
+        const row: any = payload.new;
+        if (!row) return;
+        const updated: any = {
+          ...(currentUser as any),
+          points: row.points,
+          total_spent: row.total_spent,
+          tier: row.tier ?? (currentUser as any).tier,
+        };
+        setCurrentUser(updated);
+        try { localStorage.setItem('customerAuth', JSON.stringify(updated)); } catch {}
+        console.log('🔄 Realtime member update received:', row);
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [currentUser?.id]);
+
   const loadCustomerData = async (phone: string) => {
     try {
       console.log('Loading customer data for phone:', phone);
