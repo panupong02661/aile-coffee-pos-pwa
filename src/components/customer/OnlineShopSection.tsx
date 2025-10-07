@@ -58,9 +58,10 @@ interface CartItem {
 
 interface OnlineShopSectionProps {
   currentUser: any;
+  setCurrentUser?: (user: any) => void;
 }
 
-const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
+const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionProps) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -1104,6 +1105,11 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         points: newPoints,
         total_spent: newTotalSpent
       };
+      
+      // Directly update parent state if provided
+      if (typeof setCurrentUser === 'function') {
+        setCurrentUser(updatedUser);
+      }
       
       // Update parent component's currentUser via props if possible
       // This will update the points displayed on the member card

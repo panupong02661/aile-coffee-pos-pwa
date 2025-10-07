@@ -672,7 +672,7 @@ const CustomerMobileApp: React.FC = () => {
       case 'coupons':
         return <CouponsSection coupons={[]} />;
       case 'shop':
-        return <ShopSection currentUser={currentUser} />;
+        return <ShopSection currentUser={currentUser} setCurrentUser={setCurrentUser} />;
       case 'history':
         return <HistorySection currentUser={currentUser} />;
       case 'stats':
