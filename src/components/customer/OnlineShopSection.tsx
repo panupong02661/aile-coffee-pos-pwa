@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift, RefreshCw, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Clock, Upload, QrCode, Settings, X, Gift, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
@@ -1428,15 +1428,136 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
               </div>
             )}
 
-            {/* Points Payment Button */}
-            {paymentMethod === 'points' && (
-              <Button 
-                onClick={submitOrder}
-                className="w-full mt-4"
-                disabled={isProcessing || !pickupTime}
-              >
-                {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
-              </Button>
+            {/* Points Payment Section */}
+            {paymentMethod === 'points' && currentUser && (
+              <div className="mt-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200 space-y-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-amber-600" />
+                  ใช้แต้มแลกสินค้า
+                </h3>
+
+                {/* Available Points */}
+                <div className="bg-white rounded-lg p-4 border border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700">แต้มที่มีอยู่:</span>
+                    <span className="text-2xl font-bold text-amber-600">
+                      {currentUser.points.toLocaleString()} แต้ม
+                    </span>
+                  </div>
+                  
+                  {/* Tier info */}
+                  {getCurrentTierSettings() && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 text-sm text-gray-600">
+                      <p>อัตราแลกแต้ม: {getCurrentTierSettings()?.points_to_redeem} แต้ม = {getCurrentTierSettings()?.redeem_value} บาท</p>
+                      <p className="mt-1">ขั้นต่ำในการแลก: {getMinimumPoints()} แต้ม</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Points Input */}
+                <div>
+                  <Label htmlFor="pointsToUse" className="text-base font-medium">
+                    จำนวนแต้มที่ต้องการใช้
+                  </Label>
+                  <Input
+                    id="pointsToUse"
+                    type="number"
+                    placeholder={`ขั้นต่ำ ${getMinimumPoints()} แต้ม`}
+                    value={pointsToUse}
+                    onChange={(e) => setPointsToUse(e.target.value)}
+                    min={getMinimumPoints()}
+                    max={getMaximumPoints()}
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    สามารถใช้ได้สูงสุด {getMaximumPoints().toLocaleString()} แต้ม
+                  </p>
+                </div>
+
+                {/* Points Calculation Display */}
+                {pointsToUse && parseInt(pointsToUse) > 0 && (
+                  <div className="bg-white rounded-lg p-4 border border-amber-200 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">แต้มที่ใช้:</span>
+                      <span className="font-semibold text-amber-700">
+                        {parseInt(pointsToUse).toLocaleString()} แต้ม
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">มูลค่าที่ได้:</span>
+                      <span className="font-semibold text-green-600">
+                        ฿{calculatePointsValue(parseInt(pointsToUse)).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                      <span className="text-gray-700">แต้มคงเหลือ:</span>
+                      <span className="text-xl font-bold text-amber-600">
+                        {(currentUser.points - parseInt(pointsToUse)).toLocaleString()} แต้ม
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t-2 border-gray-300">
+                      <span className="font-semibold text-gray-900">ยอดที่ต้องชำระ:</span>
+                      <span className="text-xl font-bold text-orange-600">
+                        ฿{Math.max(0, getTotalAmount() - calculatePointsValue(parseInt(pointsToUse))).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Messages */}
+                {pointsToUse && parseInt(pointsToUse) > 0 && (
+                  <div>
+                    {parseInt(pointsToUse) < getMinimumPoints() && (
+                      <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-red-700">
+                          <p className="font-semibold">แต้มไม่เพียงพอในการแลก</p>
+                          <p className="mt-1">กรุณาใช้แต้มขั้นต่ำ {getMinimumPoints()} แต้ม</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {parseInt(pointsToUse) > getMaximumPoints() && (
+                      <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-red-700">
+                          <p className="font-semibold">แต้มเกินจำนวนที่มี</p>
+                          <p className="mt-1">คุณมีแต้ม {currentUser.points.toLocaleString()} แต้ม สามารถใช้ได้สูงสุด {getMaximumPoints().toLocaleString()} แต้ม</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {parseInt(pointsToUse) >= getMinimumPoints() && 
+                     parseInt(pointsToUse) <= getMaximumPoints() && (
+                      <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-green-700">
+                          <p className="font-semibold">แต้มใช้ได้!</p>
+                          <p className="mt-1">คุณจะได้รับส่วนลด ฿{calculatePointsValue(parseInt(pointsToUse)).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <Button 
+                  onClick={submitOrder}
+                  className="w-full"
+                  disabled={
+                    isProcessing || 
+                    !pickupTime || 
+                    !pointsToUse || 
+                    parseInt(pointsToUse) < getMinimumPoints() ||
+                    parseInt(pointsToUse) > getMaximumPoints()
+                  }
+                >
+                  {isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการสั่งซื้อ'}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
