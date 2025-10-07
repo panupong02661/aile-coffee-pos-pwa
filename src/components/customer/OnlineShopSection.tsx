@@ -976,18 +976,136 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
     }
 
     setIsProcessing(true);
+    const orderNumber = generateOrderNumber();
     
     try {
-      // Show immediate success message to user
+      console.log('📝 Starting order submission:', orderNumber);
+
+      // Upload receipt first if needed
+      let receiptUrl = null;
+      if (receiptFile) {
+        console.log('📤 Uploading receipt...');
+        receiptUrl = await uploadReceipt(receiptFile);
+        if (!receiptUrl) {
+          throw new Error('ไม่สามารถอัปโหลดสลีปได้');
+        }
+        console.log('✅ Receipt uploaded:', receiptUrl);
+      }
+
+      // Insert order into database
+      console.log('💾 Inserting order to database...');
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          member_id: currentUser.id,
+          total_amount: finalAmount,
+          items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          payment_method: paymentMethod === 'points' ? 'points' : 'online',
+          order_source: 'online',
+          order_type: 'online',
+          receipt_image_url: receiptUrl,
+          pickup_time: pickupTime,
+          customer_notes: customerNotes,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('❌ Order insert error:', orderError);
+        throw orderError;
+      }
+      console.log('✅ Order created:', order.id);
+
+      // Prepare order items for batch insert
+      const orderItemsToInsert = cartItems.map(item => ({
+        order_id: order.id,
+        menu_item_id: item.menu_item.id,
+        menu_item_name: item.menu_item.name,
+        quantity: item.quantity,
+        unit_price: item.menu_item.price,
+        total_price: item.quantity * item.menu_item.price,
+        selected_addons: JSON.parse(JSON.stringify(item.selected_addons || []))
+      }));
+
+      // Save all order items
+      console.log('💾 Inserting order items...', orderItemsToInsert.length, 'items');
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .insert(orderItemsToInsert);
+
+      if (itemError) {
+        console.error('❌ Order items insert error:', itemError);
+        throw itemError;
+      }
+      console.log('✅ Order items saved');
+
+      // Handle points and member updates
+      if (paymentMethod === 'points' && pointsUsed > 0) {
+        console.log('💎 Processing points redemption:', pointsUsed);
+        // Deduct points
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points - pointsUsed,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
+
+        // Log point transaction
+        await supabase
+          .from('point_transactions')
+          .insert({
+            member_id: currentUser.id,
+            points_change: -pointsUsed,
+            transaction_type: 'redeem',
+            description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
+            order_id: order.id
+          });
+        console.log('✅ Points redeemed');
+      } else {
+        // Earn points from purchase
+        const tierSettings = getCurrentTierSettings();
+        const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
+        console.log('💎 Processing points earning:', pointsEarned);
+        
+        await supabase
+          .from('members')
+          .update({
+            points: currentUser.points + pointsEarned,
+            total_spent: currentUser.total_spent + finalAmount
+          })
+          .eq('id', currentUser.id);
+
+        if (pointsEarned > 0) {
+          await supabase
+            .from('point_transactions')
+            .insert({
+              member_id: currentUser.id,
+              points_change: pointsEarned,
+              transaction_type: 'earned',
+              description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
+              order_id: order.id
+            });
+        }
+        console.log('✅ Points earned');
+      }
+
+      console.log('🎉 Order completed successfully!');
+
+      // Show success message
       toast({ 
         title: 'สั่งซื้อสำเร็จ!', 
-        description: 'ขอบคุณสำหรับการสั่งซื้อ ระบบกำลังจัดเตรียมออเดอร์ของคุณ' 
+        description: `หมายเลขออเดอร์: ${orderNumber}` 
       });
 
-      // Reset processing state immediately - don't wait for anything
-      setIsProcessing(false);
+      // Play success notification
+      playOrderSuccessNotification()
+        .then(() => console.log('✅ Notification sound played'))
+        .catch(err => console.log('⚠️ Sound failed:', err));
 
-      // Clear cart and reset UI immediately for better UX
+      // Clear cart and reset UI
       setCartItems([]);
       setReceiptFile(null);
       setQrCodeUrl('');
@@ -995,146 +1113,18 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       setCustomerNotes('');
       setPointsToUse('');
       setShowPayment(false);
-      
-      // 🔔 PLAY NOTIFICATION SOUND IN BACKGROUND - DON'T BLOCK UI
-      console.log('🔔 Playing notification sound in background...');
-      playOrderSuccessNotification()
-        .then(() => console.log('✅ Notification sound played successfully'))
-        .catch(soundError => console.log('⚠️ Notification sound failed:', soundError));
+      setIsProcessing(false);
 
-      // รีเฟรชหน้าเว็บหลังจาก 1.5 วินาที
+      // Show thank you message
       setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+        toast({ 
+          title: '✅ ขอบคุณครับ!', 
+          description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
+        });
+      }, 1000);
 
-      // 📢 SEND NOTIFICATION IMMEDIATELY - Don't wait for database
-      const orderNumber = generateOrderNumber();
-      console.log('📢 Sending immediate order notification for mobile...');
-      
-      // Edge function will be called after the actual order is saved via realtime notifications
-
-      // ASYNC BACKGROUND DATABASE OPERATIONS - Don't block UI
-      setTimeout(async () => {
-        try {
-          let receiptUrl = null;
-          if (receiptFile) {
-            receiptUrl = await uploadReceipt(receiptFile);
-            if (!receiptUrl) {
-              throw new Error('ไม่สามารถอัปโหลดสลีปได้');
-            }
-          }
-
-          const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-              order_number: orderNumber,
-              member_id: currentUser.id,
-              total_amount: finalAmount,
-              items_count: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-              payment_method: paymentMethod === 'points' ? 'points' : 'online',
-              order_source: 'online',
-              receipt_image_url: receiptUrl,
-              pickup_time: pickupTime,
-              customer_notes: customerNotes
-            })
-            .select()
-            .single();
-
-          if (orderError) throw orderError;
-
-          // Prepare order items for batch insert
-          const orderItemsToInsert = cartItems.map(item => ({
-            order_id: order.id,
-            menu_item_id: item.menu_item.id,
-            menu_item_name: item.menu_item.name,
-            quantity: item.quantity,
-            unit_price: item.menu_item.price,
-            total_price: item.quantity * item.menu_item.price,
-            selected_addons: JSON.parse(JSON.stringify(item.selected_addons || []))
-          }));
-
-          // Save all order items at once
-          const { data: orderItems, error: itemError } = await supabase
-            .from('order_items')
-            .insert(orderItemsToInsert)
-            .select();
-
-          if (itemError) throw itemError;
-
-          // Handle points and member updates
-          if (paymentMethod === 'points' && pointsUsed > 0) {
-            // Deduct points
-            await supabase
-              .from('members')
-              .update({
-                points: currentUser.points - pointsUsed,
-                total_spent: currentUser.total_spent + finalAmount
-              })
-              .eq('id', currentUser.id);
-
-            // Log point transaction
-            await supabase
-              .from('point_transactions')
-              .insert({
-                member_id: currentUser.id,
-                points_change: -pointsUsed,
-                transaction_type: 'redeem',
-                description: `ใช้แต้มชำระเงินออนไลน์ #${orderNumber}`,
-                order_id: order.id
-              });
-          } else {
-            // Earn points from purchase
-            const tierSettings = getCurrentTierSettings();
-            const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
-            
-            await supabase
-              .from('members')
-              .update({
-                points: currentUser.points + pointsEarned,
-                total_spent: currentUser.total_spent + finalAmount
-              })
-              .eq('id', currentUser.id);
-
-            if (pointsEarned > 0) {
-              await supabase
-                .from('point_transactions')
-                .insert({
-                  member_id: currentUser.id,
-                  points_change: pointsEarned,
-                  transaction_type: 'earned',
-                  description: `รับแต้มจากการสั่งซื้อออนไลน์ #${orderNumber}`,
-                  order_id: order.id
-                });
-            }
-          }
-
-          // Don't call notification trigger here - the GlobalNotificationProvider will handle it via realtime
-
-          // Show final success message
-          toast({ 
-            title: 'สั่งซื้อสำเร็จ!', 
-            description: `หมายเลขออเดอร์: ${orderNumber}` 
-          });
-
-          setTimeout(() => {
-            toast({ 
-              title: '✅ ขอบคุณครับ!', 
-              description: 'ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณารอรับสินค้าตามเวลาที่กำหนด' 
-            });
-          }, 1000);
-
-        } catch (error: any) {
-          console.error('Background order processing error:', error);
-          toast({ 
-            title: 'ข้อผิดพลาดในการบันทึก', 
-            description: error.message || 'ข้อมูลอาจไม่ได้รับการบันทึก กรุณาติดต่อเจ้าหน้าที่', 
-            variant: 'destructive' 
-          });
-        }
-      }, 100); // Start background process after 100ms
-      
     } catch (error: any) {
-      console.error('Order submission error:', error);
+      console.error('❌ Order submission error:', error);
       toast({ 
         title: 'ข้อผิดพลาด', 
         description: error.message || 'ไม่สามารถสั่งซื้อได้', 
