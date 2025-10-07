@@ -162,6 +162,19 @@ const CustomerMobileApp: React.FC = () => {
     };
 
     initializeApp();
+
+    // Listen for member points updates from child components
+    const handleMemberPointsUpdate = (event: any) => {
+      const updatedUser = event.detail;
+      console.log('📢 Received member points update event:', updatedUser);
+      setCurrentUser(updatedUser);
+    };
+
+    window.addEventListener('memberPointsUpdated', handleMemberPointsUpdate);
+
+    return () => {
+      window.removeEventListener('memberPointsUpdated', handleMemberPointsUpdate);
+    };
   }, []);
 
   const loadCustomerData = async (phone: string) => {

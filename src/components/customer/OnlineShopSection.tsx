@@ -1042,14 +1042,19 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
       console.log('✅ Order items saved');
 
       // Handle points and member updates
+      let newPoints = currentUser.points;
+      let newTotalSpent = currentUser.total_spent + finalAmount;
+
       if (paymentMethod === 'points' && pointsUsed > 0) {
         console.log('💎 Processing points redemption:', pointsUsed);
+        newPoints = currentUser.points - pointsUsed;
+        
         // Deduct points
         await supabase
           .from('members')
           .update({
-            points: currentUser.points - pointsUsed,
-            total_spent: currentUser.total_spent + finalAmount
+            points: newPoints,
+            total_spent: newTotalSpent
           })
           .eq('id', currentUser.id);
 
@@ -1069,12 +1074,13 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
         const tierSettings = getCurrentTierSettings();
         const pointsEarned = Math.floor(finalAmount * (tierSettings?.points_per_baht || 1));
         console.log('💎 Processing points earning:', pointsEarned);
+        newPoints = currentUser.points + pointsEarned;
         
         await supabase
           .from('members')
           .update({
-            points: currentUser.points + pointsEarned,
-            total_spent: currentUser.total_spent + finalAmount
+            points: newPoints,
+            total_spent: newTotalSpent
           })
           .eq('id', currentUser.id);
 
@@ -1090,6 +1096,26 @@ const OnlineShopSection = ({ currentUser }: OnlineShopSectionProps) => {
             });
         }
         console.log('✅ Points earned');
+      }
+
+      // Update currentUser state immediately to reflect new points
+      const updatedUser = {
+        ...currentUser,
+        points: newPoints,
+        total_spent: newTotalSpent
+      };
+      
+      // Update parent component's currentUser via props if possible
+      // This will update the points displayed on the member card
+      if (typeof window !== 'undefined') {
+        // Trigger a custom event to notify parent component
+        window.dispatchEvent(new CustomEvent('memberPointsUpdated', { 
+          detail: updatedUser 
+        }));
+        
+        // Also update localStorage so the new points persist
+        localStorage.setItem('customerAuth', JSON.stringify(updatedUser));
+        console.log('✅ Updated currentUser state with new points:', newPoints);
       }
 
       console.log('🎉 Order completed successfully!');

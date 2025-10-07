@@ -68,15 +68,16 @@ const MembershipSettings = () => {
       const { data, error } = await supabase
         .from('membership_settings')
         .update({
-          discount_percentage: settingToUpdate.discount_percentage,
-          points_per_baht: settingToUpdate.points_per_baht,
-          points_to_redeem: settingToUpdate.points_to_redeem,
-          redeem_value: settingToUpdate.redeem_value,
-          minimum_spend_for_upgrade: settingToUpdate.minimum_spend_for_upgrade,
+          discount_percentage: Number(settingToUpdate.discount_percentage),
+          points_per_baht: Number(settingToUpdate.points_per_baht),
+          points_to_redeem: Number(settingToUpdate.points_to_redeem),
+          redeem_value: Number(settingToUpdate.redeem_value),
+          minimum_spend_for_upgrade: Number(settingToUpdate.minimum_spend_for_upgrade),
           updated_at: new Date().toISOString()
         })
         .eq('id', settingToUpdate.id)
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving membership settings:', error);
@@ -89,17 +90,16 @@ const MembershipSettings = () => {
       }
 
       console.log('Membership settings saved successfully:', data);
+      
+      // อัปเดตข้อมูลในหน้าด้วยค่าที่ได้จากฐานข้อมูล
+      setSettings(prev => prev.map(s => s.id === data.id ? data : s));
+      setEditingSettings(prev => ({ ...prev, [tier]: data }));
+      
       toast({ 
         title: 'สำเร็จ', 
-        description: `บันทึกการตั้งค่าระดับ ${getTierName(tier)} เรียบร้อยแล้ว - ค่าใหม่จะถูกใช้ในระบบทันที` 
+        description: `บันทึกการตั้งค่าระดับ ${getTierName(tier)} เรียบร้อยแล้ว` 
       });
 
-      // อัปเดตสถานะในหน้าแบบ optimistic เพื่อไม่ให้ค่าดีดกลับระหว่างโหลด
-      setSettings(prev => prev.map(s => s.id === settingToUpdate.id ? { ...s, ...settingToUpdate } : s));
-      setEditingSettings(prev => ({ ...prev, [tier]: { ...settingToUpdate } }));
-      
-      // โหลดข้อมูลใหม่เพื่อแสดงค่าที่บันทึกแล้ว
-      await fetchSettings();
     } catch (error: any) {
       console.error('Unexpected error saving membership settings:', error);
       toast({ 
