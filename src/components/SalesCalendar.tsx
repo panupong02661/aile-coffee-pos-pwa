@@ -25,8 +25,18 @@ interface DayOrder {
   member_name?: string;
 }
 
-export const SalesCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+interface SalesCalendarProps {
+  initialMonthOffset?: number;
+}
+
+export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) => {
+  const getInitialDate = () => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + initialMonthOffset);
+    return date;
+  };
+  
+  const [currentDate, setCurrentDate] = useState(getInitialDate());
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -216,7 +226,7 @@ export const SalesCalendar = () => {
   const maxSales = Math.max(...dailySales.map(d => d.sales), 1);
 
   return (
-    <Card className="max-w-4xl">
+    <Card className="w-full">
       <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">ปฏิทินยอดขาย</CardTitle>

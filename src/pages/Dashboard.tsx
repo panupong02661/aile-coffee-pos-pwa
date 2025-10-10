@@ -345,7 +345,8 @@ const Dashboard = () => {
           </div>
 
           {/* Sales Calendar */}
-          <div className="mb-6">
+          <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SalesCalendar initialMonthOffset={-1} />
             <SalesCalendar />
           </div>
 
