@@ -305,7 +305,14 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto pointer-events-auto">
+                  <div 
+                    className="max-h-[300px] overflow-y-auto overflow-x-hidden"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                      touchAction: 'pan-y',
+                      overscrollBehavior: 'contain'
+                    }}
+                  >
                     <div className="p-1 space-y-1">
                       {menuItems.map((menuItem) => (
                         <div
@@ -376,7 +383,14 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto pointer-events-auto">
+                  <div 
+                    className="max-h-[300px] overflow-y-auto overflow-x-hidden"
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                      touchAction: 'pan-y',
+                      overscrollBehavior: 'contain'
+                    }}
+                  >
                     <div className="p-1 space-y-1">
                       {categories.map((category) => (
                         <div
