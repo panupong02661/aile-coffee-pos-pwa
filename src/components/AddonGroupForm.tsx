@@ -305,7 +305,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-[300px] pointer-events-auto">
+                  <div className="max-h-[300px] overflow-y-auto pointer-events-auto">
                     <div className="p-1 space-y-1">
                       {menuItems.map((menuItem) => (
                         <div
@@ -322,7 +322,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
@@ -376,7 +376,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                       </Button>
                     </div>
                   </div>
-                  <ScrollArea className="h-[300px] pointer-events-auto">
+                  <div className="max-h-[300px] overflow-y-auto pointer-events-auto">
                     <div className="p-1 space-y-1">
                       {categories.map((category) => (
                         <div
@@ -393,7 +393,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
