@@ -30,13 +30,11 @@ interface SalesCalendarProps {
 }
 
 export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) => {
-  const getInitialDate = () => {
+  const [currentDate, setCurrentDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + initialMonthOffset);
     return date;
-  };
-  
-  const [currentDate, setCurrentDate] = useState(getInitialDate());
+  });
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
