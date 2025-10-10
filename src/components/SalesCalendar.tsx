@@ -2,8 +2,12 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { Receipt, Calendar as CalendarIcon } from 'lucide-react';
+import OrderDetailsModal from './OrderDetailsModal';
 
 interface DailySales {
   date: string;
@@ -11,10 +15,24 @@ interface DailySales {
   orders: number;
 }
 
+interface DayOrder {
+  id: string;
+  order_number: string;
+  total_amount: number;
+  payment_method: string;
+  created_at: string;
+  member_id?: string;
+  member_name?: string;
+}
+
 export const SalesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dayOrders, setDayOrders] = useState<DayOrder[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -126,6 +144,75 @@ export const SalesCalendar = () => {
            currentYear === today.getFullYear();
   };
 
+  const handleDayClick = async (day: number) => {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const salesData = getSalesForDay(day);
+    
+    if (!salesData || salesData.sales === 0) return;
+    
+    setSelectedDate(dateStr);
+    setLoadingOrders(true);
+    
+    try {
+      const startOfDay = new Date(currentYear, currentMonth, day, 0, 0, 0);
+      const endOfDay = new Date(currentYear, currentMonth, day, 23, 59, 59);
+
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          total_amount,
+          payment_method,
+          created_at,
+          member_id,
+          members (name)
+        `)
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString())
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const ordersWithMember = (orders || []).map(order => ({
+        ...order,
+        member_name: (order as any).members?.name
+      }));
+
+      setDayOrders(ordersWithMember);
+    } catch (error) {
+      console.error('Error fetching day orders:', error);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const closeDayOrdersModal = () => {
+    setSelectedDate(null);
+    setDayOrders([]);
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash': return 'เงินสด';
+      case 'card': return 'บัตรเครดิต';
+      case 'mobile_banking': return 'โมบายแบงก์กิ้ง';
+      case 'points': return 'แต้ม';
+      default: return method;
+    }
+  };
+
+  const getPaymentBadgeColor = (method: string) => {
+    switch (method) {
+      case 'cash': return 'bg-green-100 text-green-800';
+      case 'card': return 'bg-blue-100 text-blue-800';
+      case 'mobile_banking': return 'bg-purple-100 text-purple-800';
+      case 'points': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const maxSales = Math.max(...dailySales.map(d => d.sales), 1);
 
   return (
@@ -197,6 +284,7 @@ export const SalesCalendar = () => {
                 return (
                   <div
                     key={day}
+                    onClick={() => hasSales && handleDayClick(day)}
                     className={`
                       h-16 w-full rounded border transition-all hover:scale-105 hover:shadow-sm
                       ${isToday(day) ? 'ring-2 ring-primary' : ''}
@@ -263,6 +351,102 @@ export const SalesCalendar = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Day Orders Modal */}
+      <Dialog open={selectedDate !== null} onOpenChange={closeDayOrdersModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5" />
+              รายการบิลวันที่ {selectedDate && new Date(selectedDate).toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </DialogTitle>
+          </DialogHeader>
+
+          {loadingOrders ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dayOrders.length > 0 ? (
+                <>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">จำนวนบิล:</span>
+                        <span className="ml-2 font-semibold">{dayOrders.length} บิล</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">ยอดรวม:</span>
+                        <span className="ml-2 font-semibold">
+                          ฿{dayOrders.reduce((sum, order) => sum + order.total_amount, 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">ค่าเฉลี่ย:</span>
+                        <span className="ml-2 font-semibold">
+                          ฿{(dayOrders.reduce((sum, order) => sum + order.total_amount, 0) / dayOrders.length).toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {dayOrders.map((order) => (
+                    <Card
+                      key={order.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => setSelectedOrderId(order.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Receipt className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <div className="font-semibold">{order.order_number}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(order.created_at).toLocaleTimeString('th-TH', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                                {order.member_name && (
+                                  <span className="ml-2">• {order.member_name}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-lg">
+                              ฿{order.total_amount.toLocaleString()}
+                            </div>
+                            <Badge className={getPaymentBadgeColor(order.payment_method)}>
+                              {getPaymentMethodText(order.payment_method)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  ไม่พบรายการบิล
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        isOpen={selectedOrderId !== null}
+        onClose={() => setSelectedOrderId(null)}
+        orderId={selectedOrderId}
+      />
     </Card>
   );
 };
