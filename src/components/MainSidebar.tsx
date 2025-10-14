@@ -136,15 +136,9 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     
     // ระบบรักษาความปลอดภัย & ตรวจสอบ
     { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
-    { id: 'error-tracking', label: 'Error Tracking', icon: AlertTriangle, path: '/error-tracking' },
     { id: 'session-management', label: 'Session Management', icon: UserCheck, path: '/session-management' },
     { id: 'data-backup-monitor', label: 'Data Backup Monitor', icon: HardDrive, path: '/data-backup-monitor' },
-    { id: 'data-backup', label: 'สำรองข้อมูล', icon: HardDrive, path: '/data-backup' },
     { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
-    { id: 'system-logs', label: 'ระบบ Log', icon: FileCheck, path: '/system-logs' },
-    { id: 'usage-logs', label: 'บันทึกการใช้งาน', icon: FileText, path: '/usage-logs' },
-    { id: 'role-access', label: 'Role-based Access', icon: Lock, path: '/role-access' },
-    { id: 'access-control', label: 'จัดการสิทธิ์การเข้าถึง', icon: Shield, path: '/access-control' },
     
     // เมนูเดิมที่เหลือ
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
