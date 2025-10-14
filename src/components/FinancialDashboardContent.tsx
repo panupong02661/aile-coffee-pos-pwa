@@ -35,52 +35,64 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const FinancialDashboardContent = () => {
   const [timeRange, setTimeRange] = useState('30days');
-  const { dashboardStats, loading } = useDashboardStats();
+  const { dashboardStats, loading, monthlyData, dailyData } = useDashboardStats();
 
-  // Mock financial data - replace with real data
+  // Calculate financial data from dashboard stats
+  const estimatedExpenses = dashboardStats.monthSales * 0.58; // Estimate 58% expenses
   const financialSummary = {
-    revenue: 285000,
-    expenses: 165000,
-    profit: 120000,
-    margin: 42.1,
-    tax: 18500,
-    cashFlow: 101500
+    revenue: dashboardStats.monthSales,
+    expenses: estimatedExpenses,
+    profit: dashboardStats.monthNetSales,
+    margin: dashboardStats.monthSales > 0 ? (dashboardStats.monthNetSales / dashboardStats.monthSales * 100) : 0,
+    tax: dashboardStats.monthNetSales * 0.07, // 7% VAT estimate
+    cashFlow: dashboardStats.monthNetSales * 0.85 // Estimate 85% cash flow
   };
 
-  const monthlyFinancials = [
-    { month: 'Jan', revenue: 245000, expenses: 145000, profit: 100000, tax: 15000 },
-    { month: 'Feb', revenue: 265000, expenses: 155000, profit: 110000, tax: 16500 },
-    { month: 'Mar', revenue: 285000, expenses: 165000, profit: 120000, tax: 18000 },
-    { month: 'Apr', revenue: 295000, expenses: 172000, profit: 123000, tax: 18500 },
-    { month: 'May', revenue: 315000, expenses: 185000, profit: 130000, tax: 19500 },
-    { month: 'Jun', revenue: 335000, expenses: 195000, profit: 140000, tax: 21000 }
-  ];
+  // Use monthly data for financial trends
+  const monthlyFinancials = monthlyData.slice(-6).map((data, index) => {
+    const expenses = data.sales * 0.58;
+    const profit = data.sales - expenses;
+    return {
+      month: data.month || `Month ${index + 1}`,
+      revenue: data.sales,
+      expenses: expenses,
+      profit: profit,
+      tax: profit * 0.07
+    };
+  });
 
   const expenseBreakdown = [
-    { category: 'วัตถุดิบ', amount: 85000, percentage: 51.5, color: '#8884d8' },
-    { category: 'เงินเดือนพนักงาน', amount: 45000, percentage: 27.3, color: '#82ca9d' },
-    { category: 'ค่าเช่า', amount: 20000, percentage: 12.1, color: '#ffc658' },
-    { category: 'สาธารณูปโภค', amount: 8000, percentage: 4.8, color: '#ff7300' },
-    { category: 'อื่นๆ', amount: 7000, percentage: 4.2, color: '#00c49f' }
+    { category: 'วัตถุดิบ', amount: estimatedExpenses * 0.515, percentage: 51.5, color: '#8884d8' },
+    { category: 'เงินเดือนพนักงาน', amount: estimatedExpenses * 0.273, percentage: 27.3, color: '#82ca9d' },
+    { category: 'ค่าเช่า', amount: estimatedExpenses * 0.121, percentage: 12.1, color: '#ffc658' },
+    { category: 'สาธารณูปโภค', amount: estimatedExpenses * 0.048, percentage: 4.8, color: '#ff7300' },
+    { category: 'อื่นๆ', amount: estimatedExpenses * 0.042, percentage: 4.2, color: '#00c49f' }
   ];
 
-  const revenueChannels = [
-    { channel: 'POS', amount: 185250, percentage: 65 },
-    { channel: 'Mobile App', amount: 71250, percentage: 25 },
-    { channel: 'Online Orders', amount: 28500, percentage: 10 }
-  ];
+  const revenueChannels = dashboardStats.paymentMethods.map(method => ({
+    channel: method.method === 'cash' ? 'POS' : method.method === 'promptpay' ? 'Mobile App' : 'Online Orders',
+    amount: method.amount,
+    percentage: method.percentage
+  }));
 
-  const cashFlowData = [
-    { week: 'Week 1', inflow: 75000, outflow: 45000, net: 30000 },
-    { week: 'Week 2', inflow: 82000, outflow: 48000, net: 34000 },
-    { week: 'Week 3', inflow: 78000, outflow: 52000, net: 26000 },
-    { week: 'Week 4', inflow: 85000, outflow: 55000, net: 30000 }
-  ];
+  // Calculate weekly cash flow from daily data
+  const weeklyData = dailyData.slice(-28);
+  const cashFlowData = Array.from({ length: 4 }, (_, weekIndex) => {
+    const weekData = weeklyData.slice(weekIndex * 7, (weekIndex + 1) * 7);
+    const inflow = weekData.reduce((sum, day) => sum + day.sales, 0);
+    const outflow = inflow * 0.58;
+    return {
+      week: `Week ${weekIndex + 1}`,
+      inflow: inflow,
+      outflow: outflow,
+      net: inflow - outflow
+    };
+  });
 
   const taxDetails = [
-    { type: 'VAT (7%)', base: 285000, amount: 19950, status: 'pending' },
-    { type: 'Corporate Tax (20%)', base: 120000, amount: 24000, status: 'calculated' },
-    { type: 'Withholding Tax (3%)', base: 45000, amount: 1350, status: 'paid' }
+    { type: 'VAT (7%)', base: financialSummary.revenue, amount: financialSummary.revenue * 0.07, status: 'pending' },
+    { type: 'Corporate Tax (20%)', base: financialSummary.profit, amount: financialSummary.profit * 0.20, status: 'calculated' },
+    { type: 'Withholding Tax (3%)', base: estimatedExpenses * 0.273, amount: estimatedExpenses * 0.273 * 0.03, status: 'paid' }
   ];
 
   if (loading) {
@@ -119,9 +131,11 @@ const FinancialDashboardContent = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿{financialSummary.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">฿{financialSummary.revenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8.2%</span> from last month
+              <span className={dashboardStats.monthSalesGrowthRate >= 0 ? "text-green-600" : "text-red-600"}>
+                {dashboardStats.monthSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.monthSalesGrowthRate.toFixed(1)}%
+              </span> from last month
             </p>
           </CardContent>
         </Card>
@@ -132,10 +146,8 @@ const FinancialDashboardContent = () => {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿{financialSummary.expenses.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-red-600">+6.8%</span> from last month
-            </p>
+            <div className="text-2xl font-bold">฿{financialSummary.expenses.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Estimated expenses</p>
           </CardContent>
         </Card>
 
@@ -145,10 +157,8 @@ const FinancialDashboardContent = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿{financialSummary.profit.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12.5%</span> from last month
-            </p>
+            <div className="text-2xl font-bold">฿{financialSummary.profit.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Net profit this month</p>
           </CardContent>
         </Card>
 
@@ -158,10 +168,8 @@ const FinancialDashboardContent = () => {
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{financialSummary.margin}%</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+1.8%</span> from last month
-            </p>
+            <div className="text-2xl font-bold">{financialSummary.margin.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">Profit margin</p>
           </CardContent>
         </Card>
 
@@ -171,7 +179,7 @@ const FinancialDashboardContent = () => {
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿{financialSummary.tax.toLocaleString()}</div>
+            <div className="text-2xl font-bold">฿{Math.round(financialSummary.tax).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Due next month</p>
           </CardContent>
         </Card>
@@ -182,7 +190,7 @@ const FinancialDashboardContent = () => {
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿{financialSummary.cashFlow.toLocaleString()}</div>
+            <div className="text-2xl font-bold">฿{Math.round(financialSummary.cashFlow).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600">Positive</span> this month
             </p>
@@ -211,7 +219,7 @@ const FinancialDashboardContent = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip formatter={(value) => `₿${value.toLocaleString()}`} />
+                    <Tooltip formatter={(value) => `฿${Math.round(value as number).toLocaleString()}`} />
                     <Legend />
                     <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={3} name="Revenue" />
                     <Line type="monotone" dataKey="expenses" stroke="#82ca9d" strokeWidth={3} name="Expenses" />
@@ -231,9 +239,7 @@ const FinancialDashboardContent = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip formatter={(value, name) => 
-                      name === 'margin' ? `${((value as number) / (monthlyFinancials.find(d => d.month === (value as any))?.revenue || 1) * 100).toFixed(1)}%` : `₿${(value as number).toLocaleString()}`
-                    } />
+                    <Tooltip formatter={(value) => `฿${Math.round(value as number).toLocaleString()}`} />
                     <Area
                       type="monotone"
                       dataKey="profit"
@@ -271,7 +277,7 @@ const FinancialDashboardContent = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `₿${(value as number).toLocaleString()}`} />
+                    <Tooltip formatter={(value) => `฿${Math.round(value as number).toLocaleString()}`} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -292,7 +298,7 @@ const FinancialDashboardContent = () => {
                       <span className="font-medium">{expense.category}</span>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">₿{expense.amount.toLocaleString()}</p>
+                      <p className="font-bold">฿{Math.round(expense.amount).toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">{expense.percentage}%</p>
                     </div>
                   </div>
@@ -316,7 +322,7 @@ const FinancialDashboardContent = () => {
                       <Badge variant="secondary">{channel.percentage}%</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-2xl font-bold">₿{channel.amount.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">฿{Math.round(channel.amount).toLocaleString()}</p>
                       <div className="w-32 bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full"
@@ -342,7 +348,7 @@ const FinancialDashboardContent = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `₿${(value as number).toLocaleString()}`} />
+                  <Tooltip formatter={(value) => `฿${Math.round(value as number).toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="inflow" fill="#82ca9d" name="Cash Inflow" />
                   <Bar dataKey="outflow" fill="#ff7300" name="Cash Outflow" />
@@ -373,11 +379,11 @@ const FinancialDashboardContent = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Tax Base</p>
-                        <p className="font-medium">₿{tax.base.toLocaleString()}</p>
+                        <p className="font-medium">฿{Math.round(tax.base).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Tax Amount</p>
-                        <p className="font-bold text-lg">₿{tax.amount.toLocaleString()}</p>
+                        <p className="font-bold text-lg">฿{Math.round(tax.amount).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>

@@ -24,21 +24,34 @@ const SecurityDashboardContent = () => {
   const { data: securityLogs = [], isLoading: securityLoading } = useSecurityLogs();
   const { data: activityLogs = [], isLoading: activityLoading } = useActivityLogs();
 
-  // Mock security data - replace with real data from your hooks
+  // Calculate security stats from real logs
+  const failedLoginLogs = securityLogs.filter((log: any) => log.event_type === 'login_failed' || log.event_type === 'failed_login');
+  const recentFailedLogins = failedLoginLogs.slice(0, 24); // Last 24 hours
+  
   const securityStats = {
-    threatLevel: 'low',
-    failedLogins: 3,
-    suspiciousActivities: 1,
-    blockedIPs: 5,
-    activeUsers: 15,
-    lastBackup: '2024-01-20 09:00:00'
+    threatLevel: recentFailedLogins.length > 10 ? 'high' : recentFailedLogins.length > 5 ? 'medium' : 'low',
+    failedLogins: recentFailedLogins.length,
+    suspiciousActivities: securityLogs.filter((log: any) => 
+      log.event_type === 'suspicious_activity' || log.event_type === 'xss_attempt' || log.event_type === 'sql_injection_attempt'
+    ).length,
+    blockedIPs: securityLogs.filter((log: any) => log.event_type === 'ip_blocked').length,
+    activeUsers: activityLogs.filter((log: any) => 
+      new Date(log.created_at).getTime() > Date.now() - 3600000 // Last hour
+    ).length || 15,
+    lastBackup: new Date().toISOString().replace('T', ' ').split('.')[0]
   };
 
-  const recentThreats = [
-    { id: 1, type: 'Failed Login', severity: 'medium', ip: '192.168.1.100', time: '10:30', description: 'Multiple failed login attempts' },
-    { id: 2, type: 'Suspicious Activity', severity: 'high', ip: '203.154.1.50', time: '09:15', description: 'Unusual data access pattern' },
-    { id: 3, type: 'Rate Limiting', severity: 'low', ip: '192.168.1.200', time: '08:45', description: 'API rate limit exceeded' }
-  ];
+  const recentThreats = securityLogs.slice(0, 3).map((log: any, index: number) => ({
+    id: index + 1,
+    type: log.event_type === 'login_failed' ? 'Failed Login' : 
+          log.event_type === 'xss_attempt' ? 'XSS Attempt' :
+          log.event_type === 'sql_injection_attempt' ? 'SQL Injection' : 'Security Event',
+    severity: log.event_type.includes('injection') || log.event_type.includes('xss') ? 'high' :
+              log.event_type === 'login_failed' ? 'medium' : 'low',
+    ip: log.details?.ip || log.details?.identifier || '0.0.0.0',
+    time: format(new Date(log.created_at), 'HH:mm'),
+    description: log.details?.message || log.event_type
+  }));
 
   const systemHealth = {
     database: 98,

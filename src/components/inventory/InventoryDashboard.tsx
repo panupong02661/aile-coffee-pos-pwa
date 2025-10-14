@@ -26,11 +26,6 @@ const InventoryDashboard = () => {
     total + (ingredient.quantity * ingredient.cost_per_unit), 0
   );
 
-  // Calculate today's cost and profit (mock data for demonstration)
-  const todayCost = 2500;
-  const todayProfit = 8750;
-  const profitMargin = ((todayProfit / (todayCost + todayProfit)) * 100).toFixed(1);
-
   // Get best sellers with profit info
   const bestSellers = menuItems.slice(0, 5).map(item => ({
     ...item,
@@ -38,6 +33,13 @@ const InventoryDashboard = () => {
     profit: calculateMenuItemProfit(item.id),
     margin: calculateMenuItemMargin(item.id)
   }));
+
+  // Calculate today's cost and profit from menu items
+  const totalMenuCost = bestSellers.reduce((sum, item) => sum + item.cost, 0);
+  const totalMenuProfit = bestSellers.reduce((sum, item) => sum + item.profit, 0);
+  const todayCost = totalMenuCost > 0 ? totalMenuCost : totalStockValue * 0.3; // Estimate if no data
+  const todayProfit = totalMenuProfit > 0 ? totalMenuProfit : totalStockValue * 0.7; // Estimate if no data
+  const profitMargin = ((todayProfit / (todayCost + todayProfit)) * 100).toFixed(1);
 
   return (
     <div className="space-y-6">

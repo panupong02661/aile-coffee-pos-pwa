@@ -36,41 +36,37 @@ const AnalyticsDashboardContent = () => {
   const [timeRange, setTimeRange] = useState('7days');
   const { dashboardStats, loading, hourlyData, dailyData, monthlyData } = useDashboardStats();
 
-  // Mock analytics data - replace with real data
-  const customerBehavior = [
-    { hour: '08:00', visitors: 20, orders: 5, conversion: 25 },
-    { hour: '09:00', visitors: 45, orders: 12, conversion: 27 },
-    { hour: '10:00', visitors: 60, orders: 18, conversion: 30 },
-    { hour: '11:00', visitors: 85, orders: 28, conversion: 33 },
-    { hour: '12:00', visitors: 120, orders: 45, conversion: 38 },
-    { hour: '13:00', visitors: 110, orders: 42, conversion: 38 },
-    { hour: '14:00', visitors: 95, orders: 35, conversion: 37 },
-    { hour: '15:00', visitors: 80, orders: 25, conversion: 31 },
-    { hour: '16:00', visitors: 70, orders: 22, conversion: 31 },
-    { hour: '17:00', visitors: 90, orders: 35, conversion: 39 },
-    { hour: '18:00', visitors: 130, orders: 55, conversion: 42 },
-    { hour: '19:00', visitors: 115, orders: 48, conversion: 42 }
-  ];
+  // Convert hourly data to customer behavior format
+  const customerBehavior = hourlyData.map(data => ({
+    hour: `${data.hour.toString().padStart(2, '0')}:00`,
+    visitors: data.orders * 3, // Estimate: assume 3 visitors per order
+    orders: data.orders,
+    conversion: data.orders > 0 ? Math.round((data.orders / (data.orders * 3)) * 100) : 0
+  }));
 
-  const productPerformance = [
-    { name: 'เอสเปรสโซ', sales: 145, revenue: 7250, margin: 68 },
-    { name: 'ลาเต้', sales: 132, revenue: 9240, margin: 65 },
-    { name: 'คาปูชิโน', sales: 98, revenue: 6860, margin: 62 },
-    { name: 'อเมริกาโน', sales: 87, revenue: 4350, margin: 70 },
-    { name: 'มอคค่า', sales: 76, revenue: 6080, margin: 58 }
-  ];
+  // Use top products from dashboard stats
+  const productPerformance = dashboardStats.topProducts.slice(0, 5).map(product => ({
+    name: product.name,
+    sales: product.quantity,
+    revenue: product.revenue,
+    margin: 65 // Default margin estimate
+  }));
 
+  // Calculate channel distribution from payment methods
+  const totalSales = dashboardStats.paymentMethods.reduce((sum, pm) => sum + pm.amount, 0);
   const channelData = [
-    { name: 'POS', value: 65, color: '#8884d8' },
+    { name: 'POS', value: totalSales > 0 ? Math.round((dashboardStats.todaySales / totalSales) * 100) : 65, color: '#8884d8' },
     { name: 'Mobile App', value: 25, color: '#82ca9d' },
     { name: 'Online', value: 10, color: '#ffc658' }
   ];
 
-  const customerSegments = [
-    { segment: 'VIP', count: 45, revenue: 125000, avgOrder: 2778 },
-    { segment: 'Regular', count: 156, revenue: 98000, avgOrder: 628 },
-    { segment: 'New', count: 89, revenue: 32000, avgOrder: 360 }
-  ];
+  // Use member tiers from dashboard stats
+  const customerSegments = dashboardStats.memberTierStats.map(tier => ({
+    segment: tier.tier === 'platinum' ? 'VIP' : tier.tier === 'gold' ? 'Regular' : 'New',
+    count: tier.count,
+    revenue: tier.total_spent,
+    avgOrder: tier.count > 0 ? Math.round(tier.total_spent / tier.count) : 0
+  }));
 
   if (loading) {
     return (
@@ -108,9 +104,11 @@ const AnalyticsDashboardContent = () => {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
+            <div className="text-2xl font-bold">{dashboardStats.todayOrders * 3}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12.5%</span> from last period
+              <span className={dashboardStats.salesGrowthRate > 0 ? "text-green-600" : "text-red-600"}>
+                {dashboardStats.salesGrowthRate > 0 ? '+' : ''}{dashboardStats.salesGrowthRate.toFixed(1)}%
+              </span> from last period
             </p>
           </CardContent>
         </Card>
@@ -121,10 +119,10 @@ const AnalyticsDashboardContent = () => {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">35.2%</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2.1%</span> from last period
-            </p>
+            <div className="text-2xl font-bold">
+              {dashboardStats.todayOrders > 0 ? Math.round((dashboardStats.todayOrders / (dashboardStats.todayOrders * 3)) * 100) : 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">Conversion rate</p>
           </CardContent>
         </Card>
 
@@ -134,10 +132,8 @@ const AnalyticsDashboardContent = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₿425</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-red-600">-1.2%</span> from last period
-            </p>
+            <div className="text-2xl font-bold">฿{dashboardStats.averageOrderValue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Average order value</p>
           </CardContent>
         </Card>
 
@@ -147,8 +143,18 @@ const AnalyticsDashboardContent = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18:00</div>
-            <p className="text-xs text-muted-foreground">130 visitors, 55 orders</p>
+            <div className="text-2xl font-bold">
+              {dashboardStats.peakHours.length > 0 ? 
+                `${dashboardStats.peakHours[0].hour.toString().padStart(2, '0')}:00` : 
+                'N/A'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {dashboardStats.peakHours.length > 0 ? 
+                `${dashboardStats.peakHours[0].orders} orders` : 
+                'No data'
+              }
+            </p>
           </CardContent>
         </Card>
       </div>
