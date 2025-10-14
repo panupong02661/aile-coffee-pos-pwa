@@ -63,7 +63,6 @@ function App() {
                   <Route path="/member-registration" element={<MemberRegistration />} />
                   <Route path="/pos" element={<POS />} />
                   <Route path="/reports" element={<Reports />} />
-                  <Route path="/settings" element={<ShopSettings />} />
                   <Route path="/shop-settings" element={<ShopSettings />} />
                   <Route path="/promotions" element={<Promotions />} />
                   <Route path="/online-system" element={<OnlineSystem />} />
