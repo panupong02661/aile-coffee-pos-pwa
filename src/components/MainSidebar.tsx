@@ -102,9 +102,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
     { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
     
-    
-    { id: 'customer-behavior-analysis', label: 'Customer Behavior Analysis', icon: Users, path: '/customer-behavior-analysis' },
-    { id: 'inventory-forecasting', label: 'Inventory Forecasting', icon: Package, path: '/inventory-forecasting' },
     { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
     { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
     { id: 'permissions', label: 'กำหนดสิทธิ์', icon: Shield, path: '/permissions' },
