@@ -159,7 +159,6 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'kitchen', label: 'ระบบห้องครัว', icon: ChefHat, path: '/kitchen' },
     { id: 'delivery', label: 'ระบบส่งอาหาร', icon: Truck, path: '/delivery' },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, path: '/ai-analytics' },
-    { id: 'settings', label: 'ตั้งค่า', icon: Settings, path: '/settings' },
     { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
     { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
