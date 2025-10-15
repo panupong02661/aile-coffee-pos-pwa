@@ -539,14 +539,17 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
         lineToken = settings.posOrders.platforms.line.token;
       }
 
-      if (!lineToken) {
+      if (!lineToken || lineToken.trim() === '') {
+        console.log('LINE token check:', { type, lineToken, settings });
         toast({
-          title: 'ไม่พบ LINE Token',
-          description: 'กรุณาใส่ LINE User ID หรือ User ID:Access Token ก่อนทดสอบ',
+          title: 'ไม่พบ LINE User ID',
+          description: 'กรุณากรอก LINE User ID ในช่องด้านบน (ไม่ใช่ Channel Access Token)',
           variant: 'destructive'
         });
         return;
       }
+      
+      console.log('Sending LINE test message:', { type, userId: lineToken.split(':')[0] });
 
       try {
         // แยก token เป็น userId และ accessToken (ถ้ามี)
@@ -620,7 +623,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
             case 'discord':
               return 'Discord Webhook URL';
             case 'line':
-              return 'LINE Channel Access Token';
+              return 'LINE User ID (รับจากแชทหรือ LINE Official Account Manager)';
             case 'telegram':
               return 'Telegram Bot Token';
             case 'instagram':
@@ -635,7 +638,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
             case 'discord':
               return 'https://discord.com/api/webhooks/...';
             case 'line':
-              return 'LINE Channel Access Token';
+              return 'ใส่ LINE User ID ของคุณ (เช่น Uxxxxxxxxxxxxxxxxxxxxx)';
             case 'telegram':
               return 'Bot Token จาก @BotFather';
             case 'instagram':
@@ -677,23 +680,30 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                       </Button>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id={`${type}-${platform}-token`}
-                      type={platform === 'discord' ? 'url' : 'password'}
-                      placeholder={getTokenPlaceholder(platform)}
-                      value={config.token || ''}
-                      onChange={(e) => onChange(platform, 'token', e.target.value)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleTestNotification(type, platformNames[platform as keyof typeof platformNames])}
-                      disabled={!config.token}
-                    >
-                      <TestTube className="w-4 h-4" />
-                      ทดสอบ
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        id={`${type}-${platform}-token`}
+                        type={platform === 'discord' ? 'url' : 'text'}
+                        placeholder={getTokenPlaceholder(platform)}
+                        value={config.token || ''}
+                        onChange={(e) => onChange(platform, 'token', e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTestNotification(type, platformNames[platform as keyof typeof platformNames])}
+                        disabled={!config.token}
+                      >
+                        <TestTube className="w-4 h-4" />
+                        ทดสอบ
+                      </Button>
+                    </div>
+                    {platform === 'line' && (
+                      <p className="text-xs text-muted-foreground">
+                        💡 ใส่ LINE User ID ของคุณ (ไม่ใช่ Channel Access Token) - หาได้จากการส่งข้อความมาที่บอท หรือจาก LINE Official Account Manager
+                      </p>
+                    )}
                   </div>
                 </div>
                 
