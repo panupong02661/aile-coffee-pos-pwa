@@ -420,16 +420,20 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
 }
 
 // LINE notification function
-async function sendLineNotification(accessToken: string, message: string, orderData: any, orderItemsText: string) {
-  // Extract bot token and chat ID from the format: botToken:chatId
-  const [botToken, chatId] = accessToken.split(':');
+async function sendLineNotification(userId: string, message: string, orderData: any, orderItemsText: string) {
+  // ใช้ LINE_CHANNEL_ACCESS_TOKEN จาก environment variable
+  const botToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
   
-  if (!botToken || !chatId) {
-    throw new Error('LINE token format should be "channelAccessToken:userId"');
+  if (!botToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not configured in environment variables');
+  }
+  
+  if (!userId) {
+    throw new Error('LINE User ID is required');
   }
 
   const lineMessage = {
-    to: chatId,
+    to: userId,
     messages: [
       {
         type: 'text',
@@ -438,7 +442,7 @@ async function sendLineNotification(accessToken: string, message: string, orderD
     ]
   };
 
-  console.log('🟢 Sending LINE message:', lineMessage);
+  console.log('🟢 Sending LINE message to:', userId);
 
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
