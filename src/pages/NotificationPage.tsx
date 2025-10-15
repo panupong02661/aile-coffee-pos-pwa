@@ -537,6 +537,10 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
         lineToken = settings.onlineOrders.platforms.line.token;
       } else if (type === 'ออเดอร์ POS') {
         lineToken = settings.posOrders.platforms.line.token;
+      } else if (type === 'รายงานประจำวัน') {
+        lineToken = settings.dailyReports.platforms.line.token;
+      } else if (type === 'รายงานประจำเดือน') {
+        lineToken = settings.monthlyReports.platforms.line.token;
       }
 
       if (!lineToken || lineToken.trim() === '') {
@@ -693,7 +697,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                         size="sm"
                         variant="outline"
                         onClick={() => handleTestNotification(type, platformNames[platform as keyof typeof platformNames])}
-                        disabled={!config.token}
+                        disabled={!config.token || !config.enabled}
                       >
                         <TestTube className="w-4 h-4" />
                         ทดสอบ
