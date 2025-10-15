@@ -533,9 +533,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
     } else if (platform === 'LINE') {
       // ทดสอบ LINE Messaging API
       let lineToken = '';
-      if (type === 'ระบบแจ้งเตือนออเดอร์ออนไลน์') {
+      if (type === 'ออเดอร์ออนไลน์') {
         lineToken = settings.onlineOrders.platforms.line.token;
-      } else if (type === 'ระบบแจ้งเตือนออเดอร์ POS') {
+      } else if (type === 'ออเดอร์ POS') {
         lineToken = settings.posOrders.platforms.line.token;
       }
 
