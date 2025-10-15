@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.line.enabled && orderSettings.platforms.line.token) {
       console.log('🟢 Sending LINE notification...');
       try {
-        await sendLineNotification(orderSettings.platforms.line.token, `${message}${discountText}`, orderData, orderItemsText);
+        await sendLineNotification(orderSettings.platforms.line.token, `${message}${discountText}`, orderData, orderItemsText, orderType);
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
         sentCount++;
@@ -419,8 +419,8 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   return { status: 'Discord notification sent with complete details', response: responseData };
 }
 
-// LINE notification function
-async function sendLineNotification(userId: string, message: string, orderData: any, orderItemsText: string) {
+// LINE notification function with comprehensive order details
+async function sendLineNotification(userId: string, message: string, orderData: any, orderItemsText: string, orderType: string) {
   // ใช้ LINE_CHANNEL_ACCESS_TOKEN จาก environment variable
   const botToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
   
@@ -432,12 +432,61 @@ async function sendLineNotification(userId: string, message: string, orderData: 
     throw new Error('LINE User ID is required');
   }
 
+  // สร้างข้อความที่มีรายละเอียดครบถ้วนเหมือน Discord
+  const orderTypeEmoji = orderType === 'POS' ? '🏪' : '🛒';
+  const orderTypeText = orderType === 'POS' ? 'ออเดอร์ POS ใหม่!' : 'ออเดอร์ออนไลน์ใหม่!';
+  
+  let fullMessage = `${orderTypeEmoji} ${orderTypeText}\n`;
+  fullMessage += `━━━━━━━━━━━━━━━━━━━━\n`;
+  fullMessage += `${message}\n\n`;
+  
+  // เพิ่มข้อมูลรายละเอียดออเดอร์
+  fullMessage += `📋 หมายเลขออเดอร์: ${orderData.order_number}\n`;
+  fullMessage += `💰 ยอดรวม: ${orderData.total_amount.toLocaleString()} บาท\n`;
+  fullMessage += `📦 จำนวนเมนู: ${orderData.items_count} เมนู\n`;
+  fullMessage += `👤 ลูกค้า: ${orderData.customer_name || 'ไม่ระบุ'}\n`;
+  fullMessage += `📞 เบอร์โทร: ${orderData.customer_phone || 'ไม่ระบุ'}\n`;
+  fullMessage += `💳 วิธีชำระเงิน: ${orderData.payment_method || 'ไม่ระบุ'}\n`;
+  
+  // เพิ่มรายการสั่งซื้อแบบละเอียด
+  if (orderItemsText) {
+    fullMessage += `\n🍽️ รายการสั่งซื้อ (รายละเอียดครบถ้วน):\n`;
+    fullMessage += `${orderItemsText}\n`;
+  }
+  
+  // เพิ่มข้อมูลส่วนลดถ้ามี
+  if ((orderData.bill_discount && orderData.bill_discount > 0) || orderData.discount_code) {
+    fullMessage += `\n🏷️ ส่วนลด:\n`;
+    if (orderData.bill_discount && orderData.bill_discount > 0) {
+      const discountText = orderData.bill_discount_type === 'percent' 
+        ? `ส่วนลดท้ายบิล ${orderData.bill_discount}%`
+        : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
+      fullMessage += `${discountText}\n`;
+    }
+    if (orderData.discount_code) {
+      fullMessage += `โค้ดส่วนลด: ${orderData.discount_code}\n`;
+    }
+  }
+  
+  // เพิ่มเวลา
+  fullMessage += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  fullMessage += `⏰ เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })}\n`;
+  fullMessage += `ระบบร้านอาหาร`;
+
   const lineMessage = {
     to: userId,
     messages: [
       {
         type: 'text',
-        text: `${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`
+        text: fullMessage
       }
     ]
   };
@@ -461,7 +510,7 @@ async function sendLineNotification(userId: string, message: string, orderData: 
 
   const responseData = await response.text();
   console.log('🟢 LINE success response:', responseData);
-  return { status: 'LINE notification sent', response: responseData };
+  return { status: 'LINE notification sent with complete details', response: responseData };
 }
 
 // Telegram notification function  
