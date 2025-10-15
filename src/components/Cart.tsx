@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -106,21 +106,27 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+  const subtotal = useMemo(() => 
+    cartItems.reduce((sum, item) => sum + item.total_price, 0), 
+    [cartItems]
+  );
   
-  const calculateBillDiscount = () => {
+  const calculateBillDiscount = useCallback(() => {
     if (billDiscountType === 'percent') {
       return Math.min(subtotal * billDiscount / 100, subtotal);
     }
     return Math.min(billDiscount, subtotal);
-  };
+  }, [billDiscountType, billDiscount, subtotal]);
 
-  const billDiscountAmount = calculateBillDiscount();
-  const total = Math.max(0, subtotal - billDiscountAmount);
+  const billDiscountAmount = useMemo(() => calculateBillDiscount(), [calculateBillDiscount]);
+  const total = useMemo(() => Math.max(0, subtotal - billDiscountAmount), [subtotal, billDiscountAmount]);
 
-  const hasItemDiscounts = cartItems.some(item => item.item_discount > 0);
+  const hasItemDiscounts = useMemo(() => 
+    cartItems.some(item => item.item_discount > 0), 
+    [cartItems]
+  );
 
-  const handlePayment = (paymentMethod: PaymentMethod, cashReceived?: number) => {
+  const handlePayment = useCallback((paymentMethod: PaymentMethod, cashReceived?: number) => {
     console.log('Payment processed:', { paymentMethod, total, cashReceived });
     
     // Mark gift code as used when payment is completed
@@ -131,32 +137,32 @@ const Cart = ({
     onClearCart();
     setIsPaymentModalOpen(false);
     onUpdateBillDiscount(0);
-  };
+  }, [onPaymentComplete, onClearCart, onUpdateBillDiscount]);
 
-  const handleApplyDiscount = (discount: number, type: 'percent' | 'amount') => {
+  const handleApplyDiscount = useCallback((discount: number, type: 'percent' | 'amount') => {
     onUpdateBillDiscount(discount);
     onUpdateBillDiscountType(type);
-  };
+  }, [onUpdateBillDiscount, onUpdateBillDiscountType]);
 
-  const handleHoldBill = () => {
+  const handleHoldBill = useCallback(() => {
     onClearCart();
     onUpdateBillDiscount(0);
-  };
+  }, [onClearCart, onUpdateBillDiscount]);
 
-  const handleRestoreBill = (bill: any) => {
+  const handleRestoreBill = useCallback((bill: any) => {
     onRestoreCart(bill.items, bill.discount, bill.discountType);
-  };
+  }, [onRestoreCart]);
 
-  const handleItemDiscountClick = (item: CartItem) => {
+  const handleItemDiscountClick = useCallback((item: CartItem) => {
     setSelectedItemForDiscount(item);
     setIsItemDiscountModalOpen(true);
-  };
+  }, []);
 
-  const handleApplyItemDiscount = (discount: number, type: 'percent' | 'amount') => {
+  const handleApplyItemDiscount = useCallback((discount: number, type: 'percent' | 'amount') => {
     if (selectedItemForDiscount) {
       onUpdateDiscount(selectedItemForDiscount.id, discount, type);
     }
-  };
+  }, [selectedItemForDiscount, onUpdateDiscount]);
 
   return (
     <>
@@ -400,4 +406,4 @@ const Cart = ({
   );
 };
 
-export default Cart;
+export default memo(Cart);

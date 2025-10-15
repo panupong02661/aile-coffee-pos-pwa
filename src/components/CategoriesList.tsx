@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,4 +52,4 @@ const CategoriesList: React.FC<CategoriesListProps> = ({ categories, onEdit }) =
   );
 };
 
-export default CategoriesList;
+export default memo(CategoriesList);

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 import { 
   Shield, 
   AlertTriangle, 
@@ -24,24 +25,26 @@ const SecurityDashboardContent = () => {
   const { data: securityLogs = [], isLoading: securityLoading } = useSecurityLogs();
   const { data: activityLogs = [], isLoading: activityLoading } = useActivityLogs();
 
-  // Calculate security stats from real logs
-  const failedLoginLogs = securityLogs.filter((log: any) => log.event_type === 'login_failed' || log.event_type === 'failed_login');
-  const recentFailedLogins = failedLoginLogs.slice(0, 24); // Last 24 hours
-  
-  const securityStats = {
-    threatLevel: recentFailedLogins.length > 10 ? 'high' : recentFailedLogins.length > 5 ? 'medium' : 'low',
-    failedLogins: recentFailedLogins.length,
-    suspiciousActivities: securityLogs.filter((log: any) => 
-      log.event_type === 'suspicious_activity' || log.event_type === 'xss_attempt' || log.event_type === 'sql_injection_attempt'
-    ).length,
-    blockedIPs: securityLogs.filter((log: any) => log.event_type === 'ip_blocked').length,
-    activeUsers: activityLogs.filter((log: any) => 
-      new Date(log.created_at).getTime() > Date.now() - 3600000 // Last hour
-    ).length || 15,
-    lastBackup: new Date().toISOString().replace('T', ' ').split('.')[0]
-  };
+  // Calculate security stats from real logs with useMemo
+  const securityStats = useMemo(() => {
+    const failedLoginLogs = securityLogs.filter((log: any) => log.event_type === 'login_failed' || log.event_type === 'failed_login');
+    const recentFailedLogins = failedLoginLogs.slice(0, 24); // Last 24 hours
+    
+    return {
+      threatLevel: recentFailedLogins.length > 10 ? 'high' : recentFailedLogins.length > 5 ? 'medium' : 'low',
+      failedLogins: recentFailedLogins.length,
+      suspiciousActivities: securityLogs.filter((log: any) => 
+        log.event_type === 'suspicious_activity' || log.event_type === 'xss_attempt' || log.event_type === 'sql_injection_attempt'
+      ).length,
+      blockedIPs: securityLogs.filter((log: any) => log.event_type === 'ip_blocked').length,
+      activeUsers: activityLogs.filter((log: any) => 
+        new Date(log.created_at).getTime() > Date.now() - 3600000 // Last hour
+      ).length || 15,
+      lastBackup: new Date().toISOString().replace('T', ' ').split('.')[0]
+    };
+  }, [securityLogs, activityLogs]);
 
-  const recentThreats = securityLogs.slice(0, 3).map((log: any, index: number) => ({
+  const recentThreats = useMemo(() => securityLogs.slice(0, 3).map((log: any, index: number) => ({
     id: index + 1,
     type: log.event_type === 'login_failed' ? 'Failed Login' : 
           log.event_type === 'xss_attempt' ? 'XSS Attempt' :
@@ -51,14 +54,14 @@ const SecurityDashboardContent = () => {
     ip: log.details?.ip || log.details?.identifier || '0.0.0.0',
     time: format(new Date(log.created_at), 'HH:mm'),
     description: log.details?.message || log.event_type
-  }));
+  })), [securityLogs]);
 
-  const systemHealth = {
+  const systemHealth = useMemo(() => ({
     database: 98,
     api: 99,
     storage: 95,
     network: 97
-  };
+  }), []);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -79,11 +82,7 @@ const SecurityDashboardContent = () => {
   };
 
   if (securityLoading || activityLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

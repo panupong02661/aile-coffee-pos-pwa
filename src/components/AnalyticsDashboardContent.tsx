@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 import {
   BarChart,
   Bar,
@@ -30,50 +31,48 @@ import {
   Activity,
   Calendar
 } from 'lucide-react';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useDashboardStatsOptimized } from '@/hooks/useDashboardStatsOptimized';
 
 const AnalyticsDashboardContent = () => {
   const [timeRange, setTimeRange] = useState('7days');
-  const { dashboardStats, loading, hourlyData, dailyData, monthlyData } = useDashboardStats();
+  const { dashboardStats, loading, hourlyData, dailyData, monthlyData } = useDashboardStatsOptimized();
 
-  // Convert hourly data to customer behavior format
-  const customerBehavior = hourlyData.map(data => ({
+  // Convert hourly data to customer behavior format with useMemo
+  const customerBehavior = useMemo(() => hourlyData.map(data => ({
     hour: `${data.hour.toString().padStart(2, '0')}:00`,
     visitors: data.orders * 3, // Estimate: assume 3 visitors per order
     orders: data.orders,
     conversion: data.orders > 0 ? Math.round((data.orders / (data.orders * 3)) * 100) : 0
-  }));
+  })), [hourlyData]);
 
-  // Use top products from dashboard stats
-  const productPerformance = dashboardStats.topProducts.slice(0, 5).map(product => ({
+  // Use top products from dashboard stats with useMemo
+  const productPerformance = useMemo(() => dashboardStats.topProducts.slice(0, 5).map(product => ({
     name: product.name,
     sales: product.quantity,
     revenue: product.revenue,
     margin: 65 // Default margin estimate
-  }));
+  })), [dashboardStats.topProducts]);
 
-  // Calculate channel distribution from payment methods
-  const totalSales = dashboardStats.paymentMethods.reduce((sum, pm) => sum + pm.amount, 0);
-  const channelData = [
-    { name: 'POS', value: totalSales > 0 ? Math.round((dashboardStats.todaySales / totalSales) * 100) : 65, color: '#8884d8' },
-    { name: 'Mobile App', value: 25, color: '#82ca9d' },
-    { name: 'Online', value: 10, color: '#ffc658' }
-  ];
+  // Calculate channel distribution from payment methods with useMemo
+  const channelData = useMemo(() => {
+    const totalSales = dashboardStats.paymentMethods.reduce((sum, pm) => sum + pm.amount, 0);
+    return [
+      { name: 'POS', value: totalSales > 0 ? Math.round((dashboardStats.todaySales / totalSales) * 100) : 65, color: '#8884d8' },
+      { name: 'Mobile App', value: 25, color: '#82ca9d' },
+      { name: 'Online', value: 10, color: '#ffc658' }
+    ];
+  }, [dashboardStats.paymentMethods, dashboardStats.todaySales]);
 
-  // Use member tiers from dashboard stats
-  const customerSegments = dashboardStats.memberTierStats.map(tier => ({
+  // Use member tiers from dashboard stats with useMemo
+  const customerSegments = useMemo(() => dashboardStats.memberTierStats.map(tier => ({
     segment: tier.tier === 'platinum' ? 'VIP' : tier.tier === 'gold' ? 'Regular' : 'New',
     count: tier.count,
     revenue: tier.total_spent,
     avgOrder: tier.count > 0 ? Math.round(tier.total_spent / tier.count) : 0
-  }));
+  })), [dashboardStats.memberTierStats]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

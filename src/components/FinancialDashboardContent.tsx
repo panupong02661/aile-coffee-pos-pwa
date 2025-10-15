@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 import {
   BarChart,
   Bar,
@@ -31,25 +32,28 @@ import {
   PieChart as PieChartIcon,
   FileText
 } from 'lucide-react';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useDashboardStatsOptimized } from '@/hooks/useDashboardStatsOptimized';
 
 const FinancialDashboardContent = () => {
   const [timeRange, setTimeRange] = useState('30days');
-  const { dashboardStats, loading, monthlyData, dailyData } = useDashboardStats();
+  const { dashboardStats, loading, monthlyData, dailyData } = useDashboardStatsOptimized();
 
-  // Calculate financial data from dashboard stats
-  const estimatedExpenses = dashboardStats.monthSales * 0.58; // Estimate 58% expenses
-  const financialSummary = {
-    revenue: dashboardStats.monthSales,
-    expenses: estimatedExpenses,
-    profit: dashboardStats.monthNetSales,
-    margin: dashboardStats.monthSales > 0 ? (dashboardStats.monthNetSales / dashboardStats.monthSales * 100) : 0,
-    tax: dashboardStats.monthNetSales * 0.07, // 7% VAT estimate
-    cashFlow: dashboardStats.monthNetSales * 0.85 // Estimate 85% cash flow
-  };
+  // Calculate financial data from dashboard stats with useMemo
+  const financialSummary = useMemo(() => {
+    const estimatedExpenses = dashboardStats.monthSales * 0.58; // Estimate 58% expenses
+    return {
+      revenue: dashboardStats.monthSales,
+      expenses: estimatedExpenses,
+      profit: dashboardStats.monthNetSales,
+      margin: dashboardStats.monthSales > 0 ? (dashboardStats.monthNetSales / dashboardStats.monthSales * 100) : 0,
+      tax: dashboardStats.monthNetSales * 0.07, // 7% VAT estimate
+      cashFlow: dashboardStats.monthNetSales * 0.85, // Estimate 85% cash flow
+      estimatedExpenses
+    };
+  }, [dashboardStats.monthSales, dashboardStats.monthNetSales]);
 
-  // Use monthly data for financial trends
-  const monthlyFinancials = monthlyData.slice(-6).map((data, index) => {
+  // Use monthly data for financial trends with useMemo
+  const monthlyFinancials = useMemo(() => monthlyData.slice(-6).map((data, index) => {
     const expenses = data.sales * 0.58;
     const profit = data.sales - expenses;
     return {
@@ -59,25 +63,26 @@ const FinancialDashboardContent = () => {
       profit: profit,
       tax: profit * 0.07
     };
-  });
+  }), [monthlyData]);
 
-  const expenseBreakdown = [
-    { category: 'วัตถุดิบ', amount: estimatedExpenses * 0.515, percentage: 51.5, color: '#8884d8' },
-    { category: 'เงินเดือนพนักงาน', amount: estimatedExpenses * 0.273, percentage: 27.3, color: '#82ca9d' },
-    { category: 'ค่าเช่า', amount: estimatedExpenses * 0.121, percentage: 12.1, color: '#ffc658' },
-    { category: 'สาธารณูปโภค', amount: estimatedExpenses * 0.048, percentage: 4.8, color: '#ff7300' },
-    { category: 'อื่นๆ', amount: estimatedExpenses * 0.042, percentage: 4.2, color: '#00c49f' }
-  ];
+  const expenseBreakdown = useMemo(() => [
+    { category: 'วัตถุดิบ', amount: financialSummary.estimatedExpenses * 0.515, percentage: 51.5, color: '#8884d8' },
+    { category: 'เงินเดือนพนักงาน', amount: financialSummary.estimatedExpenses * 0.273, percentage: 27.3, color: '#82ca9d' },
+    { category: 'ค่าเช่า', amount: financialSummary.estimatedExpenses * 0.121, percentage: 12.1, color: '#ffc658' },
+    { category: 'สาธารณูปโภค', amount: financialSummary.estimatedExpenses * 0.048, percentage: 4.8, color: '#ff7300' },
+    { category: 'อื่นๆ', amount: financialSummary.estimatedExpenses * 0.042, percentage: 4.2, color: '#00c49f' }
+  ], [financialSummary.estimatedExpenses]);
 
-  const revenueChannels = dashboardStats.paymentMethods.map(method => ({
+  const revenueChannels = useMemo(() => dashboardStats.paymentMethods.map(method => ({
     channel: method.method === 'cash' ? 'POS' : method.method === 'promptpay' ? 'Mobile App' : 'Online Orders',
     amount: method.amount,
     percentage: method.percentage
-  }));
+  })), [dashboardStats.paymentMethods]);
 
-  // Calculate weekly cash flow from daily data
-  const weeklyData = dailyData.slice(-28);
-  const cashFlowData = Array.from({ length: 4 }, (_, weekIndex) => {
+  // Calculate weekly cash flow from daily data with useMemo
+  const cashFlowData = useMemo(() => {
+    const weeklyData = dailyData.slice(-28);
+    return Array.from({ length: 4 }, (_, weekIndex) => {
     const weekData = weeklyData.slice(weekIndex * 7, (weekIndex + 1) * 7);
     const inflow = weekData.reduce((sum, day) => sum + day.sales, 0);
     const outflow = inflow * 0.58;
@@ -87,20 +92,17 @@ const FinancialDashboardContent = () => {
       outflow: outflow,
       net: inflow - outflow
     };
-  });
+    });
+  }, [dailyData]);
 
-  const taxDetails = [
+  const taxDetails = useMemo(() => [
     { type: 'VAT (7%)', base: financialSummary.revenue, amount: financialSummary.revenue * 0.07, status: 'pending' },
     { type: 'Corporate Tax (20%)', base: financialSummary.profit, amount: financialSummary.profit * 0.20, status: 'calculated' },
-    { type: 'Withholding Tax (3%)', base: estimatedExpenses * 0.273, amount: estimatedExpenses * 0.273 * 0.03, status: 'paid' }
-  ];
+    { type: 'Withholding Tax (3%)', base: financialSummary.estimatedExpenses * 0.273, amount: financialSummary.estimatedExpenses * 0.273 * 0.03, status: 'paid' }
+  ], [financialSummary]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

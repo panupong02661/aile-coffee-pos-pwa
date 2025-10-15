@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Package, TrendingUp, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { useMemo, memo } from 'react';
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 
 const InventoryDashboard = () => {
   const { 
@@ -18,28 +20,34 @@ const InventoryDashboard = () => {
   } = useSupabaseData();
 
   if (loading) {
-    return <div className="text-center py-8">กำลังโหลดข้อมูล...</div>;
+    return <DashboardSkeleton />;
   }
 
-  const lowStockItems = getLowStockIngredients();
-  const totalStockValue = ingredients.reduce((total, ingredient) => 
-    total + (ingredient.quantity * ingredient.cost_per_unit), 0
+  const lowStockItems = useMemo(() => getLowStockIngredients(), [getLowStockIngredients]);
+  
+  const totalStockValue = useMemo(() => 
+    ingredients.reduce((total, ingredient) => 
+      total + (ingredient.quantity * ingredient.cost_per_unit), 0
+    ), [ingredients]
   );
 
   // Get best sellers with profit info
-  const bestSellers = menuItems.slice(0, 5).map(item => ({
+  const bestSellers = useMemo(() => menuItems.slice(0, 5).map(item => ({
     ...item,
     cost: calculateMenuItemCost(item.id),
     profit: calculateMenuItemProfit(item.id),
     margin: calculateMenuItemMargin(item.id)
-  }));
+  })), [menuItems, calculateMenuItemCost, calculateMenuItemProfit, calculateMenuItemMargin]);
 
   // Calculate today's cost and profit from menu items
-  const totalMenuCost = bestSellers.reduce((sum, item) => sum + item.cost, 0);
-  const totalMenuProfit = bestSellers.reduce((sum, item) => sum + item.profit, 0);
-  const todayCost = totalMenuCost > 0 ? totalMenuCost : totalStockValue * 0.3; // Estimate if no data
-  const todayProfit = totalMenuProfit > 0 ? totalMenuProfit : totalStockValue * 0.7; // Estimate if no data
-  const profitMargin = ((todayProfit / (todayCost + todayProfit)) * 100).toFixed(1);
+  const financials = useMemo(() => {
+    const totalMenuCost = bestSellers.reduce((sum, item) => sum + item.cost, 0);
+    const totalMenuProfit = bestSellers.reduce((sum, item) => sum + item.profit, 0);
+    const todayCost = totalMenuCost > 0 ? totalMenuCost : totalStockValue * 0.3;
+    const todayProfit = totalMenuProfit > 0 ? totalMenuProfit : totalStockValue * 0.7;
+    const profitMargin = ((todayProfit / (todayCost + todayProfit)) * 100).toFixed(1);
+    return { todayCost, todayProfit, profitMargin };
+  }, [bestSellers, totalStockValue]);
 
   return (
     <div className="space-y-6">
@@ -64,7 +72,7 @@ const InventoryDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">฿{todayCost.toLocaleString()}</div>
+            <div className="text-2xl font-bold">฿{financials.todayCost.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               ต้นทุนการผลิต
             </p>
@@ -77,7 +85,7 @@ const InventoryDashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">฿{todayProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">฿{financials.todayProfit.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               กำไรสุทธิ
             </p>
@@ -90,7 +98,7 @@ const InventoryDashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{profitMargin}%</div>
+            <div className="text-2xl font-bold text-green-600">{financials.profitMargin}%</div>
             <p className="text-xs text-muted-foreground">
               อัตรากำไร
             </p>
@@ -203,4 +211,4 @@ const InventoryDashboard = () => {
   );
 };
 
-export default InventoryDashboard;
+export default memo(InventoryDashboard);

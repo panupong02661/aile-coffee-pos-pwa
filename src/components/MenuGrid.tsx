@@ -1,7 +1,7 @@
-
 import { MenuItem, Addon } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { memo } from 'react';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -132,4 +132,4 @@ const MenuGrid = ({
   );
 };
 
-export default MenuGrid;
+export default memo(MenuGrid);
