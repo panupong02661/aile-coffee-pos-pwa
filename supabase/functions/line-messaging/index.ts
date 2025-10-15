@@ -35,11 +35,12 @@ serve(async (req) => {
       for (const event of events) {
         if (event.type === 'message' && event.message.type === 'text') {
           console.log('💬 Text message received:', event.message.text);
+          console.log('👤 User ID:', event.source.userId);
           
-          // You can add auto-reply logic here
-          // Example: Reply with the same message
+          // Reply with User ID
           const replyToken = event.replyToken;
-          const replyMessage = `คุณส่งข้อความ: "${event.message.text}"`;
+          const userId = event.source.userId;
+          const replyMessage = `✅ ได้รับข้อความของคุณแล้ว!\n\n📝 User ID ของคุณคือ:\n${userId}\n\nนำ User ID นี้ไปใส่ในหน้า Notification เพื่อทดสอบส่งข้อความ`;
           
           await fetch('https://api.line.me/v2/bot/message/reply', {
             method: 'POST',
