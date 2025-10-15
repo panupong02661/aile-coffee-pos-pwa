@@ -320,10 +320,45 @@ const NotificationPage = () => {
     }
   };
 
-  // ฟังก์ชันส่งรายงานไป LINE (placeholder)
+  // ฟังก์ชันส่งรายงานไป LINE
   const sendLineReport = async (reportData: any, token: string) => {
-    // TODO: Implement LINE notification
-    console.log('Sending to LINE:', reportData);
+    try {
+      // แยก token เป็น userId และ accessToken
+      // รูปแบบที่คาดหวัง: "userId:accessToken" หรือแค่ "userId" ถ้าใช้ LINE_CHANNEL_ACCESS_TOKEN
+      const [userId, accessToken] = token.includes(':') ? token.split(':') : [token, ''];
+      
+      const topMenusList = reportData.topMenus
+        .map((menu: any, index: number) => 
+          `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
+        )
+        .join('\n');
+
+      const messageText = `📊 สรุปยอดขายประจำวัน
+📅 ${reportData.date} เวลา ${reportData.time}
+
+🛒 จำนวนออเดอร์: ${reportData.totalOrders} รายการ
+💰 ยอดขายรวม: ${reportData.totalSales.toLocaleString()} บาท
+💸 ส่วนลด: ${reportData.totalDiscount.toLocaleString()} บาท
+💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
+
+🏆 เมนูขายดี:
+${topMenusList || 'ไม่มีข้อมูล'}`;
+
+      const { data, error } = await supabase.functions.invoke('line-messaging', {
+        body: {
+          action: 'send',
+          userId: userId,
+          message: messageText
+        }
+      });
+
+      if (error) throw error;
+      
+      console.log('✅ LINE report sent successfully:', data);
+    } catch (error) {
+      console.error('❌ Error sending LINE report:', error);
+      throw error;
+    }
   };
 
   // ฟังก์ชันส่งรายงานไป Telegram (placeholder)
@@ -492,6 +527,58 @@ const NotificationPage = () => {
         toast({
           title: 'เกิดข้อผิดพลาด',
           description: 'ไม่สามารถเชื่อมต่อ Discord ได้ กรุณาตรวจสอบ URL',
+          variant: 'destructive'
+        });
+      }
+    } else if (platform === 'LINE') {
+      // ทดสอบ LINE Messaging API
+      let lineToken = '';
+      if (type === 'ระบบแจ้งเตือนออเดอร์ออนไลน์') {
+        lineToken = settings.onlineOrders.platforms.line.token;
+      } else if (type === 'ระบบแจ้งเตือนออเดอร์ POS') {
+        lineToken = settings.posOrders.platforms.line.token;
+      }
+
+      if (!lineToken) {
+        toast({
+          title: 'ไม่พบ LINE Token',
+          description: 'กรุณาใส่ LINE User ID หรือ User ID:Access Token ก่อนทดสอบ',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      try {
+        // แยก token เป็น userId และ accessToken (ถ้ามี)
+        const [userId, accessToken] = lineToken.includes(':') ? lineToken.split(':') : [lineToken, ''];
+
+        const testMessage = `🧪 ทดสอบระบบแจ้งเตือนร้านอาหาร
+
+ประเภท: ${type}
+📅 วันที่: ${new Date().toLocaleDateString('th-TH')}
+⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}
+
+✅ ระบบแจ้งเตือน LINE ทำงานปกติ`;
+
+        const { data, error } = await supabase.functions.invoke('line-messaging', {
+          body: {
+            action: 'send',
+            userId: userId,
+            message: testMessage
+          }
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: 'ทดสอบสำเร็จ! ✅',
+          description: 'ข้อความทดสอบถูกส่งไปยัง LINE แล้ว',
+        });
+      } catch (error) {
+        console.error('LINE test error:', error);
+        toast({
+          title: 'ทดสอบไม่สำเร็จ',
+          description: 'ไม่สามารถส่งข้อความไปยัง LINE ได้ กรุณาตรวจสอบ User ID และ Token',
           variant: 'destructive'
         });
       }

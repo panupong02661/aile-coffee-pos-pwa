@@ -63,8 +63,20 @@ serve(async (req) => {
       });
     }
 
-    // Handle send message request from your app
-    const { action, userId, message, messages } = await req.json();
+    // Parse JSON body for API requests (not webhook)
+    let requestData;
+    try {
+      const bodyText = await req.text();
+      requestData = bodyText ? JSON.parse(bodyText) : {};
+    } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { action, userId, message, messages } = requestData;
 
     if (action === 'send') {
       console.log('📤 Sending message to LINE user:', userId);
