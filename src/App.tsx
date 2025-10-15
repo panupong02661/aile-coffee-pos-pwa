@@ -29,6 +29,7 @@ const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommend
 const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 const MobileSettings = lazy(() => import('./pages/MobileSettings'));
+const LineMessaging = lazy(() => import('./pages/LineMessaging'));
 
 // Additional Dashboard pages
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
@@ -75,6 +76,7 @@ function App() {
                   <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
                   <Route path="/delivery-integration" element={<DeliveryIntegration />} />
                   <Route path="/notifications" element={<NotificationPage />} />
+                  <Route path="/line-messaging" element={<LineMessaging />} />
                   
                   {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />

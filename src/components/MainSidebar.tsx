@@ -78,7 +78,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
     '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
     '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
-    '/customer-behavior-analysis', '/inventory-forecasting'
+    '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging'
   ];
   
   const menuItems = [
@@ -142,6 +142,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
     { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
+    { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
     { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
     { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
