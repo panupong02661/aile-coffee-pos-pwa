@@ -1042,6 +1042,69 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
       }
       console.log('✅ Order items saved');
 
+      // Send order notification to LINE/Discord
+      console.log('📢 Sending order notification...');
+      try {
+        // Fetch complete order with items for notification
+        const { data: completeOrder, error: fetchError } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              id,
+              menu_item_id,
+              menu_item_name,
+              quantity,
+              unit_price,
+              total_price,
+              item_discount,
+              item_discount_type,
+              selected_addons
+            ),
+            members (
+              name,
+              phone,
+              email
+            )
+          `)
+          .eq('id', order.id)
+          .single();
+
+        if (!fetchError && completeOrder) {
+          const orderData = {
+            id: completeOrder.id,
+            order_number: completeOrder.order_number,
+            total_amount: completeOrder.total_amount,
+            items_count: completeOrder.items_count,
+            member_id: completeOrder.member_id,
+            payment_method: completeOrder.payment_method,
+            order_source: 'online',
+            status: completeOrder.status,
+            created_at: completeOrder.created_at,
+            customer_notes: completeOrder.customer_notes || '',
+            customer_name: completeOrder.members?.name || currentUser.name || 'ลูกค้า',
+            customer_phone: completeOrder.members?.phone || currentUser.phone || '',
+            bill_discount: completeOrder.bill_discount || 0,
+            bill_discount_type: completeOrder.bill_discount_type || 'amount',
+            discount_code: null,
+            order_items: completeOrder.order_items || []
+          };
+
+          const { error: notificationError } = await supabase.functions.invoke('send-order-notification', {
+            body: { orderData }
+          });
+
+          if (notificationError) {
+            console.error('❌ Failed to send notification:', notificationError);
+          } else {
+            console.log('✅ Order notification sent successfully');
+          }
+        }
+      } catch (notificationError) {
+        console.error('❌ Notification error:', notificationError);
+        // Don't throw - notification failure shouldn't break order
+      }
+
       // Handle points and member updates
       let newPoints = currentUser.points;
       let newTotalSpent = currentUser.total_spent + finalAmount;
