@@ -165,8 +165,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
           
-          // Send Discord notifications only for online orders
-          if (order.order_source === 'online') {
+          // Send notifications for BOTH online and POS orders via edge function
+          if (order.order_source === 'online' || order.order_source === 'pos' || !order.order_source) {
             // Use cache key to prevent duplicate calls
             const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
             
@@ -177,7 +177,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 // Mark notification as being sent
                 globalProcessedOrders.add(notificationCacheKey);
                 
-                // Call notification edge function immediately for online orders
+                // Call notification edge function for any new order (POS or online)
                 console.log('🚀 Calling send-order-notification edge function (ONCE)...');
                 
                 // Wait briefly for order items to be inserted
@@ -220,7 +220,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   items_count: order.items_count,
                   member_id: order.member_id,
                   payment_method: order.payment_method,
-                  order_source: 'online',
+                  order_source: order.order_source || 'pos',
                   status: order.status || 'confirmed',
                   created_at: order.created_at,
                   customer_notes: order.customer_notes,
