@@ -86,9 +86,30 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   console.log('🔔 GlobalNotificationProvider - Rendered on path:', location.pathname);
   console.log('🔔 FORCE DEBUG - Component is running at:', new Date().toISOString());
+  console.log('🔔 MOUNT CHECK - Provider mounted successfully');
+
+  // Check Supabase connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('orders').select('id').limit(1);
+        if (error) {
+          console.error('❌ Supabase connection error:', error);
+        } else {
+          console.log('✅ Supabase connection OK');
+        }
+      } catch (err) {
+        console.error('❌ Failed to check Supabase connection:', err);
+      }
+    };
+    checkConnection();
+  }, []);
 
   useEffect(() => {
     console.log('🔔 GlobalNotificationProvider - useEffect triggered');
+    console.log('🔔 DEBUG - Current path:', location.pathname);
+    console.log('🔔 DEBUG - Active subscription count:', activeSubscriptionCount);
+    console.log('🔔 DEBUG - Order channel ref:', orderChannelRef.current);
     
     // Skip customer mobile app
     if (location.pathname === '/customer-mobile-app') {
@@ -125,8 +146,11 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // Listen for new orders from the orders table
     console.log('🔔 Setting up real-time order listener...');
+    const channelName = `order-listener-${Date.now()}`;
+    console.log('🔔 Creating channel:', channelName);
+    
     const orderChannel = supabase
-      .channel(`order-listener-${Date.now()}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -135,7 +159,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           table: 'orders'
         },
         async (payload) => {
-          console.log('🔔 REAL-TIME ORDER INSERT DETECTED:', payload);
+          console.log('🔔 🎉 REAL-TIME ORDER INSERT DETECTED 🎉:', payload);
+          console.log('🔔 Order data:', JSON.stringify(payload.new, null, 2));
           const order = payload.new as any;
           
           // Skip test/trigger orders
@@ -268,11 +293,17 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       )
       .subscribe((status) => {
-        console.log('🔔 Real-time subscription status:', status);
+        console.log('🔔 🎯 Real-time subscription status:', status);
+        console.log('🔔 Subscription timestamp:', new Date().toISOString());
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time order listener is ACTIVE');
+          console.log('✅ ✅ ✅ Real-time order listener is ACTIVE ✅ ✅ ✅');
+          console.log('🔔 Now listening for new orders on the orders table...');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time subscription failed');
+          console.error('❌ ❌ ❌ Real-time subscription failed ❌ ❌ ❌');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Channel closed');
         }
       });
 
