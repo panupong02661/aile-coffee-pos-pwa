@@ -38,8 +38,7 @@ const RecipientsList = () => {
         .from('customer_gifts')
         .select(`
           *,
-          customer_profiles(full_name, phone),
-          menu_items(name)
+          customer_profiles(full_name, phone)
         `)
         .order('created_at', { ascending: false });
       
@@ -219,7 +218,7 @@ const RecipientsList = () => {
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-2">
                             <Gift className="w-4 h-4 text-secondary" />
-                            <p className="font-medium">{gift.title || 'ของขวัญ'}</p>
+                            <p className="font-medium">{gift.gift_name || 'ของขวัญ'}</p>
                           </div>
                           <p className="text-sm text-muted-foreground">
                             ลูกค้า: {gift.customer_profiles?.full_name || 'ไม่ระบุ'} ({gift.customer_profiles?.phone || 'ไม่ระบุ'})
@@ -229,18 +228,14 @@ const RecipientsList = () => {
                                     gift.gift_type === 'discount' ? 'ส่วนลด' : 
                                     gift.gift_type === 'menu_item' ? 'เมนูฟรี' : 'อื่นๆ'}
                           </p>
-                          {gift.gift_type === 'points' && <p className="text-sm">แต้ม: {gift.points_value}</p>}
-                          {gift.gift_type === 'discount' && (
-                            <p className="text-sm">
-                              ส่วนลด: {gift.discount_type === 'percentage' 
-                                ? `${gift.discount_value}%` 
-                                : `${gift.discount_value} บาท`}
+                          {gift.gift_description && <p className="text-sm text-muted-foreground">{gift.gift_description}</p>}
+                          {gift.gift_value && <p className="text-sm">มูลค่า: {gift.gift_value} บาท</p>}
+                          {gift.gift_code && <p className="text-sm font-mono bg-muted px-2 py-1 rounded">โค้ด: {gift.gift_code}</p>}
+                          {gift.expires_at && (
+                            <p className="text-xs text-muted-foreground">
+                              หมดอายุ: {format(new Date(gift.expires_at), 'dd MMMM yyyy HH:mm', { locale: th })}
                             </p>
                           )}
-                          {gift.gift_type === 'menu_item' && gift.menu_items && (
-                            <p className="text-sm">เมนู: {gift.menu_items.name}</p>
-                          )}
-                          {gift.promo_code && <p className="text-sm font-mono">โค้ด: {gift.promo_code}</p>}
                           <p className="text-xs text-muted-foreground">
                             ส่งเมื่อ: {format(new Date(gift.created_at), 'dd MMMM yyyy HH:mm', { locale: th })}
                           </p>
