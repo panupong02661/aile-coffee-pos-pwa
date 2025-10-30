@@ -313,7 +313,20 @@ const POS = () => {
     
     // ตรวจสอบยอดขั้นต่ำ
     if (giftData.min_purchase && giftData.min_purchase > 0) {
-      const currentTotal = total;
+      // Calculate current total
+      const subtotal = cartItems.reduce((sum, item) => {
+        const itemTotal = item.menu_item.price * item.quantity;
+        const itemDiscount = item.item_discount || 0;
+        return sum + itemTotal - itemDiscount;
+      }, 0);
+      
+      let currentTotal = subtotal;
+      if (billDiscount > 0) {
+        currentTotal -= billDiscountType === 'percent' 
+          ? (subtotal * billDiscount) / 100 
+          : billDiscount;
+      }
+      
       if (currentTotal < giftData.min_purchase) {
         toast({ 
           title: 'ยอดสั่งซื้อไม่ถึงขั้นต่ำ', 

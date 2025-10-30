@@ -11,6 +11,7 @@ import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
@@ -213,12 +214,27 @@ const Index = () => {
     setAvailableAddons([]);
   };
 
+  const { toast } = useToast();
+
   const handleCodeApply = async (giftData: any) => {
     console.log('Applying gift code:', giftData);
     
     // ตรวจสอบยอดขั้นต่ำ
     if (giftData.min_purchase && giftData.min_purchase > 0) {
-      const currentTotal = total;
+      // Calculate current total
+      const subtotal = cartItems.reduce((sum, item) => {
+        const itemTotal = item.menu_item.price * item.quantity;
+        const itemDiscount = item.item_discount || 0;
+        return sum + itemTotal - itemDiscount;
+      }, 0);
+      
+      let currentTotal = subtotal;
+      if (billDiscount > 0) {
+        currentTotal -= billDiscountType === 'percent' 
+          ? (subtotal * billDiscount) / 100 
+          : billDiscount;
+      }
+      
       if (currentTotal < giftData.min_purchase) {
         toast({ 
           title: 'ยอดสั่งซื้อไม่ถึงขั้นต่ำ', 
