@@ -35,6 +35,21 @@ interface RewardsSectionProps {
 const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSectionProps) => {
   const [redeemedRewards, setRedeemedRewards] = React.useState<{[key: string]: string}>({});
 
+  // Load redeemed rewards from localStorage on mount
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      const storageKey = `redeemed_rewards_${currentUser.id}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          setRedeemedRewards(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse redeemed rewards:', e);
+        }
+      }
+    }
+  }, [currentUser?.id]);
+
   const getRewardType = (rewardName: string) => {
     const name = rewardName.toLowerCase();
     if (name.includes('ส่วนลด') || name.includes('discount') || name.includes('%')) {
@@ -88,10 +103,17 @@ const RewardsSection = ({ rewards, currentUser, onRedeemReward }: RewardsSection
     if (!canRedeem) return;
 
     const code = generateRewardCode(rewardName);
-    setRedeemedRewards(prev => ({
-      ...prev,
+    const updatedRewards = {
+      ...redeemedRewards,
       [rewardId]: code
-    }));
+    };
+    setRedeemedRewards(updatedRewards);
+
+    // Save to localStorage
+    if (currentUser?.id) {
+      const storageKey = `redeemed_rewards_${currentUser.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedRewards));
+    }
 
     onRedeemReward(rewardId, pointsRequired);
   };
