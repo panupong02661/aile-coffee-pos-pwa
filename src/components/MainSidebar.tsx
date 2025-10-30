@@ -168,43 +168,47 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
       <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Card className="h-full border-coffee-200 rounded-none">
-          <div className="p-4 border-b border-coffee-200">
+        <Card className="h-full border-coffee-200 rounded-none flex flex-col">
+          <div className="p-4 border-b border-coffee-200 flex-shrink-0">
             <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
           </div>
           
           {/* User Profile Section */}
-          <UserProfile />
+          <div className="flex-shrink-0">
+            <UserProfile />
+          </div>
           
-          <ScrollArea className="h-[calc(100vh-120px)]">
-            <div className="p-2">
-              <nav className="space-y-1">
-                {menuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  const hasPage = existingPages.includes(item.path);
-                  
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.path}
-                      onClick={handleMenuClick}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
-                        isActive
-                          ? 'bg-coffee-600 text-white'
-                          : hasPage 
-                            ? 'text-coffee-700 hover:bg-coffee-50'
-                            : 'text-black hover:bg-coffee-50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          </ScrollArea>
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-2 pb-6">
+                <nav className="space-y-1">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+                    const hasPage = existingPages.includes(item.path);
+                    
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.path}
+                        onClick={handleMenuClick}
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          isActive
+                            ? 'bg-coffee-600 text-white'
+                            : hasPage 
+                              ? 'text-coffee-700 hover:bg-coffee-50'
+                              : 'text-black hover:bg-coffee-50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </ScrollArea>
+          </div>
         </Card>
       </div>
     </>
