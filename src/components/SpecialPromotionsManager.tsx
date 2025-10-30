@@ -7,12 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Copy, Calendar, Users, Gift } from 'lucide-react';
+import { Trash2, Plus, Copy, Calendar, Users, Gift, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-const SpecialPromotionsManager = () => {
+interface SpecialPromotionsManagerProps {
+  onPromotionCreated?: () => void;
+}
+
+const SpecialPromotionsManager = ({ onPromotionCreated }: SpecialPromotionsManagerProps) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,6 +30,8 @@ const SpecialPromotionsManager = () => {
     reward_code: '',
     min_purchase: 0
   });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,16 +77,38 @@ const SpecialPromotionsManager = () => {
     };
 
     try {
-      const { error } = await supabase
-        .from('limited_promotions')
-        .insert([promotionData]);
-      
-      if (error) throw error;
+      if (editingId) {
+        // Update existing promotion
+        const { error } = await supabase
+          .from('limited_promotions')
+          .update(promotionData)
+          .eq('id', editingId);
+        
+        if (error) throw error;
 
-      toast({
-        title: 'สำเร็จ',
-        description: 'สร้างของรางวัลพิเศษสำเร็จ'
-      });
+        toast({
+          title: 'สำเร็จ',
+          description: 'แก้ไขของรางวัลพิเศษสำเร็จ'
+        });
+        setEditingId(null);
+      } else {
+        // Create new promotion
+        const { error } = await supabase
+          .from('limited_promotions')
+          .insert([promotionData]);
+        
+        if (error) throw error;
+
+        toast({
+          title: 'สำเร็จ',
+          description: 'สร้างของรางวัลพิเศษสำเร็จ'
+        });
+
+        // Call callback to switch tabs
+        if (onPromotionCreated) {
+          onPromotionCreated();
+        }
+      }
 
       setFormData({
         name: '',
@@ -98,13 +126,50 @@ const SpecialPromotionsManager = () => {
 
       queryClient.invalidateQueries({ queryKey: ['limited-promotions-list'] });
     } catch (error) {
-      console.error('Error creating promotion:', error);
+      console.error('Error saving promotion:', error);
       toast({
         title: 'ข้อผิดพลาด',
-        description: 'ไม่สามารถสร้างของรางวัลได้',
+        description: editingId ? 'ไม่สามารถแก้ไขของรางวัลได้' : 'ไม่สามารถสร้างของรางวัลได้',
         variant: 'destructive'
       });
     }
+  };
+
+  const handleEdit = (promotion: any) => {
+    setEditingId(promotion.id);
+    setFormData({
+      name: promotion.title,
+      description: promotion.description || '',
+      reward_type: 'discount',
+      discount_type: promotion.discount_type === 'percentage' ? 'percent' : 'amount',
+      discount_value: promotion.discount_value,
+      max_claims: promotion.max_claims,
+      start_date: new Date(promotion.start_date).toISOString().split('T')[0],
+      end_date: new Date(promotion.end_date).toISOString().split('T')[0],
+      target_month: new Date().getMonth() + 1,
+      reward_code: promotion.promo_code || '',
+      min_purchase: promotion.min_purchase || 0
+    });
+
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      name: '',
+      description: '',
+      reward_type: 'discount',
+      discount_type: 'percent',
+      discount_value: 0,
+      max_claims: 1,
+      start_date: '',
+      end_date: '',
+      target_month: new Date().getMonth() + 1,
+      reward_code: '',
+      min_purchase: 0
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -199,9 +264,16 @@ const SpecialPromotionsManager = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
-            สร้างของรางวัลพิเศษ
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gift className="w-5 h-5" />
+              {editingId ? 'แก้ไขของรางวัลพิเศษ' : 'สร้างของรางวัลพิเศษ'}
+            </div>
+            {editingId && (
+              <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                ยกเลิกการแก้ไข
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -322,8 +394,17 @@ const SpecialPromotionsManager = () => {
             </div>
 
             <Button type="submit" className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              สร้างของรางวัล
+              {editingId ? (
+                <>
+                  <Edit className="w-4 h-4 mr-2" />
+                  บันทึกการแก้ไข
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  สร้างของรางวัล
+                </>
+              )}
             </Button>
           </form>
         </CardContent>
@@ -375,14 +456,24 @@ const SpecialPromotionsManager = () => {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(promotion.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(promotion)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(promotion.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

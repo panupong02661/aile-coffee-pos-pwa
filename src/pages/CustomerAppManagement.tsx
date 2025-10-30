@@ -14,6 +14,7 @@ import GiftSender from '@/components/GiftSender';
 
 const CustomerAppManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
     <div className="min-h-screen bg-coffee-50">
@@ -46,7 +47,7 @@ const CustomerAppManagement = () => {
                 <CardDescription>จัดการและกำหนดค่าแอพลูกค้า คูปอง และโปรโมชั่น</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="overview" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
                     <TabsTrigger value="birthday-gifts">ของขวัญวันเกิด</TabsTrigger>
@@ -64,7 +65,7 @@ const CustomerAppManagement = () => {
                   </TabsContent>
                   
                   <TabsContent value="special-rewards" className="mt-6">
-                    <SpecialPromotionsManager />
+                    <SpecialPromotionsManager onPromotionCreated={() => setActiveTab('special-rewards')} />
                   </TabsContent>
                   
                   <TabsContent value="coupons" className="mt-6">
