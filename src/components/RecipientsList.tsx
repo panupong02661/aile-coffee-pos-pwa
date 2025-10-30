@@ -20,7 +20,6 @@ const RecipientsList = () => {
         .from('customer_promotion_claims')
         .select(`
           *,
-          customer_profiles(full_name, phone),
           limited_promotions(title, discount_type, discount_value)
         `)
         .order('claimed_at', { ascending: false });
@@ -36,10 +35,7 @@ const RecipientsList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('customer_gifts')
-        .select(`
-          *,
-          customer_profiles(full_name, phone)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -55,7 +51,6 @@ const RecipientsList = () => {
         .from('customer_rewards')
         .select(`
           *,
-          customer_profiles(full_name, phone),
           rewards(name, points_required)
         `)
         .order('redeemed_at', { ascending: false });
@@ -171,7 +166,7 @@ const RecipientsList = () => {
                             <p className="font-medium">{claim.limited_promotions?.title || 'ไม่มีชื่อ'}</p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ลูกค้า: {claim.customer_profiles?.full_name || 'ไม่ระบุ'} ({claim.customer_profiles?.phone || 'ไม่ระบุ'})
+                            Customer ID: {claim.customer_id || 'ไม่ระบุ'}
                           </p>
                           <p className="text-sm">
                             ส่วนลด: {claim.limited_promotions?.discount_type === 'percentage' 
@@ -221,7 +216,7 @@ const RecipientsList = () => {
                             <p className="font-medium">{gift.gift_name || 'ของขวัญ'}</p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ลูกค้า: {gift.customer_profiles?.full_name || 'ไม่ระบุ'} ({gift.customer_profiles?.phone || 'ไม่ระบุ'})
+                            Customer ID: {gift.customer_id || 'ไม่ระบุ'}
                           </p>
                           <p className="text-sm">
                             ประเภท: {gift.gift_type === 'points' ? 'แต้ม' : 
@@ -279,7 +274,7 @@ const RecipientsList = () => {
                             <p className="font-medium">{reward.rewards?.name || 'รางวัล'}</p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            ลูกค้า: {reward.customer_profiles?.full_name || 'ไม่ระบุ'} ({reward.customer_profiles?.phone || 'ไม่ระบุ'})
+                            Customer ID: {reward.customer_id || 'ไม่ระบุ'}
                           </p>
                           <p className="text-sm">
                             แต้มที่ใช้: {reward.rewards?.points_required || 0} แต้ม
