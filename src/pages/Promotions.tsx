@@ -24,6 +24,7 @@ interface Promotion {
   end_date: string;
   is_active: boolean;
   promo_code?: string;
+  min_purchase?: number;
 }
 
 const Promotions = () => {
@@ -39,7 +40,8 @@ const Promotions = () => {
     max_claims: 100,
     start_date: '',
     end_date: '',
-    promo_code: ''
+    promo_code: '',
+    min_purchase: 0
   });
   const { toast } = useToast();
 
@@ -76,7 +78,8 @@ const Promotions = () => {
         start_date: item.start_date,
         end_date: item.end_date,
         is_active: item.is_active,
-        promo_code: item.promo_code
+        promo_code: item.promo_code,
+        min_purchase: item.min_purchase
       }));
 
       setPromotions(transformedPromotions);
@@ -118,7 +121,8 @@ const Promotions = () => {
           start_date: formData.start_date,
           end_date: formData.end_date,
           is_active: true,
-          promo_code: formData.promo_code.trim().toUpperCase() || null
+          promo_code: formData.promo_code.trim().toUpperCase() || null,
+          min_purchase: formData.min_purchase || 0
         }])
         .select();
 
@@ -142,7 +146,8 @@ const Promotions = () => {
         start_date: item.start_date,
         end_date: item.end_date,
         is_active: item.is_active,
-        promo_code: item.promo_code
+        promo_code: item.promo_code,
+        min_purchase: item.min_purchase
       }));
 
       setPromotions([...newPromotions, ...promotions]);
@@ -155,7 +160,8 @@ const Promotions = () => {
         max_claims: 100,
         start_date: '',
         end_date: '',
-        promo_code: ''
+        promo_code: '',
+        min_purchase: 0
       });
       toast({ title: 'สำเร็จ', description: 'สร้างโปรโมชั่นเรียบร้อยแล้ว' });
     } catch (error) {
@@ -178,7 +184,8 @@ const Promotions = () => {
           max_claims: formData.max_claims,
           start_date: formData.start_date,
           end_date: formData.end_date,
-          promo_code: formData.promo_code.trim().toUpperCase() || null
+          promo_code: formData.promo_code.trim().toUpperCase() || null,
+          min_purchase: formData.min_purchase || 0
         })
         .eq('id', editingPromotion.id);
 
@@ -198,7 +205,8 @@ const Promotions = () => {
           max_claims: formData.max_claims,
           start_date: formData.start_date,
           end_date: formData.end_date,
-          promo_code: formData.promo_code.toUpperCase() || null
+          promo_code: formData.promo_code.toUpperCase() || null,
+          min_purchase: formData.min_purchase
         } : promo
       ));
       setIsFormOpen(false);
@@ -211,7 +219,8 @@ const Promotions = () => {
         max_claims: 100,
         start_date: '',
         end_date: '',
-        promo_code: ''
+        promo_code: '',
+        min_purchase: 0
       });
       toast({ title: 'สำเร็จ', description: 'แก้ไขโปรโมชั่นเรียบร้อยแล้ว' });
     } catch (error) {
@@ -348,16 +357,30 @@ const Promotions = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="max_claims">จำนวนคนที่รับได้สูงสุด *</Label>
-                    <Input
-                      id="max_claims"
-                      type="number"
-                      value={formData.max_claims.toString()}
-                      onChange={(e) => setFormData({...formData, max_claims: parseInt(e.target.value) || 0})}
-                      placeholder="50"
-                      min="1"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="max_claims">จำนวนคนที่รับได้สูงสุด *</Label>
+                      <Input
+                        id="max_claims"
+                        type="number"
+                        value={formData.max_claims.toString()}
+                        onChange={(e) => setFormData({...formData, max_claims: parseInt(e.target.value) || 0})}
+                        placeholder="50"
+                        min="1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="min_purchase">ยอดสั่งซื้อขั้นต่ำ (บาท)</Label>
+                      <Input
+                        id="min_purchase"
+                        type="number"
+                        value={formData.min_purchase.toString()}
+                        onChange={(e) => setFormData({...formData, min_purchase: parseFloat(e.target.value) || 0})}
+                        placeholder="0"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -403,7 +426,8 @@ const Promotions = () => {
                         max_claims: 100,
                         start_date: '',
                         end_date: '',
-                        promo_code: ''
+                        promo_code: '',
+                        min_purchase: 0
                       });
                     }} variant="outline">
                       ยกเลิก
@@ -441,6 +465,9 @@ const Promotions = () => {
                           <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                             <span>ส่วนลด: {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : '฿'}</span>
                             <span>รับแล้ว: {promotion.current_claims}/{promotion.max_claims}</span>
+                            {promotion.min_purchase && promotion.min_purchase > 0 && (
+                              <span>ยอดขั้นต่ำ: {promotion.min_purchase}฿</span>
+                            )}
                             <span className={promotion.is_active ? 'text-green-600' : 'text-red-600'}>
                               {promotion.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                             </span>
@@ -458,7 +485,8 @@ const Promotions = () => {
                               max_claims: promotion.max_claims,
                               start_date: promotion.start_date,
                               end_date: promotion.end_date,
-                              promo_code: promotion.promo_code || ''
+                              promo_code: promotion.promo_code || '',
+                              min_purchase: promotion.min_purchase || 0
                             });
                           }}>
                             <Edit className="w-4 h-4" />

@@ -23,7 +23,8 @@ const SpecialPromotionsManager = () => {
     start_date: '',
     end_date: '',
     target_month: new Date().getMonth() + 1,
-    reward_code: ''
+    reward_code: '',
+    min_purchase: 0
   });
 
   const { data: rewards = [], refetch } = useLimitedRewards();
@@ -47,7 +48,8 @@ const SpecialPromotionsManager = () => {
       start_date: new Date(formData.start_date).toISOString(),
       end_date: new Date(formData.end_date).toISOString(),
       is_active: true,
-      current_claims: 0
+      current_claims: 0,
+      min_purchase: formData.min_purchase || 0
     };
 
     try {
@@ -62,7 +64,8 @@ const SpecialPromotionsManager = () => {
         start_date: '',
         end_date: '',
         target_month: new Date().getMonth() + 1,
-        reward_code: ''
+        reward_code: '',
+        min_purchase: 0
       });
       refetch();
     } catch (error) {
@@ -99,7 +102,7 @@ const SpecialPromotionsManager = () => {
       // ดึงโค้ดจากตาราง limited_promotions
       const { data: promotions, error } = await supabase
         .from('limited_promotions')
-        .select('promo_code, title, description, discount_value, discount_type, start_date, end_date, max_claims')
+        .select('promo_code, title, description, discount_value, discount_type, start_date, end_date, max_claims, min_purchase')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -119,7 +122,8 @@ const SpecialPromotionsManager = () => {
           start_date: new Date(latestPromotion.start_date).toISOString().split('T')[0],
           end_date: new Date(latestPromotion.end_date).toISOString().split('T')[0],
           target_month: new Date().getMonth() + 1,
-          reward_code: latestPromotion.promo_code || ''
+          reward_code: latestPromotion.promo_code || '',
+          min_purchase: latestPromotion.min_purchase || 0
         });
 
         toast({
@@ -241,6 +245,20 @@ const SpecialPromotionsManager = () => {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="min_purchase">ยอดสั่งซื้อขั้นต่ำ (บาท)</Label>
+              <Input
+                id="min_purchase"
+                type="number"
+                value={formData.min_purchase}
+                onChange={(e) => setFormData({ ...formData, min_purchase: Number(e.target.value) })}
+                min="0"
+                step="0.01"
+                placeholder="0"
+              />
+              <p className="text-xs text-gray-500 mt-1">ยอดขั้นต่ำที่ต้องซื้อเพื่อใช้รางวัลนี้</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="start_date">วันที่เริ่ม</Label>
@@ -311,6 +329,11 @@ const SpecialPromotionsManager = () => {
                       <span>
                         ส่วนลด: {reward.discount_value}{reward.discount_type === 'percent' ? '%' : '฿'}
                       </span>
+                      {reward.min_purchase && reward.min_purchase > 0 && (
+                        <span>
+                          ยอดขั้นต่ำ: {reward.min_purchase}฿
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Button

@@ -20,7 +20,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string | null
           user_id: string | null
@@ -30,7 +30,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_id?: string | null
@@ -40,7 +40,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_id?: string | null
@@ -1490,6 +1490,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           max_claims: number
+          min_purchase: number | null
           name: string
           reward_code: string | null
           reward_type: string
@@ -1507,6 +1508,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_claims?: number
+          min_purchase?: number | null
           name: string
           reward_code?: string | null
           reward_type?: string
@@ -1524,6 +1526,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_claims?: number
+          min_purchase?: number | null
           name?: string
           reward_code?: string | null
           reward_type?: string
@@ -2636,7 +2639,7 @@ export type Database = {
           details: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string | null
         }
@@ -2645,7 +2648,7 @@ export type Database = {
           details?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -2654,7 +2657,7 @@ export type Database = {
           details?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -3267,10 +3270,7 @@ export type Database = {
         Args: { password_input: string; username_input: string }
         Returns: Json
       }
-      calculate_menu_cost: {
-        Args: { menu_id: string }
-        Returns: number
-      }
+      calculate_menu_cost: { Args: { menu_id: string }; Returns: number }
       check_rate_limit: {
         Args: {
           identifier: string
@@ -3287,12 +3287,9 @@ export type Database = {
         Args: { reward_id: string; user_id: string }
         Returns: Json
       }
-      generate_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_order_number: { Args: never; Returns: string }
       get_active_promotions: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           apply_to: string
           category_ids: string[]
@@ -3305,7 +3302,7 @@ export type Database = {
         }[]
       }
       get_low_stock_ingredients: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           category: string
           id: string
@@ -3316,10 +3313,7 @@ export type Database = {
           unit: string
         }[]
       }
-      hash_password: {
-        Args: { password: string }
-        Returns: Json
-      }
+      hash_password: { Args: { password: string }; Returns: Json }
       restore_stock_for_cancelled_order: {
         Args: { order_id_param: string }
         Returns: Json

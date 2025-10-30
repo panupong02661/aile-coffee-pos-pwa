@@ -150,7 +150,7 @@ const LimitedPromotions = () => {
             gift_id: promotionId,
             gift_type: 'promotion',
             gift_name: promotion.title,
-            gift_description: promotion.description,
+            gift_description: promotion.description + (promotion.min_purchase && promotion.min_purchase > 0 ? ` (ยอดขั้นต่ำ: ${promotion.min_purchase}฿)` : ''),
             gift_value: promotion.discount_value,
             gift_code: couponCode,
             expires_at: promotion.end_date,
@@ -298,6 +298,12 @@ const LimitedPromotions = () => {
                       <Users className="h-4 w-4" />
                       <span>{promotion.max_claims - promotion.current_claims} ใบเหลือ</span>
                     </div>
+                    {promotion.min_purchase && promotion.min_purchase > 0 && (
+                      <div className="flex items-center space-x-1">
+                        <Gift className="h-4 w-4" />
+                        <span>ยอดขั้นต่ำ: {promotion.min_purchase}฿</span>
+                      </div>
+                    )}
                   </div>
                   
                   {promotion.min_purchase && promotion.min_purchase > 0 && (

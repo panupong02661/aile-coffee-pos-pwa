@@ -216,6 +216,19 @@ const Index = () => {
   const handleCodeApply = async (giftData: any) => {
     console.log('Applying gift code:', giftData);
     
+    // ตรวจสอบยอดขั้นต่ำ
+    if (giftData.min_purchase && giftData.min_purchase > 0) {
+      const currentTotal = total;
+      if (currentTotal < giftData.min_purchase) {
+        toast({ 
+          title: 'ยอดสั่งซื้อไม่ถึงขั้นต่ำ', 
+          description: `ต้องซื้อขั้นต่ำ ${giftData.min_purchase} บาท (ยอดปัจจุบัน: ${currentTotal.toFixed(2)} บาท)`,
+          variant: 'destructive' 
+        });
+        return;
+      }
+    }
+    
     // เก็บข้อมูลโค้ดไว้ แต่ไม่อัปเดตสถานะในฐานข้อมูลตอนนี้
     setAppliedGiftCode(giftData);
     

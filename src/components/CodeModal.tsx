@@ -30,6 +30,8 @@ interface CustomerGiftWithMenuItem {
   created_at: string;
   updated_at: string;
   sent_by?: string;
+  discount_type?: string;
+  min_purchase?: number;
   menu_items?: {
     id: string;
     name: string;
@@ -114,7 +116,8 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
           created_at: promotion.created_at,
           updated_at: promotion.updated_at,
           sent_by: 'promotion_system',
-          discount_type: promotion.discount_type
+          discount_type: promotion.discount_type,
+          min_purchase: promotion.min_purchase || 0
         } as CustomerGiftWithMenuItem;
 
         console.log('พบโปรโมชั่นพิเศษ:', foundGift);
