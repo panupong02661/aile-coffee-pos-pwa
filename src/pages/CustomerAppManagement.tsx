@@ -11,6 +11,7 @@ import BirthdayGiftManager from '@/components/BirthdayGiftManager';
 import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
 import CustomerCoupons from '@/components/CustomerCoupons';
 import GiftSender from '@/components/GiftSender';
+import RecipientsList from '@/components/RecipientsList';
 
 const CustomerAppManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -48,12 +49,13 @@ const CustomerAppManagement = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
                     <TabsTrigger value="birthday-gifts">ของขวัญวันเกิด</TabsTrigger>
                     <TabsTrigger value="special-rewards">ของรางวัลพิเศษ</TabsTrigger>
                     <TabsTrigger value="coupons">คูปองลูกค้า</TabsTrigger>
                     <TabsTrigger value="send-gifts">ส่งของขวัญ</TabsTrigger>
+                    <TabsTrigger value="recipients">รายชื่อที่ได้รับ</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview" className="mt-6">
@@ -74,6 +76,10 @@ const CustomerAppManagement = () => {
                   
                   <TabsContent value="send-gifts" className="mt-6">
                     <GiftSender />
+                  </TabsContent>
+                  
+                  <TabsContent value="recipients" className="mt-6">
+                    <RecipientsList />
                   </TabsContent>
                 </Tabs>
               </CardContent>
