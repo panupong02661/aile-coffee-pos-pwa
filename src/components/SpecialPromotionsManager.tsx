@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, Copy, Calendar, Users, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useLimitedRewards, useCreateLimitedReward } from '@/hooks/useLimitedRewards';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const SpecialPromotionsManager = () => {
   const [formData, setFormData] = useState({
@@ -27,9 +27,22 @@ const SpecialPromotionsManager = () => {
     min_purchase: 0
   });
 
-  const { data: rewards = [], refetch } = useLimitedRewards();
-  const createReward = useCreateLimitedReward();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch limited promotions from limited_promotions table
+  const { data: promotions = [] } = useQuery({
+    queryKey: ['limited-promotions-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('limited_promotions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,17 +56,32 @@ const SpecialPromotionsManager = () => {
       return;
     }
 
-    const rewardData = {
-      ...formData,
+    const promotionData = {
+      title: formData.name,
+      promo_code: formData.reward_code,
+      description: formData.description,
+      discount_type: formData.discount_type === 'percent' ? 'percentage' : 'amount',
+      discount_value: formData.discount_value,
+      max_claims: formData.max_claims,
+      min_purchase: formData.min_purchase || 0,
+      current_claims: 0,
       start_date: new Date(formData.start_date).toISOString(),
       end_date: new Date(formData.end_date).toISOString(),
-      is_active: true,
-      current_claims: 0,
-      min_purchase: formData.min_purchase || 0
+      is_active: true
     };
 
     try {
-      await createReward.mutateAsync(rewardData);
+      const { error } = await supabase
+        .from('limited_promotions')
+        .insert([promotionData]);
+      
+      if (error) throw error;
+
+      toast({
+        title: 'สำเร็จ',
+        description: 'สร้างของรางวัลพิเศษสำเร็จ'
+      });
+
       setFormData({
         name: '',
         description: '',
@@ -67,16 +95,26 @@ const SpecialPromotionsManager = () => {
         reward_code: '',
         min_purchase: 0
       });
-      refetch();
+
+      queryClient.invalidateQueries({ queryKey: ['limited-promotions-list'] });
     } catch (error) {
-      console.error('Error creating reward:', error);
+      console.error('Error creating promotion:', error);
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่สามารถสร้างของรางวัลได้',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบของรางวัลนี้?')) {
+      return;
+    }
+
     try {
       const { error } = await supabase
-        .from('limited_rewards')
+        .from('limited_promotions')
         .delete()
         .eq('id', id);
 
@@ -86,9 +124,10 @@ const SpecialPromotionsManager = () => {
         title: 'สำเร็จ',
         description: 'ลบของรางวัลสำเร็จ'
       });
-      refetch();
+
+      queryClient.invalidateQueries({ queryKey: ['limited-promotions-list'] });
     } catch (error) {
-      console.error('Error deleting reward:', error);
+      console.error('Error deleting promotion:', error);
       toast({
         title: 'ข้อผิดพลาด',
         description: 'ไม่สามารถลบของรางวัลได้',
@@ -282,9 +321,9 @@ const SpecialPromotionsManager = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={createReward.isPending}>
+            <Button type="submit" className="w-full">
               <Plus className="w-4 h-4 mr-2" />
-              {createReward.isPending ? 'กำลังสร้าง...' : 'สร้างของรางวัล'}
+              สร้างของรางวัล
             </Button>
           </form>
         </CardContent>
@@ -299,39 +338,39 @@ const SpecialPromotionsManager = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {rewards.length === 0 ? (
+            {promotions.length === 0 ? (
               <p className="text-center text-gray-500">ยังไม่มีของรางวัลพิเศษ</p>
             ) : (
-              rewards.map((reward) => (
-                <div key={reward.id} className="flex items-center justify-between p-4 border rounded-lg">
+              promotions.map((promotion) => (
+                <div key={promotion.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium">{reward.name}</h4>
-                      {reward.reward_code && (
+                      <h4 className="font-medium">{promotion.title}</h4>
+                      {promotion.promo_code && (
                         <Badge variant="secondary" className="font-mono">
-                          {reward.reward_code}
+                          {promotion.promo_code}
                         </Badge>
                       )}
-                      <Badge variant={reward.is_active ? "default" : "secondary"}>
-                        {reward.is_active ? 'ใช้งาน' : 'ปิด'}
+                      <Badge variant={promotion.is_active ? "default" : "secondary"}>
+                        {promotion.is_active ? 'ใช้งาน' : 'ปิด'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
+                    <p className="text-sm text-gray-600 mb-2">{promotion.description}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {new Date(reward.start_date).toLocaleDateString('th-TH')} - {new Date(reward.end_date).toLocaleDateString('th-TH')}
+                        {new Date(promotion.start_date).toLocaleDateString('th-TH')} - {new Date(promotion.end_date).toLocaleDateString('th-TH')}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
-                        {reward.current_claims}/{reward.max_claims}
+                        {promotion.current_claims}/{promotion.max_claims}
                       </span>
                       <span>
-                        ส่วนลด: {reward.discount_value}{reward.discount_type === 'percent' ? '%' : '฿'}
+                        ส่วนลด: {promotion.discount_value}{promotion.discount_type === 'percentage' ? '%' : '฿'}
                       </span>
-                      {reward.min_purchase && reward.min_purchase > 0 && (
+                      {promotion.min_purchase && promotion.min_purchase > 0 && (
                         <span>
-                          ยอดขั้นต่ำ: {reward.min_purchase}฿
+                          ยอดขั้นต่ำ: {promotion.min_purchase}฿
                         </span>
                       )}
                     </div>
@@ -339,7 +378,7 @@ const SpecialPromotionsManager = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(reward.id)}
+                    onClick={() => handleDelete(promotion.id)}
                     className="text-red-500 hover:text-red-700"
                   >
                     <Trash2 className="w-4 h-4" />
