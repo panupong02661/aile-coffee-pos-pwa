@@ -12,6 +12,9 @@ import SpecialPromotionsManager from '@/components/SpecialPromotionsManager';
 import CustomerCoupons from '@/components/CustomerCoupons';
 import GiftSender from '@/components/GiftSender';
 import RecipientsList from '@/components/RecipientsList';
+import CustomerPromotionDetails from '@/components/CustomerPromotionDetails';
+import CustomerGiftDetails from '@/components/CustomerGiftDetails';
+import CustomerRewardDetails from '@/components/CustomerRewardDetails';
 
 const CustomerAppManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -49,13 +52,16 @@ const CustomerAppManagement = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                  <TabsList className="grid w-full grid-cols-9">
                     <TabsTrigger value="overview">ภาพรวม</TabsTrigger>
                     <TabsTrigger value="birthday-gifts">ของขวัญวันเกิด</TabsTrigger>
                     <TabsTrigger value="special-rewards">ของรางวัลพิเศษ</TabsTrigger>
                     <TabsTrigger value="coupons">คูปองลูกค้า</TabsTrigger>
                     <TabsTrigger value="send-gifts">ส่งของขวัญ</TabsTrigger>
                     <TabsTrigger value="recipients">รายชื่อที่ได้รับ</TabsTrigger>
+                    <TabsTrigger value="promotion-details">คูปองโปรโมชั่น</TabsTrigger>
+                    <TabsTrigger value="gift-details">ของขวัญ</TabsTrigger>
+                    <TabsTrigger value="reward-details">รางวัลแต้ม</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview" className="mt-6">
@@ -80,6 +86,18 @@ const CustomerAppManagement = () => {
                   
                   <TabsContent value="recipients" className="mt-6">
                     <RecipientsList />
+                  </TabsContent>
+                  
+                  <TabsContent value="promotion-details" className="mt-6">
+                    <CustomerPromotionDetails />
+                  </TabsContent>
+                  
+                  <TabsContent value="gift-details" className="mt-6">
+                    <CustomerGiftDetails />
+                  </TabsContent>
+                  
+                  <TabsContent value="reward-details" className="mt-6">
+                    <CustomerRewardDetails />
                   </TabsContent>
                 </Tabs>
               </CardContent>
