@@ -8,6 +8,7 @@ import StockManagement from '@/components/inventory/StockManagement';
 import RecipeManagement from '@/components/inventory/RecipeManagement';
 import InventoryDashboard from '@/components/inventory/InventoryDashboard';
 import InventoryReports from '@/components/inventory/InventoryReports';
+import ErrorBoundary from '@/components/ui/error-boundary';
 
 const Inventory = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

@@ -22,7 +22,7 @@ const OnlineSystem = lazy(() => import('./pages/OnlineSystem'));
 const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
 const CustomerAppManagement = lazy(() => import('./pages/CustomerAppManagement'));
 const QRCodePromptPayPage = lazy(() => import('./pages/QRCodePromptPayPage'));
-const Inventory = lazy(() => import('./pages/Inventory'));
+import Inventory from './pages/Inventory';
 const PrinterSettings = lazy(() => import('./pages/PrinterSettings'));
 const OnlineOrderManagement = lazy(() => import('./pages/OnlineOrderManagement'));
 const SecurityRecommendationsPage = lazy(() => import('./pages/SecurityRecommendationsPage'));
