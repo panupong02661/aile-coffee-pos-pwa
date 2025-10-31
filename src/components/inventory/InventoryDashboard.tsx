@@ -27,21 +27,36 @@ const InventoryDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const lowStockItems = useMemo(() => getLowStockIngredients(), [getLowStockIngredients]);
+  // Safeguard against undefined data from hook
+  const safeIngredients = ingredients || [];
+  const safeMenuItems = menuItems || [];
+  const safeStockMovements = stockMovements || [];
+
+  const lowStockItems = useMemo(
+    () => (typeof getLowStockIngredients === 'function' ? getLowStockIngredients() : []),
+    [getLowStockIngredients]
+  );
   
-  const totalStockValue = useMemo(() => 
-    ingredients.reduce((total, ingredient) => 
-      total + (ingredient.quantity * ingredient.cost_per_unit), 0
-    ), [ingredients]
+  const totalStockValue = useMemo(
+    () =>
+      safeIngredients.reduce(
+        (total, ingredient) => total + (Number(ingredient.quantity) * Number(ingredient.cost_per_unit)),
+        0
+      ),
+    [safeIngredients]
   );
 
   // Get best sellers with profit info
-  const bestSellers = useMemo(() => menuItems.slice(0, 5).map(item => ({
-    ...item,
-    cost: calculateMenuItemCost(item.id),
-    profit: calculateMenuItemProfit(item.id),
-    margin: calculateMenuItemMargin(item.id)
-  })), [menuItems, calculateMenuItemCost, calculateMenuItemProfit, calculateMenuItemMargin]);
+  const bestSellers = useMemo(
+    () =>
+      safeMenuItems.slice(0, 5).map((item) => ({
+        ...item,
+        cost: typeof calculateMenuItemCost === 'function' ? Number(calculateMenuItemCost(item.id)) : 0,
+        profit: typeof calculateMenuItemProfit === 'function' ? Number(calculateMenuItemProfit(item.id)) : 0,
+        margin: typeof calculateMenuItemMargin === 'function' ? Number(calculateMenuItemMargin(item.id)) : 0,
+      })),
+    [safeMenuItems, calculateMenuItemCost, calculateMenuItemProfit, calculateMenuItemMargin]
+  );
 
   // Calculate today's cost and profit from menu items
   const financials = useMemo(() => {
@@ -65,7 +80,7 @@ const InventoryDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">฿{totalStockValue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {ingredients.length} รายการวัตถุดิบ
+              {safeIngredients.length} รายการวัตถุดิบ
             </p>
           </CardContent>
         </Card>
@@ -184,7 +199,7 @@ const InventoryDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {stockMovements.slice(0, 10).map((movement) => (
+            {safeStockMovements.slice(0, 10).map((movement) => (
               <div key={movement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">{movement.ingredients?.name || 'ไม่ระบุ'}</p>
