@@ -1,72 +1,36 @@
 
-import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Package, TrendingUp, DollarSign } from 'lucide-react';
-import { format } from 'date-fns';
-import { useMemo, memo } from 'react';
-import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 
 const InventoryDashboard = () => {
-  const { 
-    ingredients, 
-    menuItems, 
-    stockMovements,
-    getLowStockIngredients,
-    calculateMenuItemCost,
-    calculateMenuItemProfit,
-    calculateMenuItemMargin,
-    loading 
-  } = useSupabaseData();
+  // Mock data for demonstration
+  const mockStats = {
+    totalStockValue: 125000,
+    todayCost: 8500,
+    todayProfit: 15200,
+    profitMargin: 64.1
+  };
 
-  console.log('[InventoryDashboard] Loading:', loading);
-  console.log('[InventoryDashboard] Ingredients count:', ingredients?.length || 0);
-  console.log('[InventoryDashboard] Menu items count:', menuItems?.length || 0);
+  const mockLowStock = [
+    { id: 1, name: 'กาแฟเมล็ด Arabica', quantity: 2, unit: 'กก.', minimum_stock: 5 },
+    { id: 2, name: 'นมสด', quantity: 8, unit: 'ลิตร', minimum_stock: 20 },
+    { id: 3, name: 'น้ำตาลทรายขาว', quantity: 1.5, unit: 'กก.', minimum_stock: 3 }
+  ];
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const mockBestSellers = [
+    { id: 1, name: 'กาแฟอเมริกาโน่', price: 65, cost: 18, profit: 47, margin: 72.3 },
+    { id: 2, name: 'คาปูชิโน่', price: 75, cost: 22, profit: 53, margin: 70.7 },
+    { id: 3, name: 'ลาเต้', price: 80, cost: 25, profit: 55, margin: 68.8 },
+    { id: 4, name: 'มอคค่า', price: 85, cost: 28, profit: 57, margin: 67.1 },
+    { id: 5, name: 'เอสเปรสโซ่', price: 50, cost: 15, profit: 35, margin: 70.0 }
+  ];
 
-  // Safeguard against undefined data from hook
-  const safeIngredients = ingredients || [];
-  const safeMenuItems = menuItems || [];
-  const safeStockMovements = stockMovements || [];
-
-  const lowStockItems = useMemo(
-    () => (typeof getLowStockIngredients === 'function' ? getLowStockIngredients() : []),
-    [getLowStockIngredients]
-  );
-  
-  const totalStockValue = useMemo(
-    () =>
-      safeIngredients.reduce(
-        (total, ingredient) => total + (Number(ingredient.quantity) * Number(ingredient.cost_per_unit)),
-        0
-      ),
-    [safeIngredients]
-  );
-
-  // Get best sellers with profit info
-  const bestSellers = useMemo(
-    () =>
-      safeMenuItems.slice(0, 5).map((item) => ({
-        ...item,
-        cost: typeof calculateMenuItemCost === 'function' ? Number(calculateMenuItemCost(item.id)) : 0,
-        profit: typeof calculateMenuItemProfit === 'function' ? Number(calculateMenuItemProfit(item.id)) : 0,
-        margin: typeof calculateMenuItemMargin === 'function' ? Number(calculateMenuItemMargin(item.id)) : 0,
-      })),
-    [safeMenuItems, calculateMenuItemCost, calculateMenuItemProfit, calculateMenuItemMargin]
-  );
-
-  // Calculate today's cost and profit from menu items
-  const financials = useMemo(() => {
-    const totalMenuCost = bestSellers.reduce((sum, item) => sum + item.cost, 0);
-    const totalMenuProfit = bestSellers.reduce((sum, item) => sum + item.profit, 0);
-    const todayCost = totalMenuCost > 0 ? totalMenuCost : totalStockValue * 0.3;
-    const todayProfit = totalMenuProfit > 0 ? totalMenuProfit : totalStockValue * 0.7;
-    const profitMargin = ((todayProfit / (todayCost + todayProfit)) * 100).toFixed(1);
-    return { todayCost, todayProfit, profitMargin };
-  }, [bestSellers, totalStockValue]);
+  const mockRecentMovements = [
+    { id: 1, ingredients: { name: 'กาแฟเมล็ด Arabica', unit: 'กก.' }, movement_type: 'purchase', quantity_change: 10, created_at: new Date().toISOString() },
+    { id: 2, ingredients: { name: 'นมสด', unit: 'ลิตร' }, movement_type: 'usage', quantity_change: -5, created_at: new Date().toISOString() },
+    { id: 3, ingredients: { name: 'น้ำตาลทรายขาว', unit: 'กก.' }, movement_type: 'purchase', quantity_change: 2, created_at: new Date().toISOString() }
+  ];
 
   return (
     <div className="space-y-6">
@@ -78,10 +42,8 @@ const InventoryDashboard = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">฿{totalStockValue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {safeIngredients.length} รายการวัตถุดิบ
-            </p>
+            <div className="text-2xl font-bold">฿{mockStats.totalStockValue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">ข้อมูลตัวอย่าง</p>
           </CardContent>
         </Card>
 
@@ -91,7 +53,7 @@ const InventoryDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">฿{financials.todayCost.toLocaleString()}</div>
+            <div className="text-2xl font-bold">฿{mockStats.todayCost.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               ต้นทุนการผลิต
             </p>
@@ -104,7 +66,7 @@ const InventoryDashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">฿{financials.todayProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">฿{mockStats.todayProfit.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               กำไรสุทธิ
             </p>
@@ -117,7 +79,7 @@ const InventoryDashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{financials.profitMargin}%</div>
+            <div className="text-2xl font-bold text-green-600">{mockStats.profitMargin}%</div>
             <p className="text-xs text-muted-foreground">
               อัตรากำไร
             </p>
@@ -139,10 +101,10 @@ const InventoryDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {lowStockItems.length === 0 ? (
+              {mockLowStock.length === 0 ? (
                 <p className="text-sm text-muted-foreground">ไม่มีวัตถุดิบที่สต็อกต่ำ</p>
               ) : (
-                lowStockItems.map((ingredient) => (
+                mockLowStock.map((ingredient) => (
                   <div key={ingredient.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
                     <div>
                       <p className="font-medium text-orange-800">{ingredient.name}</p>
@@ -151,7 +113,7 @@ const InventoryDashboard = () => {
                       </p>
                     </div>
                     <Badge variant="destructive">
-                      ขาด {ingredient.minimum_stock - ingredient.quantity} {ingredient.unit}
+                      ขาด {Number(ingredient.minimum_stock) - Number(ingredient.quantity)} {ingredient.unit}
                     </Badge>
                   </div>
                 ))
@@ -170,7 +132,7 @@ const InventoryDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {bestSellers.map((item) => (
+              {mockBestSellers.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                   <div>
                     <p className="font-medium text-green-800">{item.name}</p>
@@ -199,14 +161,14 @@ const InventoryDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {safeStockMovements.slice(0, 10).map((movement) => (
+            {mockRecentMovements.slice(0, 10).map((movement) => (
               <div key={movement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">{movement.ingredients?.name || 'ไม่ระบุ'}</p>
                   <p className="text-sm text-muted-foreground">
                     {(() => {
                       const d = new Date(movement.created_at as any);
-                      return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy HH:mm');
+                      return isNaN(d.getTime()) ? '-' : d.toLocaleString('th-TH');
                     })()}
                   </p>
                 </div>
@@ -233,4 +195,4 @@ const InventoryDashboard = () => {
   );
 };
 
-export default memo(InventoryDashboard);
+export default InventoryDashboard;
