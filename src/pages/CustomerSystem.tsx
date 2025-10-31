@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { UserCog, Mail, MessageCircle, Calendar, Users } from 'lucide-react';
+import CustomerPurchaseHistory from '@/components/CustomerPurchaseHistory';
 
 const CustomerSystem = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,11 +100,7 @@ const CustomerSystem = () => {
                         </Card>
                       </div>
                       
-                      <Card>
-                        <CardContent className="pt-6">
-                          <p className="text-center text-muted-foreground">กำลังพัฒนาระบบประวัติการซื้อแบบละเอียด...</p>
-                        </CardContent>
-                      </Card>
+                      <CustomerPurchaseHistory />
                     </div>
                   </TabsContent>
                   
