@@ -140,9 +140,12 @@ export interface DatabaseIngredient {
   name: string;
   category: string;
   quantity: number;
+  current_quantity?: number; // Alias for compatibility
   unit: string;
   minimum_stock: number;
+  minimum_quantity?: number; // Alias for compatibility
   cost_per_unit: number;
+  unit_price?: number; // Alias for compatibility
   supplier?: string;
   sort_order: number;
   is_active: boolean;
@@ -386,7 +389,16 @@ export const useSupabaseData = () => {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดวัตถุดิบได้', variant: 'destructive' });
       return;
     }
-    setIngredients(data || []);
+    
+    // Map fields for compatibility
+    const mappedData = (data || []).map(item => ({
+      ...item,
+      current_quantity: item.quantity,
+      minimum_quantity: item.minimum_stock,
+      unit_price: item.cost_per_unit
+    }));
+    
+    setIngredients(mappedData);
   };
 
   const fetchStockMovements = async () => {
