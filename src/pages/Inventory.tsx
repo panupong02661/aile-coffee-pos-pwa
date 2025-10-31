@@ -49,30 +49,38 @@ const Inventory = () => {
                 <CardDescription>ระบบจัดการสต็อก สูตรอาหาร การคำนวณต้นทุน และรายงาน</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="dashboard" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="dashboard">แดชบอร์ด</TabsTrigger>
-                    <TabsTrigger value="stock">จัดการสต็อก</TabsTrigger>
-                    <TabsTrigger value="recipes">สูตร & ต้นทุน</TabsTrigger>
-                    <TabsTrigger value="reports">รายงาน</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="dashboard" className="mt-6">
-                    <InventoryDashboard />
-                  </TabsContent>
-                  
-                  <TabsContent value="stock" className="mt-6">
-                    <StockManagement />
-                  </TabsContent>
-                  
-                  <TabsContent value="recipes" className="mt-6">
-                    <RecipeManagement />
-                  </TabsContent>
-                  
-                  <TabsContent value="reports" className="mt-6">
-                    <InventoryReports />
-                  </TabsContent>
-                </Tabs>
+                    <Tabs defaultValue="dashboard" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="dashboard">แดชบอร์ด</TabsTrigger>
+                        <TabsTrigger value="stock">จัดการสต็อก</TabsTrigger>
+                        <TabsTrigger value="recipes">สูตร & ต้นทุน</TabsTrigger>
+                        <TabsTrigger value="reports">รายงาน</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="dashboard" className="mt-6">
+                        <ErrorBoundary fallback={<div className="p-4 text-sm text-destructive">โหลดแดชบอร์ดไม่สำเร็จ</div>}>
+                          <InventoryDashboard />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="stock" className="mt-6">
+                        <ErrorBoundary fallback={<div className="p-4 text-sm text-destructive">โหลดจัดการสต็อกไม่สำเร็จ</div>}>
+                          <StockManagement />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="recipes" className="mt-6">
+                        <ErrorBoundary fallback={<div className="p-4 text-sm text-destructive">โหลดสูตร & ต้นทุนไม่สำเร็จ</div>}>
+                          <RecipeManagement />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="reports" className="mt-6">
+                        <ErrorBoundary fallback={<div className="p-4 text-sm text-destructive">โหลดรายงานไม่สำเร็จ</div>}>
+                          <InventoryReports />
+                        </ErrorBoundary>
+                      </TabsContent>
+                    </Tabs>
               </CardContent>
             </Card>
           </div>

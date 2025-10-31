@@ -114,6 +114,10 @@ const RecipeManagement = () => {
     }
   };
 
+  console.log('[RecipeManagement] Loading:', loading);
+  console.log('[RecipeManagement] Menu items count:', menuItems?.length || 0);
+  console.log('[RecipeManagement] Ingredients count:', ingredients?.length || 0);
+
   if (loading) {
     return <div className="text-center py-8">กำลังโหลดข้อมูล...</div>;
   }

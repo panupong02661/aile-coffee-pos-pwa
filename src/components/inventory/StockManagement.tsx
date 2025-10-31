@@ -263,6 +263,9 @@ const StockManagement = () => {
     }
   };
 
+  console.log('[StockManagement] Loading:', loading);
+  console.log('[StockManagement] Ingredients count:', ingredients?.length || 0);
+
   if (loading) {
     return <div className="text-center py-8">กำลังโหลดข้อมูล...</div>;
   }

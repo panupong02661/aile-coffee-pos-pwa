@@ -380,13 +380,18 @@ export const useSupabaseData = () => {
   };
 
   const fetchIngredients = async () => {
+    console.log('[useSupabaseData] Fetching ingredients...');
     const { data, error } = await supabase
       .from('ingredients')
       .select('*')
       .order('sort_order');
     
+    console.log('[useSupabaseData] Ingredients response:', { data, error });
+    
     if (error) {
+      console.error('[useSupabaseData] Ingredients error:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดวัตถุดิบได้', variant: 'destructive' });
+      setIngredients([]); // Set empty array on error
       return;
     }
     
@@ -398,6 +403,7 @@ export const useSupabaseData = () => {
       unit_price: item.cost_per_unit
     }));
     
+    console.log('[useSupabaseData] Mapped ingredients:', mappedData.length);
     setIngredients(mappedData);
   };
 

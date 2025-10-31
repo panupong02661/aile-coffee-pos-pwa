@@ -19,6 +19,10 @@ const InventoryDashboard = () => {
     loading 
   } = useSupabaseData();
 
+  console.log('[InventoryDashboard] Loading:', loading);
+  console.log('[InventoryDashboard] Ingredients count:', ingredients?.length || 0);
+  console.log('[InventoryDashboard] Menu items count:', menuItems?.length || 0);
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -185,7 +189,10 @@ const InventoryDashboard = () => {
                 <div>
                   <p className="font-medium">{movement.ingredients?.name || 'ไม่ระบุ'}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(movement.created_at), 'dd/MM/yyyy HH:mm')}
+                    {(() => {
+                      const d = new Date(movement.created_at as any);
+                      return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy HH:mm');
+                    })()}
                   </p>
                 </div>
                 <div className="text-right">
