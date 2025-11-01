@@ -50,6 +50,7 @@ const CustomerGiftDetails = () => {
       const { data, error } = await supabase
         .from('customer_gifts')
         .select('*')
+        .neq('gift_type', 'promotion')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

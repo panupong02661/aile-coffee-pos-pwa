@@ -47,20 +47,18 @@ const CustomerPromotionDetails = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('customer_promotion_claims')
+        .from('customer_gifts')
         .select(`
           id,
           customer_id,
-          claimed_at,
-          used_at,
+          gift_name,
+          gift_description,
           is_used,
-          promotion_id,
-          limited_promotions (
-            title,
-            description
-          )
+          used_at,
+          created_at
         `)
-        .order('claimed_at', { ascending: false });
+        .eq('gift_type', 'promotion')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -77,7 +75,6 @@ const CustomerPromotionDetails = () => {
 
       const formatted: CustomerPromotion[] = data?.map(item => {
         const member = memberMap.get(item.customer_id);
-        const promotion = item.limited_promotions as any;
         return {
           id: item.id,
           customer_id: item.customer_id,
@@ -85,11 +82,11 @@ const CustomerPromotionDetails = () => {
           customer_phone: member?.phone || '-',
           customer_tier: member?.tier || 'silver',
           customer_points: member?.points || 0,
-          promotion_title: promotion?.title || 'โปรโมชั่น',
-          promotion_description: promotion?.description || '',
-          claimed_at: item.claimed_at,
+          promotion_title: item.gift_name || 'โปรโมชั่น',
+          promotion_description: item.gift_description || '',
+          claimed_at: item.created_at,
           used_at: item.used_at,
-          is_used: item.is_used
+          is_used: item.is_used || false
         };
       }) || [];
 
