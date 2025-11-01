@@ -32,7 +32,15 @@ interface CustomerSummary {
   total_gifts: number;
   used_gifts: number;
   unused_gifts: number;
+  total_promotions: number;
+  used_promotions: number;
+  unused_promotions: number;
+  total_rewards: number;
+  used_rewards: number;
+  unused_rewards: number;
   gifts: CustomerGift[];
+  promotions: CustomerGift[];
+  rewards: any[];
 }
 
 const CustomerGiftDetails = () => {
@@ -47,26 +55,52 @@ const CustomerGiftDetails = () => {
   const fetchGifts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch all customer gifts (both gifts and promotions)
+      const { data: giftsData, error: giftsError } = await supabase
         .from('customer_gifts')
         .select('*')
-        .neq('gift_type', 'promotion')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (giftsError) throw giftsError;
+
+      // Fetch customer rewards
+      const { data: rewardsData, error: rewardsError } = await supabase
+        .from('customer_rewards')
+        .select(`
+          id,
+          customer_id,
+          reward_id,
+          redeemed_at,
+          used_at,
+          is_used,
+          rewards (
+            name,
+            description
+          )
+        `)
+        .order('redeemed_at', { ascending: false });
+
+      if (rewardsError) throw rewardsError;
 
       // Fetch member details
-      const customerIds = [...new Set(data?.map(item => item.customer_id) || [])];
+      const allCustomerIds = [
+        ...new Set([
+          ...(giftsData?.map(item => item.customer_id) || []),
+          ...(rewardsData?.map(item => item.customer_id) || [])
+        ])
+      ];
+
       const { data: members, error: memberError } = await supabase
         .from('members')
         .select('id, name, phone, tier, points')
-        .in('id', customerIds);
+        .in('id', allCustomerIds);
 
       if (memberError) throw memberError;
 
       const memberMap = new Map(members?.map(m => [m.id, m]) || []);
 
-        const formatted: CustomerGift[] = data?.map(item => {
+      // Format gifts
+      const formattedGifts: CustomerGift[] = giftsData?.filter(item => item.gift_type !== 'promotion').map(item => {
         const member = memberMap.get(item.customer_id);
         return {
           id: item.id,
@@ -84,9 +118,46 @@ const CustomerGiftDetails = () => {
         };
       }) || [];
 
+      // Format promotions
+      const formattedPromotions: CustomerGift[] = giftsData?.filter(item => item.gift_type === 'promotion').map(item => {
+        const member = memberMap.get(item.customer_id);
+        return {
+          id: item.id,
+          customer_id: item.customer_id,
+          customer_name: member?.name || 'ไม่ระบุ',
+          customer_phone: member?.phone || '-',
+          customer_tier: member?.tier || 'silver',
+          customer_points: member?.points || 0,
+          gift_title: item.gift_name || 'โปรโมชั่น',
+          gift_description: item.gift_description || '',
+          gift_type: 'promotion',
+          created_at: item.created_at,
+          used_at: item.used_at,
+          is_used: item.is_used || false
+        };
+      }) || [];
+
+      // Format rewards
+      const formattedRewards = rewardsData?.map(item => {
+        const member = memberMap.get(item.customer_id);
+        const reward = item.rewards as any;
+        return {
+          id: item.id,
+          customer_id: item.customer_id,
+          customer_name: member?.name || 'ไม่ระบุ',
+          reward_title: reward?.name || 'รางวัล',
+          reward_description: reward?.description || '',
+          redeemed_at: item.redeemed_at,
+          used_at: item.used_at,
+          is_used: item.is_used || false
+        };
+      }) || [];
+
       // Group by customer
       const customerMap = new Map<string, CustomerSummary>();
-      formatted.forEach(gift => {
+      
+      // Add gifts
+      formattedGifts.forEach(gift => {
         if (!customerMap.has(gift.customer_id)) {
           customerMap.set(gift.customer_id, {
             customer_id: gift.customer_id,
@@ -96,7 +167,15 @@ const CustomerGiftDetails = () => {
             total_gifts: 0,
             used_gifts: 0,
             unused_gifts: 0,
-            gifts: []
+            total_promotions: 0,
+            used_promotions: 0,
+            unused_promotions: 0,
+            total_rewards: 0,
+            used_rewards: 0,
+            unused_rewards: 0,
+            gifts: [],
+            promotions: [],
+            rewards: []
           });
         }
         const summary = customerMap.get(gift.customer_id)!;
@@ -106,6 +185,71 @@ const CustomerGiftDetails = () => {
           summary.used_gifts++;
         } else {
           summary.unused_gifts++;
+        }
+      });
+
+      // Add promotions
+      formattedPromotions.forEach(promo => {
+        if (!customerMap.has(promo.customer_id)) {
+          customerMap.set(promo.customer_id, {
+            customer_id: promo.customer_id,
+            customer_name: promo.customer_name,
+            customer_tier: promo.customer_tier,
+            customer_points: promo.customer_points,
+            total_gifts: 0,
+            used_gifts: 0,
+            unused_gifts: 0,
+            total_promotions: 0,
+            used_promotions: 0,
+            unused_promotions: 0,
+            total_rewards: 0,
+            used_rewards: 0,
+            unused_rewards: 0,
+            gifts: [],
+            promotions: [],
+            rewards: []
+          });
+        }
+        const summary = customerMap.get(promo.customer_id)!;
+        summary.promotions.push(promo);
+        summary.total_promotions++;
+        if (promo.is_used) {
+          summary.used_promotions++;
+        } else {
+          summary.unused_promotions++;
+        }
+      });
+
+      // Add rewards
+      formattedRewards.forEach(reward => {
+        if (!customerMap.has(reward.customer_id)) {
+          const member = memberMap.get(reward.customer_id);
+          customerMap.set(reward.customer_id, {
+            customer_id: reward.customer_id,
+            customer_name: reward.customer_name,
+            customer_tier: member?.tier || 'silver',
+            customer_points: member?.points || 0,
+            total_gifts: 0,
+            used_gifts: 0,
+            unused_gifts: 0,
+            total_promotions: 0,
+            used_promotions: 0,
+            unused_promotions: 0,
+            total_rewards: 0,
+            used_rewards: 0,
+            unused_rewards: 0,
+            gifts: [],
+            promotions: [],
+            rewards: []
+          });
+        }
+        const summary = customerMap.get(reward.customer_id)!;
+        summary.rewards.push(reward);
+        summary.total_rewards++;
+        if (reward.is_used) {
+          summary.used_rewards++;
+        } else {
+          summary.unused_rewards++;
         }
       });
 
@@ -148,8 +292,12 @@ const CustomerGiftDetails = () => {
     return tierConfig[tier as keyof typeof tierConfig] || tierConfig.silver;
   };
 
-  const totalUsed = filteredSummaries.reduce((sum, s) => sum + s.used_gifts, 0);
-  const totalUnused = filteredSummaries.reduce((sum, s) => sum + s.unused_gifts, 0);
+  const totalGiftsUnused = filteredSummaries.reduce((sum, s) => sum + s.unused_gifts, 0);
+  const totalPromotionsUnused = filteredSummaries.reduce((sum, s) => sum + s.unused_promotions, 0);
+  const totalRewardsUnused = filteredSummaries.reduce((sum, s) => sum + s.unused_rewards, 0);
+  const totalGiftsUsed = filteredSummaries.reduce((sum, s) => sum + s.used_gifts, 0);
+  const totalPromotionsUsed = filteredSummaries.reduce((sum, s) => sum + s.used_promotions, 0);
+  const totalRewardsUsed = filteredSummaries.reduce((sum, s) => sum + s.used_rewards, 0);
 
   if (loading) {
     return (
@@ -173,8 +321,9 @@ const CustomerGiftDetails = () => {
               </span>
               <div className="flex gap-2">
                 <Badge variant="secondary">ลูกค้า {filteredSummaries.length} คน</Badge>
-                <Badge className="bg-green-100 text-green-800">ใช้แล้ว {totalUsed}</Badge>
-                <Badge className="bg-blue-100 text-blue-800">ยังไม่ใช้ {totalUnused}</Badge>
+                <Badge className="bg-pink-100 text-pink-800">ของขวัญ {totalGiftsUnused + totalGiftsUsed}</Badge>
+                <Badge className="bg-blue-100 text-blue-800">โปรโมชั่น {totalPromotionsUnused + totalPromotionsUsed}</Badge>
+                <Badge className="bg-yellow-100 text-yellow-800">รางวัล {totalRewardsUnused + totalRewardsUsed}</Badge>
               </div>
             </CardTitle>
             <div className="relative mt-4">
@@ -198,14 +347,15 @@ const CustomerGiftDetails = () => {
                     <TableHead>ระดับสมาชิก</TableHead>
                     <TableHead className="text-right">แต้ม</TableHead>
                     <TableHead className="text-center">รอใช้งาน<br />ของขวัญ</TableHead>
-                    <TableHead className="text-center">ใช้งานแล้ว<br />ของขวัญ</TableHead>
+                    <TableHead className="text-center">รอใช้งาน<br />โปรโมชั่น</TableHead>
+                    <TableHead className="text-center">รอใช้งาน<br />ของรางวัล</TableHead>
                     <TableHead className="text-center w-[100px]">ดูรายละเอียด</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSummaries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ยังไม่มีข้อมูลของขวัญ'}
                       </TableCell>
                     </TableRow>
@@ -230,8 +380,13 @@ const CustomerGiftDetails = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="outline" className="bg-green-50">
-                              {summary.used_gifts}
+                            <Badge variant="outline" className="bg-blue-50">
+                              {summary.unused_promotions}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-yellow-50">
+                              {summary.unused_rewards}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
@@ -268,7 +423,7 @@ const CustomerGiftDetails = () => {
           </DialogHeader>
           {selectedCustomer && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
                 <div>
                   <p className="text-sm text-muted-foreground">ระดับสมาชิก</p>
                   <Badge className={getTierBadge(selectedCustomer.customer_tier).className}>
@@ -282,56 +437,171 @@ const CustomerGiftDetails = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">ของขวัญทั้งหมด</p>
-                  <p className="text-lg font-semibold">{selectedCustomer.total_gifts} รางวัล</p>
+                  <p className="text-sm text-muted-foreground">ของขวัญ</p>
+                  <p className="text-lg font-semibold">{selectedCustomer.total_gifts} รายการ</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">โปรโมชั่น</p>
+                  <p className="text-lg font-semibold">{selectedCustomer.total_promotions} รายการ</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">ของรางวัล</p>
+                  <p className="text-lg font-semibold">{selectedCustomer.total_rewards} รายการ</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                {selectedCustomer.gifts.map((gift) => (
-                  <Card 
-                    key={gift.id}
-                    className={`border-l-4 ${gift.is_used ? 'border-l-green-500 bg-green-50/30' : 'border-l-pink-500'}`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h5 className="font-medium mb-1">{gift.gift_title}</h5>
-                          {gift.gift_description && (
-                            <p className="text-sm text-muted-foreground mb-2">{gift.gift_description}</p>
-                          )}
-                          <Badge variant="outline">
-                            {gift.gift_type === 'birthday' ? 'ของขวัญวันเกิด' : 'ของขวัญทั่วไป'}
-                          </Badge>
-                        </div>
-                        {gift.is_used ? (
-                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            ใช้แล้ว
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                            <XCircle className="w-3 h-3" />
-                            ยังไม่ใช้
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>ได้รับเมื่อ: {new Date(gift.created_at).toLocaleDateString('th-TH')}</span>
-                        </div>
-                        {gift.is_used && gift.used_at && (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-3 h-3" />
-                            <span>ใช้เมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}</span>
+              {/* Gifts Section */}
+              {selectedCustomer.gifts.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-pink-700 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    ของขวัญ ({selectedCustomer.gifts.length})
+                  </h4>
+                  {selectedCustomer.gifts.map((gift) => (
+                    <Card 
+                      key={gift.id}
+                      className={`border-l-4 ${gift.is_used ? 'border-l-green-500 bg-green-50/30' : 'border-l-pink-500'}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h5 className="font-medium mb-1">{gift.gift_title}</h5>
+                            {gift.gift_description && (
+                              <p className="text-sm text-muted-foreground mb-2">{gift.gift_description}</p>
+                            )}
+                            <Badge variant="outline">
+                              {gift.gift_type === 'birthday' ? 'ของขวัญวันเกิด' : 'ของขวัญทั่วไป'}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          {gift.is_used ? (
+                            <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              ใช้แล้ว
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" />
+                              ยังไม่ใช้
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>ได้รับเมื่อ: {new Date(gift.created_at).toLocaleDateString('th-TH')}</span>
+                          </div>
+                          {gift.is_used && gift.used_at && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>ใช้เมื่อ: {new Date(gift.used_at).toLocaleDateString('th-TH')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Promotions Section */}
+              {selectedCustomer.promotions.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-blue-700 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    คูปองโปรโมชั่นพิเศษ ({selectedCustomer.promotions.length})
+                  </h4>
+                  {selectedCustomer.promotions.map((promo) => (
+                    <Card 
+                      key={promo.id}
+                      className={`border-l-4 ${promo.is_used ? 'border-l-green-500 bg-green-50/30' : 'border-l-blue-500'}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h5 className="font-medium mb-1">{promo.gift_title}</h5>
+                            {promo.gift_description && (
+                              <p className="text-sm text-muted-foreground">{promo.gift_description}</p>
+                            )}
+                          </div>
+                          {promo.is_used ? (
+                            <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              ใช้แล้ว
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" />
+                              ยังไม่ใช้
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>ได้รับเมื่อ: {new Date(promo.created_at).toLocaleDateString('th-TH')}</span>
+                          </div>
+                          {promo.is_used && promo.used_at && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>ใช้เมื่อ: {new Date(promo.used_at).toLocaleDateString('th-TH')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Rewards Section */}
+              {selectedCustomer.rewards.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-yellow-700 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    ของรางวัล ({selectedCustomer.rewards.length})
+                  </h4>
+                  {selectedCustomer.rewards.map((reward) => (
+                    <Card 
+                      key={reward.id}
+                      className={`border-l-4 ${reward.is_used ? 'border-l-green-500 bg-green-50/30' : 'border-l-yellow-500'}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h5 className="font-medium mb-1">{reward.reward_title}</h5>
+                            {reward.reward_description && (
+                              <p className="text-sm text-muted-foreground">{reward.reward_description}</p>
+                            )}
+                          </div>
+                          {reward.is_used ? (
+                            <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              ใช้แล้ว
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" />
+                              ยังไม่ใช้
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>รับเมื่อ: {new Date(reward.redeemed_at).toLocaleDateString('th-TH')}</span>
+                          </div>
+                          {reward.is_used && reward.used_at && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>ใช้เมื่อ: {new Date(reward.used_at).toLocaleDateString('th-TH')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
