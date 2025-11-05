@@ -44,7 +44,7 @@ const NotificationPage = () => {
     onlineOrders: {
       enabled: true,
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: true, token: '', type: 'user' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
@@ -56,7 +56,7 @@ const NotificationPage = () => {
     posOrders: {
       enabled: true,
       platforms: {
-        line: { enabled: false, token: '' },
+        line: { enabled: false, token: '', type: 'user' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: true, token: '' },
         telegram: { enabled: false, token: '' }
@@ -82,7 +82,7 @@ const NotificationPage = () => {
       dayOfMonth: 1,
       time: '09:00',
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: true, token: '', type: 'user' },
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
@@ -670,8 +670,8 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
             
             {config.enabled && (
               <div className="space-y-3">
-                {/* LINE Type Selector */}
-                {platform === 'line' && type === 'รายงานประจำวัน' && (
+                {/* LINE Type Selector - แสดงสำหรับทุกประเภทการแจ้งเตือน */}
+                {platform === 'line' && (
                   <div>
                     <Label htmlFor={`${type}-${platform}-type`}>ประเภทการส่ง</Label>
                     <Select

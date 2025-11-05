@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 interface NotificationPlatforms {
-  line: { enabled: boolean; token: string };
+  line: { enabled: boolean; token: string; type?: string };
   discord: { enabled: boolean; token: string };
   telegram: { enabled: boolean; token: string };
   instagram: { enabled: boolean; token: string };
@@ -212,7 +212,15 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.line.enabled && orderSettings.platforms.line.token) {
       console.log('🟢 Sending LINE notification...');
       try {
-        await sendLineNotification(orderSettings.platforms.line.token, `${message}${discountText}`, orderData, orderItemsText, orderType);
+        const lineType = orderSettings.platforms.line.type || 'user';
+        await sendLineNotification(
+          orderSettings.platforms.line.token, 
+          `${message}${discountText}`, 
+          orderData, 
+          orderItemsText, 
+          orderType,
+          lineType
+        );
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
         sentCount++;
@@ -420,7 +428,14 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
 }
 
 // LINE notification function with comprehensive order details
-async function sendLineNotification(userId: string, message: string, orderData: any, orderItemsText: string, orderType: string) {
+async function sendLineNotification(
+  lineId: string, 
+  message: string, 
+  orderData: any, 
+  orderItemsText: string, 
+  orderType: string,
+  lineType: string = 'user'
+) {
   // ใช้ LINE_CHANNEL_ACCESS_TOKEN จาก environment variable
   const botToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
   
@@ -428,8 +443,8 @@ async function sendLineNotification(userId: string, message: string, orderData: 
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN not configured in environment variables');
   }
   
-  if (!userId) {
-    throw new Error('LINE User ID is required');
+  if (!lineId) {
+    throw new Error('LINE ID (User ID or Group ID) is required');
   }
 
   // สร้างข้อความที่มีรายละเอียดครบถ้วนเหมือน Discord
@@ -482,7 +497,7 @@ async function sendLineNotification(userId: string, message: string, orderData: 
   fullMessage += `ระบบร้านอาหาร`;
 
   const lineMessage = {
-    to: userId,
+    to: lineId,
     messages: [
       {
         type: 'text',
@@ -491,7 +506,7 @@ async function sendLineNotification(userId: string, message: string, orderData: 
     ]
   };
 
-  console.log('🟢 Sending LINE message to:', userId);
+  console.log(`🟢 Sending LINE message to ${lineType}:`, lineId);
 
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
