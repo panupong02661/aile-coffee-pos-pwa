@@ -413,7 +413,14 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
 }
 
 // Function to send LINE notification
-async function sendLineReport(reportData: any, token: string) {
+async function sendLineReport(reportData: any, userId: string) {
+  // ดึง LINE Channel Access Token จาก environment variable
+  const channelAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+  
+  if (!channelAccessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not configured in secrets');
+  }
+
   const topMenusList = reportData.topMenus
     .slice(0, 5) // LINE has message length limits
     .map((menu: any, index: number) => 
@@ -440,13 +447,17 @@ ${topMenusList || 'ไม่มีข้อมูล'}
 
 ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
 
-  const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+  console.log('📤 Sending LINE message to user:', userId);
+
+  // ส่งข้อความไปยัง LINE User ID ที่ระบุ
+  const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${channelAccessToken}`,
     },
     body: JSON.stringify({
+      to: userId,
       messages: [{
         type: 'text',
         text: message
@@ -458,6 +469,8 @@ ${topMenusList || 'ไม่มีข้อมูล'}
     const errorText = await response.text()
     throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
   }
+  
+  console.log('✅ LINE message sent successfully to:', userId);
 }
 
 // Function to send Telegram notification
