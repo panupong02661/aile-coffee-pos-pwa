@@ -69,7 +69,7 @@ const NotificationPage = () => {
       enabled: true,
       time: '18:00',
       platforms: {
-        line: { enabled: true, token: '' },
+        line: { enabled: true, token: '', type: 'user' }, // type: 'user' or 'group'
         instagram: { enabled: false, token: '' },
         discord: { enabled: false, token: '' },
         telegram: { enabled: false, token: '' }
@@ -321,12 +321,8 @@ const NotificationPage = () => {
   };
 
   // ฟังก์ชันส่งรายงานไป LINE
-  const sendLineReport = async (reportData: any, token: string) => {
+  const sendLineReport = async (reportData: any, token: string, type: string = 'user') => {
     try {
-      // แยก token เป็น userId และ accessToken
-      // รูปแบบที่คาดหวัง: "userId:accessToken" หรือแค่ "userId" ถ้าใช้ LINE_CHANNEL_ACCESS_TOKEN
-      const [userId, accessToken] = token.includes(':') ? token.split(':') : [token, ''];
-      
       const topMenusList = reportData.topMenus
         .map((menu: any, index: number) => 
           `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
@@ -347,14 +343,14 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       const { data, error } = await supabase.functions.invoke('line-messaging', {
         body: {
           action: 'send',
-          userId: userId,
+          userId: token, // ส่ง userId หรือ groupId
           message: messageText
         }
       });
 
       if (error) throw error;
       
-      console.log('✅ LINE report sent successfully:', data);
+      console.log(`✅ LINE report sent successfully to ${type}:`, data);
     } catch (error) {
       console.error('❌ Error sending LINE report:', error);
       throw error;
@@ -399,7 +395,11 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       // ส่งไป LINE ถ้าเปิดใช้งาน
       if (settings.dailyReports.platforms.line.enabled && settings.dailyReports.platforms.line.token) {
         try {
-          await sendLineReport(reportData, settings.dailyReports.platforms.line.token);
+          await sendLineReport(
+            reportData, 
+            settings.dailyReports.platforms.line.token,
+            settings.dailyReports.platforms.line.type || 'user'
+          );
           sentCount++;
         } catch (error) {
           errorCount++;
@@ -670,6 +670,25 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
             
             {config.enabled && (
               <div className="space-y-3">
+                {/* LINE Type Selector */}
+                {platform === 'line' && type === 'รายงานประจำวัน' && (
+                  <div>
+                    <Label htmlFor={`${type}-${platform}-type`}>ประเภทการส่ง</Label>
+                    <Select
+                      value={(config as any).type || 'user'}
+                      onValueChange={(value) => onChange(platform, 'type', value)}
+                    >
+                      <SelectTrigger id={`${type}-${platform}-type`}>
+                        <SelectValue placeholder="เลือกประเภท" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">👤 ส่งไปยัง User (1:1 Chat)</SelectItem>
+                        <SelectItem value="group">👥 ส่งไปยัง Group</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label htmlFor={`${type}-${platform}-token`}>{getTokenLabel(platform)}</Label>
@@ -705,7 +724,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                     </div>
                     {platform === 'line' && (
                       <p className="text-xs text-muted-foreground">
-                        💡 ใส่ LINE User ID ของคุณ (ไม่ใช่ Channel Access Token) - หาได้จากการส่งข้อความมาที่บอท หรือจาก LINE Official Account Manager
+                        💡 {(config as any).type === 'group' 
+                          ? 'ใส่ LINE Group ID (เชิญบอทเข้ากลุ่มก่อน แล้วส่งข้อความใดๆ เพื่อรับ Group ID)'
+                          : 'ใส่ LINE User ID ของคุณ (หาได้จากการส่งข้อความมาที่บอท หรือจาก LINE Official Account Manager)'}
                       </p>
                     )}
                   </div>

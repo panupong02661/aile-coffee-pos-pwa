@@ -12,7 +12,7 @@ interface NotificationSettings {
     time: string;
     platforms: {
       discord: { enabled: boolean; token: string };
-      line: { enabled: boolean; token: string };
+      line: { enabled: boolean; token: string; type?: string };
       telegram: { enabled: boolean; token: string };
       instagram: { enabled: boolean; token: string };
     };
@@ -249,10 +249,11 @@ serve(async (req) => {
     // Send to LINE
     if (dailySettings.platforms.line.enabled && dailySettings.platforms.line.token) {
       try {
-        console.log('📤 Sending to LINE...')
-        await sendLineReport(reportData, dailySettings.platforms.line.token)
+        const lineType = dailySettings.platforms.line.type || 'user';
+        console.log(`📤 Sending to LINE (${lineType})...`)
+        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType)
         sentCount++
-        console.log('✅ LINE notification sent successfully')
+        console.log(`✅ LINE notification sent successfully to ${lineType}`)
       } catch (error) {
         errorCount++
         errors.push(`LINE: ${error}`)
@@ -413,7 +414,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
 }
 
 // Function to send LINE notification
-async function sendLineReport(reportData: any, userId: string) {
+async function sendLineReport(reportData: any, lineId: string, type: string = 'user') {
   // ดึง LINE Channel Access Token จาก environment variable
   const channelAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
   
@@ -431,6 +432,7 @@ async function sendLineReport(reportData: any, userId: string) {
   const isManualTrigger = reportData.triggerType === 'manual';
   const statusIcon = isManualTrigger ? '🖱️' : '🤖';
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
+  const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
   const message = `📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
@@ -447,9 +449,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}
 
 ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
 
-  console.log('📤 Sending LINE message to user:', userId);
+  console.log(`📤 Sending LINE message to ${recipientType}:`, lineId);
 
-  // ส่งข้อความไปยัง LINE User ID ที่ระบุ
+  // ส่งข้อความไปยัง LINE User ID หรือ Group ID ที่ระบุ
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: {
@@ -457,7 +459,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
       'Authorization': `Bearer ${channelAccessToken}`,
     },
     body: JSON.stringify({
-      to: userId,
+      to: lineId, // สามารถเป็น userId หรือ groupId ก็ได้
       messages: [{
         type: 'text',
         text: message
@@ -470,7 +472,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
     throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
   }
   
-  console.log('✅ LINE message sent successfully to:', userId);
+  console.log(`✅ LINE message sent successfully to ${recipientType}:`, lineId);
 }
 
 // Function to send Telegram notification
