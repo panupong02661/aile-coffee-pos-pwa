@@ -17,6 +17,7 @@ const MemberRegistration = lazy(() => import('./pages/MemberRegistration'));
 const POS = lazy(() => import('./pages/POS'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ShopSettings = lazy(() => import('./pages/ShopSettings'));
+const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
 const Promotions = lazy(() => import('./pages/Promotions'));
 const OnlineSystem = lazy(() => import('./pages/OnlineSystem'));
 const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
@@ -65,6 +66,7 @@ function App() {
                   <Route path="/pos" element={<POS />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/shop-settings" element={<ShopSettings />} />
+                  <Route path="/business-settings" element={<BusinessSettings />} />
                   <Route path="/promotions" element={<Promotions />} />
                   <Route path="/online-system" element={<OnlineSystem />} />
                   <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
