@@ -238,6 +238,90 @@ export type Database = {
           },
         ]
       }
+      business_settings: {
+        Row: {
+          business_description: string | null
+          business_hours: string | null
+          business_name: string | null
+          business_registration: string | null
+          business_type: string | null
+          contact_address: string | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          employee_count: number | null
+          established_date: string | null
+          facebook: string | null
+          fiscal_year: string | null
+          id: string
+          language: string | null
+          line_id: string | null
+          mobile: string | null
+          phone: string | null
+          registered_address: string | null
+          social_security: string | null
+          tax_id: string | null
+          timezone: string | null
+          updated_at: string | null
+          vat_registration: string | null
+          website: string | null
+        }
+        Insert: {
+          business_description?: string | null
+          business_hours?: string | null
+          business_name?: string | null
+          business_registration?: string | null
+          business_type?: string | null
+          contact_address?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          employee_count?: number | null
+          established_date?: string | null
+          facebook?: string | null
+          fiscal_year?: string | null
+          id?: string
+          language?: string | null
+          line_id?: string | null
+          mobile?: string | null
+          phone?: string | null
+          registered_address?: string | null
+          social_security?: string | null
+          tax_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          vat_registration?: string | null
+          website?: string | null
+        }
+        Update: {
+          business_description?: string | null
+          business_hours?: string | null
+          business_name?: string | null
+          business_registration?: string | null
+          business_type?: string | null
+          contact_address?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          employee_count?: number | null
+          established_date?: string | null
+          facebook?: string | null
+          fiscal_year?: string | null
+          id?: string
+          language?: string | null
+          line_id?: string | null
+          mobile?: string | null
+          phone?: string | null
+          registered_address?: string | null
+          social_security?: string | null
+          tax_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          vat_registration?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       cancelled_orders: {
         Row: {
           cancelled_at: string

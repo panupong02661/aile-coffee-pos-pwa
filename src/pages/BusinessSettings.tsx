@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,96 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Building, FileText, Users, Settings, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const BusinessSettings = () => {
   const { toast } = useToast();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    // General
+    business_name: '',
+    business_type: '',
+    business_description: '',
+    established_date: '',
+    employee_count: 0,
+    // Legal
+    tax_id: '',
+    business_registration: '',
+    vat_registration: '',
+    social_security: '',
+    registered_address: '',
+    // Contact
+    phone: '',
+    mobile: '',
+    email: '',
+    website: '',
+    contact_address: '',
+    facebook: '',
+    line_id: '',
+    // Advanced
+    fiscal_year: '',
+    currency: 'THB',
+    timezone: 'Asia/Bangkok',
+    language: 'ไทย',
+    business_hours: '',
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('*')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setFormData({
+          business_name: data.business_name || '',
+          business_type: data.business_type || '',
+          business_description: data.business_description || '',
+          established_date: data.established_date || '',
+          employee_count: data.employee_count || 0,
+          tax_id: data.tax_id || '',
+          business_registration: data.business_registration || '',
+          vat_registration: data.vat_registration || '',
+          social_security: data.social_security || '',
+          registered_address: data.registered_address || '',
+          phone: data.phone || '',
+          mobile: data.mobile || '',
+          email: data.email || '',
+          website: data.website || '',
+          contact_address: data.contact_address || '',
+          facebook: data.facebook || '',
+          line_id: data.line_id || '',
+          fiscal_year: data.fiscal_year || '',
+          currency: data.currency || 'THB',
+          timezone: data.timezone || 'Asia/Bangkok',
+          language: data.language || 'ไทย',
+          business_hours: data.business_hours || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถโหลดข้อมูลได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -22,11 +108,48 @@ const BusinessSettings = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleSave = () => {
-    toast({
-      title: 'บันทึกสำเร็จ',
-      description: 'บันทึกการตั้งค่าธุรกิจเรียบร้อยแล้ว',
-    });
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      const { data: existing } = await supabase
+        .from('business_settings')
+        .select('id')
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('business_settings')
+          .update(formData)
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('business_settings')
+          .insert([formData]);
+        
+        if (error) throw error;
+      }
+
+      toast({
+        title: 'บันทึกสำเร็จ ✅',
+        description: 'บันทึกการตั้งค่าธุรกิจเรียบร้อยแล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกข้อมูลได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -89,11 +212,23 @@ const BusinessSettings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="business-name">ชื่อธุรกิจ</Label>
-                        <Input id="business-name" placeholder="ชื่อธุรกิจ" />
+                        <Input 
+                          id="business-name" 
+                          placeholder="ชื่อธุรกิจ"
+                          value={formData.business_name}
+                          onChange={(e) => handleInputChange('business_name', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="business-type">ประเภทธุรกิจ</Label>
-                        <Input id="business-type" placeholder="เช่น ร้านกาแฟ, ร้านอาหาร" />
+                        <Input 
+                          id="business-type" 
+                          placeholder="เช่น ร้านกาแฟ, ร้านอาหาร"
+                          value={formData.business_type}
+                          onChange={(e) => handleInputChange('business_type', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
@@ -103,24 +238,40 @@ const BusinessSettings = () => {
                         id="business-description" 
                         placeholder="อธิบายเกี่ยวกับธุรกิจของคุณ"
                         rows={4}
+                        value={formData.business_description}
+                        onChange={(e) => handleInputChange('business_description', e.target.value)}
+                        disabled={isLoading}
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="established-date">วันที่ก่อตั้ง</Label>
-                        <Input id="established-date" type="date" />
+                        <Input 
+                          id="established-date" 
+                          type="date"
+                          value={formData.established_date}
+                          onChange={(e) => handleInputChange('established_date', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="employee-count">จำนวนพนักงาน</Label>
-                        <Input id="employee-count" type="number" placeholder="0" />
+                        <Input 
+                          id="employee-count" 
+                          type="number" 
+                          placeholder="0"
+                          value={formData.employee_count}
+                          onChange={(e) => handleInputChange('employee_count', parseInt(e.target.value) || 0)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                      <Button onClick={handleSave}>
+                      <Button onClick={handleSave} disabled={isSaving || isLoading}>
                         <Save className="w-4 h-4 mr-2" />
-                        บันทึกข้อมูล
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                       </Button>
                     </div>
                   </CardContent>
@@ -138,22 +289,46 @@ const BusinessSettings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="tax-id">เลขประจำตัวผู้เสียภาษี</Label>
-                        <Input id="tax-id" placeholder="0-0000-00000-00-0" />
+                        <Input 
+                          id="tax-id" 
+                          placeholder="0-0000-00000-00-0"
+                          value={formData.tax_id}
+                          onChange={(e) => handleInputChange('tax_id', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="business-registration">เลขทะเบียนการค้า</Label>
-                        <Input id="business-registration" placeholder="เลขทะเบียน" />
+                        <Input 
+                          id="business-registration" 
+                          placeholder="เลขทะเบียน"
+                          value={formData.business_registration}
+                          onChange={(e) => handleInputChange('business_registration', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="vat-registration">เลขที่จดทะเบียน VAT</Label>
-                        <Input id="vat-registration" placeholder="หากจดทะเบียน VAT" />
+                        <Input 
+                          id="vat-registration" 
+                          placeholder="หากจดทะเบียน VAT"
+                          value={formData.vat_registration}
+                          onChange={(e) => handleInputChange('vat_registration', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="social-security">เลขที่ประกันสังคม</Label>
-                        <Input id="social-security" placeholder="เลขที่ประกันสังคม" />
+                        <Input 
+                          id="social-security" 
+                          placeholder="เลขที่ประกันสังคม"
+                          value={formData.social_security}
+                          onChange={(e) => handleInputChange('social_security', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
@@ -163,13 +338,16 @@ const BusinessSettings = () => {
                         id="registered-address" 
                         placeholder="ที่อยู่จดทะเบียนธุรกิจ"
                         rows={3}
+                        value={formData.registered_address}
+                        onChange={(e) => handleInputChange('registered_address', e.target.value)}
+                        disabled={isLoading}
                       />
                     </div>
 
                     <div className="flex justify-end">
-                      <Button onClick={handleSave}>
+                      <Button onClick={handleSave} disabled={isSaving || isLoading}>
                         <Save className="w-4 h-4 mr-2" />
-                        บันทึกข้อมูล
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                       </Button>
                     </div>
                   </CardContent>
@@ -187,49 +365,92 @@ const BusinessSettings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                        <Input id="phone" type="tel" placeholder="02-XXX-XXXX" />
+                        <Input 
+                          id="phone" 
+                          type="tel" 
+                          placeholder="02-XXX-XXXX"
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="mobile">มือถือ</Label>
-                        <Input id="mobile" type="tel" placeholder="08X-XXX-XXXX" />
+                        <Input 
+                          id="mobile" 
+                          type="tel" 
+                          placeholder="08X-XXX-XXXX"
+                          value={formData.mobile}
+                          onChange={(e) => handleInputChange('mobile', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="email">อีเมล</Label>
-                        <Input id="email" type="email" placeholder="contact@business.com" />
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          placeholder="contact@business.com"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="website">เว็บไซต์</Label>
-                        <Input id="website" type="url" placeholder="https://www.business.com" />
+                        <Input 
+                          id="website" 
+                          type="url" 
+                          placeholder="https://www.business.com"
+                          value={formData.website}
+                          onChange={(e) => handleInputChange('website', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address">ที่อยู่สำหรับติดต่อ</Label>
+                      <Label htmlFor="contact-address">ที่อยู่สำหรับติดต่อ</Label>
                       <Textarea 
-                        id="address" 
+                        id="contact-address" 
                         placeholder="ที่อยู่ที่ใช้ติดต่อ"
                         rows={3}
+                        value={formData.contact_address}
+                        onChange={(e) => handleInputChange('contact_address', e.target.value)}
+                        disabled={isLoading}
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="facebook">Facebook</Label>
-                        <Input id="facebook" placeholder="facebook.com/yourbusiness" />
+                        <Input 
+                          id="facebook" 
+                          placeholder="facebook.com/yourbusiness"
+                          value={formData.facebook}
+                          onChange={(e) => handleInputChange('facebook', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="line">LINE ID</Label>
-                        <Input id="line" placeholder="@yourbusiness" />
+                        <Input 
+                          id="line" 
+                          placeholder="@yourbusiness"
+                          value={formData.line_id}
+                          onChange={(e) => handleInputChange('line_id', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                      <Button onClick={handleSave}>
+                      <Button onClick={handleSave} disabled={isSaving || isLoading}>
                         <Save className="w-4 h-4 mr-2" />
-                        บันทึกข้อมูล
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                       </Button>
                     </div>
                   </CardContent>
@@ -247,22 +468,46 @@ const BusinessSettings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fiscal-year">ปีบัญชี</Label>
-                        <Input id="fiscal-year" placeholder="เช่น 1 มกราคม - 31 ธันวาคม" />
+                        <Input 
+                          id="fiscal-year" 
+                          placeholder="เช่น 1 มกราคม - 31 ธันวาคม"
+                          value={formData.fiscal_year}
+                          onChange={(e) => handleInputChange('fiscal_year', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="currency">สกุลเงิน</Label>
-                        <Input id="currency" placeholder="THB (บาท)" defaultValue="THB" />
+                        <Input 
+                          id="currency" 
+                          placeholder="THB (บาท)"
+                          value={formData.currency}
+                          onChange={(e) => handleInputChange('currency', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="timezone">เขตเวลา</Label>
-                        <Input id="timezone" placeholder="Asia/Bangkok" defaultValue="Asia/Bangkok" />
+                        <Input 
+                          id="timezone" 
+                          placeholder="Asia/Bangkok"
+                          value={formData.timezone}
+                          onChange={(e) => handleInputChange('timezone', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="language">ภาษา</Label>
-                        <Input id="language" placeholder="ไทย" defaultValue="ไทย" />
+                        <Input 
+                          id="language" 
+                          placeholder="ไทย"
+                          value={formData.language}
+                          onChange={(e) => handleInputChange('language', e.target.value)}
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
@@ -272,13 +517,16 @@ const BusinessSettings = () => {
                         id="business-hours" 
                         placeholder="เช่น จันทร์-ศุกร์ 09:00-18:00, เสาร์-อาทิตย์ 10:00-17:00"
                         rows={3}
+                        value={formData.business_hours}
+                        onChange={(e) => handleInputChange('business_hours', e.target.value)}
+                        disabled={isLoading}
                       />
                     </div>
 
                     <div className="flex justify-end">
-                      <Button onClick={handleSave}>
+                      <Button onClick={handleSave} disabled={isSaving || isLoading}>
                         <Save className="w-4 h-4 mr-2" />
-                        บันทึกข้อมูล
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                       </Button>
                     </div>
                   </CardContent>
