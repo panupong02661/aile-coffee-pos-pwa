@@ -35,28 +35,40 @@ const CostAnalysis = () => {
     try {
       setIsLoading(true);
 
-      // Load menu items with ingredients
-      const { data: menuItems, error: menuError } = await supabase
+      // Load menu items with cost price
+      const menuItemsQuery = await (supabase as any)
         .from('menu_items')
-        .select(`
-          id,
-          name,
-          price,
-          cost_price
-        `);
+        .select('id, name, price, cost_price')
+        .eq('is_active', true);
 
-      if (menuError) throw menuError;
+      if (menuItemsQuery.error) throw menuItemsQuery.error;
+      const menuItems = menuItemsQuery.data;
 
-      // Load order items to calculate sold count
-      const { data: orderItems, error: orderError } = await supabase
-        .from('order_items')
-        .select('menu_item_id, quantity, total_price');
+      // Load completed orders
+      const ordersQuery = await (supabase as any)
+        .from('orders')
+        .select('id')
+        .in('status', ['completed', 'paid']);
 
-      if (orderError) throw orderError;
+      if (ordersQuery.error) throw ordersQuery.error;
+
+      const completedOrderIds = ordersQuery.data?.map((o: any) => o.id) || [];
+
+      // Load order items from completed orders only
+      let orderItems: any[] = [];
+      if (completedOrderIds.length > 0) {
+        const orderItemsQuery = await (supabase as any)
+          .from('order_items')
+          .select('menu_item_id, quantity, total_price, order_id')
+          .in('order_id', completedOrderIds);
+
+        if (orderItemsQuery.error) throw orderItemsQuery.error;
+        orderItems = orderItemsQuery.data || [];
+      }
 
       // Calculate analysis for each menu item
       const analysis = menuItems?.map(item => {
-        const itemOrders = orderItems?.filter(order => order.menu_item_id === item.id) || [];
+        const itemOrders = orderItems.filter(order => order.menu_item_id === item.id) || [];
         const soldCount = itemOrders.reduce((sum, order) => sum + order.quantity, 0);
         const totalRevenue = itemOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
         const cost = Number(item.cost_price) || 0;
