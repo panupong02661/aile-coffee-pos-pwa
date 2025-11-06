@@ -52,7 +52,9 @@ import {
   HardDrive,
   FileCheck,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Ticket,
+  MessageSquare
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -145,6 +147,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
     { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
     { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
+    { id: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', icon: DollarSign, path: '/cost-analysis' },
+    { id: 'coupon-management', label: 'จัดการคูปอง', icon: Ticket, path: '/coupon-management' },
+    { id: 'review-management', label: 'จัดการรีวิว', icon: MessageSquare, path: '/review-management' },
+    { id: 'delivery-management', label: 'จัดการการจัดส่ง', icon: Truck, path: '/delivery-management' },
     { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
     { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },

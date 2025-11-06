@@ -31,6 +31,10 @@ const DeliveryIntegration = lazy(() => import('./pages/DeliveryIntegration'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 const MobileSettings = lazy(() => import('./pages/MobileSettings'));
 const LineMessaging = lazy(() => import('./pages/LineMessaging'));
+const CostAnalysis = lazy(() => import('./pages/CostAnalysis'));
+const CouponManagement = lazy(() => import('./pages/CouponManagement'));
+const ReviewManagement = lazy(() => import('./pages/ReviewManagement'));
+const DeliveryManagement = lazy(() => import('./pages/DeliveryManagement'));
 
 // Additional Dashboard pages
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
@@ -79,6 +83,10 @@ function App() {
                   <Route path="/delivery-integration" element={<DeliveryIntegration />} />
                   <Route path="/notifications" element={<NotificationPage />} />
                   <Route path="/line-messaging" element={<LineMessaging />} />
+                  <Route path="/cost-analysis" element={<CostAnalysis />} />
+                  <Route path="/coupon-management" element={<CouponManagement />} />
+                  <Route path="/review-management" element={<ReviewManagement />} />
+                  <Route path="/delivery-management" element={<DeliveryManagement />} />
                   
                   {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />

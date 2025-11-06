@@ -447,6 +447,58 @@ export type Database = {
           },
         ]
       }
+      coupon_usage: {
+        Row: {
+          coupon_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          discount_amount: number | null
+          id: string
+          order_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          coupon_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          discount_amount?: number | null
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          coupon_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          discount_amount?: number | null
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           code: string
@@ -2686,6 +2738,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          is_public: boolean | null
+          menu_items: Json | null
+          order_id: string | null
+          rating: number
+          response: string | null
+          response_at: string | null
+          response_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          menu_items?: Json | null
+          order_id?: string | null
+          rating: number
+          response?: string | null
+          response_at?: string | null
+          response_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          is_public?: boolean | null
+          menu_items?: Json | null
+          order_id?: string | null
+          rating?: number
+          response?: string | null
+          response_at?: string | null
+          response_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rewards: {
         Row: {
