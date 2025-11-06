@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Package, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 interface MenuCostAnalysis {
   id: string;
@@ -35,42 +35,47 @@ const CostAnalysis = () => {
     try {
       setIsLoading(true);
 
-      // Load menu items with cost price
-      const menuItemsQuery = await (supabase as any)
+      // Create a plain supabase client without types
+      const supabase = createClient(
+        "https://mzvzbxflwvksohrmxbsy.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16dnpieGZsd3Zrc29ocm14YnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MDU3NTksImV4cCI6MjA2NTI4MTc1OX0.h3nU_8JyrAaDI6NwxvnxTeb3kuiLpSSueuKcDOd33Jo"
+      );
+
+      // Fetch menu items
+      const { data: menuItems, error: menuError } = await supabase
         .from('menu_items')
         .select('id, name, price, cost_price')
         .eq('is_active', true);
 
-      if (menuItemsQuery.error) throw menuItemsQuery.error;
-      const menuItems = menuItemsQuery.data;
+      if (menuError) throw menuError;
 
-      // Load completed orders
-      const ordersQuery = await (supabase as any)
+      // Fetch completed orders
+      const { data: completedOrders, error: ordersError } = await supabase
         .from('orders')
         .select('id')
-        .in('status', ['completed', 'paid']);
+        .eq('status', 'completed');
 
-      if (ordersQuery.error) throw ordersQuery.error;
+      if (ordersError) throw ordersError;
 
-      const completedOrderIds = ordersQuery.data?.map((o: any) => o.id) || [];
+      const completedOrderIds = completedOrders?.map((o: any) => o.id) || [];
 
-      // Load order items from completed orders only
+      // Fetch order items
       let orderItems: any[] = [];
       if (completedOrderIds.length > 0) {
-        const orderItemsQuery = await (supabase as any)
+        const { data: items, error: itemsError } = await supabase
           .from('order_items')
           .select('menu_item_id, quantity, total_price, order_id')
           .in('order_id', completedOrderIds);
 
-        if (orderItemsQuery.error) throw orderItemsQuery.error;
-        orderItems = orderItemsQuery.data || [];
+        if (itemsError) throw itemsError;
+        orderItems = items || [];
       }
 
-      // Calculate analysis for each menu item
-      const analysis = menuItems?.map(item => {
-        const itemOrders = orderItems.filter(order => order.menu_item_id === item.id) || [];
-        const soldCount = itemOrders.reduce((sum, order) => sum + order.quantity, 0);
-        const totalRevenue = itemOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
+      // Calculate analysis
+      const analysis = (menuItems || []).map((item: any) => {
+        const itemOrders = orderItems.filter((order: any) => order.menu_item_id === item.id);
+        const soldCount = itemOrders.reduce((sum: number, order: any) => sum + order.quantity, 0);
+        const totalRevenue = itemOrders.reduce((sum: number, order: any) => sum + Number(order.total_price), 0);
         const cost = Number(item.cost_price) || 0;
         const profit = Number(item.price) - cost;
         const profitMargin = Number(item.price) > 0 ? (profit / Number(item.price)) * 100 : 0;
@@ -87,7 +92,7 @@ const CostAnalysis = () => {
           totalRevenue,
           totalProfit,
         };
-      }) || [];
+      });
 
       setMenuAnalysis(analysis);
     } catch (error) {
