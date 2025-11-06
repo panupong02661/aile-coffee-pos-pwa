@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,11 +28,13 @@ import {
   TestTube,
   CheckCircle
 } from 'lucide-react';
-import { Shell } from '@/components/Shell';
+import Header from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
 
 const NotificationPage = () => {
   const { toast } = useToast();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -743,16 +744,42 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
     </div>
   );
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <Shell>
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Bell className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">ระบบแจ้งเตือน</h1>
-            <p className="text-gray-600">จัดการการแจ้งเตือนผ่าน LINE, Instagram, Discord และ Telegram</p>
-          </div>
-        </div>
+    <div className="h-screen bg-cream-50 flex">
+      <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
+          <div className="container mx-auto p-6 max-w-6xl">
+            <div className="flex items-center gap-3 mb-6">
+              <Bell className="w-8 h-8 text-blue-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">ระบบแจ้งเตือน</h1>
+                <p className="text-gray-600">จัดการการแจ้งเตือนผ่าน LINE, Instagram, Discord และ Telegram</p>
+              </div>
+            </div>
 
         <Tabs defaultValue="online-orders" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
@@ -1196,19 +1223,21 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
           </TabsContent>
         </Tabs>
 
-        {/* ปุ่มบันทึก */}
-        <div className="flex justify-end gap-3 pt-6">
-          <Button 
-            onClick={handleSaveSettings} 
-            disabled={isSaving || isLoading}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
-          </Button>
+            {/* ปุ่มบันทึก */}
+            <div className="flex justify-end gap-3 pt-6">
+              <Button 
+                onClick={handleSaveSettings} 
+                disabled={isSaving || isLoading}
+                className="flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-    </Shell>
+    </div>
   );
 };
 

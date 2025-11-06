@@ -9,8 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, Copy, CheckCircle2, MessageSquare, Users, UserCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineWebhookGuide } from "@/components/LineWebhookGuide";
+import Header from "@/components/Header";
+import MainSidebar from "@/components/MainSidebar";
 
 const LineMessaging = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userId, setUserId] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -110,8 +113,35 @@ const LineMessaging = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="h-screen bg-cream-50 flex">
+      <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <div className="p-4">
+          <Header 
+            onToggleSidebar={handleToggleSidebar}
+            categories={[]}
+            selectedCategory=""
+            onCategorySelect={() => {}}
+            gridColumns={4}
+            setGridColumns={() => {}}
+            itemSize="medium"
+            setItemSize={() => {}}
+            page="other"
+          />
+          
+          <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">LINE Messaging API</h1>
         <p className="text-muted-foreground">
@@ -242,9 +272,12 @@ const LineMessaging = () => {
           <p>• <strong>รับ User ID:</strong> เมื่อผู้ใช้ส่งข้อความมาหา Bot ระบบจะแสดง User ID ใน console logs</p>
           <p>• <strong>ทดสอบ Webhook:</strong> ส่งข้อความไปหา Bot และตรวจสอบ logs ใน Supabase Edge Function</p>
           <p>• <strong>Rich Message:</strong> LINE รองรับข้อความหลายรูปแบบ เช่น รูปภาพ, ปุ่มกด, Flex Message</p>
-          <p>• <strong>Broadcast Limit:</strong> LINE มีข้อจำกัดจำนวนข้อความ broadcast ตามแพลนที่ใช้</p>
-        </CardContent>
-      </Card>
+            <p>• <strong>Broadcast Limit:</strong> LINE มีข้อจำกัดจำนวนข้อความ broadcast ตามแพลนที่ใช้</p>
+          </CardContent>
+        </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
