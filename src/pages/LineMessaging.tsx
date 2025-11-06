@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Send, Copy, CheckCircle2, MessageSquare, Users, UserCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LineWebhookGuide } from "@/components/LineWebhookGuide";
 
 const LineMessaging = () => {
   const [userId, setUserId] = useState("");
@@ -118,48 +119,10 @@ const LineMessaging = () => {
         </p>
       </div>
 
-      {/* Webhook URL Card */}
-      <Card className="mb-6 border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Webhook URL
-          </CardTitle>
-          <CardDescription>
-            นำ URL นี้ไปตั้งค่าใน LINE Developers Console
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input 
-              value={webhookUrl} 
-              readOnly 
-              className="font-mono text-sm"
-            />
-            <Button 
-              onClick={copyWebhookUrl}
-              variant="outline"
-              size="icon"
-            >
-              {copied ? (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-            <p className="text-sm font-semibold mb-2">📝 วิธีตั้งค่า Webhook:</p>
-            <ol className="text-sm space-y-1 list-decimal list-inside">
-              <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">LINE Developers Console</a></li>
-              <li>เลือก Channel ของคุณ → แท็บ "Messaging API"</li>
-              <li>หา "Webhook settings" → กด "Edit"</li>
-              <li>วาง Webhook URL ด้านบน</li>
-              <li>เปิด "Use webhook" → กด "Verify" → "Update"</li>
-            </ol>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Webhook URL Guide */}
+      <div className="mb-6">
+        <LineWebhookGuide />
+      </div>
 
       <Tabs defaultValue="send" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

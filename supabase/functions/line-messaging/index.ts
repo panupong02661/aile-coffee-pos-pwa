@@ -30,18 +30,36 @@ serve(async (req) => {
       const events = JSON.parse(body).events;
       
       console.log('📬 Events received:', events.length);
+      console.log('🔍 Full webhook payload:', JSON.stringify(events, null, 2));
       
       // Process each event
       for (const event of events) {
+        console.log('📋 Event type:', event.type);
+        console.log('🎯 Event source:', JSON.stringify(event.source));
+        
+        // Handle text message
         if (event.type === 'message' && event.message.type === 'text') {
           console.log('💬 Text message received:', event.message.text);
-          console.log('👤 User ID:', event.source.userId);
           
-          // Reply with User ID
           const replyToken = event.replyToken;
-          const userId = event.source.userId;
-          const replyMessage = `✅ ได้รับข้อความของคุณแล้ว!\n\n📝 User ID ของคุณคือ:\n${userId}\n\nนำ User ID นี้ไปใส่ในหน้า Notification เพื่อทดสอบส่งข้อความ`;
+          const source = event.source;
+          let replyMessage = '';
           
+          // Check source type (user, group, room)
+          if (source.type === 'user') {
+            console.log('👤 User ID:', source.userId);
+            replyMessage = `✅ ได้รับข้อความของคุณแล้ว!\n\n📝 User ID:\n${source.userId}\n\nนำ User ID นี้ไปใส่ในหน้า Notification (เลือกประเภท User)`;
+          } else if (source.type === 'group') {
+            console.log('👥 Group ID:', source.groupId);
+            console.log('👤 User ID in group:', source.userId);
+            replyMessage = `✅ ได้รับข้อความในกลุ่มแล้ว!\n\n📝 Group ID:\n${source.groupId}\n\n👤 User ID:\n${source.userId}\n\nนำ Group ID นี้ไปใส่ในหน้า Notification (เลือกประเภท Group)`;
+          } else if (source.type === 'room') {
+            console.log('🏠 Room ID:', source.roomId);
+            console.log('👤 User ID in room:', source.userId);
+            replyMessage = `✅ ได้รับข้อความในห้องแล้ว!\n\n📝 Room ID:\n${source.roomId}\n\n👤 User ID:\n${source.userId}\n\nนำ Room ID นี้ไปใส่ในหน้า Notification`;
+          }
+          
+          // Reply with IDs
           await fetch('https://api.line.me/v2/bot/message/reply', {
             method: 'POST',
             headers: {
@@ -56,6 +74,43 @@ serve(async (req) => {
               }]
             })
           });
+        }
+        
+        // Handle join event (bot added to group/room)
+        if (event.type === 'join') {
+          console.log('🎉 Bot joined a group/room!');
+          const replyToken = event.replyToken;
+          const source = event.source;
+          let welcomeMessage = '';
+          
+          if (source.type === 'group') {
+            console.log('👥 Joined Group ID:', source.groupId);
+            welcomeMessage = `🎉 สวัสดีครับ! ขอบคุณที่เพิ่มบอทเข้ากลุ่ม\n\n📝 Group ID ของกลุ่มนี้:\n${source.groupId}\n\nนำ Group ID นี้ไปใส่ในหน้า Notification เพื่อรับการแจ้งเตือน (เลือกประเภท Group)`;
+          } else if (source.type === 'room') {
+            console.log('🏠 Joined Room ID:', source.roomId);
+            welcomeMessage = `🎉 สวัสดีครับ! ขอบคุณที่เพิ่มบอทเข้าห้อง\n\n📝 Room ID:\n${source.roomId}`;
+          }
+          
+          await fetch('https://api.line.me/v2/bot/message/reply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify({
+              replyToken: replyToken,
+              messages: [{
+                type: 'text',
+                text: welcomeMessage
+              }]
+            })
+          });
+        }
+        
+        // Handle leave event
+        if (event.type === 'leave') {
+          console.log('👋 Bot left a group/room');
+          console.log('🎯 Left source:', JSON.stringify(event.source));
         }
       }
       
