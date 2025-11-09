@@ -1,15 +1,16 @@
-
 {
-  "name": "Aile Coffee POS",
+  "name": "Aile Coffee POS - ระบบขายหน้าร้าน",
   "short_name": "Aile Coffee",
-  "description": "ระบบ POS สำหรับร้าน Aile Coffee",
+  "description": "ระบบ POS ครบวงจรสำหรับร้าน Aile Coffee - รองรับการใช้งานออฟไลน์",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8B4513",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
   "lang": "th",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -29,13 +30,21 @@
       "type": "image/x-icon"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "finance"],
+  "screenshots": [
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "label": "POS System Interface"
+    }
+  ],
   "shortcuts": [
     {
       "name": "POS หน้าหลัก",
       "short_name": "POS",
       "description": "เปิดหน้า POS หลัก",
-      "url": "/",
+      "url": "/pos",
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
@@ -44,6 +53,16 @@
       "description": "ดูออเดอร์ออนไลน์",
       "url": "/online-orders",
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "รายงาน",
+      "short_name": "รายงาน",
+      "description": "ดูรายงานยอดขาย",
+      "url": "/reports",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "related_applications": [],
+  "iarc_rating_id": "",
+  "permissions": []
 }

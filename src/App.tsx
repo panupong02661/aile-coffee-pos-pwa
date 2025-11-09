@@ -5,8 +5,20 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
 import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Lazy load components
 const Index = lazy(() => import('./pages/Index'));
@@ -35,6 +47,7 @@ const CostAnalysis = lazy(() => import('./pages/CostAnalysis'));
 const CouponManagement = lazy(() => import('./pages/CouponManagement'));
 const ReviewManagement = lazy(() => import('./pages/ReviewManagement'));
 const DeliveryManagement = lazy(() => import('./pages/DeliveryManagement'));
+const PWAInstallGuide = lazy(() => import('./pages/PWAInstallGuide'));
 
 // Additional Dashboard pages
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
@@ -51,17 +64,19 @@ const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <GlobalNotificationProvider>
-            <div className="min-h-screen bg-background">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              }>
-                <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
+            <GlobalNotificationProvider>
+              <div className="min-h-screen bg-background">
+                <Suspense fallback={
+                  <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+                  </div>
+                }>
+                  <Routes>
                   <Route path="/" element={<POS />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/menu" element={<MenuManagement />} />
@@ -87,6 +102,7 @@ function App() {
                   <Route path="/coupon-management" element={<CouponManagement />} />
                   <Route path="/review-management" element={<ReviewManagement />} />
                   <Route path="/delivery-management" element={<DeliveryManagement />} />
+                  <Route path="/install" element={<PWAInstallGuide />} />
                   
                   {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />
@@ -137,15 +153,18 @@ function App() {
                   <Route path="/usage-logs" element={<SecuritySystem />} />
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
-                </Routes>
-              </Suspense>
-              <Toaster />
-              <SonnerToaster />
-            </div>
-          </GlobalNotificationProvider>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+                  </Routes>
+                </Suspense>
+                <PWAInstallPrompt />
+                <OfflineIndicator />
+                <Toaster />
+                <SonnerToaster />
+              </div>
+            </GlobalNotificationProvider>
+          </Router>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

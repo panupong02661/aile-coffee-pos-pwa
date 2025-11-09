@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'aile-coffee-v2';
+const CACHE_NAME = 'aile-coffee-v3.0';
 const urlsToCache = [
   '/',
   '/manifest.json',
