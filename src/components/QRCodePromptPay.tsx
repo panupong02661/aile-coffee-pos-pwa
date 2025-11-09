@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { QrCode, Phone } from 'lucide-react';
+import { QrCode, Phone, AlertCircle } from 'lucide-react';
 import { generatePromptPayQR, validateThaiPhoneNumber, PromptPayData } from '@/utils/promptpay';
 import QRCode from 'qrcode';
 
@@ -98,6 +98,9 @@ const QRCodePromptPay = ({
 
   // Compact mode - show only QR code
   if (compact) {
+    // Check if phone number is invalid
+    const isInvalidPhone = phoneNumber && !validateThaiPhoneNumber(phoneNumber);
+    
     return (
       <div className="text-center space-y-2">
         {qrCode ? (
@@ -110,8 +113,25 @@ const QRCodePromptPay = ({
             )}
           </>
         ) : (
-          <div className="w-[200px] h-[200px] bg-gray-100 rounded flex items-center justify-center mx-auto">
-            <QrCode className="w-12 h-12 text-gray-400" />
+          <div className="space-y-3">
+            <div className="w-[200px] h-[200px] bg-orange-50 rounded flex items-center justify-center mx-auto border-2 border-orange-200">
+              <AlertCircle className="w-12 h-12 text-orange-500" />
+            </div>
+            {isInvalidPhone ? (
+              <div className="text-center space-y-2 px-4">
+                <p className="text-sm font-semibold text-orange-600">
+                  ยังไม่ได้ตั้งค่าเบอร์โทรศัพท์ PromptPay
+                </p>
+                <p className="text-xs text-gray-600">
+                  กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่าเบอร์มือถือ PromptPay
+                </p>
+                <p className="text-xs text-gray-500">
+                  (ต้องเป็นเบอร์มือถือที่ขึ้นต้นด้วย 08x หรือ 09x เท่านั้น)
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">กำลังโหลด QR Code...</p>
+            )}
           </div>
         )}
       </div>
@@ -130,18 +150,21 @@ const QRCodePromptPay = ({
       
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="phone">หมายเลขโทรศัพท์</Label>
+          <Label htmlFor="phone">หมายเลขโทรศัพท์ PromptPay (มือถือเท่านั้น)</Label>
           <div className="relative">
             <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <Input
               id="phone"
               type="tel"
-              placeholder="081-234-5678"
+              placeholder="08x-xxx-xxxx หรือ 09x-xxx-xxxx"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className="pl-10"
             />
           </div>
+          <p className="text-xs text-orange-600">
+            * ต้องเป็นเบอร์มือถือที่ขึ้นต้นด้วย 08 หรือ 09 เท่านั้น (ไม่รองรับเบอร์บ้าน)
+          </p>
         </div>
 
         <div className="space-y-2">
