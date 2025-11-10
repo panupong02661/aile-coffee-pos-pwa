@@ -13,13 +13,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const QRCodePromptPayPage = () => {
+  const DEFAULT_PHONE = '0812345678'; // เบอร์ PromptPay เริ่มต้น
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [savedPhoneNumbers, setSavedPhoneNumbers] = useState<string[]>(() => {
     const saved = localStorage.getItem('promptpay-phone-numbers');
     return saved ? JSON.parse(saved) : [];
   });
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
-  const [selectedPhone, setSelectedPhone] = useState('');
+  const [selectedPhone, setSelectedPhone] = useState(DEFAULT_PHONE);
   const [customAmount, setCustomAmount] = useState<number>(0);
   const { toast } = useToast();
   const handleToggleSidebar = () => {
@@ -91,12 +92,22 @@ const QRCodePromptPayPage = () => {
         const json = await res.json();
         if (json?.phone) {
           console.log('📱 Loaded PromptPay phone (edge):', json.phone);
-          setSelectedPhone(json.phone);
+          // ใช้เบอร์จากฐานข้อมูลถ้าเป็นเบอร์มือถือ (08x หรือ 09x)
+          const digits = json.phone.replace(/\D/g, '');
+          if (digits.length === 10 && (digits.startsWith('08') || digits.startsWith('09'))) {
+            setSelectedPhone(json.phone);
+          } else {
+            console.log('⚠️ Phone from DB is not mobile, using default:', DEFAULT_PHONE);
+            setSelectedPhone(DEFAULT_PHONE);
+          }
         } else {
-          console.log('⚠️ No phone number returned by edge function', json);
+          console.log('⚠️ No phone number returned, using default:', DEFAULT_PHONE);
+          setSelectedPhone(DEFAULT_PHONE);
         }
       } catch (err) {
         console.error('Error loading PromptPay phone via edge:', err);
+        console.log('Using default phone:', DEFAULT_PHONE);
+        setSelectedPhone(DEFAULT_PHONE);
       }
     };
     loadPhone();
@@ -221,27 +232,21 @@ const QRCodePromptPayPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {selectedPhone ? (
-                    <>
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-gray-700">
-                          <span className="font-semibold">หมายเลขโทรศัพท์:</span> {selectedPhone}
-                        </p>
-                      </div>
-                      <QRCodePromptPay 
-                        key={selectedPhone}
-                        defaultPhoneNumber={selectedPhone}
-                        amount={customAmount}
-                      />
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">ยังไม่มีเบอร์โทรศัพท์ในระบบ</p>
-                      <p className="text-sm text-gray-400">
-                        กรุณาเพิ่มหมายเลขโทรศัพท์และกด "เลือก" เพื่อบันทึกลงฐานข้อมูล
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold">หมายเลขโทรศัพท์:</span> {selectedPhone}
+                    </p>
+                    {selectedPhone === DEFAULT_PHONE && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        ⚠️ กำลังใช้เบอร์เริ่มต้น - กรุณาเพิ่มเบอร์ของคุณและกด "บันทึก" เพื่ออัปเดตในระบบ
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <QRCodePromptPay 
+                    key={selectedPhone}
+                    defaultPhoneNumber={selectedPhone}
+                    amount={customAmount}
+                  />
                 </CardContent>
               </Card>
             </div>
