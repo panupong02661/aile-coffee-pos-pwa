@@ -109,12 +109,7 @@ const PaymentModal = ({
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
-  const [promptPayPhone, setPromptPayPhone] = useState<string>(() => {
-    // Load saved phone numbers
-    const saved = localStorage.getItem('promptpay-phone-numbers');
-    const phones = saved ? JSON.parse(saved) : [];
-    return phones.length > 0 ? phones[0] : '';
-  });
+  const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -189,8 +184,36 @@ const PaymentModal = ({
   useEffect(() => {
     if (isOpen) {
       loadMembershipSettings();
+      loadPromptPayPhone();
     }
   }, [isOpen]);
+
+  // Load PromptPay phone from shop_settings via edge function
+  const loadPromptPayPhone = async () => {
+    try {
+      const res = await fetch('https://mzvzbxflwvksohrmxbsy.supabase.co/functions/v1/get-promptpay-phone');
+      if (!res.ok) throw new Error(`Edge function HTTP ${res.status}`);
+      const json = await res.json();
+      if (json?.phone) {
+        console.log('📱 Loaded PromptPay phone for payment:', json.phone);
+        // ใช้เบอร์จากฐานข้อมูลถ้าเป็นเบอร์มือถือ (08x หรือ 09x)
+        const digits = json.phone.replace(/\D/g, '');
+        if (digits.length === 10 && (digits.startsWith('08') || digits.startsWith('09'))) {
+          setPromptPayPhone(json.phone);
+        } else {
+          console.log('⚠️ Phone from DB is not mobile, using default: 0969365265');
+          setPromptPayPhone('0969365265');
+        }
+      } else {
+        console.log('⚠️ No phone number returned, using default: 0969365265');
+        setPromptPayPhone('0969365265');
+      }
+    } catch (err) {
+      console.error('Error loading PromptPay phone via edge:', err);
+      console.log('Using default phone: 0969365265');
+      setPromptPayPhone('0969365265');
+    }
+  };
 
   useEffect(() => {
     if (selectedMember && membershipSettings) {
@@ -922,18 +945,8 @@ const PaymentModal = ({
             <div className="text-center">
               <QRCodePromptPay 
                 amount={total}
-                defaultPhoneNumber={promptPayPhone || '0969365265'}
+                defaultPhoneNumber={promptPayPhone}
                 compact={true}
-                onQRGenerated={(qrData) => {
-                  // Save phone number to localStorage
-                  const saved = localStorage.getItem('promptpay-phone-numbers');
-                  const phones = saved ? JSON.parse(saved) : [];
-                  const phoneToSave = promptPayPhone || '0969365265';
-                  if (!phones.includes(phoneToSave.trim())) {
-                    phones.unshift(phoneToSave.trim());
-                    localStorage.setItem('promptpay-phone-numbers', JSON.stringify(phones.slice(0, 5))); // Keep only 5 recent numbers
-                  }
-                }}
               />
             </div>
           )}
