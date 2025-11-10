@@ -12,20 +12,26 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
 })
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
+  return new Response(status === 204 ? null : JSON.stringify(body), {
     status,
     headers: {
+      ...corsHeaders,
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'content-type'
     }
-  })
+  });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return jsonResponse({}, 204)
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: { ...corsHeaders, 'Access-Control-Allow-Methods': 'GET, OPTIONS' } });
+  }
 
   try {
     const { data, error } = await supabase
