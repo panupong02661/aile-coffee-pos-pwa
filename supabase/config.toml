@@ -9,3 +9,10 @@ verify_jwt = false
 
 [functions.line-messaging]
 verify_jwt = false
+
+[functions.get-promptpay-phone]
+verify_jwt = false
+
+[functions.update-promptpay-phone]
+verify_jwt = false
+

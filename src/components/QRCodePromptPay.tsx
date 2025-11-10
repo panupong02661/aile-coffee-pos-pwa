@@ -31,29 +31,34 @@ const QRCodePromptPay = ({
     setError('');
     
     if (!phoneNumber.trim()) {
+      console.error('❌ No phone number provided');
       if (!compact) setError('กรุณาระบุหมายเลขโทรศัพท์');
       return;
     }
     
     if (!validateThaiPhoneNumber(phoneNumber)) {
+      console.error('❌ Invalid Thai phone number:', phoneNumber);
       if (!compact) setError('หมายเลขโทรศัพท์ไม่ถูกต้อง (ตัวอย่าง: 081-234-5678)');
       return;
     }
     
     try {
-      console.log('🔍 Generating QR with amount:', qrAmount);
+      console.log('✅ Generating PromptPay QR Code');
+      console.log('  📱 Phone:', phoneNumber);
+      console.log('  💰 Amount:', qrAmount);
       
       const promptPayData: PromptPayData = {
         phoneNumber: phoneNumber,
         amount: qrAmount > 0 ? qrAmount : undefined
       };
       
-      console.log('📱 PromptPay Data:', promptPayData);
+      console.log('📦 PromptPay Data:', promptPayData);
       
       const qrString = generatePromptPayQR(promptPayData);
       setQrData(qrString);
       
-      console.log('✅ QR String generated:', qrString);
+      console.log('✅ QR String generated (length:', qrString.length, ')');
+      console.log('   First 50 chars:', qrString.substring(0, 50));
       
       const qrCodeDataURL = await QRCode.toDataURL(qrString, {
         width: compact ? 200 : 256,
@@ -65,13 +70,14 @@ const QRCodePromptPay = ({
       });
       
       setQrCode(qrCodeDataURL);
+      console.log('✅ QR Code image generated successfully');
       
       if (onQRGenerated) {
         onQRGenerated(qrString);
       }
     } catch (err) {
+      console.error('❌ QR Code generation error:', err);
       if (!compact) setError('เกิดข้อผิดพลาดในการสร้าง QR Code');
-      console.error('QR Code generation error:', err);
     }
   };
 
@@ -106,11 +112,14 @@ const QRCodePromptPay = ({
         {qrCode ? (
           <>
             <img src={qrCode} alt="PromptPay QR Code" className="mx-auto" />
-            {qrAmount > 0 && (
-              <p className="text-sm font-semibold text-orange-600">
-                ยอดชำระ: ฿{qrAmount.toLocaleString()}
-              </p>
-            )}
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-mono">📱 {phoneNumber}</p>
+              {qrAmount > 0 && (
+                <p className="text-sm font-semibold text-orange-600">
+                  ยอดชำระ: ฿{qrAmount.toLocaleString()}
+                </p>
+              )}
+            </div>
           </>
         ) : (
           <div className="space-y-3">
@@ -125,12 +134,20 @@ const QRCodePromptPay = ({
                 <p className="text-xs text-gray-600">
                   กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่าเบอร์มือถือ PromptPay
                 </p>
+                <p className="text-xs text-gray-500 font-mono">
+                  (เบอร์ปัจจุบัน: {phoneNumber})
+                </p>
                 <p className="text-xs text-gray-500">
-                  (ต้องเป็นเบอร์มือถือที่ขึ้นต้นด้วย 08x หรือ 09x เท่านั้น)
+                  ต้องเป็นเบอร์มือถือที่ขึ้นต้นด้วย 08x หรือ 09x เท่านั้น
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-gray-500">กำลังโหลด QR Code...</p>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500">กำลังโหลด QR Code...</p>
+                {phoneNumber && (
+                  <p className="text-xs text-gray-400 font-mono">📱 {phoneNumber}</p>
+                )}
+              </div>
             )}
           </div>
         )}

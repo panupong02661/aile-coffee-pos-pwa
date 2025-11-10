@@ -46,31 +46,32 @@ const QRCodePromptPayPage = () => {
   const setActivePhone = async (phone: string) => {
     try {
       setSelectedPhone(phone);
-      const { data: existing, error } = await supabase
-        .from('shop_settings')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
+      
+      // Call edge function to update phone
+      const res = await fetch('https://mzvzbxflwvksohrmxbsy.supabase.co/functions/v1/update-promptpay-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
 
-      if (error) throw error;
+      const json = await res.json();
 
-      if (existing?.id) {
-        const { error: uerr } = await supabase
-          .from('shop_settings')
-          .update({ phone })
-          .eq('id', existing.id);
-        if (uerr) throw uerr;
-      } else {
-        const { error: ierr } = await supabase
-          .from('shop_settings')
-          .insert({ phone });
-        if (ierr) throw ierr;
+      if (!res.ok) {
+        throw new Error(json.message || 'อัปเดตเบอร์ไม่สำเร็จ');
       }
 
-      toast({ title: 'บันทึกหมายเลขสำเร็จ', description: `อัปเดตเบอร์ PromptPay เป็น ${phone}` });
+      console.log('✅ PromptPay phone updated:', json);
+      toast({ 
+        title: 'บันทึกหมายเลขสำเร็จ', 
+        description: `อัปเดตเบอร์ PromptPay เป็น ${phone}` 
+      });
     } catch (e) {
       console.error('Error saving PromptPay phone:', e);
-      toast({ title: 'บันทึกไม่สำเร็จ', description: 'ไม่สามารถอัปเดตหมายเลข PromptPay', variant: 'destructive' });
+      toast({ 
+        title: 'บันทึกไม่สำเร็จ', 
+        description: e.message || 'ไม่สามารถอัปเดตหมายเลข PromptPay', 
+        variant: 'destructive' 
+      });
     }
   };
 
