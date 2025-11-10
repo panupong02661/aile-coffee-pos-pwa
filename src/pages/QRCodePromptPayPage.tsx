@@ -33,12 +33,13 @@ const QRCodePromptPayPage = () => {
 
   const savePhoneNumber = () => {
     const trimmed = newPhoneNumber.trim();
-    if (trimmed && !savedPhoneNumbers.includes(trimmed)) {
-      const updated = [...savedPhoneNumbers, trimmed];
+    if (trimmed) {
+      // Keep only ONE number locally and in DB
+      const updated = [trimmed];
       setSavedPhoneNumbers(updated);
       localStorage.setItem('promptpay-phone-numbers', JSON.stringify(updated));
       setNewPhoneNumber('');
-      // บันทึกขึ้นฐานข้อมูลทันทีโดยไม่ต้องกด "เลือก"
+      // Save to database immediately
       setActivePhone(trimmed);
     }
   };
@@ -97,9 +98,13 @@ const QRCodePromptPayPage = () => {
           const digits = json.phone.replace(/\D/g, '');
           if (digits.length === 10 && (digits.startsWith('08') || digits.startsWith('09'))) {
             setSelectedPhone(json.phone);
+            setSavedPhoneNumbers([json.phone]); // keep single saved number
+            localStorage.setItem('promptpay-phone-numbers', JSON.stringify([json.phone]));
           } else {
             console.log('⚠️ Phone from DB is not mobile, using default:', DEFAULT_PHONE);
             setSelectedPhone(DEFAULT_PHONE);
+            setSavedPhoneNumbers([DEFAULT_PHONE]);
+            localStorage.setItem('promptpay-phone-numbers', JSON.stringify([DEFAULT_PHONE]));
           }
         } else {
           console.log('⚠️ No phone number returned, using default:', DEFAULT_PHONE);

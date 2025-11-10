@@ -61,34 +61,48 @@ Deno.serve(async (req) => {
 
     console.log('📱 Updating PromptPay phone to:', phone)
 
-    // Check if shop_settings exists
-    const { data: existing, error: selectError } = await supabase
+    // Check existing rows in shop_settings (should be single-row table)
+    const { data: existingRows, error: selectError } = await supabase
       .from('shop_settings')
       .select('id')
-      .limit(1)
-      .maybeSingle()
 
     if (selectError) {
       console.error('Edge update-promptpay-phone: select error', selectError)
       return jsonResponse({ error: 'query_failed', details: selectError.message }, 500)
     }
 
-    if (existing?.id) {
-      // Update existing record
+    if (existingRows && existingRows.length > 0) {
+      const primaryId = existingRows[0].id
+
+      // Update primary row
       const { error: updateError } = await supabase
         .from('shop_settings')
         .update({ phone, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
+        .eq('id', primaryId)
 
       if (updateError) {
         console.error('Edge update-promptpay-phone: update error', updateError)
         return jsonResponse({ error: 'update_failed', details: updateError.message }, 500)
       }
 
-      console.log('✅ PromptPay phone updated successfully')
+      // If multiple rows exist, delete extras to enforce single row
+      if (existingRows.length > 1) {
+        const extraIds = existingRows.slice(1).map(r => r.id)
+        const { error: deleteError } = await supabase
+          .from('shop_settings')
+          .delete()
+          .in('id', extraIds)
+        if (deleteError) {
+          console.warn('Edge update-promptpay-phone: cleanup extra rows failed', deleteError)
+        } else {
+          console.log(`🧹 Cleaned up ${extraIds.length} extra shop_settings rows`)
+        }
+      }
+
+      console.log('✅ PromptPay phone updated successfully (single-row enforced)')
       return jsonResponse({ success: true, phone, message: 'อัปเดตเบอร์ PromptPay สำเร็จ' })
     } else {
-      // Create new record
+      // Create new single row
       const { error: insertError } = await supabase
         .from('shop_settings')
         .insert({ phone })
@@ -98,7 +112,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: 'insert_failed', details: insertError.message }, 500)
       }
 
-      console.log('✅ PromptPay phone created successfully')
+      console.log('✅ PromptPay phone created successfully (single-row)')
       return jsonResponse({ success: true, phone, message: 'บันทึกเบอร์ PromptPay สำเร็จ' })
     }
   } catch (e) {
