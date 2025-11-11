@@ -81,14 +81,27 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
   const [pointsToUse, setPointsToUse] = useState('');
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   
-  const [gridColumns, setGridColumns] = useState(2);
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>('medium');
+  // Load display settings from localStorage
+  const [gridColumns, setGridColumns] = useState(() => {
+    const saved = localStorage.getItem('online-grid-columns');
+    return saved ? parseInt(saved) : 2;
+  });
+  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
+    const saved = localStorage.getItem('online-item-size');
+    return (saved as 'small' | 'medium' | 'large') || 'medium';
+  });
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [promptPayPhone, setPromptPayPhone] = useState<string>('');
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   
   const { toast } = useToast();
+
+  // Save display settings to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('online-grid-columns', gridColumns.toString());
+    localStorage.setItem('online-item-size', itemSize);
+  }, [gridColumns, itemSize]);
 
   // Enhanced iOS-compatible notification sound for 7 seconds
   const playOrderSuccessNotification = async () => {
@@ -1699,6 +1712,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
         setGridColumns={setGridColumns}
         itemSize={itemSize}
         setItemSize={setItemSize}
+        page="online"
       />
 
       <AddonModal
