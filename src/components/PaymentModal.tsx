@@ -110,6 +110,7 @@ const PaymentModal = ({
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
+  const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -207,6 +208,12 @@ const PaymentModal = ({
       } else {
         console.log('⚠️ No phone number returned, using default: 0969365265');
         setPromptPayPhone('0969365265');
+      }
+      
+      // Load shop logo
+      if (json?.logo_url) {
+        console.log('🏪 Loaded shop logo:', json.logo_url);
+        setShopLogoUrl(json.logo_url);
       }
     } catch (err) {
       console.error('Error loading PromptPay phone via edge:', err);
@@ -946,6 +953,7 @@ const PaymentModal = ({
               <QRCodePromptPay 
                 amount={total}
                 defaultPhoneNumber={promptPayPhone}
+                shopLogoUrl={shopLogoUrl}
                 compact={true}
               />
             </div>

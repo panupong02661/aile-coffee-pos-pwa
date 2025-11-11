@@ -12,14 +12,16 @@ interface QRCodePromptPayProps {
   amount?: number;
   defaultPhoneNumber?: string;
   onQRGenerated?: (qrData: string) => void;
-  compact?: boolean; // New prop to control display mode
+  compact?: boolean;
+  shopLogoUrl?: string; // Logo to overlay on QR center
 }
 
 const QRCodePromptPay = ({ 
   amount, 
   defaultPhoneNumber = '', 
   onQRGenerated,
-  compact = false 
+  compact = false,
+  shopLogoUrl 
 }: QRCodePromptPayProps) => {
   const [phoneNumber, setPhoneNumber] = useState(defaultPhoneNumber);
   const [qrAmount, setQrAmount] = useState(amount || 0);
@@ -69,7 +71,75 @@ const QRCodePromptPay = ({
         }
       });
       
-      setQrCode(qrCodeDataURL);
+      // If we have a shop logo, overlay it on the QR code
+      if (shopLogoUrl) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          // Create QR image
+          const qrImg = new Image();
+          qrImg.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            qrImg.onload = resolve;
+            qrImg.onerror = reject;
+            qrImg.src = qrCodeDataURL;
+          });
+          
+          // Set canvas size to QR code size
+          canvas.width = qrImg.width;
+          canvas.height = qrImg.height;
+          
+          // Draw QR code
+          ctx.drawImage(qrImg, 0, 0);
+          
+          // Load and draw logo in center
+          const logo = new Image();
+          logo.crossOrigin = 'anonymous';
+          
+          try {
+            await new Promise((resolve, reject) => {
+              logo.onload = resolve;
+              logo.onerror = reject;
+              logo.src = shopLogoUrl;
+            });
+            
+            // Calculate logo size (about 20% of QR code)
+            const logoSize = Math.floor(canvas.width * 0.2);
+            const logoX = (canvas.width - logoSize) / 2;
+            const logoY = (canvas.height - logoSize) / 2;
+            
+            // Draw white background circle for logo
+            const bgRadius = logoSize / 2 + 4;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, bgRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw logo with rounded corners
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, logoSize / 2, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
+            
+            // Convert canvas to data URL
+            const finalQR = canvas.toDataURL('image/png');
+            setQrCode(finalQR);
+            console.log('✅ QR Code with logo overlay generated successfully');
+          } catch (logoErr) {
+            console.warn('⚠️ Could not load logo, using plain QR:', logoErr);
+            setQrCode(qrCodeDataURL);
+          }
+        } else {
+          setQrCode(qrCodeDataURL);
+        }
+      } else {
+        setQrCode(qrCodeDataURL);
+      }
+      
       console.log('✅ QR Code image generated successfully');
       
       if (onQRGenerated) {
@@ -94,13 +164,13 @@ const QRCodePromptPay = ({
     }
   }, [defaultPhoneNumber]);
 
-  // Auto-generate QR whenever phone is valid (amount optional)
+  // Auto-generate QR whenever phone is valid (amount or logo optional)
   useEffect(() => {
     if (phoneNumber && validateThaiPhoneNumber(phoneNumber)) {
-      console.log('🔄 Auto-generating QR (amount optional):', qrAmount);
+      console.log('🔄 Auto-generating QR (amount/logo optional):', qrAmount, shopLogoUrl);
       generateQR();
     }
-  }, [phoneNumber, qrAmount]);
+  }, [phoneNumber, qrAmount, shopLogoUrl]);
 
   // Compact mode - show only QR code
   if (compact) {

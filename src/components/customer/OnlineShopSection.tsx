@@ -86,6 +86,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [promptPayPhone, setPromptPayPhone] = useState<string>('');
+  const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   
   const { toast } = useToast();
 
@@ -679,16 +680,22 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
       if (json?.phone) {
         console.log('📱 PromptPay phone (edge):', json.phone);
         setPromptPayPhone(json.phone);
-        return;
-      }
-      // Fallback: ใช้เบอร์จาก localStorage หากไม่มีในฐานข้อมูล
-      const saved = localStorage.getItem('promptpay-phone-numbers');
-      const list: string[] = saved ? JSON.parse(saved) : [];
-      if (list.length > 0) {
-        console.log('📱 Fallback to localStorage phone:', list[0]);
-        setPromptPayPhone(list[0]);
       } else {
-        console.log('⚠️ ไม่พบเบอร์ทั้งใน Edge และ localStorage', json);
+        // Fallback: ใช้เบอร์จาก localStorage หากไม่มีในฐานข้อมูล
+        const saved = localStorage.getItem('promptpay-phone-numbers');
+        const list: string[] = saved ? JSON.parse(saved) : [];
+        if (list.length > 0) {
+          console.log('📱 Fallback to localStorage phone:', list[0]);
+          setPromptPayPhone(list[0]);
+        } else {
+          console.log('⚠️ ไม่พบเบอร์ทั้งใน Edge และ localStorage', json);
+        }
+      }
+      
+      // Load shop logo
+      if (json?.logo_url) {
+        console.log('🏪 Loaded shop logo:', json.logo_url);
+        setShopLogoUrl(json.logo_url);
       }
     } catch (error) {
       console.error('❌ Error fetching PromptPay phone via edge:', error);
@@ -1500,6 +1507,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
                     key={`qr-${getTotalAmount()}`}
                     amount={getTotalAmount()} 
                     defaultPhoneNumber={promptPayPhone}
+                    shopLogoUrl={shopLogoUrl}
                     compact={true}
                   />
                 ) : (

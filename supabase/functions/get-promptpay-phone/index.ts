@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   try {
     const { data, error } = await supabase
       .from('shop_settings')
-      .select('phone')
+      .select('phone, logo_url')
       .limit(1)
       .maybeSingle()
 
@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
     }
 
     const phone = data?.phone || null
-    return jsonResponse({ phone })
+    const logo_url = data?.logo_url || null
+    return jsonResponse({ phone, logo_url })
   } catch (e) {
     console.error('Edge get-promptpay-phone: unexpected error', e)
     return jsonResponse({ error: 'unexpected_error' }, 500)
