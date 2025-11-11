@@ -113,7 +113,6 @@ const QRCodePromptPay = ({
           <>
             <img src={qrCode} alt="PromptPay QR Code" className="mx-auto" />
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-mono">📱 {phoneNumber}</p>
               {qrAmount > 0 && (
                 <p className="text-sm font-semibold text-orange-600">
                   ยอดชำระ: ฿{qrAmount.toLocaleString()}
