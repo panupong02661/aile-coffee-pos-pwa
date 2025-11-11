@@ -44,14 +44,20 @@ const ShopBasicSettings = () => {
         .from('shop_settings')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('Error fetching shop settings:', error);
+        toast({
+          title: 'ข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดข้อมูลร้านได้',
+          variant: 'destructive'
+        });
+        return;
       }
 
       if (data) {
-        setValue('shop_name', data.shop_name);
+        setValue('shop_name', data.shop_name || '');
         setValue('address', data.address || '');
         setValue('phone', data.phone || '');
         setValue('email', data.email || '');
@@ -59,7 +65,7 @@ const ShopBasicSettings = () => {
         setValue('logo_url', data.logo_url || '');
       }
     } catch (error) {
-      console.error('Error fetching shop settings:', error);
+      console.error('Unexpected error fetching shop settings:', error);
       toast({
         title: 'ข้อผิดพลาด',
         description: 'ไม่สามารถโหลดข้อมูลร้านได้',
@@ -101,14 +107,26 @@ const ShopBasicSettings = () => {
         setValue('logo_url', logoUrl);
       }
 
-      const shopData = { ...data, logo_url: logoUrl };
+      const shopData = { 
+        shop_name: data.shop_name,
+        address: data.address || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        tax_id: data.tax_id || null,
+        logo_url: logoUrl || null
+      };
 
       // Check if settings exist
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from('shop_settings')
         .select('id')
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error checking existing settings:', fetchError);
+        throw fetchError;
+      }
 
       if (existing) {
         // Update existing
@@ -133,11 +151,13 @@ const ShopBasicSettings = () => {
       });
 
       setLogoFile(null);
-    } catch (error) {
+      // Refresh data
+      fetchShopSettings();
+    } catch (error: any) {
       console.error('Error saving shop settings:', error);
       toast({
         title: 'ข้อผิดพลาด',
-        description: 'ไม่สามารถบันทึกข้อมูลได้',
+        description: error?.message || 'ไม่สามารถบันทึกข้อมูลได้',
         variant: 'destructive'
       });
     } finally {
