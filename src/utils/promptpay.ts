@@ -29,8 +29,13 @@ function crc16(data: string): string {
 function formatPhoneNumber(phoneNumber: string): string {
   // Remove all non-digit characters
   const digits = phoneNumber.replace(/\D/g, '');
+
+  // If already in 0066XXXXXXXXX format
+  if (digits.startsWith('0066')) {
+    return digits;
+  }
   
-  // If starts with 0, replace with +66
+  // If starts with 0, replace with 0066
   if (digits.startsWith('0')) {
     return `0066${digits.substring(1)}`;
   }
@@ -45,55 +50,48 @@ function formatPhoneNumber(phoneNumber: string): string {
     return `0066${digits.substring(2)}`;
   }
   
+  // Fallback: prefix with 0066
   return `0066${digits}`;
 }
 
 // Generate EMVCo compliant PromptPay QR Code data
 export function generatePromptPayQR(data: PromptPayData): string {
   const formattedPhone = formatPhoneNumber(data.phoneNumber);
-  
-  // EMVCo QR Code data structure
+
+  // Helper to build TLV fields
+  const tlv = (id: string, value: string) => id + value.length.toString().padStart(2, '0') + value;
+
+  // Point of Initiation: 11 = static, 12 = dynamic (use dynamic when amount is specified)
+  const poiMethod = data.amount && data.amount > 0 ? '12' : '11';
+
+  // Merchant Account Information for PromptPay (ID 29)
+  // Sub-fields:
+  // 00: GUID "A000000677010111"
+  // 01: Mobile number in 0066XXXXXXXXX format
+  const guid = tlv('00', 'A000000677010111');
+  const account = tlv('01', formattedPhone);
+  const merchantAccountInfo = tlv('29', guid + account);
+
+  // Build payload
   let qrData = '';
-  
-  // Payload Format Indicator (00)
-  qrData += '000201';
-  
-  // Point of Initiation Method (01) - Static QR Code
-  qrData += '010212';
-  
-  // Merchant Account Information (30)
-  let merchantInfo = '';
-  merchantInfo += 'A000000677'; // PromptPay Application ID
-  merchantInfo += '01'; // Length of next field
-  merchantInfo += '13'; // PromptPay Identifier
-  merchantInfo += formattedPhone.length.toString().padStart(2, '0');
-  merchantInfo += formattedPhone;
-  
-  qrData += '30' + merchantInfo.length.toString().padStart(2, '0') + merchantInfo;
-  
-  // Transaction Currency (53) - Thai Baht (764)
-  qrData += '5303764';
-  
-  // Transaction Amount (54) - if specified
+  qrData += '000201';                 // Payload Format Indicator
+  qrData += tlv('01', poiMethod);     // Point of Initiation Method
+  qrData += merchantAccountInfo;      // Merchant Account Information (PromptPay)
+  qrData += tlv('53', '764');         // Transaction Currency: THB (764)
+
+  // Optional fixed amount
   if (data.amount && data.amount > 0) {
     const amountStr = data.amount.toFixed(2);
-    qrData += '54' + amountStr.length.toString().padStart(2, '0') + amountStr;
+    qrData += tlv('54', amountStr);   // Transaction Amount
   }
-  
-  // Country Code (58) - Thailand
-  qrData += '5802TH';
-  
-  // Additional Data Field Template (62)
-  const additionalData = '07PromptPay'; // Bill Number
-  qrData += '62' + (additionalData.length + 4).toString().padStart(2, '0') + '05' + additionalData.length.toString().padStart(2, '0') + additionalData;
-  
-  // CRC (63) - placeholder for now
+
+  qrData += tlv('58', 'TH');          // Country Code: TH
+
+  // CRC (63) - append placeholder then calculate
   qrData += '6304';
-  
-  // Calculate and append CRC
   const checksum = crc16(qrData);
   qrData += checksum;
-  
+
   return qrData;
 }
 
@@ -101,13 +99,18 @@ export function generatePromptPayQR(data: PromptPayData): string {
 export function validateThaiPhoneNumber(phoneNumber: string): boolean {
   const digits = phoneNumber.replace(/\D/g, '');
   
-  // Thai mobile numbers: 08x-xxx-xxxx or 09x-xxx-xxxx (10 digits starting with 0)
-  // Or international format: +668x-xxx-xxxx or +669x-xxx-xxxx
-  if (digits.length === 10 && (digits.startsWith('08') || digits.startsWith('09'))) {
+  // Local format: 06/08/09 + 8 digits (total 10)
+  if (digits.length === 10 && (digits.startsWith('06') || digits.startsWith('08') || digits.startsWith('09'))) {
     return true;
   }
-  
-  if (digits.length === 11 && digits.startsWith('668') || digits.startsWith('669')) {
+
+  // International formats: 6606/6608/6609 + 8 digits (total 11)
+  if (digits.length === 11 && (digits.startsWith('6606') || digits.startsWith('6608') || digits.startsWith('6609'))) {
+    return true;
+  }
+
+  // With international call prefix: 006606/006608/006609 + 8 digits (total 12)
+  if (digits.length === 12 && (digits.startsWith('006606') || digits.startsWith('006608') || digits.startsWith('006609'))) {
     return true;
   }
   
