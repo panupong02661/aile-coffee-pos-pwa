@@ -14,27 +14,49 @@ interface MenuItemsListProps {
 }
 
 const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStatusChange }) => {
+  const [localMenuItems, setLocalMenuItems] = React.useState(menuItems);
+
+  // Update local state when props change
+  React.useEffect(() => {
+    setLocalMenuItems(menuItems);
+  }, [menuItems]);
+
   const handleStatusToggle = async (item: any) => {
     try {
       const newStatus = !item.is_available;
       
+      // Optimistic update - update UI immediately
+      setLocalMenuItems(prevItems =>
+        prevItems.map(menuItem =>
+          menuItem.id === item.id
+            ? { ...menuItem, is_available: newStatus }
+            : menuItem
+        )
+      );
+
+      // Show toast immediately
+      toast.success(`${newStatus ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}เมนู ${item.name} แล้ว`);
+      
+      // Update database
       const { error } = await supabase
         .from('menu_items')
         .update({ is_available: newStatus })
         .eq('id', item.id);
 
       if (error) {
+        // Revert optimistic update on error
+        setLocalMenuItems(menuItems);
         toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
         return;
       }
-
-      toast.success(`${newStatus ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}เมนู ${item.name} แล้ว`);
       
-      // Call the callback to refresh data
+      // Sync with server data
       if (onStatusChange) {
         onStatusChange();
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setLocalMenuItems(menuItems);
       console.error('Error updating menu item status:', error);
       toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
     }
@@ -42,7 +64,7 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStat
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {menuItems.map((item) => (
+      {localMenuItems.map((item) => (
         <Card key={item.id} className="overflow-hidden">
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
