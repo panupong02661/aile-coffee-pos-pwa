@@ -215,17 +215,21 @@ const POS = () => {
 
   console.log('🍽️ Converted menu items:', convertedMenuItems.length);
 
+  // Filter out unavailable items and then filter by category
+  const availableMenuItems = convertedMenuItems.filter(item => item.is_available);
+  
   const filteredMenuItems = selectedCategory === '1' 
-    ? convertedMenuItems 
-    : convertedMenuItems.filter(item => item.category_id === selectedCategory);
+    ? availableMenuItems 
+    : availableMenuItems.filter(item => item.category_id === selectedCategory);
 
   console.log('🔍 Filtered menu items:', {
     selectedCategory,
     filteredCount: filteredMenuItems.length,
+    availableCount: availableMenuItems.length,
     totalMenuItems: convertedMenuItems.length
   });
 
-  const filteredMenuItemsForSearch = convertedMenuItems.filter(item =>
+  const filteredMenuItemsForSearch = availableMenuItems.filter(item =>
     item.name.toLowerCase().includes(localSearchTerm.toLowerCase())
   );
 

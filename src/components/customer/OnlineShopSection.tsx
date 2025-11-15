@@ -1273,9 +1273,12 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
     }
   };
 
+  // Filter by availability first, then by category
+  const availableMenuItems = menuItems.filter(item => item.is_available);
+  
   const filteredMenuItems = selectedCategory === 'all' 
-    ? menuItems 
-    : menuItems.filter(item => item.category_id === selectedCategory);
+    ? availableMenuItems 
+    : availableMenuItems.filter(item => item.category_id === selectedCategory);
 
   const getMinPickupTime = () => {
     const now = new Date();
