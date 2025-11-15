@@ -15,15 +15,33 @@ interface MenuItemsListProps {
 
 const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStatusChange }) => {
   const [localMenuItems, setLocalMenuItems] = React.useState(menuItems);
+  const [updatingIds, setUpdatingIds] = React.useState<Set<string>>(new Set());
 
-  // Update local state when props change
+  // Update local state when props change, but preserve items being updated
   React.useEffect(() => {
-    setLocalMenuItems(menuItems);
-  }, [menuItems]);
+    setLocalMenuItems(prevItems => {
+      // If no items are being updated, just use new data
+      if (updatingIds.size === 0) {
+        return menuItems;
+      }
+      
+      // Merge: keep updated items from local state, take rest from props
+      return menuItems.map(propItem => {
+        if (updatingIds.has(propItem.id)) {
+          const localItem = prevItems.find(item => item.id === propItem.id);
+          return localItem || propItem;
+        }
+        return propItem;
+      });
+    });
+  }, [menuItems, updatingIds]);
 
   const handleStatusToggle = async (item: any) => {
     try {
       const newStatus = !item.is_available;
+      
+      // Mark this item as being updated
+      setUpdatingIds(prev => new Set(prev).add(item.id));
       
       // Optimistic update - update UI immediately
       setLocalMenuItems(prevItems =>
@@ -45,18 +63,49 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStat
 
       if (error) {
         // Revert optimistic update on error
-        setLocalMenuItems(menuItems);
+        setLocalMenuItems(prevItems =>
+          prevItems.map(menuItem =>
+            menuItem.id === item.id
+              ? { ...menuItem, is_available: item.is_available }
+              : menuItem
+          )
+        );
         toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        setUpdatingIds(prev => {
+          const next = new Set(prev);
+          next.delete(item.id);
+          return next;
+        });
         return;
       }
       
-      // Sync with server data
-      if (onStatusChange) {
-        onStatusChange();
-      }
+      // Wait a moment before allowing props to override
+      setTimeout(() => {
+        setUpdatingIds(prev => {
+          const next = new Set(prev);
+          next.delete(item.id);
+          return next;
+        });
+        
+        // Now sync with server data
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      }, 500);
     } catch (error) {
       // Revert optimistic update on error
-      setLocalMenuItems(menuItems);
+      setLocalMenuItems(prevItems =>
+        prevItems.map(menuItem =>
+          menuItem.id === item.id
+            ? { ...menuItem, is_available: item.is_available }
+            : menuItem
+        )
+      );
+      setUpdatingIds(prev => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
       console.error('Error updating menu item status:', error);
       toast.error('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
     }
