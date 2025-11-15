@@ -3523,6 +3523,10 @@ export type Database = {
           test_num: number
         }[]
       }
+      toggle_menu_availability: {
+        Args: { menu_item_id: string; new_status: boolean }
+        Returns: boolean
+      }
       validate_input: {
         Args: { input_text: string; input_type?: string }
         Returns: boolean

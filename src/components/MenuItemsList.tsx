@@ -34,13 +34,13 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStat
         )
       );
       
-      // Update database
-      const { error } = await supabase
-        .from('menu_items')
-        .update({ is_available: newStatus })
-        .eq('id', item.id);
+      // Call secure RPC function
+      const { data, error } = await supabase.rpc('toggle_menu_availability', {
+        menu_item_id: item.id,
+        new_status: newStatus
+      });
 
-      if (error) {
+      if (error || !data) {
         console.error('Error updating menu item status:', error);
         // Revert on error
         setLocalMenuItems(prevItems =>
