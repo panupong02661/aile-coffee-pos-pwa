@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ShoppingBag } from 'lucide-react';
 
 import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
@@ -13,7 +13,7 @@ import CouponsSection from '@/components/customer/CouponsSection';
 import ShopSection from '@/components/customer/ShopSection';
 import HistorySection from '@/components/customer/HistorySection';
 import StatsSection from '@/components/customer/StatsSection';
-import NavigationGrid from '@/components/customer/NavigationGrid';
+import MobileBottomNav from '@/components/customer/MobileBottomNav';
 import CustomerGoals from '@/components/customer/CustomerGoals';
 import MemberCard from '@/components/customer/MemberCard';
 import LoginForm from '@/components/customer/LoginForm';
@@ -662,8 +662,41 @@ const CustomerMobileApp: React.FC = () => {
             {/* Member Card */}
             {currentUser && <MemberCard currentUser={currentUser} />}
             
-            {/* Navigation Grid */}
-            <NavigationGrid activeTab={activeTab} onTabChange={handleTabChange} />
+            {/* Quick Action Cards */}
+            <div className="grid grid-cols-2 gap-3 px-4">
+              <button
+                onClick={() => setActiveTab('shop')}
+                className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center space-y-2 hover:bg-accent transition-colors"
+              >
+                <ShoppingBag className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium">สั่งเครื่องดื่ม</span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center space-y-2 hover:bg-accent transition-colors"
+              >
+                <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                </svg>
+                <span className="text-sm font-medium">แลกของรางวัล</span>
+              </button>
+            </div>
+            
+            {/* Promotions Section */}
+            <div className="px-4">
+              <h3 className="text-lg font-semibold mb-3">โปรโมชั่นแนะนำ</h3>
+              <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90 mb-1">โปรโมชั่นพิเศษ</p>
+                    <h4 className="text-xl font-bold mb-2">ซื้อ 2 แถม 1</h4>
+                    <p className="text-sm opacity-90">กาแฟทุกประเภท</p>
+                  </div>
+                  <div className="text-5xl">☕</div>
+                </div>
+              </div>
+            </div>
             
             {/* Logout Button */}
             <div className="p-4">
@@ -711,8 +744,41 @@ const CustomerMobileApp: React.FC = () => {
             {/* Member Card */}
             {currentUser && <MemberCard currentUser={currentUser} />}
             
-            {/* Navigation Grid */}
-            <NavigationGrid activeTab={activeTab} onTabChange={handleTabChange} />
+            {/* Quick Action Cards */}
+            <div className="grid grid-cols-2 gap-3 px-4">
+              <button
+                onClick={() => setActiveTab('shop')}
+                className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center space-y-2 hover:bg-accent transition-colors"
+              >
+                <ShoppingBag className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium">สั่งเครื่องดื่ม</span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center space-y-2 hover:bg-accent transition-colors"
+              >
+                <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                </svg>
+                <span className="text-sm font-medium">แลกของรางวัล</span>
+              </button>
+            </div>
+            
+            {/* Promotions Section */}
+            <div className="px-4">
+              <h3 className="text-lg font-semibold mb-3">โปรโมชั่นแนะนำ</h3>
+              <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90 mb-1">โปรโมชั่นพิเศษ</p>
+                    <h4 className="text-xl font-bold mb-2">ซื้อ 2 แถม 1</h4>
+                    <p className="text-sm opacity-90">กาแฟทุกประเภท</p>
+                  </div>
+                  <div className="text-5xl">☕</div>
+                </div>
+              </div>
+            </div>
             
             {/* Logout Button */}
             <div className="p-4">
@@ -787,9 +853,12 @@ const CustomerMobileApp: React.FC = () => {
         </div>
 
         {/* Content Section */}
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-y-auto pb-20">
           {renderContent()}
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
     </Shell>
   );
