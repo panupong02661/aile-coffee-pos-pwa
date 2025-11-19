@@ -16,7 +16,11 @@ interface MenuItem {
   category_id: string | null;
 }
 
-const RecommendedMenu = () => {
+interface RecommendedMenuProps {
+  onMenuItemClick?: (itemId: string) => void;
+}
+
+const RecommendedMenu = ({ onMenuItemClick }: RecommendedMenuProps) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -73,7 +77,10 @@ const RecommendedMenu = () => {
         <CarouselContent className="px-4">
           {menuItems.map((item) => (
             <CarouselItem key={item.id} className="basis-2/5 sm:basis-1/3 md:basis-1/4">
-              <div className="bg-card rounded-xl overflow-hidden border border-border shadow-sm">
+              <div 
+                onClick={() => onMenuItemClick?.(item.id)}
+                className="bg-card rounded-xl overflow-hidden border border-border shadow-sm cursor-pointer hover:shadow-md transition-shadow active:scale-95 transition-transform"
+              >
                 <div className="aspect-square bg-muted flex items-center justify-center">
                   {item.image_url ? (
                     <img 
