@@ -673,7 +673,7 @@ const CustomerMobileApp: React.FC = () => {
               </button>
               
               <button
-                onClick={() => setActiveTab('rewards')}
+                onClick={() => setActiveTab('coupons')}
                 className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center space-y-2 hover:bg-accent transition-colors"
               >
                 <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -721,13 +721,6 @@ const CustomerMobileApp: React.FC = () => {
           />
         );
       case 'rewards':
-        return (
-          <RewardsSection 
-            rewards={rewards}
-            currentUser={currentUser} 
-            onRedeemReward={handleRedeemReward}
-          />
-        );
       case 'coupons':
         return (
           <CouponsSection 
