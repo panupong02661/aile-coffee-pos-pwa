@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Gift, Tag, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface CustomerGift {
   id: string;
@@ -120,93 +127,99 @@ const PromotionsCarousel = ({ customerId }: { customerId?: string }) => {
   }
 
   return (
-    <div className="px-4 py-6">
-      <h3 className="text-lg font-semibold mb-3">โปรโมชั่นแนะนำ</h3>
-      <div className="space-y-3">
-        {allItems.map((item, index) => {
-          if (item.type === 'gift') {
-            const gift = item.data as CustomerGift;
-            return (
-              <div key={`gift-${gift.id}`} className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Gift className="w-5 h-5" />
-                      <p className="text-sm opacity-90 font-medium">ของขวัญพิเศษ</p>
+    <div className="py-6">
+      <h3 className="text-lg font-semibold mb-3 px-4">โปรโมชั่นแนะนำ</h3>
+      <Carousel
+        opts={{
+          align: "start",
+          loop: false,
+        }}
+        className="w-full"
+      >
+        <CarouselContent className="px-4">
+          {allItems.map((item, index) => (
+            <CarouselItem key={`item-${index}`} className="basis-4/5 sm:basis-1/2 md:basis-1/3">
+              {(() => {
+                if (item.type === 'gift') {
+                  const gift = item.data as CustomerGift;
+                  return (
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white h-full">
+                      <div className="flex flex-col h-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Gift className="w-5 h-5" />
+                          <p className="text-sm opacity-90 font-medium">ของขวัญพิเศษ</p>
+                        </div>
+                        <h4 className="text-xl font-bold mb-1">{gift.gift_name}</h4>
+                        {gift.gift_description && (
+                          <p className="text-sm opacity-90 mb-2 line-clamp-2">{gift.gift_description}</p>
+                        )}
+                        {gift.gift_value && (
+                          <p className="text-lg font-semibold mt-auto">มูลค่า {gift.gift_value} บาท</p>
+                        )}
+                        <div className="text-4xl mt-2 text-right">🎁</div>
+                      </div>
                     </div>
-                    <h4 className="text-xl font-bold mb-1">{gift.gift_name}</h4>
-                    {gift.gift_description && (
-                      <p className="text-sm opacity-90">{gift.gift_description}</p>
-                    )}
-                    {gift.gift_value && (
-                      <p className="text-lg font-semibold mt-2">มูลค่า {gift.gift_value} บาท</p>
-                    )}
-                  </div>
-                  <div className="text-5xl">🎁</div>
-                </div>
-              </div>
-            );
-          }
+                  );
+                }
 
-          if (item.type === 'promotion') {
-            const promo = item.data as LimitedPromotion;
-            const availableClaims = promo.max_claims - promo.current_claims;
-            return (
-              <div key={`promo-${promo.id}`} className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag className="w-5 h-5" />
-                      <p className="text-sm opacity-90 font-medium">โปรโมชั่นพิเศษ</p>
+                if (item.type === 'promotion') {
+                  const promo = item.data as LimitedPromotion;
+                  const availableClaims = promo.max_claims - promo.current_claims;
+                  return (
+                    <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white h-full">
+                      <div className="flex flex-col h-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Tag className="w-5 h-5" />
+                          <p className="text-sm opacity-90 font-medium">โปรโมชั่นพิเศษ</p>
+                        </div>
+                        <h4 className="text-xl font-bold mb-1 line-clamp-2">{promo.title}</h4>
+                        {promo.description && (
+                          <p className="text-sm opacity-90 mb-2 line-clamp-2">{promo.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-auto">
+                          <p className="text-lg font-semibold">
+                            {promo.discount_type === 'percentage' ? `${promo.discount_value}%` : `${promo.discount_value} บาท`}
+                          </p>
+                          <p className="text-xs opacity-75">
+                            เหลือ {availableClaims} สิทธิ์
+                          </p>
+                        </div>
+                        <div className="text-4xl mt-2 text-right">🎉</div>
+                      </div>
                     </div>
-                    <h4 className="text-xl font-bold mb-1">{promo.title}</h4>
-                    {promo.description && (
-                      <p className="text-sm opacity-90 mb-2">{promo.description}</p>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <p className="text-lg font-semibold">
-                        {promo.discount_type === 'percentage' ? `${promo.discount_value}%` : `${promo.discount_value} บาท`}
-                      </p>
-                      <p className="text-xs opacity-75">
-                        เหลือ {availableClaims} สิทธิ์
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-5xl">🎉</div>
-                </div>
-              </div>
-            );
-          }
+                  );
+                }
 
-          if (item.type === 'reward') {
-            const reward = item.data as LimitedReward;
-            return (
-              <div key={`reward-${reward.id}`} className="bg-gradient-to-br from-orange-400 to-red-500 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-5 h-5" />
-                      <p className="text-sm opacity-90 font-medium">รางวัลพิเศษ</p>
+                if (item.type === 'reward') {
+                  const reward = item.data as LimitedReward;
+                  return (
+                    <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-xl p-6 text-white h-full">
+                      <div className="flex flex-col h-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-5 h-5" />
+                          <p className="text-sm opacity-90 font-medium">รางวัลพิเศษ</p>
+                        </div>
+                        <h4 className="text-xl font-bold mb-1 line-clamp-2">{reward.name}</h4>
+                        {reward.description && (
+                          <p className="text-sm opacity-90 mb-2 line-clamp-2">{reward.description}</p>
+                        )}
+                        {reward.discount_value && (
+                          <p className="text-lg font-semibold mt-auto">
+                            {reward.discount_type === 'percentage' ? `${reward.discount_value}%` : `${reward.discount_value} บาท`}
+                          </p>
+                        )}
+                        <div className="text-4xl mt-2 text-right">⭐</div>
+                      </div>
                     </div>
-                    <h4 className="text-xl font-bold mb-1">{reward.name}</h4>
-                    {reward.description && (
-                      <p className="text-sm opacity-90 mb-2">{reward.description}</p>
-                    )}
-                    {reward.discount_value && (
-                      <p className="text-lg font-semibold">
-                        {reward.discount_type === 'percentage' ? `${reward.discount_value}%` : `${reward.discount_value} บาท`}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-5xl">⭐</div>
-                </div>
-              </div>
-            );
-          }
+                  );
+                }
 
-          return null;
-        })}
-      </div>
+                return null;
+              })()}
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   );
 };

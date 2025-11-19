@@ -19,6 +19,7 @@ import MemberCard from '@/components/customer/MemberCard';
 import LoginForm from '@/components/customer/LoginForm';
 import ConnectionDiagnostic from '@/components/customer/ConnectionDiagnostic';
 import PromotionsCarousel from '@/components/customer/PromotionsCarousel';
+import RecommendedMenu from '@/components/customer/RecommendedMenu';
 import { generateDateSearchVariants, generatePhoneVariants } from '@/utils/dateUtils';
 
 interface CustomerProfile {
@@ -684,8 +685,11 @@ const CustomerMobileApp: React.FC = () => {
               </button>
             </div>
             
-            {/* Promotions Section */}
-            <PromotionsCarousel customerId={currentUser?.id} />
+          {/* Promotions Section */}
+          <PromotionsCarousel customerId={currentUser?.id} />
+
+          {/* Recommended Menu Section */}
+          <RecommendedMenu />
             
             {/* Logout Button */}
             <div className="p-4">
