@@ -64,13 +64,16 @@ const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 
-function App() {
-  // Prefetch data on app mount for faster navigation
+function AppContent() {
   usePrefetch();
-  
+  return null;
+}
+
+function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <AppContent />
         <AuthProvider>
           <Router>
             <GlobalNotificationProvider>
