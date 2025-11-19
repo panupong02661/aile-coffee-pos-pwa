@@ -1798,7 +1798,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
       {cartItems.length > 0 && (
         <button
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          className="fixed bottom-24 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
           aria-label="ตะกร้าสินค้า"
         >
           <div className="relative">
