@@ -18,6 +18,7 @@ import CustomerGoals from '@/components/customer/CustomerGoals';
 import MemberCard from '@/components/customer/MemberCard';
 import LoginForm from '@/components/customer/LoginForm';
 import ConnectionDiagnostic from '@/components/customer/ConnectionDiagnostic';
+import PromotionsCarousel from '@/components/customer/PromotionsCarousel';
 import { generateDateSearchVariants, generatePhoneVariants } from '@/utils/dateUtils';
 
 interface CustomerProfile {
@@ -684,19 +685,7 @@ const CustomerMobileApp: React.FC = () => {
             </div>
             
             {/* Promotions Section */}
-            <div className="px-4">
-              <h3 className="text-lg font-semibold mb-3">โปรโมชั่นแนะนำ</h3>
-              <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">โปรโมชั่นพิเศษ</p>
-                    <h4 className="text-xl font-bold mb-2">ซื้อ 2 แถม 1</h4>
-                    <p className="text-sm opacity-90">กาแฟทุกประเภท</p>
-                  </div>
-                  <div className="text-5xl">☕</div>
-                </div>
-              </div>
-            </div>
+            <PromotionsCarousel customerId={currentUser?.id} />
             
             {/* Logout Button */}
             <div className="p-4">
@@ -738,6 +727,16 @@ const CustomerMobileApp: React.FC = () => {
         return <StatsSection currentUser={currentUser} />;
       case 'goals':
         return <CustomerGoals currentUser={currentUser} />;
+      case 'profile':
+        return (
+          <ProfileSection 
+            currentUser={currentUser} 
+            setCurrentUser={setCurrentUser}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            onUpdateProfile={handleUpdateProfile}
+          />
+        );
       default:
         return (
           <div className="space-y-4">
