@@ -57,6 +57,7 @@ const CustomerMobileApp: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
   
 
   // Enhanced database connection test
@@ -724,7 +725,7 @@ const CustomerMobileApp: React.FC = () => {
           />
         );
       case 'shop':
-        return <ShopSection currentUser={currentUser} setCurrentUser={setCurrentUser} />;
+        return <ShopSection currentUser={currentUser} setCurrentUser={setCurrentUser} selectedMenuItemId={selectedMenuItemId} onItemAdded={() => setSelectedMenuItemId(null)} />;
       case 'history':
         return <HistorySection currentUser={currentUser} />;
       case 'stats':
@@ -768,20 +769,14 @@ const CustomerMobileApp: React.FC = () => {
               </button>
             </div>
             
-            {/* Promotions Section */}
-            <div className="px-4">
-              <h3 className="text-lg font-semibold mb-3">โปรโมชั่นแนะนำ</h3>
-              <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90 mb-1">โปรโมชั่นพิเศษ</p>
-                    <h4 className="text-xl font-bold mb-2">ซื้อ 2 แถม 1</h4>
-                    <p className="text-sm opacity-90">กาแฟทุกประเภท</p>
-                  </div>
-                  <div className="text-5xl">☕</div>
-                </div>
-              </div>
-            </div>
+            {/* Promotions Carousel */}
+            <PromotionsCarousel customerId={currentUser?.id || ''} />
+            
+            {/* Recommended Menu */}
+            <RecommendedMenu onMenuItemClick={(itemId) => {
+              setSelectedMenuItemId(itemId);
+              setActiveTab('shop');
+            }} />
             
             {/* Logout Button */}
             <div className="p-4">

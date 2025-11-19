@@ -59,9 +59,11 @@ interface CartItem {
 interface OnlineShopSectionProps {
   currentUser: any;
   setCurrentUser?: (user: any) => void;
+  selectedMenuItemId?: string | null;
+  onItemAdded?: () => void;
 }
 
-const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionProps) => {
+const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, onItemAdded }: OnlineShopSectionProps) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -684,6 +686,22 @@ const OnlineShopSection = ({ currentUser, setCurrentUser }: OnlineShopSectionPro
 
     initializeData();
   }, []);
+
+  // Auto-add item to cart when selectedMenuItemId changes
+  useEffect(() => {
+    if (selectedMenuItemId && menuItems.length > 0) {
+      const menuItem = menuItems.find(item => item.id === selectedMenuItemId);
+      if (menuItem) {
+        console.log('Auto-adding menu item to cart:', menuItem.name);
+        handleAddToCart(menuItem);
+        toast({
+          title: "เพิ่มลงตะกร้าแล้ว",
+          description: `${menuItem.name} ถูกเพิ่มลงในตะกร้าเรียบร้อยแล้ว`,
+        });
+        onItemAdded?.();
+      }
+    }
+  }, [selectedMenuItemId, menuItems]);
 
   const fetchShopSettings = async () => {
     try {
