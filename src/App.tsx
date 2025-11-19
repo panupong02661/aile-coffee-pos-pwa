@@ -4,10 +4,12 @@ import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
+import { usePrefetch } from './hooks/usePrefetch';
 import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +65,9 @@ const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 
 function App() {
+  // Prefetch data on app mount for faster navigation
+  usePrefetch();
+  
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -70,12 +75,7 @@ function App() {
           <Router>
             <GlobalNotificationProvider>
               <div className="min-h-screen bg-background">
-                <Suspense fallback={
-                  <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                    <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
-                  </div>
-                }>
+                <Suspense fallback={<PageLoadingSkeleton />}>
                   <Routes>
                   <Route path="/" element={<POS />} />
                   <Route path="/dashboard" element={<Dashboard />} />
