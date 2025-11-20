@@ -689,15 +689,19 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
 
   // Auto-add item to cart when selectedMenuItemId changes
   useEffect(() => {
-    if (selectedMenuItemId && menuItems.length > 0) {
-      const menuItem = menuItems.find(item => item.id === selectedMenuItemId);
-      if (menuItem) {
-        console.log('Opening add-on selection for:', menuItem.name);
-        handleAddToCart(menuItem);
-        // Clear selectedMenuItemId to prevent multiple triggers
-        onItemAdded?.();
+    const autoAddItem = async () => {
+      if (selectedMenuItemId && menuItems.length > 0) {
+        const menuItem = menuItems.find(item => item.id === selectedMenuItemId);
+        if (menuItem) {
+          console.log('🎯 Auto-adding menu item from recommendation:', menuItem.name);
+          await handleAddToCart(menuItem);
+          // Clear selectedMenuItemId after adding
+          onItemAdded?.();
+        }
       }
-    }
+    };
+    
+    autoAddItem();
   }, [selectedMenuItemId, menuItems]);
 
   const fetchShopSettings = async () => {
