@@ -692,12 +692,9 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
     if (selectedMenuItemId && menuItems.length > 0) {
       const menuItem = menuItems.find(item => item.id === selectedMenuItemId);
       if (menuItem) {
-        console.log('Auto-adding menu item to cart:', menuItem.name);
+        console.log('Opening add-on selection for:', menuItem.name);
         handleAddToCart(menuItem);
-        toast({
-          title: "เพิ่มลงตะกร้าแล้ว",
-          description: `${menuItem.name} ถูกเพิ่มลงในตะกร้าเรียบร้อยแล้ว`,
-        });
+        // Clear selectedMenuItemId to prevent multiple triggers
         onItemAdded?.();
       }
     }
@@ -810,6 +807,12 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
       };
       setCartItems([...cartItems, newItem]);
     }
+    
+    // Show success toast
+    toast({
+      title: "เพิ่มลงตะกร้าแล้ว",
+      description: `${menuItem.name} ถูกเพิ่มลงในตะกร้าเรียบร้อยแล้ว`,
+    });
   };
 
   const handleAddToCart = async (menuItem: MenuItem) => {
