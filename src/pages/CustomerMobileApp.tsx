@@ -690,7 +690,10 @@ const CustomerMobileApp: React.FC = () => {
           <PromotionsCarousel customerId={currentUser?.id} />
 
           {/* Recommended Menu Section */}
-          <RecommendedMenu />
+          <RecommendedMenu onMenuItemClick={(itemId) => {
+            setSelectedMenuItemId(itemId);
+            setActiveTab('shop');
+          }} />
             
             {/* Logout Button */}
             <div className="p-4">
