@@ -1015,7 +1015,14 @@ const PaymentModal = ({
 
         {/* Right Column - Receipt Preview */}
         <div className="hidden lg:block overflow-y-auto max-h-[calc(90vh-100px)] border-l pl-4">
-          <ReceiptPreview />
+          <ReceiptPreview 
+            cartItems={cartItems}
+            totalAmount={total}
+            discountAmount={billDiscount}
+            paymentMethod={paymentMethod}
+            memberName={selectedMember?.name}
+            memberPhone={selectedMember?.phone}
+          />
         </div>
       </div>
     </DialogContent>

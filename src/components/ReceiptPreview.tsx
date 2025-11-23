@@ -1,8 +1,9 @@
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
+import { CartItem } from '@/types';
 
 interface ShopSettings {
   shop_name: string;
@@ -32,7 +33,25 @@ interface WiFiVoucher {
   qr_code_url: string | null;
 }
 
-const ReceiptPreview = () => {
+interface ReceiptPreviewProps {
+  cartItems?: CartItem[];
+  totalAmount?: number;
+  discountAmount?: number;
+  paymentMethod?: string;
+  memberName?: string;
+  memberPhone?: string;
+  orderNumber?: string;
+}
+
+const ReceiptPreview = ({ 
+  cartItems = [], 
+  totalAmount = 0,
+  discountAmount = 0,
+  paymentMethod = '',
+  memberName,
+  memberPhone,
+  orderNumber
+}: ReceiptPreviewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(null);
@@ -73,15 +92,17 @@ const ReceiptPreview = () => {
     }
   };
 
-  const sampleItems = [
-    { name: 'กาแฟอเมริกาโน่', quantity: 1, price: 45 },
-    { name: 'คาปูชิโน่', quantity: 2, price: 55 },
-    { name: 'ชาเขียวปั่น', quantity: 1, price: 60 }
-  ];
-
-  const subtotal = sampleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Calculate from actual cart items
+  const subtotal = cartItems.reduce((sum, item) => {
+    const itemTotal = item.menu_item.price * item.quantity;
+    const addonsTotal = (item.selected_addons || []).reduce((addonSum, addon) => 
+      addonSum + addon.price, 0
+    );
+    return sum + itemTotal + addonsTotal;
+  }, 0);
+  
   const tax = Math.round(subtotal * 0.07);
-  const total = subtotal + tax;
+  const total = totalAmount || (subtotal + tax - discountAmount);
 
   if (!shopSettings || !receiptSettings) {
     return (
@@ -95,11 +116,7 @@ const ReceiptPreview = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>ตัวอย่างใบเสร็จ</CardTitle>
-        <CardDescription>ดูตัวอย่างการแสดงผลใบเสร็จตามการตั้งค่าปัจจุบัน</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="max-w-sm mx-auto bg-white border-2 border-dashed border-gray-300 p-6 font-mono text-sm">
           {/* Logo */}
           {receiptSettings.show_logo && shopSettings.logo_url && (
@@ -145,32 +162,44 @@ const ReceiptPreview = () => {
           )}
 
           {/* Order Number */}
-          {receiptSettings.show_order_number && (
+          {receiptSettings.show_order_number && orderNumber && (
             <div className="text-xs mb-4">
-              หมายเลขคำสั่งซื้อ: #001234
+              หมายเลขคำสั่งซื้อ: #{orderNumber}
             </div>
           )}
 
           {/* Customer Info */}
-          {receiptSettings.show_customer_info && (
+          {receiptSettings.show_customer_info && (memberName || memberPhone) && (
             <div className="text-xs mb-4">
-              ลูกค้า: คุณสมชาย ใจดี<br />
-              โทร: 081-234-5678
+              {memberName && <>ลูกค้า: {memberName}<br /></>}
+              {memberPhone && <>โทร: {memberPhone}</>}
             </div>
           )}
 
           <Separator className="my-4" />
 
           {/* Item Details */}
-          {receiptSettings.show_item_details && (
+          {receiptSettings.show_item_details && cartItems.length > 0 && (
             <div className="mb-4">
               <div className="text-xs font-bold mb-2">รายการสินค้า</div>
-              {sampleItems.map((item, index) => (
-                <div key={index} className="flex justify-between text-xs mb-1">
-                  <div className="flex-1">
-                    {item.name} x{item.quantity}
+              {cartItems.map((item, index) => (
+                <div key={index}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <div className="flex-1">
+                      {item.menu_item.name} x{item.quantity}
+                    </div>
+                    <div>{(item.menu_item.price * item.quantity).toLocaleString()}</div>
                   </div>
-                  <div>{(item.price * item.quantity).toLocaleString()}</div>
+                  {item.selected_addons && item.selected_addons.length > 0 && (
+                    <div className="ml-4">
+                      {item.selected_addons.map((addon, addonIndex) => (
+                        <div key={addonIndex} className="flex justify-between text-xs text-gray-600 mb-1">
+                          <div className="flex-1">+ {addon.name}</div>
+                          <div>{addon.price.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -185,6 +214,12 @@ const ReceiptPreview = () => {
                 <span>ยอดรวม:</span>
                 <span>{subtotal.toLocaleString()} บาท</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between mb-1 text-red-600">
+                  <span>ส่วนลด:</span>
+                  <span>-{discountAmount.toLocaleString()} บาท</span>
+                </div>
+              )}
               <div className="flex justify-between mb-1">
                 <span>ภาษี (7%):</span>
                 <span>{tax.toLocaleString()} บาท</span>
@@ -197,11 +232,9 @@ const ReceiptPreview = () => {
           )}
 
           {/* Payment Method */}
-          {receiptSettings.show_payment_method && (
+          {receiptSettings.show_payment_method && paymentMethod && (
             <div className="text-xs mt-4">
-              ชำระด้วย: เงินสด<br />
-              รับเงิน: {(total + 50).toLocaleString()} บาท<br />
-              เงินทอน: 50 บาท
+              ชำระด้วย: {paymentMethod === 'cash' ? 'เงินสด' : paymentMethod === 'qr' ? 'QR Code' : 'PromptPay'}
             </div>
           )}
 
@@ -240,10 +273,6 @@ const ReceiptPreview = () => {
               </div>
             </>
           )}
-
-          <div className="text-center text-xs mt-4 text-gray-500">
-            *** ใบเสร็จตัวอย่าง ***
-          </div>
         </div>
       </CardContent>
     </Card>
