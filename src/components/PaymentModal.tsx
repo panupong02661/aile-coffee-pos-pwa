@@ -518,6 +518,34 @@ const PaymentModal = ({
         }
       }
 
+      // Get random unused WiFi voucher
+      let wifiVoucher = null;
+      try {
+        const { data: voucherData } = await supabase
+          .from('wifi_vouchers')
+          .select('id, username, password, qr_code_url')
+          .eq('is_used', false)
+          .limit(1)
+          .maybeSingle();
+
+        if (voucherData) {
+          // Mark as used
+          await supabase
+            .from('wifi_vouchers')
+            .update({ 
+              is_used: true, 
+              used_at: new Date().toISOString(),
+              order_id: order.id 
+            })
+            .eq('id', voucherData.id);
+
+          wifiVoucher = voucherData;
+          console.log(`[PaymentModal] WiFi voucher assigned:`, voucherData.username);
+        }
+      } catch (voucherError) {
+        console.warn(`[PaymentModal] WiFi voucher assignment failed (non-critical):`, voucherError);
+      }
+
       console.log(`[PaymentModal] Order processing completed successfully`);
       
       // Return both order and order items for notification
@@ -525,7 +553,8 @@ const PaymentModal = ({
         ...order,
         order_items: orderItems,
         member_name: selectedMember?.name || null,
-        member_phone: selectedMember?.phone || null
+        member_phone: selectedMember?.phone || null,
+        wifi_voucher: wifiVoucher
       };
 
     } catch (error) {
