@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Shell } from '@/components/Shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Wifi, Plus, Trash2, Download } from 'lucide-react';
+import { Wifi, Plus, Trash2, Download, Upload, Printer } from 'lucide-react';
 import { z } from 'zod';
 import QRCode from 'qrcode';
 import {
@@ -59,6 +59,7 @@ const WiFiVouchers = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [ssid, setSsid] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -97,13 +98,14 @@ const WiFiVouchers = () => {
     setLoading(false);
   };
 
-  const generateQRCode = async (username: string, password: string): Promise<string> => {
+  const generateQRCode = async (wifiPassword: string): Promise<string> => {
     try {
-      // Generate WiFi QR code in standard format
-      const wifiString = `WIFI:T:WPA;S:${ssid};P:${password};H:false;;`;
+      // Generate WiFi QR code in standard format using SSID and the actual WiFi password
+      const wifiString = `WIFI:T:WPA;S:${ssid};P:${wifiPassword};H:false;;`;
       const qrDataUrl = await QRCode.toDataURL(wifiString, {
-        width: 300,
-        margin: 1,
+        width: 256,
+        margin: 2,
+        errorCorrectionLevel: 'M',
         color: {
           dark: '#000000',
           light: '#ffffff',
@@ -150,11 +152,8 @@ const WiFiVouchers = () => {
         return;
       }
 
-      // Generate QR code
-      const qrCodeUrl = await generateQRCode(
-        validationResult.data.username, 
-        validationResult.data.password
-      );
+      // Generate QR code using the password (which is the WiFi password)
+      const qrCodeUrl = await generateQRCode(validationResult.data.password);
 
       // Insert to database
       const { error } = await supabase.from('wifi_vouchers').insert({
@@ -214,11 +213,197 @@ const WiFiVouchers = () => {
       ...unused.map(v => `${v.username},${v.password}`)
     ].join('\n');
     
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'wifi_vouchers.csv';
     link.click();
+  };
+
+  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      // Skip header row
+      const dataLines = lines.slice(1);
+      
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const line of dataLines) {
+        const [username, password] = line.split(',').map(s => s.trim());
+        
+        if (!username || !password) continue;
+
+        // Validate
+        const validationResult = voucherSchema.safeParse({ username, password });
+        if (!validationResult.success) {
+          errorCount++;
+          continue;
+        }
+
+        // Check duplicate
+        const { data: existing } = await supabase
+          .from('wifi_vouchers')
+          .select('username')
+          .eq('username', username)
+          .maybeSingle();
+
+        if (existing) {
+          errorCount++;
+          continue;
+        }
+
+        // Generate QR and insert
+        const qrCodeUrl = await generateQRCode(password);
+        const { error } = await supabase.from('wifi_vouchers').insert({
+          username,
+          password,
+          qr_code_url: qrCodeUrl,
+        });
+
+        if (error) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      }
+
+      toast({
+        title: 'Import เสร็จสิ้น',
+        description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ`,
+      });
+
+      fetchVouchers();
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถ import ไฟล์ CSV ได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const printVoucherCard = (voucher: WiFiVoucher) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>WiFi Voucher - ${voucher.username}</title>
+        <style>
+          @media print {
+            @page { margin: 0; }
+            body { margin: 1cm; }
+          }
+          body {
+            font-family: 'Sarabun', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+          }
+          .voucher-card {
+            background: white;
+            border: 2px solid #e74c3c;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          .header {
+            color: #e74c3c;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 10px;
+          }
+          .qr-container {
+            margin: 15px 0;
+          }
+          .qr-container img {
+            width: 200px;
+            height: 200px;
+            border: 1px solid #ddd;
+          }
+          .credentials {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+          }
+          .credential-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px;
+          }
+          .label {
+            font-weight: bold;
+            color: #333;
+          }
+          .value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #e74c3c;
+          }
+          .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="voucher-card">
+          <div class="header">บัตรใช้งานอินเทอร์เน็ต</div>
+          <div class="qr-container">
+            <img src="${voucher.qr_code_url}" alt="QR Code" />
+          </div>
+          <div class="credentials">
+            <div class="credential-row">
+              <span class="label">ชื่อผู้ใช้</span>
+              <span class="value">${voucher.username}</span>
+            </div>
+            <div class="credential-row">
+              <span class="label">รหัสผ่าน</span>
+              <span class="value">${voucher.password}</span>
+            </div>
+          </div>
+          <div class="footer">
+            สแกน QR Code เพื่อเชื่อมต่ออัตโนมัติ<br>
+            หรือกรอกชื่อผู้ใช้และรหัสผ่านด้วยตนเอง
+          </div>
+        </div>
+        <script>
+          window.onload = () => {
+            setTimeout(() => window.print(), 500);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -234,10 +419,26 @@ const WiFiVouchers = () => {
               จัดการรหัส WiFi สำหรับลูกค้า (ใช้ได้ครั้งเดียว)
             </p>
           </div>
-          <Button onClick={exportVouchers} variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export ที่ยังไม่ใช้
-          </Button>
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              className="hidden"
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button onClick={exportVouchers} variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Export ที่ยังไม่ใช้
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -342,29 +543,38 @@ const WiFiVouchers = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                คุณต้องการลบ voucher นี้หรือไม่?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteVoucher(voucher.id)}
-                              >
-                                ลบ
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <div className="flex gap-1 justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => printVoucherCard(voucher)}
+                          >
+                            <Printer className="w-4 h-4 text-blue-600" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  คุณต้องการลบ voucher นี้หรือไม่?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteVoucher(voucher.id)}
+                                >
+                                  ลบ
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
