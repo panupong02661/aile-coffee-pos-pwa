@@ -3457,6 +3457,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wifi_vouchers: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_used: boolean | null
+          order_id: string | null
+          password: string
+          qr_code_url: string | null
+          updated_at: string | null
+          used_at: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          order_id?: string | null
+          password: string
+          qr_code_url?: string | null
+          updated_at?: string | null
+          used_at?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          order_id?: string | null
+          password?: string
+          qr_code_url?: string | null
+          updated_at?: string | null
+          used_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -26,9 +26,16 @@ interface ReceiptSettings {
   footer_message?: string;
 }
 
+interface WiFiVoucher {
+  username: string;
+  password: string;
+  qr_code_url: string | null;
+}
+
 const ReceiptPreview = () => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
+  const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -50,8 +57,17 @@ const ReceiptPreview = () => {
         .limit(1)
         .single();
 
+      // Fetch a random unused WiFi voucher for preview
+      const { data: voucherData } = await supabase
+        .from('wifi_vouchers')
+        .select('username, password, qr_code_url')
+        .eq('is_used', false)
+        .limit(1)
+        .single();
+
       setShopSettings(shopData);
       setReceiptSettings(receiptData);
+      setWifiVoucher(voucherData);
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
@@ -196,6 +212,33 @@ const ReceiptPreview = () => {
             <div className="text-center text-xs mt-4">
               {receiptSettings.footer_message}
             </div>
+          )}
+
+          {/* WiFi Voucher Section */}
+          {wifiVoucher && (
+            <>
+              <Separator className="my-4" />
+              <div className="border-2 border-red-600 rounded-lg p-3 mt-4">
+                <div className="text-center text-red-600 font-bold text-sm mb-2">
+                  บัตรใช้งานอินเทอร์เน็ต
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                  <div className="text-red-600">ชื่อผู้ใช้</div>
+                  <div className="text-red-600">รหัสผ่าน</div>
+                  <div className="font-mono font-bold">{wifiVoucher.username}</div>
+                  <div className="font-mono font-bold">{wifiVoucher.password}</div>
+                </div>
+                {wifiVoucher.qr_code_url && (
+                  <div className="flex justify-center mt-2">
+                    <img 
+                      src={wifiVoucher.qr_code_url} 
+                      alt="WiFi QR Code" 
+                      className="w-24 h-24"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           <div className="text-center text-xs mt-4 text-gray-500">

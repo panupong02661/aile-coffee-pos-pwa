@@ -28,6 +28,11 @@ interface PrintOrder {
   order_items: OrderItem[];
   payment_method?: string;
   customer_notes?: string;
+  wifi_voucher?: {
+    username: string;
+    password: string;
+    qr_code_url?: string | null;
+  };
 }
 
 // ESC/POS commands for thermal printers
@@ -137,6 +142,22 @@ const generateESCPOSReceipt = (order: PrintOrder, config: PrinterConfig): string
   
   if (order.payment_method) {
     receipt += `ชำระโดย: ${order.payment_method}\n`;
+  }
+  
+  // WiFi Voucher Section
+  if (order.wifi_voucher) {
+    receipt += ESC_POS_COMMANDS.SMALL_LINE.substring(0, lineLength) + '\n';
+    receipt += ESC_POS_COMMANDS.CENTER;
+    receipt += ESC_POS_COMMANDS.BOLD_ON;
+    receipt += 'บัตรใช้งานอินเทอร์เน็ต\n';
+    receipt += 'WiFi Voucher\n';
+    receipt += ESC_POS_COMMANDS.BOLD_OFF;
+    receipt += ESC_POS_COMMANDS.LEFT;
+    receipt += `ชื่อผู้ใช้: ${order.wifi_voucher.username}\n`;
+    receipt += `รหัสผ่าน: ${order.wifi_voucher.password}\n`;
+    receipt += ESC_POS_COMMANDS.CENTER;
+    receipt += '(สแกน QR Code บนใบเสร็จ)\n';
+    receipt += ESC_POS_COMMANDS.LEFT;
   }
   
   receipt += ESC_POS_COMMANDS.SMALL_LINE.substring(0, lineLength) + '\n';
