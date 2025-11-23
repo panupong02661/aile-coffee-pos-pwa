@@ -550,8 +550,8 @@ const PaymentModal = ({
     setIsProcessing(false);
     onClose();
 
-    // เล่นเสียงและแสดง toast โดยไม่รอ
-    playPaymentSuccessBell().catch(err => console.log('เสียงกระดิ่งเล่นไม่ได้:', err));
+    // แสดง toast โดยไม่รอ (ปิดเสียงแจ้งเตือนตามคำขอ)
+    // playPaymentSuccessBell().catch(err => console.log('เสียงกระดิ่งเล่นไม่ได้:', err));
     toast({
       title: "✅ ชำระเงินสำเร็จ",
       description: `ยอดชำระ ฿${total.toLocaleString()}`,
