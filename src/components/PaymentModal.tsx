@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
 import QRCodePromptPay from './QRCodePromptPay';
+import ReceiptPreview from './ReceiptPreview';
 
 // Function to send POS order notification with complete details
 const sendPosOrderNotification = async (order: any, orderItems: any[] = [], discountCode?: string) => {
@@ -690,19 +691,21 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[92vh] overflow-y-auto rounded-3xl">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            <div className="bg-gradient-to-br from-primary to-primary/70 p-1.5 rounded-xl">
-              <CreditCard className="w-5 h-5 text-white" />
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
+            <div className="p-2 bg-gradient-to-br from-primary to-primary/70 rounded-xl shadow-md">
+              <CreditCard className="w-5 h-5 text-primary-foreground" />
             </div>
             ชำระเงิน
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2.5">
-          {/* Order Summary - Enhanced with gradient */}
-          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
+          {/* Left Column - Payment Form */}
+          <div className="space-y-2.5 overflow-y-auto max-h-[calc(90vh-100px)] pr-2">
+            {/* Order Summary - Enhanced with gradient */}
+            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
             <div className="flex justify-between items-center text-base font-semibold">
               <span className="text-foreground">ยอดชำระ:</span>
               <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
@@ -1009,7 +1012,13 @@ const PaymentModal = ({
             </Button>
           </div>
         </div>
-      </DialogContent>
+
+        {/* Right Column - Receipt Preview */}
+        <div className="hidden lg:block overflow-y-auto max-h-[calc(90vh-100px)] border-l pl-4">
+          <ReceiptPreview />
+        </div>
+      </div>
+    </DialogContent>
     </Dialog>
   );
 };
