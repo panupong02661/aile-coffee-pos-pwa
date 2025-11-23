@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Wifi, Plus, Trash2, Download } from 'lucide-react';
+import { z } from 'zod';
 import QRCode from 'qrcode';
 import {
   Table,
@@ -27,6 +28,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+
+// Validation schema
+const voucherSchema = z.object({
+  username: z.string()
+    .trim()
+    .min(3, { message: "ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร" })
+    .max(50, { message: "ชื่อผู้ใช้ต้องไม่เกิน 50 ตัวอักษร" })
+    .regex(/^[a-zA-Z0-9_-]+$/, { message: "ชื่อผู้ใช้ใช้ได้เฉพาะ a-z, A-Z, 0-9, _, -" }),
+  password: z.string()
+    .trim()
+    .min(4, { message: "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร" })
+    .max(50, { message: "รหัสผ่านต้องไม่เกิน 50 ตัวอักษร" })
+    .regex(/^[a-zA-Z0-9!@#$%^&*_-]+$/, { message: "รหัสผ่านมีอักขระที่ไม่รองรับ" }),
+});
 
 interface WiFiVoucher {
   id: string;
@@ -102,36 +117,75 @@ const WiFiVouchers = () => {
   };
 
   const handleAddVoucher = async () => {
-    if (!username || !password) {
-      toast({
-        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-        variant: 'destructive',
+    try {
+      // Validate inputs
+      const validationResult = voucherSchema.safeParse({ 
+        username: username.trim(), 
+        password: password.trim() 
       });
-      return;
-    }
 
-    const qrCodeUrl = await generateQRCode(username, password);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => err.message).join(', ');
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: errors,
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    const { error } = await supabase.from('wifi_vouchers').insert({
-      username,
-      password,
-      qr_code_url: qrCodeUrl,
-    });
+      // Check for duplicate username
+      const { data: existing } = await supabase
+        .from('wifi_vouchers')
+        .select('username')
+        .eq('username', validationResult.data.username)
+        .maybeSingle();
 
-    if (error) {
+      if (existing) {
+        toast({
+          title: 'ชื่อผู้ใช้ซ้ำ',
+          description: 'มีชื่อผู้ใช้นี้อยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Generate QR code
+      const qrCodeUrl = await generateQRCode(
+        validationResult.data.username, 
+        validationResult.data.password
+      );
+
+      // Insert to database
+      const { error } = await supabase.from('wifi_vouchers').insert({
+        username: validationResult.data.username,
+        password: validationResult.data.password,
+        qr_code_url: qrCodeUrl,
+      });
+
+      if (error) {
+        console.error('WiFi voucher insert error:', error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: error.message || 'ไม่สามารถเพิ่ม WiFi Voucher ได้',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'สำเร็จ',
+          description: 'เพิ่ม WiFi Voucher แล้ว',
+        });
+        setUsername('');
+        setPassword('');
+        fetchVouchers();
+      }
+    } catch (error) {
+      console.error('Unexpected error adding voucher:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถเพิ่ม WiFi Voucher',
+        description: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'สำเร็จ',
-        description: 'เพิ่ม WiFi Voucher แล้ว',
-      });
-      setUsername('');
-      setPassword('');
-      fetchVouchers();
     }
   };
 
@@ -202,7 +256,11 @@ const WiFiVouchers = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="3Hoursk"
+                  maxLength={50}
                 />
+                <p className="text-xs text-muted-foreground">
+                  ใช้ได้เฉพาะ a-z, A-Z, 0-9, _, - (3-50 ตัวอักษร)
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">รหัสผ่าน</Label>
@@ -211,7 +269,11 @@ const WiFiVouchers = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="hq1s56"
+                  maxLength={50}
                 />
+                <p className="text-xs text-muted-foreground">
+                  4-50 ตัวอักษร (a-z, A-Z, 0-9, !@#$%^&*_-)
+                </p>
               </div>
               <div className="flex items-end">
                 <Button onClick={handleAddVoucher} className="w-full">
