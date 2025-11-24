@@ -59,6 +59,9 @@ const WiFiVouchers = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [ssid, setSsid] = useState('');
+  const [wifiHeaderText, setWifiHeaderText] = useState('');
+  const [wifiFooterText, setWifiFooterText] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -70,12 +73,16 @@ const WiFiVouchers = () => {
   const fetchShopSettings = async () => {
     const { data } = await supabase
       .from('shop_settings')
-      .select('shop_name')
+      .select('shop_name, wifi_header_text, wifi_footer_text')
       .limit(1)
       .single();
     
-    if (data?.shop_name) {
-      setSsid(data.shop_name + '_WiFi');
+    if (data) {
+      if (data.shop_name) {
+        setSsid(data.shop_name + '_WiFi');
+      }
+      setWifiHeaderText(data.wifi_header_text || '');
+      setWifiFooterText(data.wifi_footer_text || '');
     }
   };
 
@@ -294,6 +301,43 @@ const WiFiVouchers = () => {
     }
   };
 
+  const saveWifiSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const { data: existing } = await supabase
+        .from('shop_settings')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('shop_settings')
+          .update({
+            wifi_header_text: wifiHeaderText,
+            wifi_footer_text: wifiFooterText
+          })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: 'สำเร็จ',
+        description: 'บันทึกการตั้งค่า WiFi แล้ว',
+      });
+    } catch (error) {
+      console.error('Error saving WiFi settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกการตั้งค่าได้',
+        variant: 'destructive',
+      });
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
   const printVoucherCard = (voucher: WiFiVoucher) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -440,6 +484,52 @@ const WiFiVouchers = () => {
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ตั้งค่า WiFi</CardTitle>
+            <CardDescription>
+              กำหนดข้อความที่จะแสดงในส่วน WiFi ของใบเสร็จ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="wifiHeaderText">ข้อความส่วนบน</Label>
+                <Input
+                  id="wifiHeaderText"
+                  value={wifiHeaderText}
+                  onChange={(e) => setWifiHeaderText(e.target.value)}
+                  placeholder="เช่น: WiFi ฟรี สำหรับลูกค้า"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ข้อความที่จะแสดงด้านบนของส่วน WiFi Voucher
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="wifiFooterText">ข้อความส่วนล่าง</Label>
+                <Input
+                  id="wifiFooterText"
+                  value={wifiFooterText}
+                  onChange={(e) => setWifiFooterText(e.target.value)}
+                  placeholder="เช่น: ขอบคุณที่ใช้บริการ"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ข้อความที่จะแสดงด้านล่างของส่วน WiFi Voucher
+                </p>
+              </div>
+
+              <Button 
+                onClick={saveWifiSettings} 
+                disabled={settingsLoading}
+                className="w-full"
+              >
+                {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

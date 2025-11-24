@@ -12,6 +12,8 @@ interface ShopSettings {
   email?: string;
   tax_id?: string;
   logo_url?: string;
+  wifi_header_text?: string;
+  wifi_footer_text?: string;
 }
 
 interface ReceiptSettings {
@@ -22,8 +24,11 @@ interface ReceiptSettings {
   show_order_number: boolean;
   show_item_details: boolean;
   show_total: boolean;
+  show_tax: boolean;
   show_payment_method: boolean;
   show_customer_info: boolean;
+  show_wifi_voucher: boolean;
+  show_wifi_qr: boolean;
   footer_message?: string;
 }
 
@@ -220,10 +225,12 @@ const ReceiptPreview = ({
                   <span>-{discountAmount.toLocaleString()} บาท</span>
                 </div>
               )}
-              <div className="flex justify-between mb-1">
-                <span>ภาษี (7%):</span>
-                <span>{tax.toLocaleString()} บาท</span>
-              </div>
+              {receiptSettings.show_tax && (
+                <div className="flex justify-between mb-1">
+                  <span>ภาษี (7%):</span>
+                  <span>{tax.toLocaleString()} บาท</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-base border-t pt-2">
                 <span>รวมทั้งสิ้น:</span>
                 <span>{total.toLocaleString()} บาท</span>
@@ -248,9 +255,14 @@ const ReceiptPreview = ({
           )}
 
           {/* WiFi Voucher Section */}
-          {wifiVoucher && (
+          {wifiVoucher && receiptSettings.show_wifi_voucher && (
             <>
               <Separator className="my-4" />
+              {shopSettings?.wifi_header_text && (
+                <div className="text-center text-xs mb-2">
+                  {shopSettings.wifi_header_text}
+                </div>
+              )}
               <div className="border-2 border-red-600 rounded-lg p-3 mt-4">
                 <div className="text-center text-red-600 font-bold text-sm mb-2">
                   บัตรใช้งานอินเทอร์เน็ต
@@ -261,7 +273,7 @@ const ReceiptPreview = ({
                   <div className="font-mono font-bold">{wifiVoucher.username}</div>
                   <div className="font-mono font-bold">{wifiVoucher.password}</div>
                 </div>
-                {wifiVoucher.qr_code_url && (
+                {wifiVoucher.qr_code_url && receiptSettings.show_wifi_qr && (
                   <div className="flex justify-center mt-2">
                     <img 
                       src={wifiVoucher.qr_code_url} 
@@ -271,6 +283,11 @@ const ReceiptPreview = ({
                   </div>
                 )}
               </div>
+              {shopSettings?.wifi_footer_text && (
+                <div className="text-center text-xs mt-2">
+                  {shopSettings.wifi_footer_text}
+                </div>
+              )}
             </>
           )}
         </div>
