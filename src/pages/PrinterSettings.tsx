@@ -10,6 +10,7 @@ import PrintReports from '@/components/printer/PrintReports';
 import PrintHistory from '@/components/printer/PrintHistory';
 import NetworkDiagnostic from '@/components/printer/NetworkDiagnostic';
 import AutoPrintSettings from '@/components/AutoPrintSettings';
+import UniversalPrinterConfig from '@/components/printer/UniversalPrinterConfig';
 
 const PrinterSettings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -50,15 +51,20 @@ const PrinterSettings = () => {
                 <CardDescription>จัดการการตั้งค่าเครื่องพิมพ์และการพิมพ์รายงาน</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="diagnostic" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                <Tabs defaultValue="universal" className="w-full">
+                  <TabsList className="grid w-full grid-cols-7">
+                    <TabsTrigger value="universal">เครื่องพิมพ์ทั่วไป</TabsTrigger>
                     <TabsTrigger value="diagnostic">ตรวจสอบเครือข่าย</TabsTrigger>
-                    <TabsTrigger value="config">ตั้งค่าเครื่องพิมพ์</TabsTrigger>
-                    <TabsTrigger value="auto-print">การพิมพ์อัตโนมัติ</TabsTrigger>
-                    <TabsTrigger value="queue">คิวการพิมพ์</TabsTrigger>
-                    <TabsTrigger value="reports">พิมพ์รายงาน</TabsTrigger>
-                    <TabsTrigger value="history">ประวัติการพิมพ์</TabsTrigger>
+                    <TabsTrigger value="config">Star Printer</TabsTrigger>
+                    <TabsTrigger value="auto-print">พิมพ์อัตโนมัติ</TabsTrigger>
+                    <TabsTrigger value="queue">คิวพิมพ์</TabsTrigger>
+                    <TabsTrigger value="reports">รายงาน</TabsTrigger>
+                    <TabsTrigger value="history">ประวัติ</TabsTrigger>
                   </TabsList>
+                  
+                  <TabsContent value="universal" className="mt-6">
+                    <UniversalPrinterConfig />
+                  </TabsContent>
                   
                   <TabsContent value="diagnostic" className="mt-6">
                     <NetworkDiagnostic />
