@@ -64,6 +64,7 @@ const WiFiVouchers = () => {
   const [wifiFooterText, setWifiFooterText] = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'unused' | 'used'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -213,6 +214,12 @@ const WiFiVouchers = () => {
       });
       fetchVouchers();
     }
+  };
+
+  const getFilteredVouchers = () => {
+    if (filterStatus === 'unused') return vouchers.filter(v => !v.is_used);
+    if (filterStatus === 'used') return vouchers.filter(v => v.is_used);
+    return vouchers;
   };
 
   const exportVouchers = () => {
@@ -599,17 +606,46 @@ const WiFiVouchers = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>รายการ WiFi Vouchers</CardTitle>
-            <CardDescription>
-              จำนวนที่ยังไม่ใช้: {vouchers.filter(v => !v.is_used).length} / ทั้งหมด: {vouchers.length}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>รายการ WiFi Vouchers</CardTitle>
+                <CardDescription>
+                  จำนวนที่ยังไม่ใช้: {vouchers.filter(v => !v.is_used).length} / ทั้งหมด: {vouchers.length}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={filterStatus === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus('all')}
+                >
+                  ทั้งหมด
+                </Button>
+                <Button
+                  variant={filterStatus === 'unused' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus('unused')}
+                >
+                  ยังไม่ใช้
+                </Button>
+                <Button
+                  variant={filterStatus === 'used' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus('used')}
+                >
+                  ใช้แล้ว
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">กำลังโหลด...</div>
-            ) : vouchers.length === 0 ? (
+            ) : getFilteredVouchers().length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                ยังไม่มี WiFi Vouchers
+                {filterStatus === 'all' && 'ยังไม่มี WiFi Vouchers'}
+                {filterStatus === 'unused' && 'ไม่มี Vouchers ที่ยังไม่ใช้'}
+                {filterStatus === 'used' && 'ไม่มี Vouchers ที่ใช้แล้ว'}
               </div>
             ) : (
               <Table>
@@ -624,7 +660,7 @@ const WiFiVouchers = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vouchers.map((voucher) => (
+                  {getFilteredVouchers().map((voucher) => (
                     <TableRow key={voucher.id}>
                       <TableCell className="font-mono">{voucher.username}</TableCell>
                       <TableCell className="font-mono">{voucher.password}</TableCell>
@@ -659,13 +695,20 @@ const WiFiVouchers = () => {
                             variant="ghost" 
                             size="sm"
                             onClick={() => printVoucherCard(voucher)}
+                            disabled={voucher.is_used}
+                            title={voucher.is_used ? 'Voucher นี้ถูกใช้แล้ว' : 'พิมพ์ Voucher'}
                           >
-                            <Printer className="w-4 h-4 text-blue-600" />
+                            <Printer className={`w-4 h-4 ${voucher.is_used ? 'text-gray-400' : 'text-blue-600'}`} />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Trash2 className="w-4 h-4 text-red-600" />
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                disabled={voucher.is_used}
+                                title={voucher.is_used ? 'ไม่สามารถลบ Voucher ที่ใช้แล้ว' : 'ลบ Voucher'}
+                              >
+                                <Trash2 className={`w-4 h-4 ${voucher.is_used ? 'text-gray-400' : 'text-red-600'}`} />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
