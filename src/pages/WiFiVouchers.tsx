@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Wifi, Plus, Trash2, Download, Upload, Printer } from 'lucide-react';
+import { Wifi, Plus, Trash2, Download, Upload, Printer, Menu } from 'lucide-react';
 import { z } from 'zod';
+import MainSidebar from '@/components/MainSidebar';
 import QRCode from 'qrcode';
 import {
   Table,
@@ -62,6 +63,7 @@ const WiFiVouchers = () => {
   const [wifiHeaderText, setWifiHeaderText] = useState('');
   const [wifiFooterText, setWifiFooterText] = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -451,39 +453,58 @@ const WiFiVouchers = () => {
   };
 
   return (
-    <Shell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Wifi className="w-8 h-8" />
-              จัดการ WiFi Vouchers
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              จัดการรหัส WiFi สำหรับลูกค้า (ใช้ได้ครั้งเดียว)
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              className="hidden"
-            />
-            <Button 
-              onClick={() => fileInputRef.current?.click()} 
-              variant="outline"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button onClick={exportVouchers} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export ที่ยังไม่ใช้
-            </Button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-background flex">
+      <MainSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+      />
+      
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+      }`}>
+        <Shell>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="hover:bg-accent"
+                >
+                  <Menu className="h-6 w-6" />
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <Wifi className="w-8 h-8" />
+                    จัดการ WiFi Vouchers
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    จัดการรหัส WiFi สำหรับลูกค้า (ใช้ได้ครั้งเดียว)
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
+                  className="hidden"
+                />
+                <Button 
+                  onClick={() => fileInputRef.current?.click()} 
+                  variant="outline"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
+                </Button>
+                <Button onClick={exportVouchers} variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export ที่ยังไม่ใช้
+                </Button>
+              </div>
+            </div>
 
         <Card>
           <CardHeader>
@@ -666,7 +687,7 @@ const WiFiVouchers = () => {
                           </AlertDialog>
                         </div>
                       </TableCell>
-                    </TableRow>
+                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
@@ -675,6 +696,8 @@ const WiFiVouchers = () => {
         </Card>
       </div>
     </Shell>
+    </div>
+    </div>
   );
 };
 
