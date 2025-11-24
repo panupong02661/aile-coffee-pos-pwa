@@ -3472,9 +3472,40 @@ export type Database = {
         }
         Relationships: []
       }
+      wifi_reset_schedule: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          last_reset_at: string | null
+          reset_days: string[] | null
+          reset_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_reset_at?: string | null
+          reset_days?: string[] | null
+          reset_time?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_reset_at?: string | null
+          reset_days?: string[] | null
+          reset_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       wifi_vouchers: {
         Row: {
           created_at: string | null
+          duration_hours: number | null
           id: string
           is_used: boolean | null
           order_id: string | null
@@ -3486,6 +3517,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          duration_hours?: number | null
           id?: string
           is_used?: boolean | null
           order_id?: string | null
@@ -3497,6 +3529,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          duration_hours?: number | null
           id?: string
           is_used?: boolean | null
           order_id?: string | null

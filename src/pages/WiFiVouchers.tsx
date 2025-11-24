@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Wifi, Plus, Trash2, Download, Upload, Printer, Menu } from 'lucide-react';
+import { Wifi, Plus, Trash2, Download, Upload, Printer, Menu, RotateCcw, Clock } from 'lucide-react';
 import { z } from 'zod';
 import MainSidebar from '@/components/MainSidebar';
 import QRCode from 'qrcode';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -52,6 +54,15 @@ interface WiFiVoucher {
   is_used: boolean;
   used_at: string | null;
   created_at: string;
+  duration_hours: number;
+}
+
+interface ResetSchedule {
+  id: string;
+  is_enabled: boolean;
+  reset_time: string;
+  reset_days: string[];
+  last_reset_at: string | null;
 }
 
 const WiFiVouchers = () => {
@@ -59,18 +70,24 @@ const WiFiVouchers = () => {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [durationHours, setDurationHours] = useState('24');
   const [ssid, setSsid] = useState('');
   const [wifiHeaderText, setWifiHeaderText] = useState('');
   const [wifiFooterText, setWifiFooterText] = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'unused' | 'used'>('all');
+  const [selectedVouchers, setSelectedVouchers] = useState<Set<string>>(new Set());
+  const [resetSchedule, setResetSchedule] = useState<ResetSchedule | null>(null);
+  const [isAutoResetEnabled, setIsAutoResetEnabled] = useState(false);
+  const [resetTime, setResetTime] = useState('00:00');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchVouchers();
     fetchShopSettings();
+    fetchResetSchedule();
   }, []);
 
   const fetchShopSettings = async () => {
@@ -89,12 +106,26 @@ const WiFiVouchers = () => {
     }
   };
 
+  const fetchResetSchedule = async () => {
+    const { data } = await supabase
+      .from('wifi_reset_schedule')
+      .select('*')
+      .limit(1)
+      .single();
+    
+    if (data) {
+      setResetSchedule(data);
+      setIsAutoResetEnabled(data.is_enabled);
+      setResetTime(data.reset_time.substring(0, 5)); // HH:MM format
+    }
+  };
+
   const fetchVouchers = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('wifi_vouchers')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('duration_hours', { ascending: true });
 
     if (error) {
       toast({
@@ -162,6 +193,17 @@ const WiFiVouchers = () => {
         return;
       }
 
+      // Validate duration hours
+      const hours = parseInt(durationHours);
+      if (isNaN(hours) || hours < 1 || hours > 720) {
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: 'จำนวนชั่วโมงต้องอยู่ระหว่าง 1-720 ชั่วโมง',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Generate QR code using the password (which is the WiFi password)
       const qrCodeUrl = await generateQRCode(validationResult.data.password);
 
@@ -170,6 +212,7 @@ const WiFiVouchers = () => {
         username: validationResult.data.username,
         password: validationResult.data.password,
         qr_code_url: qrCodeUrl,
+        duration_hours: hours,
       });
 
       if (error) {
@@ -186,6 +229,7 @@ const WiFiVouchers = () => {
         });
         setUsername('');
         setPassword('');
+        setDurationHours('24');
         fetchVouchers();
       }
     } catch (error) {
@@ -225,8 +269,8 @@ const WiFiVouchers = () => {
   const exportVouchers = () => {
     const unused = vouchers.filter(v => !v.is_used);
     const csv = [
-      'ชื่อผู้ใช้,รหัสผ่าน',
-      ...unused.map(v => `${v.username},${v.password}`)
+      'ชื่อผู้ใช้,รหัสผ่าน,จำนวนชั่วโมง',
+      ...unused.map(v => `${v.username},${v.password},${v.duration_hours}`)
     ].join('\n');
     
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -251,13 +295,20 @@ const WiFiVouchers = () => {
       let errorCount = 0;
 
       for (const line of dataLines) {
-        const [username, password] = line.split(',').map(s => s.trim());
+        const [username, password, durationStr] = line.split(',').map(s => s.trim());
         
         if (!username || !password) continue;
 
         // Validate
         const validationResult = voucherSchema.safeParse({ username, password });
         if (!validationResult.success) {
+          errorCount++;
+          continue;
+        }
+
+        // Validate duration
+        const duration = durationStr ? parseInt(durationStr) : 24;
+        if (isNaN(duration) || duration < 1 || duration > 720) {
           errorCount++;
           continue;
         }
@@ -280,6 +331,7 @@ const WiFiVouchers = () => {
           username,
           password,
           qr_code_url: qrCodeUrl,
+          duration_hours: duration,
         });
 
         if (error) {
@@ -305,6 +357,105 @@ const WiFiVouchers = () => {
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถ import ไฟล์ CSV ได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResetSelected = async () => {
+    if (selectedVouchers.size === 0) {
+      toast({
+        title: 'กรุณาเลือก Voucher',
+        description: 'เลือก voucher ที่ต้องการรีเซตสถานะ',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('wifi_vouchers')
+      .update({ is_used: false, used_at: null })
+      .in('id', Array.from(selectedVouchers));
+
+    if (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถรีเซตสถานะได้',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'สำเร็จ',
+        description: `รีเซตสถานะ ${selectedVouchers.size} รายการแล้ว`,
+      });
+      setSelectedVouchers(new Set());
+      fetchVouchers();
+    }
+  };
+
+  const handleResetAll = async () => {
+    const { error } = await supabase
+      .from('wifi_vouchers')
+      .update({ is_used: false, used_at: null })
+      .eq('is_used', true);
+
+    if (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถรีเซตสถานะทั้งหมดได้',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'สำเร็จ',
+        description: 'รีเซตสถานะ voucher ทั้งหมดแล้ว',
+      });
+      fetchVouchers();
+    }
+  };
+
+  const handleToggleSelection = (id: string) => {
+    const newSelected = new Set(selectedVouchers);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedVouchers(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedVouchers.size === getFilteredVouchers().length) {
+      setSelectedVouchers(new Set());
+    } else {
+      setSelectedVouchers(new Set(getFilteredVouchers().map(v => v.id)));
+    }
+  };
+
+  const saveAutoResetSettings = async () => {
+    try {
+      if (!resetSchedule) return;
+
+      const { error } = await supabase
+        .from('wifi_reset_schedule')
+        .update({
+          is_enabled: isAutoResetEnabled,
+          reset_time: resetTime + ':00',
+        })
+        .eq('id', resetSchedule.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'สำเร็จ',
+        description: 'บันทึกการตั้งค่ารีเซตอัตโนมัติแล้ว',
+      });
+      fetchResetSchedule();
+    } catch (error) {
+      console.error('Error saving auto reset settings:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถบันทึกการตั้งค่าได้',
         variant: 'destructive',
       });
     }
@@ -567,7 +718,7 @@ const WiFiVouchers = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="username">ชื่อผู้ใช้</Label>
                 <Input
@@ -594,12 +745,70 @@ const WiFiVouchers = () => {
                   4-50 ตัวอักษร (a-z, A-Z, 0-9, !@#$%^&*_-)
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="duration">จำนวนชั่วโมง</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(e.target.value)}
+                  placeholder="24"
+                  min="1"
+                  max="720"
+                />
+                <p className="text-xs text-muted-foreground">
+                  1-720 ชั่วโมง
+                </p>
+              </div>
               <div className="flex items-end">
                 <Button onClick={handleAddVoucher} className="w-full">
                   <Plus className="w-4 h-4 mr-2" />
                   เพิ่ม Voucher
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ตั้งค่ารีเซตอัตโนมัติ</CardTitle>
+            <CardDescription>
+              กำหนดเวลารีเซตสถานะ voucher ทั้งหมดอัตโนมัติ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>เปิดใช้งานรีเซตอัตโนมัติ</Label>
+                  <p className="text-xs text-muted-foreground">
+                    รีเซตสถานะ voucher ทั้งหมดทุกวันตามเวลาที่กำหนด
+                  </p>
+                </div>
+                <Switch
+                  checked={isAutoResetEnabled}
+                  onCheckedChange={setIsAutoResetEnabled}
+                />
+              </div>
+              {isAutoResetEnabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="resetTime">เวลารีเซต</Label>
+                  <Input
+                    id="resetTime"
+                    type="time"
+                    value={resetTime}
+                    onChange={(e) => setResetTime(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ระบบจะรีเซตสถานะ voucher ทั้งหมดในเวลานี้ทุกวัน
+                  </p>
+                </div>
+              )}
+              <Button onClick={saveAutoResetSettings} className="w-full">
+                <Clock className="w-4 h-4 mr-2" />
+                บันทึกการตั้งค่า
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -639,6 +848,38 @@ const WiFiVouchers = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 flex gap-2">
+              <Button
+                onClick={handleResetSelected}
+                variant="outline"
+                disabled={selectedVouchers.size === 0}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                รีเซตที่เลือก ({selectedVouchers.size})
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    รีเซตทั้งหมด
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>ยืนยันการรีเซตทั้งหมด</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      คุณต้องการรีเซตสถานะ voucher ทั้งหมดที่ใช้แล้วหรือไม่?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetAll}>
+                      รีเซต
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
             {loading ? (
               <div className="text-center py-8">กำลังโหลด...</div>
             ) : getFilteredVouchers().length === 0 ? (
@@ -651,8 +892,15 @@ const WiFiVouchers = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedVouchers.size === getFilteredVouchers().length && getFilteredVouchers().length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>ชื่อผู้ใช้</TableHead>
                     <TableHead>รหัสผ่าน</TableHead>
+                    <TableHead>จำนวนชั่วโมง</TableHead>
                     <TableHead>สถานะ</TableHead>
                     <TableHead>ใช้งานเมื่อ</TableHead>
                     <TableHead>QR Code</TableHead>
@@ -662,8 +910,17 @@ const WiFiVouchers = () => {
                 <TableBody>
                   {getFilteredVouchers().map((voucher) => (
                     <TableRow key={voucher.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedVouchers.has(voucher.id)}
+                          onCheckedChange={() => handleToggleSelection(voucher.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono">{voucher.username}</TableCell>
                       <TableCell className="font-mono">{voucher.password}</TableCell>
+                      <TableCell>
+                        <span className="font-medium">{voucher.duration_hours} ชม.</span>
+                      </TableCell>
                       <TableCell>
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
