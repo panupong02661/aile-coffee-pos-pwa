@@ -333,11 +333,30 @@ const WiFiVouchers = () => {
         return;
       }
       
+      // Step 1: Delete all existing vouchers
+      console.log('Deleting all existing vouchers...');
+      const { error: deleteError } = await supabase
+        .from('wifi_vouchers')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+      if (deleteError) {
+        console.error('Error deleting existing vouchers:', deleteError);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: `ไม่สามารถลบรายการเก่าได้: ${deleteError.message}`,
+          variant: 'destructive',
+        });
+        event.target.value = ''; // Reset file input
+        return;
+      }
+
+      console.log('All existing vouchers deleted successfully');
+      
+      // Step 2: Insert new vouchers from CSV
       let successCount = 0;
       let errorCount = 0;
-      let skippedCount = 0;
       const errors: string[] = [];
-      const skipped: string[] = [];
 
       for (let lineIdx = 0; lineIdx < dataLines.length; lineIdx++) {
         const line = dataLines[lineIdx];
@@ -378,22 +397,6 @@ const WiFiVouchers = () => {
           const errorMsg = `บรรทัดที่ ${lineNumber} (${username}): จำนวนชั่วโมงไม่ถูกต้อง (${durationStr || 'ไม่ระบุ'}) ต้องอยู่ระหว่าง 1-720`;
           errors.push(errorMsg);
           console.error(errorMsg);
-          continue;
-        }
-
-        // Check duplicate
-        console.log(`Checking if ${username} already exists...`);
-        const { data: existing } = await supabase
-          .from('wifi_vouchers')
-          .select('username, is_used, created_at')
-          .eq('username', username)
-          .maybeSingle();
-
-        if (existing) {
-          skippedCount++;
-          const skipMsg = `${username} (มีอยู่แล้ว - สร้างเมื่อ ${new Date(existing.created_at).toLocaleDateString('th-TH')})`;
-          skipped.push(skipMsg);
-          console.log('Skipped duplicate:', username);
           continue;
         }
 
@@ -439,19 +442,10 @@ const WiFiVouchers = () => {
       console.log('\n=== Import Summary ===');
       console.log('Success:', successCount);
       console.log('Errors:', errorCount);
-      console.log('Skipped (duplicates):', skippedCount);
       console.log('Errors list:', errors);
-      console.log('Skipped list:', skipped);
       
-      let description = `✓ สำเร็จ: ${successCount} รายการ`;
-      if (skippedCount > 0) description += `\n⊘ ข้าม (ซ้ำ): ${skippedCount} รายการ`;
+      let description = `✓ นำเข้าสำเร็จ: ${successCount} รายการ`;
       if (errorCount > 0) description += `\n✗ ล้มเหลว: ${errorCount} รายการ`;
-      
-      if (skipped.length > 0 && skipped.length <= 10) {
-        description += `\n\nรายการที่ข้าม (มีอยู่แล้ว):\n${skipped.join('\n')}`;
-      } else if (skipped.length > 10) {
-        description += `\n\nรายการที่ข้าม (แสดง 5 จาก ${skipped.length}):\n${skipped.slice(0, 5).join('\n')}\n... และอื่นๆ อีก ${skipped.length - 5} รายการ`;
-      }
       
       if (errors.length > 0 && errors.length <= 5) {
         description += `\n\nข้อผิดพลาด:\n${errors.join('\n')}`;
@@ -460,16 +454,14 @@ const WiFiVouchers = () => {
       }
 
       toast({
-        title: successCount > 0 ? 'Import เสร็จสิ้น' : 'Import ล้มเหลว',
+        title: successCount > 0 ? 'Import สำเร็จ' : 'Import ล้มเหลว',
         description: description,
         variant: successCount > 0 ? 'default' : 'destructive',
-        duration: 15000, // Show for 15 seconds
+        duration: errorCount > 0 ? 10000 : 5000,
       });
 
-      // Refresh voucher list if any success
-      if (successCount > 0) {
-        await fetchVouchers();
-      }
+      // Always refresh the voucher list after import (since we cleared all old data)
+      await fetchVouchers();
       
       // Reset file input
       if (fileInputRef.current) {
