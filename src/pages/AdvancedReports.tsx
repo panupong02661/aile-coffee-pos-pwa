@@ -9,9 +9,22 @@ import { Button } from '@/components/ui/button';
 import SalesReportChart from '@/components/reports/SalesReportChart';
 import ProductReportTable from '@/components/reports/ProductReportTable';
 import CustomerAnalytics from '@/components/reports/CustomerAnalytics';
+import { useDashboardStatsOptimized } from '@/hooks/useDashboardStatsOptimized';
+import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const AdvancedReports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { toast } = useToast();
+  const { 
+    hourlyData, 
+    dailyData, 
+    monthlyData,
+    genderStats,
+    tierStats, 
+    dashboardStats,
+    loading 
+  } = useDashboardStatsOptimized();
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -22,9 +35,116 @@ const AdvancedReports = () => {
   };
 
   const handleExportReport = (type: string) => {
-    // Implementation for exporting reports
-    console.log(`Exporting ${type} report...`);
-    // Here you would implement actual export functionality
+    try {
+      let worksheetData: any[] = [];
+      let filename = '';
+
+      if (type === 'sales') {
+        // Export sales data
+        const salesData = dailyData.map(item => ({
+          'วันที่': new Date(item.date).toLocaleDateString('th-TH'),
+          'ยอดขาย (บาท)': item.sales,
+          'จำนวนออเดอร์': item.orders,
+          'ส่วนลด (บาท)': item.discount || 0,
+          'ยอดขายสุทธิ (บาท)': (item.sales - (item.discount || 0)),
+        }));
+
+        worksheetData = salesData;
+        filename = `รายงานยอดขาย_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+
+      } else if (type === 'products') {
+        // Export product data from dashboard stats
+        const productData = dashboardStats.topProducts.map((item, index) => ({
+          'อันดับ': index + 1,
+          'ชื่อสินค้า': item.name,
+          'จำนวนที่ขาย': item.quantity,
+          'ยอดขาย (บาท)': item.revenue,
+          'กำไร (บาท)': item.profit || 0,
+        }));
+
+        worksheetData = productData;
+        filename = `รายงานสินค้า_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+
+      } else if (type === 'customers') {
+        // Export customer analytics
+        const customerData = [
+          {
+            'รายการ': 'จำนวนสมาชิกทั้งหมด',
+            'ค่า': dashboardStats.totalMembers,
+          },
+          {
+            'รายการ': 'สมาชิกใหม่ (เดือนนี้)',
+            'ค่า': dashboardStats.newMembersMonth,
+          },
+          {
+            'รายการ': 'ยอดขายต่อลูกค้าเฉลี่ย (บาท)',
+            'ค่า': dashboardStats.averageOrderValue?.toFixed(2) || 0,
+          },
+        ];
+
+        // Add gender distribution
+        genderStats?.forEach(item => {
+          customerData.push({
+            'รายการ': `จำนวนสมาชิก${item.name === 'ชาย' ? 'ชาย' : item.name === 'หญิง' ? 'หญิง' : 'อื่นๆ'}`,
+            'ค่า': `${item.value} (${item.percentage.toFixed(2)}%)`,
+          });
+        });
+
+        // Add tier distribution
+        tierStats?.forEach(item => {
+          customerData.push({
+            'รายการ': `สมาชิกระดับ ${item.name}`,
+            'ค่า': item.value,
+          });
+        });
+
+        worksheetData = customerData;
+        filename = `รายงานลูกค้า_${new Date().toLocaleDateString('th-TH')}.xlsx`;
+      }
+
+      if (worksheetData.length === 0) {
+        toast({
+          title: 'ไม่มีข้อมูล',
+          description: 'ไม่พบข้อมูลที่จะส่งออก',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Report');
+
+      // Auto-size columns
+      const maxWidth = 50;
+      const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+        wch: Math.min(
+          maxWidth,
+          Math.max(
+            key.length,
+            ...worksheetData.map(row => String(row[key] || '').length)
+          )
+        ),
+      }));
+      ws['!cols'] = colWidths;
+
+      // Export file
+      XLSX.writeFile(wb, filename);
+
+      toast({
+        title: 'ส่งออกสำเร็จ',
+        description: `ดาวน์โหลดไฟล์ ${filename} เรียบร้อยแล้ว`,
+      });
+
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถส่งออกรายงานได้',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
