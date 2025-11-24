@@ -284,6 +284,17 @@ const WiFiVouchers = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if SSID is loaded
+    if (!ssid) {
+      toast({
+        title: 'กรุณารอสักครู่',
+        description: 'กำลังโหลดข้อมูลการตั้งค่า กรุณาลองใหม่อีกครั้ง',
+        variant: 'destructive',
+      });
+      event.target.value = ''; // Reset file input
+      return;
+    }
+
     try {
       let text = await file.text();
       
@@ -304,6 +315,7 @@ const WiFiVouchers = () => {
           description: 'ไฟล์ CSV ไม่มีข้อมูลที่จะนำเข้า',
           variant: 'destructive',
         });
+        event.target.value = ''; // Reset file input
         return;
       }
       
@@ -316,10 +328,12 @@ const WiFiVouchers = () => {
         const values = line.split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
         const [username, password, durationStr] = values;
         
+        console.log('Processing:', { username, password, durationStr }); // Debug log
+        
         // Check if username and password exist
         if (!username || !password) {
           errorCount++;
-          errors.push(`บรรทัด "${line}": ข้อมูลไม่ครบ`);
+          errors.push(`บรรทัด "${line.substring(0, 50)}": ไม่มี username หรือ password`);
           continue;
         }
 
@@ -327,8 +341,9 @@ const WiFiVouchers = () => {
         const validationResult = voucherSchema.safeParse({ username, password });
         if (!validationResult.success) {
           errorCount++;
-          const errorMsg = validationResult.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้อง';
-          errors.push(`${username}: ${errorMsg}`);
+          const allErrors = validationResult.error.errors.map(e => e.message).join(', ');
+          errors.push(`${username}: ${allErrors}`);
+          console.log('Validation failed:', { username, password, errors: allErrors }); // Debug log
           continue;
         }
 
@@ -336,7 +351,7 @@ const WiFiVouchers = () => {
         const duration = durationStr ? parseInt(durationStr) : 24;
         if (isNaN(duration) || duration < 1 || duration > 720) {
           errorCount++;
-          errors.push(`${username}: จำนวนชั่วโมงไม่ถูกต้อง (${durationStr})`);
+          errors.push(`${username}: จำนวนชั่วโมงไม่ถูกต้อง (${durationStr || 'ไม่ระบุ'})`);
           continue;
         }
 
@@ -349,13 +364,20 @@ const WiFiVouchers = () => {
 
         if (existing) {
           errorCount++;
-          errors.push(`${username}: ชื่อผู้ใช้ซ้ำ`);
+          errors.push(`${username}: มี username นี้อยู่แล้วในระบบ`);
           continue;
         }
 
         // Generate QR and insert
         try {
           const qrCodeUrl = await generateQRCode(password);
+          
+          if (!qrCodeUrl) {
+            errorCount++;
+            errors.push(`${username}: ไม่สามารถสร้าง QR Code ได้`);
+            continue;
+          }
+          
           const { error } = await supabase.from('wifi_vouchers').insert({
             username,
             password,
@@ -366,34 +388,42 @@ const WiFiVouchers = () => {
           if (error) {
             errorCount++;
             errors.push(`${username}: ${error.message}`);
+            console.error('Insert error:', error); // Debug log
           } else {
             successCount++;
           }
         } catch (err) {
           errorCount++;
-          errors.push(`${username}: เกิดข้อผิดพลาดในการสร้าง QR Code`);
+          const errorMsg = err instanceof Error ? err.message : 'ไม่ทราบสาเหตุ';
+          errors.push(`${username}: เกิดข้อผิดพลาด - ${errorMsg}`);
+          console.error('Import error for', username, err); // Debug log
         }
       }
 
       // Show result with details
+      console.log('Import summary:', { successCount, errorCount, errors }); // Debug log
+      
       if (errors.length > 0 && errors.length <= 5) {
         toast({
           title: 'Import เสร็จสิ้น',
           description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ\n\nข้อผิดพลาด:\n${errors.join('\n')}`,
+          duration: 10000, // Show longer for errors
         });
       } else if (errors.length > 5) {
         toast({
           title: 'Import เสร็จสิ้น',
-          description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ\n\nตัวอย่างข้อผิดพลาด:\n${errors.slice(0, 3).join('\n')}\n... และอื่นๆ`,
+          description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ\n\nตัวอย่างข้อผิดพลาด (แสดง 3 จาก ${errors.length}):\n${errors.slice(0, 3).join('\n')}\n... และอื่นๆ อีก ${errors.length - 3} รายการ`,
+          duration: 10000, // Show longer for errors
         });
       } else {
         toast({
-          title: 'Import เสร็จสิ้น',
-          description: `สำเร็จ: ${successCount} รายการ`,
+          title: 'Import สำเร็จ',
+          description: `นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`,
         });
       }
 
-      fetchVouchers();
+      // Refresh voucher list
+      await fetchVouchers();
       
       // Reset file input
       if (fileInputRef.current) {
@@ -401,11 +431,18 @@ const WiFiVouchers = () => {
       }
     } catch (error) {
       console.error('Import error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
       toast({
-        title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถ import ไฟล์ CSV ได้',
+        title: 'เกิดข้อผิดพลาดในการอ่านไฟล์',
+        description: `ไม่สามารถอ่านไฟล์ CSV: ${errorMsg}`,
         variant: 'destructive',
+        duration: 8000,
       });
+    } finally {
+      // Reset file input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
