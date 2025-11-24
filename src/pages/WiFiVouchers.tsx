@@ -285,24 +285,50 @@ const WiFiVouchers = () => {
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
+      let text = await file.text();
+      
+      // Remove BOM if present
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+      
+      // Split lines and filter empty
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
       
       // Skip header row
       const dataLines = lines.slice(1);
       
+      if (dataLines.length === 0) {
+        toast({
+          title: 'ไม่มีข้อมูล',
+          description: 'ไฟล์ CSV ไม่มีข้อมูลที่จะนำเข้า',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       let successCount = 0;
       let errorCount = 0;
+      const errors: string[] = [];
 
       for (const line of dataLines) {
-        const [username, password, durationStr] = line.split(',').map(s => s.trim());
+        // Parse CSV line (handle quoted values)
+        const values = line.split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+        const [username, password, durationStr] = values;
         
-        if (!username || !password) continue;
+        // Check if username and password exist
+        if (!username || !password) {
+          errorCount++;
+          errors.push(`บรรทัด "${line}": ข้อมูลไม่ครบ`);
+          continue;
+        }
 
-        // Validate
+        // Validate username and password
         const validationResult = voucherSchema.safeParse({ username, password });
         if (!validationResult.success) {
           errorCount++;
+          const errorMsg = validationResult.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้อง';
+          errors.push(`${username}: ${errorMsg}`);
           continue;
         }
 
@@ -310,6 +336,7 @@ const WiFiVouchers = () => {
         const duration = durationStr ? parseInt(durationStr) : 24;
         if (isNaN(duration) || duration < 1 || duration > 720) {
           errorCount++;
+          errors.push(`${username}: จำนวนชั่วโมงไม่ถูกต้อง (${durationStr})`);
           continue;
         }
 
@@ -322,29 +349,49 @@ const WiFiVouchers = () => {
 
         if (existing) {
           errorCount++;
+          errors.push(`${username}: ชื่อผู้ใช้ซ้ำ`);
           continue;
         }
 
         // Generate QR and insert
-        const qrCodeUrl = await generateQRCode(password);
-        const { error } = await supabase.from('wifi_vouchers').insert({
-          username,
-          password,
-          qr_code_url: qrCodeUrl,
-          duration_hours: duration,
-        });
+        try {
+          const qrCodeUrl = await generateQRCode(password);
+          const { error } = await supabase.from('wifi_vouchers').insert({
+            username,
+            password,
+            qr_code_url: qrCodeUrl,
+            duration_hours: duration,
+          });
 
-        if (error) {
+          if (error) {
+            errorCount++;
+            errors.push(`${username}: ${error.message}`);
+          } else {
+            successCount++;
+          }
+        } catch (err) {
           errorCount++;
-        } else {
-          successCount++;
+          errors.push(`${username}: เกิดข้อผิดพลาดในการสร้าง QR Code`);
         }
       }
 
-      toast({
-        title: 'Import เสร็จสิ้น',
-        description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ`,
-      });
+      // Show result with details
+      if (errors.length > 0 && errors.length <= 5) {
+        toast({
+          title: 'Import เสร็จสิ้น',
+          description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ\n\nข้อผิดพลาด:\n${errors.join('\n')}`,
+        });
+      } else if (errors.length > 5) {
+        toast({
+          title: 'Import เสร็จสิ้น',
+          description: `สำเร็จ: ${successCount} รายการ, ล้มเหลว: ${errorCount} รายการ\n\nตัวอย่างข้อผิดพลาด:\n${errors.slice(0, 3).join('\n')}\n... และอื่นๆ`,
+        });
+      } else {
+        toast({
+          title: 'Import เสร็จสิ้น',
+          description: `สำเร็จ: ${successCount} รายการ`,
+        });
+      }
 
       fetchVouchers();
       
