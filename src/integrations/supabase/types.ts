@@ -2703,8 +2703,11 @@ export type Database = {
           show_order_number: boolean
           show_payment_method: boolean
           show_shop_info: boolean
+          show_tax: boolean | null
           show_tax_id: boolean
           show_total: boolean
+          show_wifi_qr: boolean | null
+          show_wifi_voucher: boolean | null
           updated_at: string
         }
         Insert: {
@@ -2718,8 +2721,11 @@ export type Database = {
           show_order_number?: boolean
           show_payment_method?: boolean
           show_shop_info?: boolean
+          show_tax?: boolean | null
           show_tax_id?: boolean
           show_total?: boolean
+          show_wifi_qr?: boolean | null
+          show_wifi_voucher?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -2733,8 +2739,11 @@ export type Database = {
           show_order_number?: boolean
           show_payment_method?: boolean
           show_shop_info?: boolean
+          show_tax?: boolean | null
           show_tax_id?: boolean
           show_total?: boolean
+          show_wifi_qr?: boolean | null
+          show_wifi_voucher?: boolean | null
           updated_at?: string
         }
         Relationships: []
@@ -2923,6 +2932,8 @@ export type Database = {
           shop_name: string
           tax_id: string | null
           updated_at: string
+          wifi_footer_text: string | null
+          wifi_header_text: string | null
         }
         Insert: {
           address?: string | null
@@ -2934,6 +2945,8 @@ export type Database = {
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
+          wifi_footer_text?: string | null
+          wifi_header_text?: string | null
         }
         Update: {
           address?: string | null
@@ -2945,6 +2958,8 @@ export type Database = {
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
+          wifi_footer_text?: string | null
+          wifi_header_text?: string | null
         }
         Relationships: []
       }

@@ -18,8 +18,11 @@ interface ReceiptSettingsForm {
   show_order_number: boolean;
   show_item_details: boolean;
   show_total: boolean;
+  show_tax: boolean;
   show_payment_method: boolean;
   show_customer_info: boolean;
+  show_wifi_voucher: boolean;
+  show_wifi_qr: boolean;
   footer_message: string;
 }
 
@@ -37,8 +40,11 @@ const ReceiptSettings = () => {
   const showOrderNumber = watch('show_order_number');
   const showItemDetails = watch('show_item_details');
   const showTotal = watch('show_total');
+  const showTax = watch('show_tax');
   const showPaymentMethod = watch('show_payment_method');
   const showCustomerInfo = watch('show_customer_info');
+  const showWifiVoucher = watch('show_wifi_voucher');
+  const showWifiQr = watch('show_wifi_qr');
 
   useEffect(() => {
     fetchReceiptSettings();
@@ -64,8 +70,11 @@ const ReceiptSettings = () => {
         setValue('show_order_number', data.show_order_number);
         setValue('show_item_details', data.show_item_details);
         setValue('show_total', data.show_total);
+        setValue('show_tax', data.show_tax ?? true);
         setValue('show_payment_method', data.show_payment_method);
         setValue('show_customer_info', data.show_customer_info);
+        setValue('show_wifi_voucher', data.show_wifi_voucher ?? true);
+        setValue('show_wifi_qr', data.show_wifi_qr ?? true);
         setValue('footer_message', data.footer_message || '');
       }
     } catch (error) {
@@ -216,6 +225,14 @@ const ReceiptSettings = () => {
           />
 
           <SwitchField
+            name="show_tax"
+            label="แสดงภาษี"
+            description="แสดงภาษีมูลค่าเพิ่ม 7% ในใบเสร็จ"
+            checked={showTax}
+            onCheckedChange={(checked) => setValue('show_tax', checked)}
+          />
+
+          <SwitchField
             name="show_payment_method"
             label="แสดงวิธีการชำระเงิน"
             description="แสดงวิธีการชำระเงินในใบเสร็จ"
@@ -229,6 +246,22 @@ const ReceiptSettings = () => {
             description="แสดงข้อมูลลูกค้าในใบเสร็จ (หากมี)"
             checked={showCustomerInfo}
             onCheckedChange={(checked) => setValue('show_customer_info', checked)}
+          />
+
+          <SwitchField
+            name="show_wifi_voucher"
+            label="แสดง WiFi Voucher"
+            description="แสดงบัตรใช้งานอินเทอร์เน็ตในใบเสร็จ"
+            checked={showWifiVoucher}
+            onCheckedChange={(checked) => setValue('show_wifi_voucher', checked)}
+          />
+
+          <SwitchField
+            name="show_wifi_qr"
+            label="แสดง QR Code ของ WiFi"
+            description="แสดง QR Code สำหรับเชื่อมต่อ WiFi ในส่วน WiFi Voucher"
+            checked={showWifiQr}
+            onCheckedChange={(checked) => setValue('show_wifi_qr', checked)}
           />
         </CardContent>
       </Card>
