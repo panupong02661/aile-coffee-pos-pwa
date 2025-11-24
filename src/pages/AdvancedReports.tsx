@@ -11,6 +11,7 @@ import ProductReportTable from '@/components/reports/ProductReportTable';
 import CustomerAnalytics from '@/components/reports/CustomerAnalytics';
 import { useDashboardStatsOptimized } from '@/hooks/useDashboardStatsOptimized';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 
 const AdvancedReports = () => {
@@ -34,7 +35,7 @@ const AdvancedReports = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleExportReport = (type: string) => {
+  const handleExportReport = async (type: string) => {
     try {
       let worksheetData: any[] = [];
       let filename = '';
@@ -53,13 +54,45 @@ const AdvancedReports = () => {
         filename = `รายงานยอดขาย_${new Date().toLocaleDateString('th-TH')}.xlsx`;
 
       } else if (type === 'products') {
-        // Export product data from dashboard stats
-        const productData = dashboardStats.topProducts.map((item, index) => ({
+        // Export product data from order_items
+        const { data, error } = await supabase
+          .from('order_items')
+          .select(`
+            menu_item_name,
+            quantity,
+            total_price,
+            order_id
+          `);
+
+        if (error) throw error;
+
+        // Group and aggregate data by menu item
+        const groupedData = data?.reduce((acc: { [key: string]: any }, item) => {
+          const name = item.menu_item_name;
+          if (!acc[name]) {
+            acc[name] = {
+              menu_item_name: name,
+              total_quantity: 0,
+              total_revenue: 0,
+              order_count: 0
+            };
+          }
+          acc[name].total_quantity += item.quantity;
+          acc[name].total_revenue += Number(item.total_price);
+          acc[name].order_count += 1;
+          return acc;
+        }, {});
+
+        const sortedData = Object.values(groupedData || {})
+          .sort((a: any, b: any) => b.total_revenue - a.total_revenue);
+
+        const productData = sortedData.map((item: any, index) => ({
           'อันดับ': index + 1,
-          'ชื่อสินค้า': item.name,
-          'จำนวนที่ขาย': item.quantity,
-          'ยอดขาย (บาท)': item.revenue,
-          'กำไร (บาท)': item.profit || 0,
+          'ชื่อสินค้า': item.menu_item_name,
+          'จำนวนที่ขาย': item.total_quantity,
+          'ยอดขาย (บาท)': item.total_revenue.toFixed(2),
+          'จำนวนออเดอร์': item.order_count,
+          'สถานะ': index < 5 ? 'ขายดี' : 'ขายปกติ',
         }));
 
         worksheetData = productData;
