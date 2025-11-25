@@ -3627,6 +3627,15 @@ export type Database = {
           name: string
         }[]
       }
+      get_and_mark_wifi_voucher: {
+        Args: { p_order_id: string }
+        Returns: {
+          id: string
+          password: string
+          qr_code_url: string
+          username: string
+        }[]
+      }
       get_low_stock_ingredients: {
         Args: never
         Returns: {

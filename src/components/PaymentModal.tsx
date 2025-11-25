@@ -519,38 +519,31 @@ const PaymentModal = ({
         }
       }
 
-      // Get random unused WiFi voucher
+      // Get WiFi voucher atomically (prevents duplicate assignment in concurrent orders)
       let wifiVoucher = null;
       try {
-        const { data: voucherData } = await supabase
-          .from('wifi_vouchers')
-          .select('id, username, password, qr_code_url')
-          .eq('is_used', false)
-          .limit(1)
-          .maybeSingle();
+        const { data: voucherData, error: voucherError } = await supabase
+          .rpc('get_and_mark_wifi_voucher', { p_order_id: order.id });
 
-        if (voucherData) {
-          // Mark as used and save voucher info to order
-          await supabase
-            .from('wifi_vouchers')
-            .update({ 
-              is_used: true, 
-              used_at: new Date().toISOString()
-            })
-            .eq('id', voucherData.id);
-
+        if (voucherError) {
+          console.warn(`[PaymentModal] WiFi voucher RPC error:`, voucherError);
+        } else if (voucherData && voucherData.length > 0) {
+          const voucher = voucherData[0];
+          
           // Update order with WiFi voucher info
           await supabase
             .from('orders')
             .update({
-              wifi_voucher_id: voucherData.id,
-              wifi_voucher_username: voucherData.username,
-              wifi_voucher_password: voucherData.password
+              wifi_voucher_id: voucher.id,
+              wifi_voucher_username: voucher.username,
+              wifi_voucher_password: voucher.password
             })
             .eq('id', order.id);
 
-          wifiVoucher = voucherData;
-          console.log(`[PaymentModal] WiFi voucher assigned and saved to order:`, voucherData.username);
+          wifiVoucher = voucher;
+          console.log(`[PaymentModal] WiFi voucher assigned atomically:`, voucher.username);
+        } else {
+          console.log(`[PaymentModal] No available WiFi voucher found`);
         }
       } catch (voucherError) {
         console.warn(`[PaymentModal] WiFi voucher assignment failed (non-critical):`, voucherError);
