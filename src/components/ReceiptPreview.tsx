@@ -65,7 +65,7 @@ const ReceiptPreview = ({
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
 
   useEffect(() => {
     // Update wifi voucher if prop changes
