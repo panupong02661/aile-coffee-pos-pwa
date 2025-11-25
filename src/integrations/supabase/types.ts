@@ -3472,6 +3472,36 @@ export type Database = {
         }
         Relationships: []
       }
+      wifi_price_tiers: {
+        Row: {
+          created_at: string
+          duration_hours: number
+          id: string
+          is_active: boolean
+          max_amount: number
+          min_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_hours: number
+          id?: string
+          is_active?: boolean
+          max_amount: number
+          min_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          is_active?: boolean
+          max_amount?: number
+          min_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wifi_reset_schedule: {
         Row: {
           created_at: string | null
