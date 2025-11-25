@@ -112,6 +112,7 @@ const PaymentModal = ({
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
+  const [wifiVoucherPreview, setWifiVoucherPreview] = useState<{ id: string; username: string; password: string; qr_code_url: string | null } | null>(null);
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -187,6 +188,9 @@ const PaymentModal = ({
     if (isOpen) {
       loadMembershipSettings();
       loadPromptPayPhone();
+      loadWifiVoucherPreview();
+    } else {
+      setWifiVoucherPreview(null);
     }
   }, [isOpen]);
 
@@ -519,20 +523,26 @@ const PaymentModal = ({
         }
       }
 
-      // Get WiFi voucher for this order (same logic as preview)
-      let wifiVoucher = null;
+      // Get WiFi voucher for this order (use preview voucher if already loaded)
+      let wifiVoucher = wifiVoucherPreview;
       try {
-        const { data: voucherData, error: voucherSelectError } = await supabase
-          .from('wifi_vouchers')
-          .select('id, username, password, qr_code_url')
-          .eq('is_used', false)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+        if (!wifiVoucher) {
+          const { data: voucherData, error: voucherSelectError } = await supabase
+            .from('wifi_vouchers')
+            .select('id, username, password, qr_code_url')
+            .eq('is_used', false)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
 
-        if (voucherSelectError) {
-          console.warn(`[PaymentModal] WiFi voucher select error:`, voucherSelectError);
-        } else if (voucherData) {
+          if (voucherSelectError) {
+            console.warn(`[PaymentModal] WiFi voucher select error:`, voucherSelectError);
+          } else if (voucherData) {
+            wifiVoucher = voucherData;
+          }
+        }
+
+        if (wifiVoucher) {
           // Mark voucher as used
           const { error: voucherUpdateError } = await supabase
             .from('wifi_vouchers')
@@ -540,7 +550,7 @@ const PaymentModal = ({
               is_used: true, 
               used_at: new Date().toISOString()
             })
-            .eq('id', voucherData.id);
+            .eq('id', wifiVoucher.id);
 
           if (voucherUpdateError) {
             console.warn(`[PaymentModal] WiFi voucher update error:`, voucherUpdateError);
@@ -549,9 +559,9 @@ const PaymentModal = ({
             const { error: orderUpdateError } = await supabase
               .from('orders')
               .update({
-                wifi_voucher_id: voucherData.id,
-                wifi_voucher_username: voucherData.username,
-                wifi_voucher_password: voucherData.password
+                wifi_voucher_id: wifiVoucher.id,
+                wifi_voucher_username: wifiVoucher.username,
+                wifi_voucher_password: wifiVoucher.password
               })
               .eq('id', order.id);
 
@@ -559,8 +569,7 @@ const PaymentModal = ({
               console.warn(`[PaymentModal] Order wifi_voucher update error:`, orderUpdateError);
             }
 
-            wifiVoucher = voucherData;
-            console.log(`[PaymentModal] WiFi voucher assigned:`, voucherData.username);
+            console.log(`[PaymentModal] WiFi voucher assigned:`, wifiVoucher.username);
           }
         } else {
           console.log(`[PaymentModal] No available WiFi voucher found`);
@@ -1045,6 +1054,7 @@ const PaymentModal = ({
             paymentMethod={paymentMethod}
             memberName={selectedMember?.name}
             memberPhone={selectedMember?.phone}
+            wifiVoucher={wifiVoucherPreview}
           />
         </div>
       </div>
