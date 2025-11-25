@@ -65,6 +65,16 @@ interface ResetSchedule {
   last_reset_at: string | null;
 }
 
+interface PriceTier {
+  id: string;
+  min_amount: number;
+  max_amount: number;
+  duration_hours: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const WiFiVouchers = () => {
   const [vouchers, setVouchers] = useState<WiFiVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +91,10 @@ const WiFiVouchers = () => {
   const [resetSchedule, setResetSchedule] = useState<ResetSchedule | null>(null);
   const [isAutoResetEnabled, setIsAutoResetEnabled] = useState(false);
   const [resetTime, setResetTime] = useState('00:00');
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
+  const [newTierMinAmount, setNewTierMinAmount] = useState('');
+  const [newTierMaxAmount, setNewTierMaxAmount] = useState('');
+  const [newTierDurationHours, setNewTierDurationHours] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +102,7 @@ const WiFiVouchers = () => {
     fetchVouchers();
     fetchShopSettings();
     fetchResetSchedule();
+    fetchPriceTiers();
   }, []);
 
   const fetchShopSettings = async () => {
@@ -117,6 +132,20 @@ const WiFiVouchers = () => {
       setResetSchedule(data);
       setIsAutoResetEnabled(data.is_enabled);
       setResetTime(data.reset_time.substring(0, 5)); // HH:MM format
+    }
+  };
+
+  const fetchPriceTiers = async () => {
+    const { data, error } = await supabase
+      .from('wifi_price_tiers')
+      .select('*')
+      .eq('is_active', true)
+      .order('min_amount', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching price tiers:', error);
+    } else {
+      setPriceTiers(data || []);
     }
   };
 
@@ -620,6 +649,139 @@ const WiFiVouchers = () => {
     }
   };
 
+  const handleAddPriceTier = async () => {
+    try {
+      const minAmount = parseFloat(newTierMinAmount);
+      const maxAmount = parseFloat(newTierMaxAmount);
+      const durationHours = parseInt(newTierDurationHours);
+
+      if (isNaN(minAmount) || isNaN(maxAmount) || isNaN(durationHours)) {
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (minAmount >= maxAmount) {
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: 'ราคาเริ่มต้นต้องน้อยกว่าราคาสูงสุด',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (durationHours <= 0) {
+        toast({
+          title: 'ข้อมูลไม่ถูกต้อง',
+          description: 'จำนวนชั่วโมงต้องมากกว่า 0',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const { error } = await supabase.from('wifi_price_tiers').insert({
+        min_amount: minAmount,
+        max_amount: maxAmount,
+        duration_hours: durationHours,
+      });
+
+      if (error) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'สำเร็จ',
+          description: 'เพิ่มช่วงราคาแล้ว',
+        });
+        setNewTierMinAmount('');
+        setNewTierMaxAmount('');
+        setNewTierDurationHours('');
+        fetchPriceTiers();
+      }
+    } catch (error) {
+      console.error('Error adding price tier:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถเพิ่มช่วงราคาได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeletePriceTier = async (id: string) => {
+    const { error } = await supabase
+      .from('wifi_price_tiers')
+      .update({ is_active: false })
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถลบช่วงราคาได้',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'สำเร็จ',
+        description: 'ลบช่วงราคาแล้ว',
+      });
+      fetchPriceTiers();
+    }
+  };
+
+  const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVoucher | null> => {
+    try {
+      // หาช่วงราคาที่เหมาะสม
+      const matchingTier = priceTiers.find(
+        tier => amount >= tier.min_amount && amount <= tier.max_amount
+      );
+
+      if (!matchingTier) {
+        console.log('No matching price tier found for amount:', amount);
+        return null;
+      }
+
+      // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา
+      const { data, error } = await supabase
+        .from('wifi_vouchers')
+        .select('*')
+        .eq('is_used', false)
+        .eq('duration_hours', matchingTier.duration_hours)
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        console.log('No available voucher found for duration:', matchingTier.duration_hours);
+        return null;
+      }
+
+      // อัพเดทสถานะ voucher เป็นใช้แล้ว
+      const { error: updateError } = await supabase
+        .from('wifi_vouchers')
+        .update({ 
+          is_used: true, 
+          used_at: new Date().toISOString() 
+        })
+        .eq('id', data.id);
+
+      if (updateError) {
+        console.error('Error updating voucher status:', updateError);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting WiFi voucher by amount:', error);
+      return null;
+    }
+  };
+
   const printVoucherCard = (voucher: WiFiVoucher) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -828,6 +990,127 @@ const WiFiVouchers = () => {
               >
                 {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ตั้งค่าช่วงราคาสำหรับการพิมพ์ WiFi</CardTitle>
+            <CardDescription>
+              กำหนดช่วงราคาและระยะเวลา WiFi ที่ลูกค้าจะได้รับตามยอดซื้อ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* ฟอร์มเพิ่มช่วงราคา */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="minAmount">ราคาเริ่มต้น (บาท)</Label>
+                  <Input
+                    id="minAmount"
+                    type="number"
+                    value={newTierMinAmount}
+                    onChange={(e) => setNewTierMinAmount(e.target.value)}
+                    placeholder="50"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxAmount">ราคาสูงสุด (บาท)</Label>
+                  <Input
+                    id="maxAmount"
+                    type="number"
+                    value={newTierMaxAmount}
+                    onChange={(e) => setNewTierMaxAmount(e.target.value)}
+                    placeholder="99"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tierDuration">จำนวนชั่วโมง</Label>
+                  <Input
+                    id="tierDuration"
+                    type="number"
+                    value={newTierDurationHours}
+                    onChange={(e) => setNewTierDurationHours(e.target.value)}
+                    placeholder="3"
+                    min="1"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleAddPriceTier} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    เพิ่มช่วงราคา
+                  </Button>
+                </div>
+              </div>
+
+              {/* ตารางแสดงช่วงราคา */}
+              {priceTiers.length > 0 && (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ราคาขั้นต่ำ</TableHead>
+                        <TableHead>ราคาสูงสุด</TableHead>
+                        <TableHead>ระยะเวลา WiFi</TableHead>
+                        <TableHead className="text-right">จัดการ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {priceTiers.map((tier) => (
+                        <TableRow key={tier.id}>
+                          <TableCell>{tier.min_amount.toFixed(2)} บาท</TableCell>
+                          <TableCell>{tier.max_amount.toFixed(2)} บาท</TableCell>
+                          <TableCell>{tier.duration_hours} ชั่วโมง</TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    คุณต้องการลบช่วงราคา {tier.min_amount.toFixed(2)} - {tier.max_amount.toFixed(2)} บาท หรือไม่?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeletePriceTier(tier.id)}>
+                                    ลบ
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {priceTiers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  ยังไม่มีการตั้งค่าช่วงราคา กรุณาเพิ่มช่วงราคาด้านบน
+                </div>
+              )}
+
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm font-medium mb-2">วิธีใช้งาน:</p>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>กำหนดช่วงราคาและระยะเวลา WiFi ที่ต้องการ</li>
+                  <li>เมื่อลูกค้าซื้อของตามยอดที่กำหนด ระบบจะแสดง WiFi Voucher บนใบเสร็จ</li>
+                  <li>ระบบจะเลือก Voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา</li>
+                  <li>Voucher ที่ใช้แล้วจะไม่ถูกนำมาใช้อีก</li>
+                </ol>
+              </div>
             </div>
           </CardContent>
         </Card>
