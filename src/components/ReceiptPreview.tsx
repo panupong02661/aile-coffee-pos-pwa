@@ -46,6 +46,7 @@ interface ReceiptPreviewProps {
   memberName?: string;
   memberPhone?: string;
   orderNumber?: string;
+  wifiVoucher?: WiFiVoucher | null;
 }
 
 const ReceiptPreview = ({ 
@@ -55,15 +56,23 @@ const ReceiptPreview = ({
   paymentMethod = '',
   memberName,
   memberPhone,
-  orderNumber
+  orderNumber,
+  wifiVoucher: propWifiVoucher
 }: ReceiptPreviewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
-  const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(null);
+  const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(propWifiVoucher || null);
 
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    // Update wifi voucher if prop changes
+    if (propWifiVoucher) {
+      setWifiVoucher(propWifiVoucher);
+    }
+  }, [propWifiVoucher]);
 
   const fetchSettings = async () => {
     try {
@@ -81,17 +90,22 @@ const ReceiptPreview = ({
         .limit(1)
         .single();
 
-      // Fetch a random unused WiFi voucher for preview
-      const { data: voucherData } = await supabase
-        .from('wifi_vouchers')
-        .select('username, password, qr_code_url')
-        .eq('is_used', false)
-        .limit(1)
-        .single();
+      // Only fetch WiFi voucher if not provided via props (for preview mode)
+      if (!propWifiVoucher) {
+        const { data: voucherData } = await supabase
+          .from('wifi_vouchers')
+          .select('username, password, qr_code_url')
+          .eq('is_used', false)
+          .limit(1)
+          .maybeSingle();
+        
+        if (voucherData) {
+          setWifiVoucher(voucherData);
+        }
+      }
 
       setShopSettings(shopData);
       setReceiptSettings(receiptData);
-      setWifiVoucher(voucherData);
     } catch (error) {
       console.error('Error fetching settings:', error);
     }

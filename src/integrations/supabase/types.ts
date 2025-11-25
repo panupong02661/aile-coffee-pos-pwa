@@ -2276,6 +2276,9 @@ export type Database = {
           status: string | null
           total_amount: number
           updated_at: string
+          wifi_voucher_id: string | null
+          wifi_voucher_password: string | null
+          wifi_voucher_username: string | null
         }
         Insert: {
           bill_discount?: number | null
@@ -2294,6 +2297,9 @@ export type Database = {
           status?: string | null
           total_amount?: number
           updated_at?: string
+          wifi_voucher_id?: string | null
+          wifi_voucher_password?: string | null
+          wifi_voucher_username?: string | null
         }
         Update: {
           bill_discount?: number | null
@@ -2312,6 +2318,9 @@ export type Database = {
           status?: string | null
           total_amount?: number
           updated_at?: string
+          wifi_voucher_id?: string | null
+          wifi_voucher_password?: string | null
+          wifi_voucher_username?: string | null
         }
         Relationships: [
           {
@@ -2319,6 +2328,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_wifi_voucher_id_fkey"
+            columns: ["wifi_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "wifi_vouchers"
             referencedColumns: ["id"]
           },
         ]

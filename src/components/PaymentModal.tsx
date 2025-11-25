@@ -530,18 +530,27 @@ const PaymentModal = ({
           .maybeSingle();
 
         if (voucherData) {
-          // Mark as used
+          // Mark as used and save voucher info to order
           await supabase
             .from('wifi_vouchers')
             .update({ 
               is_used: true, 
-              used_at: new Date().toISOString(),
-              order_id: order.id 
+              used_at: new Date().toISOString()
             })
             .eq('id', voucherData.id);
 
+          // Update order with WiFi voucher info
+          await supabase
+            .from('orders')
+            .update({
+              wifi_voucher_id: voucherData.id,
+              wifi_voucher_username: voucherData.username,
+              wifi_voucher_password: voucherData.password
+            })
+            .eq('id', order.id);
+
           wifiVoucher = voucherData;
-          console.log(`[PaymentModal] WiFi voucher assigned:`, voucherData.username);
+          console.log(`[PaymentModal] WiFi voucher assigned and saved to order:`, voucherData.username);
         }
       } catch (voucherError) {
         console.warn(`[PaymentModal] WiFi voucher assignment failed (non-critical):`, voucherError);
