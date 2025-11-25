@@ -543,17 +543,44 @@ const PaymentModal = ({
         }
       }
 
-      // Get WiFi voucher for this order via database function (atomic & ปลอดภัย)
+      // Get WiFi voucher for this order (พยายามให้เป็นอะตอมมิก และมีแผนสำรองถ้า RPC ใช้ไม่ได้)
       let wifiVoucher = null as null | { id: string; username: string; password: string; qr_code_url: string | null };
       try {
+        // 1) ลองใช้ RPC ถ้ามีอยู่ในฐานข้อมูล (เวอร์ชันใหม่ที่ปลอดภัยกว่า)
         const { data: voucherRows, error: voucherRpcError } = await supabase
           .rpc('get_and_mark_wifi_voucher', { p_order_id: order.id });
 
-        if (voucherRpcError) {
-          console.warn('[PaymentModal] WiFi voucher RPC error:', voucherRpcError);
-        } else if (voucherRows && voucherRows.length > 0) {
+        if (!voucherRpcError && voucherRows && voucherRows.length > 0) {
           wifiVoucher = voucherRows[0] as any;
+        } else {
+          // 2) แผนสำรอง (fallback) ถ้า RPC ไม่มี / ใช้งานไม่ได้
+          if (voucherRpcError) {
+            console.warn('[PaymentModal] WiFi voucher RPC error, fallback to direct update:', voucherRpcError);
+          } else {
+            console.log('[PaymentModal] No voucher returned from RPC, fallback to direct update');
+          }
 
+          const now = new Date().toISOString();
+          const { data: updatedVouchers, error: voucherUpdateError } = await supabase
+            .from('wifi_vouchers')
+            .update({
+              is_used: true,
+              used_at: now,
+            })
+            .eq('is_used', false)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .select('id, username, password, qr_code_url');
+
+          if (voucherUpdateError) {
+            console.warn('[PaymentModal] WiFi voucher fallback update error:', voucherUpdateError);
+          } else if (updatedVouchers && updatedVouchers.length > 0) {
+            wifiVoucher = updatedVouchers[0] as any;
+          }
+        }
+
+        // ถ้ามี wifiVoucher ไม่ว่าจะมาจาก RPC หรือ fallback ให้บันทึกลงในออเดอร์
+        if (wifiVoucher) {
           const { error: orderUpdateError } = await supabase
             .from('orders')
             .update({
@@ -566,10 +593,10 @@ const PaymentModal = ({
           if (orderUpdateError) {
             console.warn('[PaymentModal] Order wifi_voucher update error:', orderUpdateError);
           } else {
-            console.log('[PaymentModal] WiFi voucher assigned via RPC:', wifiVoucher.username);
+            console.log('[PaymentModal] WiFi voucher assigned:', wifiVoucher.username);
           }
         } else {
-          console.log('[PaymentModal] No available WiFi voucher found via RPC');
+          console.log('[PaymentModal] No available WiFi voucher found (RPC + fallback)');
         }
       } catch (voucherError) {
         console.warn('[PaymentModal] WiFi voucher assignment failed (non-critical):', voucherError);
