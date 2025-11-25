@@ -269,7 +269,7 @@ const ReceiptPreview = ({
           )}
 
           {/* WiFi Voucher Section */}
-          {wifiVoucher && receiptSettings.show_wifi_voucher && orderNumber && (
+          {wifiVoucher && receiptSettings.show_wifi_voucher && (
             <>
               <Separator className="my-4" />
               {shopSettings?.wifi_header_text && (
