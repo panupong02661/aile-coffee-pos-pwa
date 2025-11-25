@@ -98,7 +98,7 @@ const OptimizedPaymentModal = ({
           quantity: item.quantity,
           unit_price: item.menu_item.price,
           total_price: item.total_price,
-          addons: item.selected_addons.map(addon => ({
+          addons: (item.selected_addons || []).map(addon => ({
             addon_id: addon.id,
             name: addon.name,
             price: addon.price
