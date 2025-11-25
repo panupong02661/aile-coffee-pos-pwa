@@ -523,45 +523,93 @@ const WiFiVouchers = () => {
       return;
     }
 
-    const { error } = await supabase
-      .from('wifi_vouchers')
-      .update({ is_used: false, used_at: null })
-      .in('id', Array.from(selectedVouchers));
+    try {
+      // ลบข้อมูล WiFi voucher จากออเดอร์ก่อน
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ 
+          wifi_voucher_id: null,
+          wifi_voucher_username: null,
+          wifi_voucher_password: null
+        })
+        .in('wifi_voucher_id', Array.from(selectedVouchers));
 
-    if (error) {
+      if (orderError) {
+        console.warn('Warning clearing orders wifi voucher info:', orderError);
+      }
+
+      // รีเซ็ตสถานะ voucher
+      const { error } = await supabase
+        .from('wifi_vouchers')
+        .update({ is_used: false, used_at: null })
+        .in('id', Array.from(selectedVouchers));
+
+      if (error) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถรีเซตสถานะได้',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'สำเร็จ',
+          description: `รีเซตสถานะ ${selectedVouchers.size} รายการแล้ว`,
+        });
+        setSelectedVouchers(new Set());
+        fetchVouchers();
+      }
+    } catch (error) {
+      console.error('Reset selected error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถรีเซตสถานะได้',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'สำเร็จ',
-        description: `รีเซตสถานะ ${selectedVouchers.size} รายการแล้ว`,
-      });
-      setSelectedVouchers(new Set());
-      fetchVouchers();
     }
   };
 
   const handleResetAll = async () => {
-    const { error } = await supabase
-      .from('wifi_vouchers')
-      .update({ is_used: false, used_at: null })
-      .eq('is_used', true);
+    try {
+      // ลบข้อมูล WiFi voucher จากออเดอร์ทั้งหมดก่อน
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ 
+          wifi_voucher_id: null,
+          wifi_voucher_username: null,
+          wifi_voucher_password: null
+        })
+        .not('wifi_voucher_id', 'is', null);
 
-    if (error) {
+      if (orderError) {
+        console.warn('Warning clearing all orders wifi voucher info:', orderError);
+      }
+
+      // รีเซ็ตสถานะ voucher ทั้งหมด
+      const { error } = await supabase
+        .from('wifi_vouchers')
+        .update({ is_used: false, used_at: null })
+        .eq('is_used', true);
+
+      if (error) {
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถรีเซตสถานะทั้งหมดได้',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'สำเร็จ',
+          description: 'รีเซตสถานะ voucher ทั้งหมดแล้ว',
+        });
+        fetchVouchers();
+      }
+    } catch (error) {
+      console.error('Reset all error:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถรีเซตสถานะทั้งหมดได้',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'สำเร็จ',
-        description: 'รีเซตสถานะ voucher ทั้งหมดแล้ว',
-      });
-      fetchVouchers();
     }
   };
 
