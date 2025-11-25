@@ -543,28 +543,17 @@ const PaymentModal = ({
         }
       }
 
-      // Get and atomically reserve WiFi voucher for this order
-      let wifiVoucher = wifiVoucherPreview;
+      // Get WiFi voucher for this order via database function (atomic & ปลอดภัย)
+      let wifiVoucher = null as null | { id: string; username: string; password: string; qr_code_url: string | null };
       try {
-        // เลือกและจอง (mark is_used) แบบอะตอมมิก เพื่อป้องกันออเดอร์ชนกัน
-        const now = new Date().toISOString();
-        const { data: updatedVouchers, error: voucherUpdateError } = await supabase
-          .from('wifi_vouchers')
-          .update({
-            is_used: true,
-            used_at: now,
-          })
-          .eq('is_used', false)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .select('id, username, password, qr_code_url');
+        const { data: voucherRows, error: voucherRpcError } = await supabase
+          .rpc('get_and_mark_wifi_voucher', { p_order_id: order.id });
 
-        if (voucherUpdateError) {
-          console.warn(`[PaymentModal] WiFi voucher atomic update error:`, voucherUpdateError);
-        } else if (updatedVouchers && updatedVouchers.length > 0) {
-          wifiVoucher = updatedVouchers[0];
+        if (voucherRpcError) {
+          console.warn('[PaymentModal] WiFi voucher RPC error:', voucherRpcError);
+        } else if (voucherRows && voucherRows.length > 0) {
+          wifiVoucher = voucherRows[0] as any;
 
-          // บันทึก WiFi ลงในออเดอร์
           const { error: orderUpdateError } = await supabase
             .from('orders')
             .update({
@@ -575,18 +564,18 @@ const PaymentModal = ({
             .eq('id', order.id);
 
           if (orderUpdateError) {
-            console.warn(`[PaymentModal] Order wifi_voucher update error:`, orderUpdateError);
+            console.warn('[PaymentModal] Order wifi_voucher update error:', orderUpdateError);
           } else {
-            console.log(`[PaymentModal] WiFi voucher assigned atomically:`, wifiVoucher.username);
+            console.log('[PaymentModal] WiFi voucher assigned via RPC:', wifiVoucher.username);
           }
         } else {
-          console.log(`[PaymentModal] No available WiFi voucher found`);
+          console.log('[PaymentModal] No available WiFi voucher found via RPC');
         }
       } catch (voucherError) {
-        console.warn(`[PaymentModal] WiFi voucher assignment failed (non-critical):`, voucherError);
+        console.warn('[PaymentModal] WiFi voucher assignment failed (non-critical):', voucherError);
       }
 
-      console.log(`[PaymentModal] Order processing completed successfully`);
+      console.log('[PaymentModal] Order processing completed successfully');
       
       // Return both order and order items for notification
       return {
