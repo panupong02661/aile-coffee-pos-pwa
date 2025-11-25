@@ -994,6 +994,7 @@ const WiFiVouchers = () => {
           </CardContent>
         </Card>
 
+        {/* Price Tiers Configuration Card */}
         <Card>
           <CardHeader>
             <CardTitle>ตั้งค่าช่วงราคาสำหรับการพิมพ์ WiFi</CardTitle>
