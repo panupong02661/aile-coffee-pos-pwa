@@ -227,6 +227,26 @@ const PaymentModal = ({
     }
   };
 
+  const loadWifiVoucherPreview = async () => {
+    try {
+      const { data: voucherData, error } = await supabase
+        .from('wifi_vouchers')
+        .select('id, username, password, qr_code_url')
+        .eq('is_used', false)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[PaymentModal] WiFi voucher preview error:', error);
+      } else if (voucherData) {
+        setWifiVoucherPreview(voucherData);
+      }
+    } catch (error) {
+      console.error('Error loading WiFi voucher preview:', error);
+    }
+  };
+
   useEffect(() => {
     if (selectedMember && membershipSettings) {
       const tierSettings = membershipSettings.find((setting: any) => setting.tier === selectedMember.tier);
