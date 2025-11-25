@@ -96,6 +96,7 @@ const ReceiptPreview = ({
           .from('wifi_vouchers')
           .select('username, password, qr_code_url')
           .eq('is_used', false)
+          .order('created_at', { ascending: true })
           .limit(1)
           .maybeSingle();
         
@@ -103,6 +104,7 @@ const ReceiptPreview = ({
           setWifiVoucher(voucherData);
         }
       }
+
 
       setShopSettings(shopData);
       setReceiptSettings(receiptData);
