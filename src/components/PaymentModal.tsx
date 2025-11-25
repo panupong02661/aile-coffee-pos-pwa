@@ -229,21 +229,11 @@ const PaymentModal = ({
 
   const loadWifiVoucherPreview = async () => {
     try {
-      const { data: voucherData, error } = await supabase
-        .from('wifi_vouchers')
-        .select('id, username, password, qr_code_url')
-        .eq('is_used', false)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('[PaymentModal] WiFi voucher preview error:', error);
-      } else if (voucherData) {
-        setWifiVoucherPreview(voucherData);
-      }
+      // Preview WiFi voucher ถูกปิดเพื่อไม่ให้สับสนกับคูปองที่ผูกกับออเดอร์จริง
+      // ตอนนี้ระบบจะผูก WiFi voucher ให้กับออเดอร์ในพื้นหลังเมื่อชำระเงินเท่านั้น
+      setWifiVoucherPreview(null);
     } catch (error) {
-      console.error('Error loading WiFi voucher preview:', error);
+      console.error('Error in WiFi voucher preview:', error);
     }
   };
 
