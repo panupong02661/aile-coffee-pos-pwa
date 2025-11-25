@@ -543,53 +543,41 @@ const PaymentModal = ({
         }
       }
 
-      // Get WiFi voucher for this order (use preview voucher if already loaded)
+      // Get and atomically reserve WiFi voucher for this order
       let wifiVoucher = wifiVoucherPreview;
       try {
-        if (!wifiVoucher) {
-          const { data: voucherData, error: voucherSelectError } = await supabase
-            .from('wifi_vouchers')
-            .select('id, username, password, qr_code_url')
-            .eq('is_used', false)
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+        // เลือกและจอง (mark is_used) แบบอะตอมมิก เพื่อป้องกันออเดอร์ชนกัน
+        const now = new Date().toISOString();
+        const { data: updatedVouchers, error: voucherUpdateError } = await supabase
+          .from('wifi_vouchers')
+          .update({
+            is_used: true,
+            used_at: now,
+          })
+          .eq('is_used', false)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .select('id, username, password, qr_code_url');
 
-          if (voucherSelectError) {
-            console.warn(`[PaymentModal] WiFi voucher select error:`, voucherSelectError);
-          } else if (voucherData) {
-            wifiVoucher = voucherData;
-          }
-        }
+        if (voucherUpdateError) {
+          console.warn(`[PaymentModal] WiFi voucher atomic update error:`, voucherUpdateError);
+        } else if (updatedVouchers && updatedVouchers.length > 0) {
+          wifiVoucher = updatedVouchers[0];
 
-        if (wifiVoucher) {
-          // Mark voucher as used
-          const { error: voucherUpdateError } = await supabase
-            .from('wifi_vouchers')
-            .update({ 
-              is_used: true, 
-              used_at: new Date().toISOString()
+          // บันทึก WiFi ลงในออเดอร์
+          const { error: orderUpdateError } = await supabase
+            .from('orders')
+            .update({
+              wifi_voucher_id: wifiVoucher.id,
+              wifi_voucher_username: wifiVoucher.username,
+              wifi_voucher_password: wifiVoucher.password,
             })
-            .eq('id', wifiVoucher.id);
+            .eq('id', order.id);
 
-          if (voucherUpdateError) {
-            console.warn(`[PaymentModal] WiFi voucher update error:`, voucherUpdateError);
+          if (orderUpdateError) {
+            console.warn(`[PaymentModal] Order wifi_voucher update error:`, orderUpdateError);
           } else {
-            // Save voucher info into order
-            const { error: orderUpdateError } = await supabase
-              .from('orders')
-              .update({
-                wifi_voucher_id: wifiVoucher.id,
-                wifi_voucher_username: wifiVoucher.username,
-                wifi_voucher_password: wifiVoucher.password
-              })
-              .eq('id', order.id);
-
-            if (orderUpdateError) {
-              console.warn(`[PaymentModal] Order wifi_voucher update error:`, orderUpdateError);
-            }
-
-            console.log(`[PaymentModal] WiFi voucher assigned:`, wifiVoucher.username);
+            console.log(`[PaymentModal] WiFi voucher assigned atomically:`, wifiVoucher.username);
           }
         } else {
           console.log(`[PaymentModal] No available WiFi voucher found`);
@@ -597,7 +585,6 @@ const PaymentModal = ({
       } catch (voucherError) {
         console.warn(`[PaymentModal] WiFi voucher assignment failed (non-critical):`, voucherError);
       }
-
 
       console.log(`[PaymentModal] Order processing completed successfully`);
       
@@ -607,7 +594,7 @@ const PaymentModal = ({
         order_items: orderItems,
         member_name: selectedMember?.name || null,
         member_phone: selectedMember?.phone || null,
-        wifi_voucher: wifiVoucher
+        wifi_voucher: wifiVoucher,
       };
 
     } catch (error) {
