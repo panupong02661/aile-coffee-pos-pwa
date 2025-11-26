@@ -5,7 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, Receipt, FileText, Tag } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
+import { Printer, Receipt, FileText, Tag, Eye } from 'lucide-react';
+import ReceiptTemplatePreview from './ReceiptTemplatePreview';
 
 interface PrintCopiesConfig {
   customerReceiptCopies: number;
@@ -14,6 +17,12 @@ interface PrintCopiesConfig {
   stickerCopies: number;
   autoShopCopy: boolean;
   autoSticker: boolean;
+  customerFontSize: number;
+  shopFontSize: number;
+  stickerFontSize: number;
+  customerPaperWidth: number;
+  shopPaperWidth: number;
+  stickerPaperWidth: number;
 }
 
 const PrintCopiesSettings = () => {
@@ -25,6 +34,12 @@ const PrintCopiesSettings = () => {
     stickerCopies: 1,
     autoShopCopy: true,
     autoSticker: false,
+    customerFontSize: 12,
+    shopFontSize: 14,
+    stickerFontSize: 10,
+    customerPaperWidth: 80,
+    shopPaperWidth: 80,
+    stickerPaperWidth: 60,
   });
 
   useEffect(() => {
@@ -67,9 +82,54 @@ const PrintCopiesSettings = () => {
       {/* Customer Receipt Copies */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
-            <CardTitle>ใบเสร็จสำหรับลูกค้า</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" />
+              <CardTitle>ใบเสร็จสำหรับลูกค้า</CardTitle>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Eye className="h-4 w-4" />
+                  ดูตัวอย่าง
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>ตัวอย่างใบเสร็จลูกค้า</DialogTitle>
+                  <DialogDescription>
+                    แก้ไขขนาดและรูปแบบตามต้องการ
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>ขนาดตัวอักษร: {config.customerFontSize}px</Label>
+                    <Slider
+                      value={[config.customerFontSize]}
+                      onValueChange={(value) => updateConfig('customerFontSize', value[0])}
+                      min={8}
+                      max={20}
+                      step={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ความกว้างกระดาษ: {config.customerPaperWidth}mm</Label>
+                    <Slider
+                      value={[config.customerPaperWidth]}
+                      onValueChange={(value) => updateConfig('customerPaperWidth', value[0])}
+                      min={58}
+                      max={80}
+                      step={1}
+                    />
+                  </div>
+                  <ReceiptTemplatePreview 
+                    type="customer" 
+                    fontSize={config.customerFontSize}
+                    paperWidth={config.customerPaperWidth}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <CardDescription>
             กำหนดจำนวนใบเสร็จที่จะพิมพ์ให้ลูกค้า
@@ -97,9 +157,54 @@ const PrintCopiesSettings = () => {
       {/* Shop/Kitchen Copy */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <CardTitle>ใบสำหรับร้าน/ครัว</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <CardTitle>ใบสำหรับร้าน/ครัว</CardTitle>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Eye className="h-4 w-4" />
+                  ดูตัวอย่าง
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>ตัวอย่างใบร้าน/ครัว</DialogTitle>
+                  <DialogDescription>
+                    แก้ไขขนาดและรูปแบบตามต้องการ
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>ขนาดตัวอักษร: {config.shopFontSize}px</Label>
+                    <Slider
+                      value={[config.shopFontSize]}
+                      onValueChange={(value) => updateConfig('shopFontSize', value[0])}
+                      min={10}
+                      max={24}
+                      step={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ความกว้างกระดาษ: {config.shopPaperWidth}mm</Label>
+                    <Slider
+                      value={[config.shopPaperWidth]}
+                      onValueChange={(value) => updateConfig('shopPaperWidth', value[0])}
+                      min={58}
+                      max={80}
+                      step={1}
+                    />
+                  </div>
+                  <ReceiptTemplatePreview 
+                    type="shop" 
+                    fontSize={config.shopFontSize}
+                    paperWidth={config.shopPaperWidth}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <CardDescription>
             ใบเสร็จสำหรับเก็บไว้ดูในร้านหรือส่งครัว
@@ -141,9 +246,54 @@ const PrintCopiesSettings = () => {
       {/* Sticker Labels */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Tag className="h-5 w-5 text-primary" />
-            <CardTitle>สติ๊กเกอร์ติดแก้ว</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              <CardTitle>สติ๊กเกอร์ติดแก้ว</CardTitle>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Eye className="h-4 w-4" />
+                  ดูตัวอย่าง
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>ตัวอย่างสติ๊กเกอร์</DialogTitle>
+                  <DialogDescription>
+                    แก้ไขขนาดและรูปแบบตามต้องการ
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>ขนาดตัวอักษร: {config.stickerFontSize}px</Label>
+                    <Slider
+                      value={[config.stickerFontSize]}
+                      onValueChange={(value) => updateConfig('stickerFontSize', value[0])}
+                      min={8}
+                      max={16}
+                      step={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ความกว้างกระดาษ: {config.stickerPaperWidth}mm</Label>
+                    <Slider
+                      value={[config.stickerPaperWidth]}
+                      onValueChange={(value) => updateConfig('stickerPaperWidth', value[0])}
+                      min={40}
+                      max={80}
+                      step={1}
+                    />
+                  </div>
+                  <ReceiptTemplatePreview 
+                    type="sticker" 
+                    fontSize={config.stickerFontSize}
+                    paperWidth={config.stickerPaperWidth}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           <CardDescription>
             พิมพ์สติ๊กเกอร์ข้อมูลออเดอร์เพื่อติดข้างแก้ว
