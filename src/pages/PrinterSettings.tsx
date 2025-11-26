@@ -11,6 +11,7 @@ import PrintHistory from '@/components/printer/PrintHistory';
 import NetworkDiagnostic from '@/components/printer/NetworkDiagnostic';
 import AutoPrintSettings from '@/components/AutoPrintSettings';
 import UniversalPrinterConfig from '@/components/printer/UniversalPrinterConfig';
+import PrintCopiesSettings from '@/components/printer/PrintCopiesSettings';
 
 const PrinterSettings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -52,10 +53,11 @@ const PrinterSettings = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="universal" className="w-full">
-                  <TabsList className="grid w-full grid-cols-7">
+                  <TabsList className="grid w-full grid-cols-8">
                     <TabsTrigger value="universal">เครื่องพิมพ์ทั่วไป</TabsTrigger>
                     <TabsTrigger value="diagnostic">ตรวจสอบเครือข่าย</TabsTrigger>
                     <TabsTrigger value="config">Star Printer</TabsTrigger>
+                    <TabsTrigger value="copies">จำนวนการพิมพ์</TabsTrigger>
                     <TabsTrigger value="auto-print">พิมพ์อัตโนมัติ</TabsTrigger>
                     <TabsTrigger value="queue">คิวพิมพ์</TabsTrigger>
                     <TabsTrigger value="reports">รายงาน</TabsTrigger>
@@ -72,6 +74,10 @@ const PrinterSettings = () => {
                   
                   <TabsContent value="config" className="mt-6">
                     <PrinterConfiguration />
+                  </TabsContent>
+                  
+                  <TabsContent value="copies" className="mt-6">
+                    <PrintCopiesSettings />
                   </TabsContent>
                   
                   <TabsContent value="auto-print" className="mt-6">
