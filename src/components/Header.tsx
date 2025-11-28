@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Menu, Search, Settings, User, Star, Award, Crown, X } from 'lucide-react';
+import { Menu, Search, Settings, User, Star, Award, Crown, X, Bug } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
 
 interface Member {
@@ -35,6 +35,10 @@ interface HeaderProps {
   onSearchChange?: (searchTerm: string) => void;
   menuItems?: any[];
   onMenuItemSelect?: (menuItem: any) => void;
+  showDebug?: boolean;
+  onToggleDebug?: () => void;
+  onSearchOpen?: () => void;
+  onSettingsOpen?: () => void;
 }
 
 const Header = ({ 
@@ -53,7 +57,11 @@ const Header = ({
   searchTerm = '',
   onSearchChange = () => {},
   menuItems = [],
-  onMenuItemSelect = () => {}
+  onMenuItemSelect = () => {},
+  showDebug,
+  onToggleDebug,
+  onSearchOpen,
+  onSettingsOpen
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -112,9 +120,8 @@ const Header = ({
           </Button>
 
           {onMemberClick && (
-            <Button variant="outline" size="sm" className="ml-2" onClick={onMemberClick}>
-              <User className="w-4 h-4 mr-2" />
-              ลูกค้า
+            <Button variant="outline" size="icon" className="ml-2" onClick={onMemberClick}>
+              <User className="w-4 h-4" />
             </Button>
           )}
           
@@ -130,6 +137,29 @@ const Header = ({
                 {category.name}
               </Button>
             ))}
+            
+            {onToggleDebug && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onToggleDebug}
+                className="ml-2"
+              >
+                <Bug className="w-5 h-5" />
+              </Button>
+            )}
+            
+            {onSearchOpen && (
+              <Button variant="ghost" size="icon" onClick={onSearchOpen}>
+                <Search className="w-5 h-5" />
+              </Button>
+            )}
+            
+            {onSettingsOpen && (
+              <Button variant="ghost" size="icon" onClick={onSettingsOpen}>
+                <Settings className="w-5 h-5" />
+              </Button>
+            )}
           </div>
         </div>
 
