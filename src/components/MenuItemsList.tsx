@@ -74,7 +74,7 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStat
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {localMenuItems.map((item) => (
-        <Card key={item.id} className="overflow-hidden">
+        <Card key={item.id} className={`overflow-hidden ${!item.is_available ? 'opacity-60 bg-gray-50' : ''}`}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-lg">{item.name}</h3>

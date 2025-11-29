@@ -8,6 +8,7 @@ import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
+import CustomerDetailsModal from '@/components/CustomerDetailsModal';
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
@@ -85,6 +86,7 @@ const POS = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const [isCustomerDetailsOpen, setIsCustomerDetailsOpen] = useState(false);
 
   const {
     cartItems,
@@ -475,6 +477,7 @@ const POS = () => {
             onToggleDebug={() => setShowDebug(!showDebug)}
             onSearchOpen={() => setIsSearchOpen(true)}
             onSettingsOpen={() => setIsSettingsOpen(true)}
+            onMemberInfoClick={() => setIsCustomerDetailsOpen(true)}
           />
         </div>
         
@@ -589,6 +592,13 @@ const POS = () => {
         isOpen={isMemberSearchOpen}
         onClose={() => setIsMemberSearchOpen(false)}
         onSelectMember={handleSelectMember}
+      />
+
+      {/* Customer Details Modal */}
+      <CustomerDetailsModal
+        isOpen={isCustomerDetailsOpen}
+        onClose={() => setIsCustomerDetailsOpen(false)}
+        member={selectedMember}
       />
 
       {/* Addon Modal */}

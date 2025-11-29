@@ -270,7 +270,11 @@ const MenuManagement = () => {
                       เพิ่มกลุ่ม Add-on ใหม่
                     </Button>
                   </div>
-                  <AddonGroupsList addonGroups={addonGroups} onEdit={(item) => handleEdit(item, 'addonGroup')} />
+                  <AddonGroupsList 
+                    addonGroups={addonGroups} 
+                    onEdit={(item) => handleEdit(item, 'addonGroup')} 
+                    onDelete={() => refetch.addonGroups()}
+                  />
                 </TabsContent>
 
                 <TabsContent value="addons" className="mt-6">
@@ -284,7 +288,12 @@ const MenuManagement = () => {
                       เพิ่ม Add-on ใหม่
                     </Button>
                   </div>
-                  <AddonsList addons={addons} addonGroups={addonGroups} onEdit={(item) => handleEdit(item, 'addon')} />
+                  <AddonsList 
+                    addons={addons} 
+                    addonGroups={addonGroups} 
+                    onEdit={(item) => handleEdit(item, 'addon')} 
+                    onDelete={() => refetch.addons()}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>
