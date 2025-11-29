@@ -167,7 +167,10 @@ const Header = ({
 
         <div className="flex items-center justify-end min-w-[200px]">
           {selectedMember && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm">
+            <div 
+              onClick={() => onMemberInfoClick?.()}
+              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            >
               <span className="text-sm font-bold text-blue-900 tracking-wide">
                 {selectedMember.name}
               </span>
@@ -180,7 +183,10 @@ const Header = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onRemoveMember}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveMember();
+                }}
                 className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 ml-1 rounded-full"
               >
                 <X className="w-3 h-3" />

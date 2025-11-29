@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -81,6 +82,9 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
             <User className="w-6 h-6" />
             ข้อมูลลูกค้า
           </DialogTitle>
+          <DialogDescription>
+            ดูรายละเอียดข้อมูลสมาชิกและสถิติการซื้อ
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
