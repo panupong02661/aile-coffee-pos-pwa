@@ -31,6 +31,7 @@ interface HeaderProps {
   page?: 'pos' | 'online' | 'dashboard' | 'qr-promptpay' | 'other';
   selectedMember?: Member | null;
   onRemoveMember?: () => void;
+  onMemberInfoClick?: () => void;
   searchTerm?: string;
   onSearchChange?: (searchTerm: string) => void;
   menuItems?: any[];
@@ -61,7 +62,8 @@ const Header = ({
   showDebug,
   onToggleDebug,
   onSearchOpen,
-  onSettingsOpen
+  onSettingsOpen,
+  onMemberInfoClick
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
