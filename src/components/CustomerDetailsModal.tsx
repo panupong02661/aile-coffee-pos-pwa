@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Phone, Calendar, Award, Star, Crown, TrendingUp } from 'lucide-react';
+import { User, Phone, Calendar, Award, Star, Crown, TrendingUp, ShoppingBag } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Member {
   id: string;
@@ -30,6 +31,61 @@ interface CustomerDetailsModalProps {
 }
 
 const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalProps) => {
+  const [topItems, setTopItems] = useState<Array<{ name: string; count: number; total: number }>>([]);
+  const [loadingTopItems, setLoadingTopItems] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && member) {
+      fetchTopItems();
+    }
+  }, [isOpen, member]);
+
+  const fetchTopItems = async () => {
+    if (!member) return;
+    
+    setLoadingTopItems(true);
+    try {
+      // Fetch all orders for this member
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('items')
+        .eq('member_id', member.id)
+        .not('items', 'is', null);
+
+      if (error) throw error;
+
+      // Count items
+      const itemCounts: Record<string, { count: number; total: number }> = {};
+      
+      orders?.forEach((order: any) => {
+        const items = order.items || [];
+        items.forEach((item: any) => {
+          const name = item.menu_item_name || item.name;
+          if (name) {
+            if (!itemCounts[name]) {
+              itemCounts[name] = { count: 0, total: 0 };
+            }
+            itemCounts[name].count += item.quantity || 1;
+            itemCounts[name].total += (item.total_price || 0);
+          }
+        });
+      });
+
+      // Sort by count and take top 5
+      const sorted = Object.entries(itemCounts)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      setTopItems(sorted);
+    } catch (error) {
+      console.error('Error fetching top items:', error);
+      setTopItems([]);
+    } finally {
+      setLoadingTopItems(false);
+    }
+  };
+
   if (!member) return null;
 
   const getTierIcon = (tier: string) => {
@@ -179,6 +235,39 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Top 5 Popular Items */}
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5" />
+                เมนูยอดนิยม (Top 5)
+              </h3>
+              
+              {loadingTopItems ? (
+                <div className="text-center py-4 text-muted-foreground">กำลังโหลด...</div>
+              ) : topItems.length > 0 ? (
+                <div className="space-y-2">
+                  {topItems.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-accent/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                          {index + 1}
+                        </div>
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-primary">{item.count} ครั้ง</div>
+                        <div className="text-xs text-muted-foreground">฿{item.total.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">ยังไม่มีประวัติการสั่งซื้อ</div>
+              )}
             </CardContent>
           </Card>
         </div>
