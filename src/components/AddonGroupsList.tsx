@@ -21,11 +21,72 @@ interface AddonGroupsListProps {
   addonGroups: any[];
   onEdit: (item: any) => void;
   onDelete?: () => void;
+  onStatusChange?: () => void;
 }
 
-const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, onDelete }) => {
+const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, onDelete, onStatusChange }) => {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [localGroups, setLocalGroups] = React.useState(addonGroups);
+
+  React.useEffect(() => {
+    setLocalGroups(addonGroups);
+  }, [addonGroups]);
+
+  const handleStatusToggle = async (group: any) => {
+    try {
+      const newStatus = !group.is_active;
+      
+      setLocalGroups(prevItems =>
+        prevItems.map(g =>
+          g.id === group.id
+            ? { ...g, is_active: newStatus }
+            : g
+        )
+      );
+      
+      const { error } = await supabase
+        .from('addon_groups')
+        .update({ is_active: newStatus })
+        .eq('id', group.id);
+
+      if (error) {
+        console.error('Error updating addon group status:', error);
+        setLocalGroups(prevItems =>
+          prevItems.map(g =>
+            g.id === group.id
+              ? { ...g, is_active: !newStatus }
+              : g
+          )
+        );
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถอัปเดตสถานะได้',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'สำเร็จ',
+        description: `${newStatus ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}กลุ่ม Add-on ${group.name} แล้ว`,
+      });
+      
+      setTimeout(() => {
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Error updating addon group status:', error);
+      setLocalGroups(addonGroups);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอัปเดตสถานะได้',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -76,18 +137,26 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {addonGroups.map((group) => (
-          <Card key={group.id} className="overflow-hidden">
+        {localGroups.map((group) => (
+          <Card key={group.id} className={`overflow-hidden ${!group.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-lg">{group.name}</h3>
-              <Badge variant={group.is_active ? 'default' : 'secondary'}>
+              <Badge 
+                variant={group.is_active ? 'default' : 'destructive'}
+                className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                  group.is_active 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+                onClick={() => handleStatusToggle(group)}
+              >
                 {group.is_active ? (
                   <Eye className="w-3 h-3 mr-1" />
                 ) : (
                   <EyeOff className="w-3 h-3 mr-1" />
                 )}
-                {group.is_active ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                {group.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
             

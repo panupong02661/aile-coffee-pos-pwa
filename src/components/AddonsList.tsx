@@ -22,11 +22,72 @@ interface AddonsListProps {
   addonGroups: any[];
   onEdit: (item: any) => void;
   onDelete?: () => void;
+  onStatusChange?: () => void;
 }
 
-const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, onDelete }) => {
+const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, onDelete, onStatusChange }) => {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [localAddons, setLocalAddons] = React.useState(addons);
+
+  React.useEffect(() => {
+    setLocalAddons(addons);
+  }, [addons]);
+
+  const handleStatusToggle = async (addon: any) => {
+    try {
+      const newStatus = !addon.is_active;
+      
+      setLocalAddons(prevItems =>
+        prevItems.map(a =>
+          a.id === addon.id
+            ? { ...a, is_active: newStatus }
+            : a
+        )
+      );
+      
+      const { error } = await supabase
+        .from('addons')
+        .update({ is_active: newStatus })
+        .eq('id', addon.id);
+
+      if (error) {
+        console.error('Error updating addon status:', error);
+        setLocalAddons(prevItems =>
+          prevItems.map(a =>
+            a.id === addon.id
+              ? { ...a, is_active: !newStatus }
+              : a
+          )
+        );
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถอัปเดตสถานะได้',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'สำเร็จ',
+        description: `${newStatus ? 'เปิดใช้งาน' : 'ปิดใช้งาน'} Add-on ${addon.name} แล้ว`,
+      });
+      
+      setTimeout(() => {
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Error updating addon status:', error);
+      setLocalAddons(addons);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอัปเดตสถานะได้',
+        variant: 'destructive',
+      });
+    }
+  };
   const getGroupName = (groupId: string) => {
     const group = addonGroups.find(g => g.id === groupId);
     return group?.name || 'ไม่มีกลุ่ม';
@@ -63,18 +124,26 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {addons.map((addon) => (
+        {localAddons.map((addon) => (
           <Card key={addon.id} className={`overflow-hidden ${!addon.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-lg">{addon.name}</h3>
-              <Badge variant={addon.is_active ? 'default' : 'secondary'}>
+              <Badge 
+                variant={addon.is_active ? 'default' : 'destructive'}
+                className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                  addon.is_active 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+                onClick={() => handleStatusToggle(addon)}
+              >
                 {addon.is_active ? (
                   <Eye className="w-3 h-3 mr-1" />
                 ) : (
                   <EyeOff className="w-3 h-3 mr-1" />
                 )}
-                {addon.is_active ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                {addon.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
             

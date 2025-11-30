@@ -256,7 +256,11 @@ const MenuManagement = () => {
                       เพิ่มหมวดหมู่ใหม่
                     </Button>
                   </div>
-                  <CategoriesList categories={categories} onEdit={(item) => handleEdit(item, 'category')} />
+                  <CategoriesList 
+                    categories={categories} 
+                    onEdit={(item) => handleEdit(item, 'category')} 
+                    onStatusChange={() => refetch.categories()}
+                  />
                 </TabsContent>
 
                 <TabsContent value="addon-groups" className="mt-6">
@@ -274,6 +278,7 @@ const MenuManagement = () => {
                     addonGroups={addonGroups} 
                     onEdit={(item) => handleEdit(item, 'addonGroup')} 
                     onDelete={() => refetch.addonGroups()}
+                    onStatusChange={() => refetch.addonGroups()}
                   />
                 </TabsContent>
 
@@ -293,6 +298,7 @@ const MenuManagement = () => {
                     addonGroups={addonGroups} 
                     onEdit={(item) => handleEdit(item, 'addon')} 
                     onDelete={() => refetch.addons()}
+                    onStatusChange={() => refetch.addons()}
                   />
                 </TabsContent>
               </Tabs>
