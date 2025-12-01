@@ -551,8 +551,15 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
       console.log('🔄 Fetching menu items...');
       const { data, error } = await supabase
         .from('menu_items')
-        .select('*')
+        .select(`
+          *,
+          categories!menu_items_category_id_fkey (
+            id,
+            is_active
+          )
+        `)
         .eq('is_available', true)
+        .eq('categories.is_active', true)
         .order('name');
       
       if (error) {
@@ -608,10 +615,12 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
             id,
             name,
             allow_multiple,
-            is_required
+            is_required,
+            is_active
           )
         `)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('addon_groups.is_active', true);
       
       if (error) {
         console.error('Error fetching addons:', error);

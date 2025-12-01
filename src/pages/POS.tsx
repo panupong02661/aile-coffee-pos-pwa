@@ -185,6 +185,12 @@ const POS = () => {
     };
   }, [toast]);
 
+  const activeCategoryIds = new Set(
+    (categories || [])
+      .filter(cat => cat.is_active)
+      .map(cat => cat.id)
+  );
+
   const convertedCategories = [
     { 
       id: '1', 
@@ -193,27 +199,35 @@ const POS = () => {
       sort_order: 0,
       is_active: true
     },
-    ...(categories || []).map(cat => ({ 
-      id: cat.id, 
-      name: cat.name,
-      description: cat.description || '',
-      sort_order: cat.sort_order,
-      is_active: cat.is_active
-    }))
+    ...(categories || [])
+      .filter(cat => cat.is_active)
+      .map(cat => ({ 
+        id: cat.id, 
+        name: cat.name,
+        description: cat.description || '',
+        sort_order: cat.sort_order,
+        is_active: cat.is_active
+      }))
   ];
 
   console.log('🏷️ Converted categories:', convertedCategories.length);
 
-  const convertedMenuItems = (menuItems || []).map(item => ({
-    id: item.id,
-    name: item.name,
-    price: Number(item.price),
-    category_id: item.category_id || '',
-    image: item.image_url || '',
-    is_available: item.is_available,
-    description: item.description || '',
-    calculated_cost: Number(item.cost_price)
-  }));
+  const convertedMenuItems = (menuItems || []).map(item => {
+    const categoryIsActive = !item.category_id 
+      || activeCategoryIds.has(item.category_id);
+
+    return {
+      id: item.id,
+      name: item.name,
+      price: Number(item.price),
+      category_id: item.category_id || '',
+      image: item.image_url || '',
+      // แสดงเฉพาะเมนูที่เปิดใช้งานและหมวดหมู่ยังเปิดใช้งานอยู่
+      is_available: item.is_available && categoryIsActive,
+      description: item.description || '',
+      calculated_cost: Number(item.cost_price)
+    };
+  });
 
   console.log('🍽️ Converted menu items:', convertedMenuItems.length);
 

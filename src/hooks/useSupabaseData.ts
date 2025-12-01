@@ -37,6 +37,7 @@ export interface DatabaseAddonGroup {
   is_required: boolean;
   allow_multiple: boolean;
   sort_order: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -479,7 +480,10 @@ export const useSupabaseData = () => {
       .filter(mag => mag.menu_item_id === menuItemId)
       .map(mag => mag.addon_group_id);
     
-    return addonGroups.filter(ag => menuAddonGroupIds.includes(ag.id));
+    // ใช้เฉพาะกลุ่ม Add-on ที่ยังเปิดใช้งานอยู่เท่านั้น
+    return addonGroups.filter(ag => 
+      menuAddonGroupIds.includes(ag.id) && ag.is_active
+    );
   };
 
   const getAddonGroupsForCategory = (categoryId: string) => {
@@ -487,7 +491,10 @@ export const useSupabaseData = () => {
       .filter(cag => cag.category_id === categoryId)
       .map(cag => cag.addon_group_id);
     
-    return addonGroups.filter(ag => categoryAddonGroupIds.includes(ag.id));
+    // ใช้เฉพาะกลุ่ม Add-on ที่ยังเปิดใช้งานอยู่เท่านั้น
+    return addonGroups.filter(ag => 
+      categoryAddonGroupIds.includes(ag.id) && ag.is_active
+    );
   };
 
   const getLowStockIngredients = () => {
