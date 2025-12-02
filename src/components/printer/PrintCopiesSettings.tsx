@@ -7,7 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
-import { Printer, Receipt, FileText, Tag, Eye } from 'lucide-react';
+import { Printer, Receipt, FileText, Tag, Eye, Settings2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import ReceiptTemplatePreview from './ReceiptTemplatePreview';
 
 interface PrintCopiesConfig {
@@ -23,6 +26,32 @@ interface PrintCopiesConfig {
   customerPaperWidth: number;
   shopPaperWidth: number;
   stickerPaperWidth: number;
+  // Shop Receipt Advanced Settings
+  shopOrientation: 'portrait' | 'landscape';
+  shopPaddingTop: number;
+  shopPaddingBottom: number;
+  shopPaddingLeft: number;
+  shopPaddingRight: number;
+  shopItemSpacing: number;
+  shopHeaderSize: number;
+  shopOrderNumberSize: number;
+  shopItemNameSize: number;
+  shopAddonSize: number;
+  shopShowBorder: boolean;
+  shopBorderThickness: number;
+  // Sticker Advanced Settings
+  stickerOrientation: 'portrait' | 'landscape';
+  stickerPaddingTop: number;
+  stickerPaddingBottom: number;
+  stickerPaddingLeft: number;
+  stickerPaddingRight: number;
+  stickerItemSpacing: number;
+  stickerHeaderSize: number;
+  stickerItemNameSize: number;
+  stickerAddonSize: number;
+  stickerShowBorder: boolean;
+  stickerBorderThickness: number;
+  stickerHeight: number;
 }
 
 const PrintCopiesSettings = () => {
@@ -40,6 +69,32 @@ const PrintCopiesSettings = () => {
     customerPaperWidth: 80,
     shopPaperWidth: 80,
     stickerPaperWidth: 60,
+    // Shop Receipt Advanced Settings
+    shopOrientation: 'portrait',
+    shopPaddingTop: 8,
+    shopPaddingBottom: 8,
+    shopPaddingLeft: 8,
+    shopPaddingRight: 8,
+    shopItemSpacing: 12,
+    shopHeaderSize: 20,
+    shopOrderNumberSize: 18,
+    shopItemNameSize: 16,
+    shopAddonSize: 14,
+    shopShowBorder: true,
+    shopBorderThickness: 2,
+    // Sticker Advanced Settings
+    stickerOrientation: 'portrait',
+    stickerPaddingTop: 4,
+    stickerPaddingBottom: 4,
+    stickerPaddingLeft: 4,
+    stickerPaddingRight: 4,
+    stickerItemSpacing: 8,
+    stickerHeaderSize: 14,
+    stickerItemNameSize: 12,
+    stickerAddonSize: 10,
+    stickerShowBorder: true,
+    stickerBorderThickness: 1,
+    stickerHeight: 80,
   });
 
   useEffect(() => {
@@ -70,7 +125,7 @@ const PrintCopiesSettings = () => {
     }
   };
 
-  const updateConfig = (key: keyof PrintCopiesConfig, value: number | boolean) => {
+  const updateConfig = (key: keyof PrintCopiesConfig, value: number | boolean | string) => {
     setConfig(prev => ({
       ...prev,
       [key]: value,
@@ -169,40 +224,206 @@ const PrintCopiesSettings = () => {
                   ดูตัวอย่าง
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-4xl max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>ตัวอย่างใบร้าน/ครัว</DialogTitle>
                   <DialogDescription>
                     แก้ไขขนาดและรูปแบบตามต้องการ
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>ขนาดตัวอักษร: {config.shopFontSize}px</Label>
-                    <Slider
-                      value={[config.shopFontSize]}
-                      onValueChange={(value) => updateConfig('shopFontSize', value[0])}
-                      min={10}
-                      max={24}
-                      step={1}
+                <Tabs defaultValue="preview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="preview">ตัวอย่าง</TabsTrigger>
+                    <TabsTrigger value="settings">การตั้งค่าละเอียด</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="preview" className="space-y-4">
+                    <ReceiptTemplatePreview 
+                      type="shop" 
+                      fontSize={config.shopFontSize}
+                      paperWidth={config.shopPaperWidth}
+                      orientation={config.shopOrientation}
+                      paddingTop={config.shopPaddingTop}
+                      paddingBottom={config.shopPaddingBottom}
+                      paddingLeft={config.shopPaddingLeft}
+                      paddingRight={config.shopPaddingRight}
+                      itemSpacing={config.shopItemSpacing}
+                      headerSize={config.shopHeaderSize}
+                      orderNumberSize={config.shopOrderNumberSize}
+                      itemNameSize={config.shopItemNameSize}
+                      addonSize={config.shopAddonSize}
+                      showBorder={config.shopShowBorder}
+                      borderThickness={config.shopBorderThickness}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ความกว้างกระดาษ: {config.shopPaperWidth}mm</Label>
-                    <Slider
-                      value={[config.shopPaperWidth]}
-                      onValueChange={(value) => updateConfig('shopPaperWidth', value[0])}
-                      min={58}
-                      max={80}
-                      step={1}
-                    />
-                  </div>
-                  <ReceiptTemplatePreview 
-                    type="shop" 
-                    fontSize={config.shopFontSize}
-                    paperWidth={config.shopPaperWidth}
-                  />
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="settings" className="space-y-4">
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-6">
+                        {/* Orientation */}
+                        <div className="space-y-2">
+                          <Label className="text-base font-semibold">การวางแนว</Label>
+                          <RadioGroup
+                            value={config.shopOrientation}
+                            onValueChange={(value) => updateConfig('shopOrientation', value)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="portrait" id="shop-portrait" />
+                              <Label htmlFor="shop-portrait">แนวตั้ง (Portrait)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="landscape" id="shop-landscape" />
+                              <Label htmlFor="shop-landscape">แนวนอน (Landscape)</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {/* Paper Width */}
+                        <div className="space-y-2">
+                          <Label>ความกว้างกระดาษ: {config.shopPaperWidth}mm</Label>
+                          <Slider
+                            value={[config.shopPaperWidth]}
+                            onValueChange={(value) => updateConfig('shopPaperWidth', value[0])}
+                            min={58}
+                            max={120}
+                            step={1}
+                          />
+                        </div>
+
+                        {/* Padding Section */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">ระยะขอบ (Padding)</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm">บน: {config.shopPaddingTop}px</Label>
+                              <Slider
+                                value={[config.shopPaddingTop]}
+                                onValueChange={(value) => updateConfig('shopPaddingTop', value[0])}
+                                min={0}
+                                max={30}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ล่าง: {config.shopPaddingBottom}px</Label>
+                              <Slider
+                                value={[config.shopPaddingBottom]}
+                                onValueChange={(value) => updateConfig('shopPaddingBottom', value[0])}
+                                min={0}
+                                max={30}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ซ้าย: {config.shopPaddingLeft}px</Label>
+                              <Slider
+                                value={[config.shopPaddingLeft]}
+                                onValueChange={(value) => updateConfig('shopPaddingLeft', value[0])}
+                                min={0}
+                                max={30}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ขวา: {config.shopPaddingRight}px</Label>
+                              <Slider
+                                value={[config.shopPaddingRight]}
+                                onValueChange={(value) => updateConfig('shopPaddingRight', value[0])}
+                                min={0}
+                                max={30}
+                                step={1}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Font Sizes Section */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">ขนาดตัวอักษร</Label>
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <Label className="text-sm">หัวเรื่อง: {config.shopHeaderSize}px</Label>
+                              <Slider
+                                value={[config.shopHeaderSize]}
+                                onValueChange={(value) => updateConfig('shopHeaderSize', value[0])}
+                                min={12}
+                                max={36}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">เลขออเดอร์: {config.shopOrderNumberSize}px</Label>
+                              <Slider
+                                value={[config.shopOrderNumberSize]}
+                                onValueChange={(value) => updateConfig('shopOrderNumberSize', value[0])}
+                                min={10}
+                                max={32}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ชื่อเมนู: {config.shopItemNameSize}px</Label>
+                              <Slider
+                                value={[config.shopItemNameSize]}
+                                onValueChange={(value) => updateConfig('shopItemNameSize', value[0])}
+                                min={10}
+                                max={28}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ท็อปปิ้ง/เพิ่มเติม: {config.shopAddonSize}px</Label>
+                              <Slider
+                                value={[config.shopAddonSize]}
+                                onValueChange={(value) => updateConfig('shopAddonSize', value[0])}
+                                min={8}
+                                max={24}
+                                step={1}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Spacing */}
+                        <div className="space-y-2">
+                          <Label>ระยะห่างระหว่างรายการ: {config.shopItemSpacing}px</Label>
+                          <Slider
+                            value={[config.shopItemSpacing]}
+                            onValueChange={(value) => updateConfig('shopItemSpacing', value[0])}
+                            min={0}
+                            max={30}
+                            step={1}
+                          />
+                        </div>
+
+                        {/* Border Settings */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">เส้นขอบ</Label>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="shop-show-border">แสดงเส้นขอบ</Label>
+                            <Switch
+                              id="shop-show-border"
+                              checked={config.shopShowBorder}
+                              onCheckedChange={(checked) => updateConfig('shopShowBorder', checked)}
+                            />
+                          </div>
+                          {config.shopShowBorder && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">ความหนาเส้นขอบ: {config.shopBorderThickness}px</Label>
+                              <Slider
+                                value={[config.shopBorderThickness]}
+                                onValueChange={(value) => updateConfig('shopBorderThickness', value[0])}
+                                min={1}
+                                max={5}
+                                step={1}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           </div>
@@ -258,40 +479,209 @@ const PrintCopiesSettings = () => {
                   ดูตัวอย่าง
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-4xl max-h-[90vh]">
                 <DialogHeader>
                   <DialogTitle>ตัวอย่างสติ๊กเกอร์</DialogTitle>
                   <DialogDescription>
                     แก้ไขขนาดและรูปแบบตามต้องการ
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>ขนาดตัวอักษร: {config.stickerFontSize}px</Label>
-                    <Slider
-                      value={[config.stickerFontSize]}
-                      onValueChange={(value) => updateConfig('stickerFontSize', value[0])}
-                      min={8}
-                      max={16}
-                      step={1}
+                <Tabs defaultValue="preview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="preview">ตัวอย่าง</TabsTrigger>
+                    <TabsTrigger value="settings">การตั้งค่าละเอียด</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="preview" className="space-y-4">
+                    <ReceiptTemplatePreview 
+                      type="sticker" 
+                      fontSize={config.stickerFontSize}
+                      paperWidth={config.stickerPaperWidth}
+                      orientation={config.stickerOrientation}
+                      paddingTop={config.stickerPaddingTop}
+                      paddingBottom={config.stickerPaddingBottom}
+                      paddingLeft={config.stickerPaddingLeft}
+                      paddingRight={config.stickerPaddingRight}
+                      itemSpacing={config.stickerItemSpacing}
+                      headerSize={config.stickerHeaderSize}
+                      itemNameSize={config.stickerItemNameSize}
+                      addonSize={config.stickerAddonSize}
+                      showBorder={config.stickerShowBorder}
+                      borderThickness={config.stickerBorderThickness}
+                      height={config.stickerHeight}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ความกว้างกระดาษ: {config.stickerPaperWidth}mm</Label>
-                    <Slider
-                      value={[config.stickerPaperWidth]}
-                      onValueChange={(value) => updateConfig('stickerPaperWidth', value[0])}
-                      min={40}
-                      max={80}
-                      step={1}
-                    />
-                  </div>
-                  <ReceiptTemplatePreview 
-                    type="sticker" 
-                    fontSize={config.stickerFontSize}
-                    paperWidth={config.stickerPaperWidth}
-                  />
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="settings" className="space-y-4">
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-6">
+                        {/* Orientation */}
+                        <div className="space-y-2">
+                          <Label className="text-base font-semibold">การวางแนว</Label>
+                          <RadioGroup
+                            value={config.stickerOrientation}
+                            onValueChange={(value) => updateConfig('stickerOrientation', value)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="portrait" id="sticker-portrait" />
+                              <Label htmlFor="sticker-portrait">แนวตั้ง (Portrait)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="landscape" id="sticker-landscape" />
+                              <Label htmlFor="sticker-landscape">แนวนอน (Landscape)</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {/* Size Settings */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">ขนาด</Label>
+                          <div className="space-y-2">
+                            <Label>ความกว้าง: {config.stickerPaperWidth}mm</Label>
+                            <Slider
+                              value={[config.stickerPaperWidth]}
+                              onValueChange={(value) => updateConfig('stickerPaperWidth', value[0])}
+                              min={40}
+                              max={100}
+                              step={1}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>ความสูง: {config.stickerHeight}mm</Label>
+                            <Slider
+                              value={[config.stickerHeight]}
+                              onValueChange={(value) => updateConfig('stickerHeight', value[0])}
+                              min={40}
+                              max={150}
+                              step={1}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Padding Section */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">ระยะขอบ (Padding)</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm">บน: {config.stickerPaddingTop}px</Label>
+                              <Slider
+                                value={[config.stickerPaddingTop]}
+                                onValueChange={(value) => updateConfig('stickerPaddingTop', value[0])}
+                                min={0}
+                                max={20}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ล่าง: {config.stickerPaddingBottom}px</Label>
+                              <Slider
+                                value={[config.stickerPaddingBottom]}
+                                onValueChange={(value) => updateConfig('stickerPaddingBottom', value[0])}
+                                min={0}
+                                max={20}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ซ้าย: {config.stickerPaddingLeft}px</Label>
+                              <Slider
+                                value={[config.stickerPaddingLeft]}
+                                onValueChange={(value) => updateConfig('stickerPaddingLeft', value[0])}
+                                min={0}
+                                max={20}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ขวา: {config.stickerPaddingRight}px</Label>
+                              <Slider
+                                value={[config.stickerPaddingRight]}
+                                onValueChange={(value) => updateConfig('stickerPaddingRight', value[0])}
+                                min={0}
+                                max={20}
+                                step={1}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Font Sizes Section */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">ขนาดตัวอักษร</Label>
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <Label className="text-sm">หัวเรื่อง (เลขออเดอร์): {config.stickerHeaderSize}px</Label>
+                              <Slider
+                                value={[config.stickerHeaderSize]}
+                                onValueChange={(value) => updateConfig('stickerHeaderSize', value[0])}
+                                min={10}
+                                max={24}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ชื่อเมนู: {config.stickerItemNameSize}px</Label>
+                              <Slider
+                                value={[config.stickerItemNameSize]}
+                                onValueChange={(value) => updateConfig('stickerItemNameSize', value[0])}
+                                min={8}
+                                max={20}
+                                step={1}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">ท็อปปิ้ง/เพิ่มเติม: {config.stickerAddonSize}px</Label>
+                              <Slider
+                                value={[config.stickerAddonSize]}
+                                onValueChange={(value) => updateConfig('stickerAddonSize', value[0])}
+                                min={6}
+                                max={16}
+                                step={1}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Spacing */}
+                        <div className="space-y-2">
+                          <Label>ระยะห่างระหว่างรายการ: {config.stickerItemSpacing}px</Label>
+                          <Slider
+                            value={[config.stickerItemSpacing]}
+                            onValueChange={(value) => updateConfig('stickerItemSpacing', value[0])}
+                            min={0}
+                            max={20}
+                            step={1}
+                          />
+                        </div>
+
+                        {/* Border Settings */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">เส้นขอบ</Label>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="sticker-show-border">แสดงเส้นขอบ</Label>
+                            <Switch
+                              id="sticker-show-border"
+                              checked={config.stickerShowBorder}
+                              onCheckedChange={(checked) => updateConfig('stickerShowBorder', checked)}
+                            />
+                          </div>
+                          {config.stickerShowBorder && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">ความหนาเส้นขอบ: {config.stickerBorderThickness}px</Label>
+                              <Slider
+                                value={[config.stickerBorderThickness]}
+                                onValueChange={(value) => updateConfig('stickerBorderThickness', value[0])}
+                                min={1}
+                                max={5}
+                                step={1}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           </div>
