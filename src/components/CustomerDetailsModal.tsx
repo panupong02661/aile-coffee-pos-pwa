@@ -144,32 +144,32 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="w-6 h-6" />
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <User className="w-5 h-5" />
             ข้อมูลลูกค้า
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             ดูรายละเอียดข้อมูลสมาชิกและสถิติการซื้อ
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Tier Card */}
-          <Card className={`border-2 ${getTierColor(member.tier)}`}>
-            <CardContent className="p-4">
+          <Card className={`border ${getTierColor(member.tier)}`}>
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {getTierIcon(member.tier)}
                   <div>
-                    <p className="text-sm text-muted-foreground">ระดับสมาชิก</p>
-                    <p className="text-xl font-bold">{getTierName(member.tier)}</p>
+                    <p className="text-xs text-muted-foreground">ระดับสมาชิก</p>
+                    <p className="text-base font-bold">{getTierName(member.tier)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-muted-foreground">แต้มสะสม</p>
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-xs text-muted-foreground">แต้มสะสม</p>
+                  <p className="text-lg font-bold text-orange-600">
                     {member.points.toLocaleString()}
                   </p>
                 </div>
@@ -179,45 +179,38 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
 
           {/* Personal Info */}
           <Card>
-            <CardContent className="p-4 space-y-3">
-              <h3 className="font-semibold text-lg mb-3">ข้อมูลส่วนตัว</h3>
+            <CardContent className="p-3">
+              <h3 className="font-semibold text-sm mb-2">ข้อมูลส่วนตัว</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p className="text-sm text-muted-foreground">ชื่อ</p>
+                  <p className="text-xs text-muted-foreground">ชื่อ</p>
                   <p className="font-medium">{member.name}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-muted-foreground">เบอร์โทร</p>
+                  <p className="text-xs text-muted-foreground">เบอร์โทร</p>
                   <p className="font-medium flex items-center gap-1">
-                    <Phone className="w-4 h-4" />
+                    <Phone className="w-3 h-3" />
                     {member.phone}
                   </p>
                 </div>
 
-                {member.email && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">อีเมล</p>
-                    <p className="font-medium">{member.email}</p>
-                  </div>
-                )}
-
                 <div>
-                  <p className="text-sm text-muted-foreground">เพศ</p>
+                  <p className="text-xs text-muted-foreground">เพศ</p>
                   <p className="font-medium">{formatGender(member.gender)}</p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-muted-foreground">วันเกิด</p>
+                  <p className="text-xs text-muted-foreground">วันเกิด</p>
                   <p className="font-medium flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3 h-3" />
                     {formatDate(member.birth_date)}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">วันที่สมัคร</p>
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">วันที่สมัคร</p>
                   <p className="font-medium">{formatDate(member.join_date)}</p>
                 </div>
               </div>
@@ -226,23 +219,23 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
 
           {/* Purchase Stats */}
           <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+            <CardContent className="p-3">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
                 สถิติการซื้อ
               </h3>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <p className="text-sm text-green-600">ยอดซื้อสะสม</p>
-                  <p className="text-2xl font-bold text-green-700">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-green-50 p-2 rounded-lg">
+                  <p className="text-xs text-green-600">ยอดซื้อสะสม</p>
+                  <p className="text-lg font-bold text-green-700">
                     ฿{member.total_spent.toLocaleString()}
                   </p>
                 </div>
                 
-                <div className="bg-orange-50 p-3 rounded-lg">
-                  <p className="text-sm text-orange-600">แต้มคงเหลือ</p>
-                  <p className="text-2xl font-bold text-orange-700">
+                <div className="bg-orange-50 p-2 rounded-lg">
+                  <p className="text-xs text-orange-600">แต้มคงเหลือ</p>
+                  <p className="text-lg font-bold text-orange-700">
                     {member.points.toLocaleString()}
                   </p>
                 </div>
@@ -252,33 +245,33 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
 
           {/* Top 5 Popular Items */}
           <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5" />
+            <CardContent className="p-3">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
                 เมนูยอดนิยม (Top 5)
               </h3>
               
               {loadingTopItems ? (
-                <div className="text-center py-4 text-muted-foreground">กำลังโหลด...</div>
+                <div className="text-center py-2 text-muted-foreground text-sm">กำลังโหลด...</div>
               ) : topItems.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {topItems.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-accent/50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-1.5 bg-accent/50 rounded">
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                           {index + 1}
                         </div>
-                        <span className="font-medium">{item.name}</span>
+                        <span className="font-medium text-sm">{item.name}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-semibold text-primary">{item.count} ครั้ง</div>
+                        <div className="text-xs font-semibold text-primary">{item.count} ครั้ง</div>
                         <div className="text-xs text-muted-foreground">฿{item.total.toLocaleString()}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-muted-foreground">ยังไม่มีประวัติการสั่งซื้อ</div>
+                <div className="text-center py-2 text-muted-foreground text-sm">ยังไม่มีประวัติการสั่งซื้อ</div>
               )}
             </CardContent>
           </Card>
