@@ -45,30 +45,42 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
     
     setLoadingTopItems(true);
     try {
-      // Fetch all orders for this member
-      const { data: orders, error } = await supabase
+      // Fetch all order IDs for this member first
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('items')
-        .eq('member_id', member.id)
-        .not('items', 'is', null);
+        .select('id')
+        .eq('member_id', member.id);
 
-      if (error) throw error;
+      if (ordersError) throw ordersError;
+
+      if (!orders || orders.length === 0) {
+        setTopItems([]);
+        setLoadingTopItems(false);
+        return;
+      }
+
+      const orderIds = orders.map(o => o.id);
+
+      // Fetch order_items for these orders
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('menu_item_name, quantity, total_price')
+        .in('order_id', orderIds);
+
+      if (itemsError) throw itemsError;
 
       // Count items
       const itemCounts: Record<string, { count: number; total: number }> = {};
       
-      orders?.forEach((order: any) => {
-        const items = order.items || [];
-        items.forEach((item: any) => {
-          const name = item.menu_item_name || item.name;
-          if (name) {
-            if (!itemCounts[name]) {
-              itemCounts[name] = { count: 0, total: 0 };
-            }
-            itemCounts[name].count += item.quantity || 1;
-            itemCounts[name].total += (item.total_price || 0);
+      orderItems?.forEach((item: any) => {
+        const name = item.menu_item_name;
+        if (name) {
+          if (!itemCounts[name]) {
+            itemCounts[name] = { count: 0, total: 0 };
           }
-        });
+          itemCounts[name].count += item.quantity || 1;
+          itemCounts[name].total += (item.total_price || 0);
+        }
       });
 
       // Sort by count and take top 5
