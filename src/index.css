@@ -92,9 +92,16 @@
     @apply border-border;
   }
 
+  html {
+    height: -webkit-fill-available;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overflow: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {

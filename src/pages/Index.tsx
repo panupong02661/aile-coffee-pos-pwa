@@ -322,7 +322,11 @@ const Index = () => {
 
   return (
     <div 
-      className="h-dvh max-h-screen bg-cream-50 flex overflow-hidden" 
+      className="bg-cream-50 flex overflow-hidden" 
+      style={{ 
+        height: '100svh',
+        maxHeight: '100svh'
+      }}
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -331,11 +335,17 @@ const Index = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out ${
-        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
-      }`}>
+      <div 
+        className={`flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${
+          isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
+        }`}
+        style={{ 
+          gridTemplateRows: 'auto 1fr',
+          height: '100%'
+        }}
+      >
         {/* Header */}
-        <div className={`flex-shrink-0 bg-cream-50 z-10 ${
+        <div className={`bg-cream-50 z-10 ${
           isMobile ? 'p-2 pb-0' : 'p-3 pb-0'
         }`}>
           <Header 
@@ -359,12 +369,15 @@ const Index = () => {
         </div>
         
         {/* Content Area */}
-        <div className={`flex-1 flex gap-3 min-h-0 ${
-          isMobile ? 'flex-col p-2 pt-0 pb-2' : 'px-4 pb-2 pt-0'
-        }`}>
+        <div 
+          className={`flex gap-3 overflow-hidden ${
+            isMobile ? 'flex-col p-2 pt-0 pb-4' : 'px-4 pb-4 pt-0'
+          }`}
+          style={{ height: 'calc(100% - 8px)' }}
+        >
           {/* Menu Grid Container */}
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-white rounded-lg border border-coffee-200">
+          <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+            <div className="h-full bg-white rounded-lg border border-coffee-200 overflow-hidden">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-2' : 'p-3'
               }`} style={{ scrollbarWidth: 'thin' }}>
@@ -381,26 +394,24 @@ const Index = () => {
 
           {/* Desktop Cart */}
           {!isMobile && (
-            <div className="w-80 flex-shrink-0 overflow-hidden">
-              <div className="h-full flex flex-col">
-                <div className="flex-1 overflow-hidden">
-                  <Cart
-                    cartItems={cartItems}
-                    onUpdateQuantity={updateQuantity}
-                    onRemoveItem={removeFromCart}
-                    onUpdateDiscount={updateDiscount}
-                    onClearCart={handleClearCart}
-                    billDiscount={billDiscount}
-                    billDiscountType={billDiscountType}
-                    onUpdateBillDiscount={setBillDiscount}
-                    onUpdateBillDiscountType={setBillDiscountType}
-                    onRestoreCart={restoreCart}
-                    selectedMember={selectedMember}
-                    onCodeApply={handleCodeApply}
-                    appliedGiftCode={appliedGiftCode}
-                    onPaymentComplete={handlePaymentComplete}
-                  />
-                </div>
+            <div className="w-80 flex-shrink-0 min-h-0 overflow-hidden">
+              <div className="h-full">
+                <Cart
+                  cartItems={cartItems}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeFromCart}
+                  onUpdateDiscount={updateDiscount}
+                  onClearCart={handleClearCart}
+                  billDiscount={billDiscount}
+                  billDiscountType={billDiscountType}
+                  onUpdateBillDiscount={setBillDiscount}
+                  onUpdateBillDiscountType={setBillDiscountType}
+                  onRestoreCart={restoreCart}
+                  selectedMember={selectedMember}
+                  onCodeApply={handleCodeApply}
+                  appliedGiftCode={appliedGiftCode}
+                  onPaymentComplete={handlePaymentComplete}
+                />
               </div>
             </div>
           )}
