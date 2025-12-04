@@ -359,14 +359,14 @@ const Index = () => {
         </div>
         
         {/* Content Area */}
-        <div className={`flex-1 flex gap-6 overflow-hidden ${
-          isMobile ? 'flex-col p-2 pt-0' : 'p-4 pt-0'
+        <div className={`flex-1 flex gap-4 overflow-hidden ${
+          isMobile ? 'flex-col p-2 pt-0 pb-2' : 'px-4 pb-3 pt-0'
         }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="h-full bg-white rounded-lg border border-coffee-200">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-2' : 'p-4'
+                isMobile ? 'p-2' : 'p-3'
               }`} style={{ scrollbarWidth: 'thin' }}>
                 <MenuGrid
                   menuItems={filteredMenuItems}
