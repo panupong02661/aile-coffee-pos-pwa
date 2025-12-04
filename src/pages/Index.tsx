@@ -322,7 +322,7 @@ const Index = () => {
 
   return (
     <div 
-      className="h-screen bg-cream-50 flex overflow-hidden" 
+      className="h-dvh max-h-screen bg-cream-50 flex overflow-hidden" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -331,12 +331,12 @@ const Index = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Header */}
-        <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
-          isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
+        <div className={`flex-shrink-0 bg-cream-50 z-10 ${
+          isMobile ? 'p-2 pb-0' : 'p-3 pb-0'
         }`}>
           <Header 
             onToggleSidebar={handleToggleSidebar}
@@ -359,8 +359,8 @@ const Index = () => {
         </div>
         
         {/* Content Area */}
-        <div className={`flex-1 flex gap-4 overflow-hidden ${
-          isMobile ? 'flex-col p-2 pt-0 pb-2' : 'px-4 pb-3 pt-0'
+        <div className={`flex-1 flex gap-3 min-h-0 ${
+          isMobile ? 'flex-col p-2 pt-0 pb-2' : 'px-4 pb-2 pt-0'
         }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 overflow-hidden">
