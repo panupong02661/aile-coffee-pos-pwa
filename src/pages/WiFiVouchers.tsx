@@ -943,17 +943,16 @@ const WiFiVouchers = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
       />
       
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
-        <Shell>
-          <div className="space-y-6">
+        <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
@@ -1448,9 +1447,8 @@ const WiFiVouchers = () => {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
-    </Shell>
-    </div>
     </div>
   );
 };
