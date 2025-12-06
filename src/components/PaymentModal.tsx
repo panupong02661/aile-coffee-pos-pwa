@@ -192,7 +192,7 @@ const PaymentModal = ({
     } else {
       setWifiVoucherPreview(null);
     }
-  }, [isOpen]);
+  }, [isOpen, total]);
 
   // Load PromptPay phone from shop_settings via edge function
   const loadPromptPayPhone = async () => {
@@ -229,11 +229,25 @@ const PaymentModal = ({
 
   const loadWifiVoucherPreview = async () => {
     try {
-      // Preview WiFi voucher ถูกปิดเพื่อไม่ให้สับสนกับคูปองที่ผูกกับออเดอร์จริง
-      // ตอนนี้ระบบจะผูก WiFi voucher ให้กับออเดอร์ในพื้นหลังเมื่อชำระเงินเท่านั้น
-      setWifiVoucherPreview(null);
+      // ดึง preview WiFi voucher ตามยอดเงินที่ซื้อ
+      const { getWiFiVoucherPreview } = await import('@/utils/wifiVoucherUtils');
+      const voucher = await getWiFiVoucherPreview(total);
+      
+      if (voucher) {
+        setWifiVoucherPreview({
+          id: voucher.id,
+          username: voucher.username,
+          password: voucher.password,
+          qr_code_url: voucher.qr_code_url
+        });
+        console.log('[PaymentModal] WiFi voucher preview loaded for amount:', total, '-', voucher.username, '(', voucher.duration_hours, 'hrs)');
+      } else {
+        setWifiVoucherPreview(null);
+        console.log('[PaymentModal] No WiFi voucher available for amount:', total);
+      }
     } catch (error) {
       console.error('Error in WiFi voucher preview:', error);
+      setWifiVoucherPreview(null);
     }
   };
 

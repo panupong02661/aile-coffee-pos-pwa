@@ -118,6 +118,79 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
 };
 
 /**
+ * ดึง WiFi Voucher สำหรับ Preview ตามยอดเงิน (ไม่อัพเดทสถานะ)
+ * ใช้สำหรับแสดง preview ในหน้าชำระเงินก่อนกดยืนยัน
+ * 
+ * @param amount ยอดเงินที่ลูกค้าซื้อ
+ * @returns WiFiVoucher object หรือ null ถ้าไม่พบ
+ */
+export const getWiFiVoucherPreview = async (amount: number): Promise<WiFiVoucher | null> => {
+  try {
+    console.log('🔍 [WiFi Preview] Looking for voucher preview for amount:', amount);
+    
+    // ดึงข้อมูลช่วงราคาทั้งหมดที่ active
+    const { data: tiers, error: tiersError } = await supabase
+      .from('wifi_price_tiers')
+      .select('*')
+      .eq('is_active', true)
+      .order('min_amount', { ascending: true });
+
+    if (tiersError) {
+      console.error('❌ [WiFi Preview] Error fetching price tiers:', tiersError);
+      return null;
+    }
+
+    if (!tiers || tiers.length === 0) {
+      console.log('⚠️ [WiFi Preview] No active price tiers found');
+      return null;
+    }
+
+    // หาช่วงราคาที่เหมาะสม
+    const matchingTier = tiers.find(
+      tier => amount >= tier.min_amount && amount <= tier.max_amount
+    );
+
+    if (!matchingTier) {
+      console.log('⚠️ [WiFi Preview] No matching price tier found for amount:', amount);
+      return null;
+    }
+
+    console.log('✅ [WiFi Preview] Found matching tier:', {
+      min_amount: matchingTier.min_amount,
+      max_amount: matchingTier.max_amount,
+      duration_hours: matchingTier.duration_hours
+    });
+
+    // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา (ไม่ lock, แค่ preview)
+    const { data: vouchers, error: vouchersError } = await supabase
+      .from('wifi_vouchers')
+      .select('*')
+      .eq('is_used', false)
+      .eq('duration_hours', matchingTier.duration_hours)
+      .order('created_at', { ascending: true })
+      .limit(1);
+
+    if (vouchersError) {
+      console.error('❌ [WiFi Preview] Error fetching vouchers:', vouchersError);
+      return null;
+    }
+
+    if (!vouchers || vouchers.length === 0) {
+      console.log('⚠️ [WiFi Preview] No available voucher found for duration:', matchingTier.duration_hours, 'hours');
+      return null;
+    }
+
+    const voucher = vouchers[0] as WiFiVoucher;
+    console.log('🎫 [WiFi Preview] Found voucher preview:', voucher.username, 'duration:', voucher.duration_hours, 'hours');
+
+    return voucher;
+  } catch (error) {
+    console.error('❌ [WiFi Preview] Error in getWiFiVoucherPreview:', error);
+    return null;
+  }
+};
+
+/**
  * ตรวจสอบว่ามีการตั้งค่าช่วงราคาหรือไม่
  * @returns true ถ้ามีการตั้งค่า, false ถ้าไม่มี
  */
