@@ -90,21 +90,8 @@ const ReceiptPreview = ({
         .limit(1)
         .single();
 
-      // Only fetch WiFi voucher if not provided via props (for preview mode)
-      if (!propWifiVoucher) {
-        const { data: voucherData } = await supabase
-          .from('wifi_vouchers')
-          .select('username, password, qr_code_url')
-          .eq('is_used', false)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        
-        if (voucherData) {
-          setWifiVoucher(voucherData);
-        }
-      }
-
+      // WiFi voucher จะถูกส่งมาจาก prop เท่านั้น ไม่ fetch ใหม่
+      // เพื่อให้แสดง voucher ที่ถูกต้องตาม price tier และสถานะที่ใช้ไปแล้ว
 
       setShopSettings(shopData);
       setReceiptSettings(receiptData);
