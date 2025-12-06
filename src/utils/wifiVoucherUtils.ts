@@ -23,11 +23,19 @@ export interface PriceTier {
 
 /**
  * ดึง WiFi Voucher ตามยอดเงินที่ลูกค้าซื้อ
+ * ฟังก์ชันนี้จะ:
+ * 1. หาช่วงราคาที่ตรงกับยอดซื้อ
+ * 2. หา voucher ที่ยังไม่ได้ใช้และตรงกับระยะเวลาของช่วงราคานั้น
+ * 3. อัพเดทสถานะ voucher เป็น "ใช้แล้ว"
+ * 4. คืนค่า voucher หรือ null ถ้าไม่พบ
+ * 
  * @param amount ยอดเงินที่ลูกค้าซื้อ
  * @returns WiFiVoucher object หรือ null ถ้าไม่พบ
  */
 export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVoucher | null> => {
   try {
+    console.log('🔍 [WiFi Voucher] Looking for voucher for amount:', amount);
+    
     // ดึงข้อมูลช่วงราคาทั้งหมดที่ active
     const { data: tiers, error: tiersError } = await supabase
       .from('wifi_price_tiers')
@@ -36,26 +44,33 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
       .order('min_amount', { ascending: true });
 
     if (tiersError) {
-      console.error('Error fetching price tiers:', tiersError);
+      console.error('❌ [WiFi Voucher] Error fetching price tiers:', tiersError);
       return null;
     }
 
     if (!tiers || tiers.length === 0) {
-      console.log('No active price tiers found');
+      console.log('⚠️ [WiFi Voucher] No active price tiers found');
       return null;
     }
 
-    // หาช่วงราคาที่เหมาะสม
+    console.log('📋 [WiFi Voucher] Available price tiers:', tiers);
+
+    // หาช่วงราคาที่เหมาะสม - ต้อง >= min_amount และ <= max_amount
     const matchingTier = tiers.find(
       tier => amount >= tier.min_amount && amount <= tier.max_amount
     );
 
     if (!matchingTier) {
-      console.log('No matching price tier found for amount:', amount);
+      console.log('⚠️ [WiFi Voucher] No matching price tier found for amount:', amount);
+      console.log('📋 [WiFi Voucher] Available tiers ranges:', tiers.map(t => `${t.min_amount}-${t.max_amount} = ${t.duration_hours}hr`));
       return null;
     }
 
-    console.log('Found matching tier:', matchingTier);
+    console.log('✅ [WiFi Voucher] Found matching tier:', {
+      min_amount: matchingTier.min_amount,
+      max_amount: matchingTier.max_amount,
+      duration_hours: matchingTier.duration_hours
+    });
 
     // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา
     const { data: vouchers, error: vouchersError } = await supabase
@@ -63,19 +78,21 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
       .select('*')
       .eq('is_used', false)
       .eq('duration_hours', matchingTier.duration_hours)
+      .order('created_at', { ascending: true })
       .limit(1);
 
     if (vouchersError) {
-      console.error('Error fetching vouchers:', vouchersError);
+      console.error('❌ [WiFi Voucher] Error fetching vouchers:', vouchersError);
       return null;
     }
 
     if (!vouchers || vouchers.length === 0) {
-      console.log('No available voucher found for duration:', matchingTier.duration_hours);
+      console.log('⚠️ [WiFi Voucher] No available voucher found for duration:', matchingTier.duration_hours, 'hours');
       return null;
     }
 
-    const voucher = vouchers[0];
+    const voucher = vouchers[0] as WiFiVoucher;
+    console.log('🎫 [WiFi Voucher] Found voucher:', voucher.username, 'duration:', voucher.duration_hours, 'hours');
 
     // อัพเดทสถานะ voucher เป็นใช้แล้ว
     const { error: updateError } = await supabase
@@ -84,17 +101,18 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
         is_used: true, 
         used_at: new Date().toISOString() 
       })
-      .eq('id', voucher.id);
+      .eq('id', voucher.id)
+      .eq('is_used', false); // Double check to prevent race condition
 
     if (updateError) {
-      console.error('Error updating voucher status:', updateError);
+      console.error('❌ [WiFi Voucher] Error updating voucher status:', updateError);
       return null;
     }
 
-    console.log('Successfully allocated voucher:', voucher);
+    console.log('✅ [WiFi Voucher] Successfully allocated voucher:', voucher.username);
     return voucher;
   } catch (error) {
-    console.error('Error in getWiFiVoucherByAmount:', error);
+    console.error('❌ [WiFi Voucher] Error in getWiFiVoucherByAmount:', error);
     return null;
   }
 };
