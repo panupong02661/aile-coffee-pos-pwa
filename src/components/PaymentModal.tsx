@@ -228,8 +228,11 @@ const PaymentModal = ({
   };
 
   const loadWifiVoucherPreview = async () => {
+    // รีเซ็ต state ก่อนโหลดใหม่เพื่อไม่ให้แสดง voucher เก่า
+    setWifiVoucherPreview(null);
+    
     try {
-      // ดึง preview WiFi voucher ตามยอดเงินที่ซื้อ
+      // ดึง preview WiFi voucher ตามยอดเงินที่ซื้อ - fresh query ทุกครั้ง
       const { getWiFiVoucherPreview } = await import('@/utils/wifiVoucherUtils');
       const voucher = await getWiFiVoucherPreview(total);
       
@@ -242,12 +245,10 @@ const PaymentModal = ({
         });
         console.log('[PaymentModal] WiFi voucher preview loaded for amount:', total, '-', voucher.username, '(', voucher.duration_hours, 'hrs)');
       } else {
-        setWifiVoucherPreview(null);
         console.log('[PaymentModal] No WiFi voucher available for amount:', total);
       }
     } catch (error) {
       console.error('Error in WiFi voucher preview:', error);
-      setWifiVoucherPreview(null);
     }
   };
 

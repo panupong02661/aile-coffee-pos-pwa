@@ -126,7 +126,7 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
  */
 export const getWiFiVoucherPreview = async (amount: number): Promise<WiFiVoucher | null> => {
   try {
-    console.log('🔍 [WiFi Preview] Looking for voucher preview for amount:', amount);
+    console.log('🔍 [WiFi Preview] Looking for voucher preview for amount:', amount, 'at', new Date().toISOString());
     
     // ดึงข้อมูลช่วงราคาทั้งหมดที่ active
     const { data: tiers, error: tiersError } = await supabase
@@ -161,10 +161,11 @@ export const getWiFiVoucherPreview = async (amount: number): Promise<WiFiVoucher
       duration_hours: matchingTier.duration_hours
     });
 
-    // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา (ไม่ lock, แค่ preview)
+    // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา
+    // ใช้ fresh query ทุกครั้งโดยไม่ cache - เช็คว่า is_used = false เท่านั้น
     const { data: vouchers, error: vouchersError } = await supabase
       .from('wifi_vouchers')
-      .select('*')
+      .select('id, username, password, qr_code_url, is_used, duration_hours, created_at')
       .eq('is_used', false)
       .eq('duration_hours', matchingTier.duration_hours)
       .order('created_at', { ascending: true })
@@ -175,13 +176,15 @@ export const getWiFiVoucherPreview = async (amount: number): Promise<WiFiVoucher
       return null;
     }
 
+    console.log('🔍 [WiFi Preview] Query result for duration', matchingTier.duration_hours, 'hrs:', vouchers);
+
     if (!vouchers || vouchers.length === 0) {
       console.log('⚠️ [WiFi Preview] No available voucher found for duration:', matchingTier.duration_hours, 'hours');
       return null;
     }
 
     const voucher = vouchers[0] as WiFiVoucher;
-    console.log('🎫 [WiFi Preview] Found voucher preview:', voucher.username, 'duration:', voucher.duration_hours, 'hours');
+    console.log('🎫 [WiFi Preview] Found voucher preview:', voucher.username, 'is_used:', voucher.is_used, 'duration:', voucher.duration_hours, 'hours');
 
     return voucher;
   } catch (error) {
