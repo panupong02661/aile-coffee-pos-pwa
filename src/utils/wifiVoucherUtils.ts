@@ -94,22 +94,32 @@ export const getWiFiVoucherByAmount = async (amount: number): Promise<WiFiVouche
     const voucher = vouchers[0] as WiFiVoucher;
     console.log('🎫 [WiFi Voucher] Found voucher:', voucher.username, 'duration:', voucher.duration_hours, 'hours');
 
-    // อัพเดทสถานะ voucher เป็นใช้แล้ว
-    const { error: updateError } = await supabase
+    // อัพเดทสถานะ voucher เป็นใช้แล้ว และ verify ว่าสำเร็จ
+    const { data: updatedVoucher, error: updateError } = await supabase
       .from('wifi_vouchers')
       .update({ 
         is_used: true, 
         used_at: new Date().toISOString() 
       })
       .eq('id', voucher.id)
-      .eq('is_used', false); // Double check to prevent race condition
+      .eq('is_used', false) // Double check to prevent race condition
+      .select()
+      .single();
 
     if (updateError) {
       console.error('❌ [WiFi Voucher] Error updating voucher status:', updateError);
       return null;
     }
 
-    console.log('✅ [WiFi Voucher] Successfully allocated voucher:', voucher.username);
+    // Verify update succeeded
+    if (!updatedVoucher) {
+      console.error('❌ [WiFi Voucher] Voucher update returned no data - may have been used by another transaction');
+      return null;
+    }
+
+    console.log('✅ [WiFi Voucher] Successfully allocated voucher:', voucher.username, 'verified is_used:', updatedVoucher.is_used);
+    
+    // Return the original voucher data (before update) for display purposes
     return voucher;
   } catch (error) {
     console.error('❌ [WiFi Voucher] Error in getWiFiVoucherByAmount:', error);
