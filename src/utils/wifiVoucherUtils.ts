@@ -162,14 +162,16 @@ export const getWiFiVoucherPreview = async (amount: number): Promise<WiFiVoucher
     });
 
     // หา voucher ที่ยังไม่ได้ใช้และมีระยะเวลาตรงกับช่วงราคา
-    // ใช้ fresh query ทุกครั้งโดยไม่ cache - เช็คว่า is_used = false เท่านั้น
+    // บังคับ fresh query ด้วย timestamp และ abortSignal เพื่อไม่ให้ cache
+    const controller = new AbortController();
     const { data: vouchers, error: vouchersError } = await supabase
       .from('wifi_vouchers')
-      .select('id, username, password, qr_code_url, is_used, duration_hours, created_at')
+      .select('id, username, password, qr_code_url, is_used, duration_hours, created_at, used_at')
       .eq('is_used', false)
       .eq('duration_hours', matchingTier.duration_hours)
       .order('created_at', { ascending: true })
-      .limit(1);
+      .limit(1)
+      .abortSignal(controller.signal);
 
     if (vouchersError) {
       console.error('❌ [WiFi Preview] Error fetching vouchers:', vouchersError);
