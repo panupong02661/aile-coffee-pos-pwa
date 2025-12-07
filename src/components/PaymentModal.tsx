@@ -184,15 +184,24 @@ const PaymentModal = ({
     }
   };
 
+  // รีเซ็ต wifi voucher preview ทุกครั้งที่ modal ปิด/เปิด
   useEffect(() => {
+    // รีเซ็ต state ทันทีเมื่อ modal เปิด
     if (isOpen) {
+      setWifiVoucherPreview(null); // รีเซ็ตก่อนโหลดใหม่
       loadMembershipSettings();
       loadPromptPayPhone();
-      loadWifiVoucherPreview();
+      
+      // Delay เล็กน้อยเพื่อให้ database update เสร็จก่อน
+      const timer = setTimeout(() => {
+        loadWifiVoucherPreview();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     } else {
       setWifiVoucherPreview(null);
     }
-  }, [isOpen, total]);
+  }, [isOpen]);
 
   // Load PromptPay phone from shop_settings via edge function
   const loadPromptPayPhone = async () => {
