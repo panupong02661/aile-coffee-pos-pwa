@@ -494,6 +494,29 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order items saved successfully`);
 
+      // 🔔 ส่ง notification ทันทีหลังจาก order + items ถูก save สำเร็จ (ไม่ต้องรอขั้นตอนอื่นๆ)
+      console.log('🔔 Sending POS notification IMMEDIATELY after order saved...');
+      sendPosOrderNotification(
+        {
+          id: order.id,
+          order_number: order.order_number,
+          total_amount: order.total_amount,
+          created_at: order.created_at,
+          member_id: selectedMember?.id || null,
+          payment_method: method,
+          bill_discount: billDiscount,
+          bill_discount_type: billDiscountType,
+          member_name: selectedMember?.name || null,
+          member_phone: selectedMember?.phone || null,
+        },
+        orderItems,
+        appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
+      ).then(() => {
+        console.log('✅ POS notification sent successfully (immediate)');
+      }).catch(error => {
+        console.error('❌ POS notification error (immediate):', error);
+      });
+
       // Reduce stock for ingredients - wait for this to complete
       console.log(`[PaymentModal] Starting stock reduction...`);
       const stockResult = await reduceStockForOrder(orderItems);
@@ -710,14 +733,9 @@ const PaymentModal = ({
             title: "บันทึกข้อมูลสำเร็จ",
             description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
           });
-
-          sendPosOrderNotification(
-            savedOrder,
-            savedOrder.order_items,
-            appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
-          ).catch(error => {
-            console.error('POS notification error:', error);
-          });
+          
+          // Notification ถูกส่งไปแล้วใน saveOrderToDatabase หลัง order+items save สำเร็จ
+          console.log('[PaymentModal] Order save completed - notification already sent');
         }
         
       } catch (error) {

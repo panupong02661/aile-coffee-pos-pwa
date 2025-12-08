@@ -190,8 +190,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Handle both POS and online orders for UI notifications
           console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
           
-          // Send notifications for BOTH online and POS orders via edge function
-          if (order.order_source === 'online' || order.order_source === 'pos' || !order.order_source) {
+          // Send notifications for BOTH online and POS/in_store orders via edge function
+          if (order.order_source === 'online' || order.order_source === 'pos' || order.order_source === 'in_store' || !order.order_source) {
             // Use cache key to prevent duplicate calls
             const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
             
