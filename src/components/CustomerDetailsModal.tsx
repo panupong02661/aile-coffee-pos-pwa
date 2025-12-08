@@ -144,7 +144,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-base">
             <User className="w-5 h-5" />
@@ -155,126 +155,131 @@ const CustomerDetailsModal = ({ isOpen, onClose, member }: CustomerDetailsModalP
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {/* Tier Card */}
-          <Card className={`border ${getTierColor(member.tier)}`}>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {getTierIcon(member.tier)}
-                  <div>
-                    <p className="text-xs text-muted-foreground">ระดับสมาชิก</p>
-                    <p className="text-base font-bold">{getTierName(member.tier)}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Left Column - Customer Info */}
+          <div className="space-y-3">
+            {/* Tier Card */}
+            <Card className={`border ${getTierColor(member.tier)}`}>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getTierIcon(member.tier)}
+                    <div>
+                      <p className="text-xs text-muted-foreground">ระดับสมาชิก</p>
+                      <p className="text-base font-bold">{getTierName(member.tier)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">แต้มสะสม</p>
+                    <p className="text-lg font-bold text-orange-600">
+                      {member.points.toLocaleString()}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">แต้มสะสม</p>
-                  <p className="text-lg font-bold text-orange-600">
-                    {member.points.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Personal Info */}
-          <Card>
-            <CardContent className="p-3">
-              <h3 className="font-semibold text-sm mb-2">ข้อมูลส่วนตัว</h3>
-              
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">ชื่อ</p>
-                  <p className="font-medium">{member.name}</p>
-                </div>
+            {/* Personal Info */}
+            <Card>
+              <CardContent className="p-3">
+                <h3 className="font-semibold text-sm mb-2">ข้อมูลส่วนตัว</h3>
                 
-                <div>
-                  <p className="text-xs text-muted-foreground">เบอร์โทร</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {member.phone}
-                  </p>
-                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">ชื่อ</p>
+                    <p className="font-medium">{member.name}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-muted-foreground">เบอร์โทร</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {member.phone}
+                    </p>
+                  </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground">เพศ</p>
-                  <p className="font-medium">{formatGender(member.gender)}</p>
-                </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">เพศ</p>
+                    <p className="font-medium">{formatGender(member.gender)}</p>
+                  </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground">วันเกิด</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(member.birth_date)}
-                  </p>
-                </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">วันเกิด</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(member.birth_date)}
+                    </p>
+                  </div>
 
-                <div className="col-span-2">
-                  <p className="text-xs text-muted-foreground">วันที่สมัคร</p>
-                  <p className="font-medium">{formatDate(member.join_date)}</p>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">วันที่สมัคร</p>
+                    <p className="font-medium">{formatDate(member.join_date)}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Purchase Stats */}
-          <Card>
-            <CardContent className="p-3">
-              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                สถิติการซื้อ
-              </h3>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-green-50 p-2 rounded-lg">
-                  <p className="text-xs text-green-600">ยอดซื้อสะสม</p>
-                  <p className="text-lg font-bold text-green-700">
-                    ฿{member.total_spent.toLocaleString()}
-                  </p>
-                </div>
+            {/* Purchase Stats */}
+            <Card>
+              <CardContent className="p-3">
+                <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  สถิติการซื้อ
+                </h3>
                 
-                <div className="bg-orange-50 p-2 rounded-lg">
-                  <p className="text-xs text-orange-600">แต้มคงเหลือ</p>
-                  <p className="text-lg font-bold text-orange-700">
-                    {member.points.toLocaleString()}
-                  </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-green-50 p-2 rounded-lg">
+                    <p className="text-xs text-green-600">ยอดซื้อสะสม</p>
+                    <p className="text-lg font-bold text-green-700">
+                      ฿{member.total_spent.toLocaleString()}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-orange-50 p-2 rounded-lg">
+                    <p className="text-xs text-orange-600">แต้มคงเหลือ</p>
+                    <p className="text-lg font-bold text-orange-700">
+                      {member.points.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Top 5 Popular Items */}
-          <Card>
-            <CardContent className="p-3">
-              <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4" />
-                เมนูยอดนิยม (Top 5)
-              </h3>
-              
-              {loadingTopItems ? (
-                <div className="text-center py-2 text-muted-foreground text-sm">กำลังโหลด...</div>
-              ) : topItems.length > 0 ? (
-                <div className="space-y-1.5">
-                  {topItems.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-1.5 bg-accent/50 rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                          {index + 1}
+          {/* Right Column - Top 5 Popular Items */}
+          <div>
+            <Card className="h-full">
+              <CardContent className="p-3">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  เมนูยอดนิยม (Top 5)
+                </h3>
+                
+                {loadingTopItems ? (
+                  <div className="text-center py-4 text-muted-foreground text-sm">กำลังโหลด...</div>
+                ) : topItems.length > 0 ? (
+                  <div className="space-y-2">
+                    {topItems.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-accent/50 rounded">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                            {index + 1}
+                          </div>
+                          <span className="font-medium text-sm">{item.name}</span>
                         </div>
-                        <span className="font-medium text-sm">{item.name}</span>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-primary">{item.count} ครั้ง</div>
+                          <div className="text-xs text-muted-foreground">฿{item.total.toLocaleString()}</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs font-semibold text-primary">{item.count} ครั้ง</div>
-                        <div className="text-xs text-muted-foreground">฿{item.total.toLocaleString()}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-2 text-muted-foreground text-sm">ยังไม่มีประวัติการสั่งซื้อ</div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">ยังไม่มีประวัติการสั่งซื้อ</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
