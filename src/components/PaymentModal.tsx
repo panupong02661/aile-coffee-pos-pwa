@@ -184,27 +184,21 @@ const PaymentModal = ({
     }
   };
 
-  // Track last used voucher ID to ensure we don't show the same one
-  const [lastUsedVoucherId, setLastUsedVoucherId] = useState<string | null>(null);
+  // Track reserved voucher IDs to exclude from preview (persists across modal opens)
+  const [reservedVoucherIds, setReservedVoucherIds] = useState<string[]>([]);
 
-  // รีเซ็ต wifi voucher preview ทุกครั้งที่ modal ปิด/เปิด
+  // รีเซ็ต wifi voucher preview ทุกครั้งที่ modal เปิด
   useEffect(() => {
-    // รีเซ็ต state ทันทีเมื่อ modal เปิด
     if (isOpen) {
-      setWifiVoucherPreview(null); // รีเซ็ตก่อนโหลดใหม่
+      setWifiVoucherPreview(null);
       loadMembershipSettings();
       loadPromptPayPhone();
-      
-      // Delay ให้ database transaction commit เรียบร้อยก่อน query ใหม่
-      const timer = setTimeout(() => {
-        loadWifiVoucherPreview();
-      }, 300); // เพิ่มเป็น 300ms
-      
-      return () => clearTimeout(timer);
+      // โหลด WiFi voucher preview ทันที (ไม่ต้อง delay เพราะใช้ reservedVoucherIds แทน)
+      loadWifiVoucherPreview();
     } else {
       setWifiVoucherPreview(null);
     }
-  }, [isOpen]);
+  }, [isOpen, reservedVoucherIds]);
 
   // Load PromptPay phone from shop_settings via edge function
   const loadPromptPayPhone = async () => {
@@ -240,26 +234,18 @@ const PaymentModal = ({
   };
 
   const loadWifiVoucherPreview = async () => {
-    // รีเซ็ต state ก่อนโหลดใหม่เพื่อไม่ให้แสดง voucher เก่า
     setWifiVoucherPreview(null);
     
     try {
-      console.log('[PaymentModal] Loading WiFi voucher preview for amount:', total, 'excluding voucher:', lastUsedVoucherId);
+      console.log('[PaymentModal] Loading WiFi voucher preview, excluding reserved:', reservedVoucherIds);
       
-      // Query directly to avoid any module caching - และ exclude voucher ที่เพิ่งใช้
-      let query = supabase
+      // Query vouchers ที่ยังไม่ได้ใช้ และไม่อยู่ใน reservedVoucherIds
+      const { data: vouchers, error } = await supabase
         .from('wifi_vouchers')
         .select('id, username, password, qr_code_url, is_used, duration_hours')
         .eq('is_used', false)
         .order('created_at', { ascending: true })
-        .limit(1);
-      
-      // ถ้ามี lastUsedVoucherId ให้ exclude ออกไปเพื่อป้องกัน stale data
-      if (lastUsedVoucherId) {
-        query = query.neq('id', lastUsedVoucherId);
-      }
-      
-      const { data: vouchers, error } = await query;
+        .limit(10); // ดึงมาหลายอันเผื่อ filter
       
       if (error) {
         console.error('[PaymentModal] Error loading WiFi voucher:', error);
@@ -267,16 +253,22 @@ const PaymentModal = ({
       }
       
       if (vouchers && vouchers.length > 0) {
-        const voucher = vouchers[0];
-        setWifiVoucherPreview({
-          id: voucher.id,
-          username: voucher.username,
-          password: voucher.password,
-          qr_code_url: voucher.qr_code_url
-        });
-        console.log('[PaymentModal] WiFi voucher preview loaded:', voucher.username, '(', voucher.duration_hours, 'hrs)');
+        // Filter out reserved vouchers ที่ยังไม่ได้บันทึกลง DB
+        const availableVoucher = vouchers.find(v => !reservedVoucherIds.includes(v.id));
+        
+        if (availableVoucher) {
+          setWifiVoucherPreview({
+            id: availableVoucher.id,
+            username: availableVoucher.username,
+            password: availableVoucher.password,
+            qr_code_url: availableVoucher.qr_code_url
+          });
+          console.log('[PaymentModal] WiFi voucher preview loaded:', availableVoucher.username);
+        } else {
+          console.log('[PaymentModal] All vouchers are reserved, none available');
+        }
       } else {
-        console.log('[PaymentModal] No WiFi voucher available for amount:', total);
+        console.log('[PaymentModal] No WiFi voucher available');
       }
     } catch (error) {
       console.error('Error in WiFi voucher preview:', error);
@@ -640,10 +632,17 @@ const PaymentModal = ({
       return;
     }
 
-    // ปิด modal และอัปเดต UI ทันทีเพื่อความเร็วสูงสุด
     setIsProcessing(true);
     
-    // ทำ UI updates ทันทีก่อนการ validation
+    // 🔒 จอง WiFi voucher ทันทีก่อนปิด modal เพื่อป้องกันการแสดงซ้ำ
+    let reservedVoucherId: string | null = null;
+    if (wifiVoucherPreview?.id) {
+      reservedVoucherId = wifiVoucherPreview.id;
+      console.log('[PaymentModal] Reserving WiFi voucher immediately:', reservedVoucherId);
+      setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
+    }
+    
+    // ทำ UI updates ทันที
     const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
     onPayment(paymentMethod, cashAmount);
     
@@ -651,19 +650,16 @@ const PaymentModal = ({
     setIsProcessing(false);
     onClose();
 
-    // แสดง toast โดยไม่รอ (ปิดเสียงแจ้งเตือนตามคำขอ)
-    // playPaymentSuccessBell().catch(err => console.log('เสียงกระดิ่งเล่นไม่ได้:', err));
     toast({
       title: "✅ ชำระเงินสำเร็จ",
       description: `ยอดชำระ ฿${total.toLocaleString()}`,
     });
 
-    // ทำทุกอย่างในพื้นหลัง - validation และบันทึกข้อมูล
+    // บันทึกข้อมูลใน background
     setTimeout(async () => {
       try {
         console.log(`[PaymentModal] Background processing for payment method: ${paymentMethod}`);
         
-        // Basic validation in background
         if (!cartItems || cartItems.length === 0) {
           toast({
             title: "คำเตือน",
@@ -673,7 +669,6 @@ const PaymentModal = ({
           return;
         }
 
-        // Quick validation for critical cases
         if (paymentMethod === 'cash') {
           const receivedAmount = parseFloat(cashReceived || '0');
           if (isNaN(receivedAmount) || receivedAmount < total) {
@@ -705,10 +700,10 @@ const PaymentModal = ({
         if (savedOrder) {
           console.log('Background database save completed successfully');
           
-          // บันทึก voucher ID ที่เพิ่งใช้เพื่อ exclude ออกจาก preview ถัดไป
+          // ลบ voucher ที่บันทึกสำเร็จออกจาก reserved list (เพราะ DB จะ mark is_used แล้ว)
           if (savedOrder.wifi_voucher?.id) {
-            console.log('[PaymentModal] Setting lastUsedVoucherId:', savedOrder.wifi_voucher.id);
-            setLastUsedVoucherId(savedOrder.wifi_voucher.id);
+            console.log('[PaymentModal] Voucher saved, removing from reserved:', savedOrder.wifi_voucher.id);
+            setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
           }
           
           toast({
@@ -716,7 +711,6 @@ const PaymentModal = ({
             description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
           });
 
-          // Send POS order notification with complete order items data
           sendPosOrderNotification(
             savedOrder,
             savedOrder.order_items,
@@ -728,13 +722,18 @@ const PaymentModal = ({
         
       } catch (error) {
         console.error('Background processing error:', error);
+        // ถ้า save ไม่สำเร็จ ต้องคืน voucher กลับไป
+        if (reservedVoucherId) {
+          console.log('[PaymentModal] Save failed, releasing reserved voucher:', reservedVoucherId);
+          setReservedVoucherIds(prev => prev.filter(id => id !== reservedVoucherId));
+        }
         toast({
           title: "เกิดข้อผิดพลาดในการบันทึก",
           description: "การชำระเงินสำเร็จแล้ว แต่มีปัญหาในการบันทึกข้อมูล",
           variant: "destructive"
         });
       }
-    }, 0); // Execute immediately but in next tick
+    }, 0);
   };
 
   const handleMethodChange = (value: string) => {
