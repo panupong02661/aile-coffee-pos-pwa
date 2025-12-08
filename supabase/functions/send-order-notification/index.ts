@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
     console.log('📋 Settings fetched:', settings);
 
     // Determine if this is a POS order or online order based on order_source
-    const isPosOrder = orderData.order_source === 'pos' || !orderData.order_source;
+    // 'pos', 'in_store', or empty/null = POS order
+    const isPosOrder = orderData.order_source === 'pos' || orderData.order_source === 'in_store' || !orderData.order_source;
     const isOnlineOrder = orderData.order_source === 'online';
 
     console.log('🔍 Order type detection:', {
