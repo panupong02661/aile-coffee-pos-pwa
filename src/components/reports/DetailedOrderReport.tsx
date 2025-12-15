@@ -7,15 +7,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Loader2, Search, FileSpreadsheet } from 'lucide-react';
+import { CalendarIcon, Loader2, Search, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
+interface Ingredient {
+  name: string;
+  quantity: number;
+  unit: string;
+  cost: number;
+}
+
 interface OrderItem {
   id: string;
+  menu_item_id: string | null;
   menu_item_name: string;
   quantity: number;
   unit_price: number;
@@ -23,6 +31,21 @@ interface OrderItem {
   item_discount: number;
   item_discount_type: string;
   selected_addons: any[];
+  cost_price: number;
+  ingredients: Ingredient[];
+}
+
+interface PointTransaction {
+  points_change: number;
+  transaction_type: string;
+  description: string;
+}
+
+interface PromotionClaim {
+  promotion_title: string;
+  promo_code: string | null;
+  discount_type: string;
+  discount_value: number;
 }
 
 interface DetailedOrder {
@@ -38,6 +61,11 @@ interface DetailedOrder {
   member_name: string | null;
   member_phone: string | null;
   order_items: OrderItem[];
+  points_redeemed: number;
+  points_earned: number;
+  promotion_claims: PromotionClaim[];
+  total_cost: number;
+  profit: number;
 }
 
 const DetailedOrderReport = () => {
@@ -110,15 +138,48 @@ const DetailedOrderReport = () => {
         return;
       }
 
-      // Fetch order items for each order
       const orderIds = ordersData.map(o => o.id);
+      const orderNumbers = ordersData.map(o => o.order_number);
       
+      // Fetch order items
       const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
         .select('*')
         .in('order_id', orderIds);
 
       if (itemsError) throw itemsError;
+
+      // Get unique menu_item_ids for cost and ingredients
+      const menuItemIds = [...new Set((itemsData || []).filter(i => i.menu_item_id).map(i => i.menu_item_id))] as string[];
+      
+      // Fetch menu items for cost_price
+      let menuItemsData: any[] = [];
+      if (menuItemIds.length > 0) {
+        const { data } = await supabase
+          .from('menu_items')
+          .select('id, cost_price')
+          .in('id', menuItemIds);
+        menuItemsData = data || [];
+      }
+
+      // Fetch menu ingredients
+      let menuIngredientsData: any[] = [];
+      if (menuItemIds.length > 0) {
+        const { data } = await supabase
+          .from('menu_ingredients')
+          .select(`
+            menu_item_id,
+            quantity_needed,
+            ingredients (
+              id,
+              name,
+              unit,
+              cost_per_unit
+            )
+          `)
+          .in('menu_item_id', menuItemIds);
+        menuIngredientsData = data || [];
+      }
 
       // Fetch member info
       const memberIds = ordersData.filter(o => o.member_id).map(o => o.member_id) as string[];
@@ -131,11 +192,90 @@ const DetailedOrderReport = () => {
         membersData = data || [];
       }
 
-      // Combine data
+      // Fetch point transactions for these orders
+      let pointTransactionsData: any[] = [];
+      if (orderNumbers.length > 0) {
+        const { data } = await supabase
+          .from('point_transactions')
+          .select('*')
+          .in('order_id', orderNumbers);
+        pointTransactionsData = data || [];
+      }
+
+      // Fetch promotion claims for members who ordered
+      let promotionClaimsData: any[] = [];
+      if (memberIds.length > 0) {
+        const { data } = await supabase
+          .from('customer_promotion_claims')
+          .select(`
+            customer_id,
+            order_id,
+            limited_promotions (
+              title,
+              promo_code,
+              discount_type,
+              discount_value
+            )
+          `)
+          .in('customer_id', memberIds)
+          .eq('is_used', true);
+        promotionClaimsData = data || [];
+      }
+
+      // Build detailed orders
       const detailedOrders: DetailedOrder[] = ordersData.map(order => {
         const member = membersData.find(m => m.id === order.member_id);
         const items = itemsData?.filter(i => i.order_id === order.id) || [];
         
+        // Calculate points
+        const orderPointTx = pointTransactionsData.filter(pt => pt.order_id === order.order_number);
+        const pointsRedeemed = orderPointTx
+          .filter(pt => pt.transaction_type === 'redeem' || pt.points_change < 0)
+          .reduce((sum, pt) => sum + Math.abs(pt.points_change), 0);
+        const pointsEarned = orderPointTx
+          .filter(pt => pt.transaction_type === 'earn' && pt.points_change > 0)
+          .reduce((sum, pt) => sum + pt.points_change, 0);
+
+        // Get promotion claims for this order
+        const orderPromotions = promotionClaimsData
+          .filter(pc => pc.order_id === order.id && pc.limited_promotions)
+          .map(pc => ({
+            promotion_title: pc.limited_promotions.title,
+            promo_code: pc.limited_promotions.promo_code,
+            discount_type: pc.limited_promotions.discount_type,
+            discount_value: pc.limited_promotions.discount_value,
+          }));
+
+        // Build items with cost and ingredients
+        const orderItems: OrderItem[] = items.map(item => {
+          const menuItem = menuItemsData.find(m => m.id === item.menu_item_id);
+          const itemIngredients = menuIngredientsData
+            .filter(mi => mi.menu_item_id === item.menu_item_id && mi.ingredients)
+            .map(mi => ({
+              name: mi.ingredients.name,
+              quantity: mi.quantity_needed * item.quantity,
+              unit: mi.ingredients.unit,
+              cost: mi.quantity_needed * mi.ingredients.cost_per_unit * item.quantity,
+            }));
+
+          return {
+            id: item.id,
+            menu_item_id: item.menu_item_id,
+            menu_item_name: item.menu_item_name,
+            quantity: item.quantity,
+            unit_price: Number(item.unit_price),
+            total_price: Number(item.total_price),
+            item_discount: Number(item.item_discount || 0),
+            item_discount_type: item.item_discount_type || 'amount',
+            selected_addons: Array.isArray(item.selected_addons) ? item.selected_addons : [],
+            cost_price: menuItem?.cost_price ? Number(menuItem.cost_price) * item.quantity : 0,
+            ingredients: itemIngredients,
+          };
+        });
+
+        const totalCost = orderItems.reduce((sum, item) => sum + item.cost_price, 0);
+        const profit = Number(order.total_amount) - totalCost;
+
         return {
           id: order.id,
           order_number: order.order_number,
@@ -148,16 +288,12 @@ const DetailedOrderReport = () => {
           member_id: order.member_id,
           member_name: member?.name || null,
           member_phone: member?.phone || null,
-          order_items: items.map(item => ({
-            id: item.id,
-            menu_item_name: item.menu_item_name,
-            quantity: item.quantity,
-            unit_price: Number(item.unit_price),
-            total_price: Number(item.total_price),
-            item_discount: Number(item.item_discount || 0),
-            item_discount_type: item.item_discount_type || 'amount',
-            selected_addons: Array.isArray(item.selected_addons) ? item.selected_addons : [],
-          })),
+          order_items: orderItems,
+          points_redeemed: pointsRedeemed,
+          points_earned: pointsEarned,
+          promotion_claims: orderPromotions,
+          total_cost: totalCost,
+          profit: profit,
         };
       });
 
@@ -195,6 +331,7 @@ const DetailedOrderReport = () => {
       promptpay: 'พร้อมเพย์',
       transfer: 'โอนเงิน',
       credit: 'เครดิต',
+      points: 'แลกแต้ม',
     };
     return methods[method] || method;
   };
@@ -214,6 +351,16 @@ const DetailedOrderReport = () => {
     return addons.map(addon => `${addon.name || addon.addon_name} (+${addon.price || addon.addon_price}฿)`).join(', ');
   };
 
+  const formatIngredients = (ingredients: Ingredient[]) => {
+    if (!ingredients || ingredients.length === 0) return '-';
+    return ingredients.map(ing => `${ing.name} ${ing.quantity}${ing.unit}`).join(', ');
+  };
+
+  const getDiscountTypeLabel = (type: string | null) => {
+    if (!type) return '-';
+    return type === 'percentage' || type === 'percent' ? 'เปอร์เซ็นต์' : 'จำนวนเงิน';
+  };
+
   const exportToExcel = () => {
     try {
       const exportData: any[] = [];
@@ -229,14 +376,26 @@ const DetailedOrderReport = () => {
             'ชื่อสินค้า': item.menu_item_name,
             'จำนวน': item.quantity,
             'ราคาต่อหน่วย': item.unit_price,
+            'ต้นทุนสินค้า': item.cost_price,
+            'ส่วนผสม': formatIngredients(item.ingredients),
             'ส่วนลดสินค้า': item.item_discount,
-            'ประเภทส่วนลดสินค้า': item.item_discount_type === 'percentage' ? '%' : 'บาท',
+            'ประเภทส่วนลดสินค้า': getDiscountTypeLabel(item.item_discount_type),
             'Add-on': formatAddons(item.selected_addons),
             'ราคารวม': item.total_price,
             'ชื่อลูกค้า': order.member_name || '-',
             'เบอร์โทรลูกค้า': order.member_phone || '-',
             'ส่วนลดบิล': order.bill_discount || 0,
-            'ประเภทส่วนลดบิล': order.bill_discount_type === 'percentage' ? '%' : 'บาท',
+            'ประเภทส่วนลดบิล': getDiscountTypeLabel(order.bill_discount_type),
+            'โปรโมชั่น/Code': order.promotion_claims.length > 0 
+              ? order.promotion_claims.map(p => p.promo_code || p.promotion_title).join(', ') 
+              : '-',
+            'รายละเอียดโปรโมชั่น': order.promotion_claims.length > 0
+              ? order.promotion_claims.map(p => `${p.promotion_title} (${p.discount_value}${p.discount_type === 'percentage' ? '%' : '฿'})`).join(', ')
+              : '-',
+            'แต้มที่ใช้แลก': order.points_redeemed || 0,
+            'แต้มที่ได้รับ': order.points_earned || 0,
+            'ต้นทุนรวม': order.total_cost,
+            'กำไร': order.profit,
             'ยอดรวมออเดอร์': order.total_amount,
           });
         });
@@ -251,6 +410,8 @@ const DetailedOrderReport = () => {
             'ชื่อสินค้า': '-',
             'จำนวน': '-',
             'ราคาต่อหน่วย': '-',
+            'ต้นทุนสินค้า': '-',
+            'ส่วนผสม': '-',
             'ส่วนลดสินค้า': '-',
             'ประเภทส่วนลดสินค้า': '-',
             'Add-on': '-',
@@ -258,7 +419,15 @@ const DetailedOrderReport = () => {
             'ชื่อลูกค้า': order.member_name || '-',
             'เบอร์โทรลูกค้า': order.member_phone || '-',
             'ส่วนลดบิล': order.bill_discount || 0,
-            'ประเภทส่วนลดบิล': order.bill_discount_type === 'percentage' ? '%' : 'บาท',
+            'ประเภทส่วนลดบิล': getDiscountTypeLabel(order.bill_discount_type),
+            'โปรโมชั่น/Code': order.promotion_claims.length > 0 
+              ? order.promotion_claims.map(p => p.promo_code || p.promotion_title).join(', ') 
+              : '-',
+            'รายละเอียดโปรโมชั่น': '-',
+            'แต้มที่ใช้แลก': order.points_redeemed || 0,
+            'แต้มที่ได้รับ': order.points_earned || 0,
+            'ต้นทุนรวม': order.total_cost,
+            'กำไร': order.profit,
             'ยอดรวมออเดอร์': order.total_amount,
           });
         }
@@ -277,7 +446,7 @@ const DetailedOrderReport = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'รายงานละเอียด');
 
-      const maxWidth = 30;
+      const maxWidth = 35;
       const colWidths = Object.keys(exportData[0] || {}).map(key => ({
         wch: Math.min(maxWidth, Math.max(key.length, ...exportData.map(row => String(row[key] || '').length))),
       }));
@@ -305,6 +474,10 @@ const DetailedOrderReport = () => {
     totalAmount: orders.reduce((sum, o) => sum + Number(o.total_amount), 0),
     totalDiscount: orders.reduce((sum, o) => sum + Number(o.bill_discount || 0), 0),
     totalItems: orders.reduce((sum, o) => sum + o.order_items.reduce((s, i) => s + i.quantity, 0), 0),
+    totalCost: orders.reduce((sum, o) => sum + o.total_cost, 0),
+    totalProfit: orders.reduce((sum, o) => sum + o.profit, 0),
+    totalPointsRedeemed: orders.reduce((sum, o) => sum + o.points_redeemed, 0),
+    totalPointsEarned: orders.reduce((sum, o) => sum + o.points_earned, 0),
   };
 
   return (
@@ -399,33 +572,59 @@ const DetailedOrderReport = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-primary">{summary.totalOrders}</div>
-            <p className="text-sm text-muted-foreground">จำนวนออเดอร์</p>
+            <p className="text-xs text-muted-foreground">ออเดอร์</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-green-600">฿{summary.totalAmount.toLocaleString()}</div>
-            <p className="text-sm text-muted-foreground">ยอดขายรวม</p>
+            <p className="text-xs text-muted-foreground">ยอดขาย</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-red-600">฿{summary.totalCost.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">ต้นทุน</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-emerald-600">฿{summary.totalProfit.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">กำไร</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-orange-600">฿{summary.totalDiscount.toLocaleString()}</div>
-            <p className="text-sm text-muted-foreground">ส่วนลดรวม</p>
+            <p className="text-xs text-muted-foreground">ส่วนลด</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-blue-600">{summary.totalItems}</div>
-            <p className="text-sm text-muted-foreground">จำนวนสินค้า</p>
+            <p className="text-xs text-muted-foreground">สินค้า</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-purple-600">{summary.totalPointsRedeemed.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">แต้มใช้แลก</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-amber-600">{summary.totalPointsEarned.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">แต้มได้รับ</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Orders Table */}
       <Card>
         <CardHeader>
           <CardTitle>รายการออเดอร์ ({orders.length} รายการ)</CardTitle>
@@ -445,14 +644,18 @@ const DetailedOrderReport = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">เลขออเดอร์</TableHead>
-                    <TableHead className="w-[150px]">วันที่สั่ง</TableHead>
-                    <TableHead>วิธีชำระเงิน</TableHead>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead>เลขออเดอร์</TableHead>
+                    <TableHead>วันที่</TableHead>
+                    <TableHead>ชำระเงิน</TableHead>
                     <TableHead>สถานะ</TableHead>
                     <TableHead>ลูกค้า</TableHead>
+                    <TableHead className="text-right">ต้นทุน</TableHead>
                     <TableHead className="text-right">ส่วนลด</TableHead>
+                    <TableHead className="text-center">แต้มใช้</TableHead>
+                    <TableHead>โปรโมชั่น</TableHead>
                     <TableHead className="text-right">ยอดรวม</TableHead>
-                    <TableHead className="w-[100px]">รายละเอียด</TableHead>
+                    <TableHead className="text-right">กำไร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -463,54 +666,89 @@ const DetailedOrderReport = () => {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => toggleOrderExpand(order.id)}
                       >
+                        <TableCell>
+                          {expandedOrders.has(order.id) ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{format(new Date(order.created_at), 'dd/MM/yy HH:mm', { locale: th })}</TableCell>
-                        <TableCell>{getPaymentMethodText(order.payment_method)}</TableCell>
+                        <TableCell className="text-sm">{format(new Date(order.created_at), 'dd/MM/yy HH:mm', { locale: th })}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{getPaymentMethodText(order.payment_method)}</Badge>
+                        </TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>
                           {order.member_name ? (
                             <div>
-                              <div className="font-medium">{order.member_name}</div>
+                              <div className="font-medium text-sm">{order.member_name}</div>
                               <div className="text-xs text-muted-foreground">{order.member_phone}</div>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
+                        <TableCell className="text-right text-red-600">฿{order.total_cost.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-orange-600">
-                          {order.bill_discount ? `฿${Number(order.bill_discount).toLocaleString()}` : '-'}
+                          {order.bill_discount ? (
+                            <span>
+                              {order.bill_discount}{order.bill_discount_type === 'percentage' ? '%' : '฿'}
+                            </span>
+                          ) : '-'}
                         </TableCell>
-                        <TableCell className="text-right font-bold">฿{Number(order.total_amount).toLocaleString()}</TableCell>
+                        <TableCell className="text-center text-purple-600">
+                          {order.points_redeemed > 0 ? order.points_redeemed.toLocaleString() : '-'}
+                        </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
-                            {expandedOrders.has(order.id) ? 'ซ่อน' : 'ดู'} ({order.order_items.length})
-                          </Button>
+                          {order.promotion_claims.length > 0 ? (
+                            <div className="space-y-1">
+                              {order.promotion_claims.map((promo, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {promo.promo_code || promo.promotion_title}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">฿{order.total_amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600">
+                          ฿{order.profit.toLocaleString()}
                         </TableCell>
                       </TableRow>
                       
+                      {/* Expanded Items */}
                       {expandedOrders.has(order.id) && (
                         <TableRow key={`${order.id}-items`}>
-                          <TableCell colSpan={8} className="bg-muted/30 p-0">
+                          <TableCell colSpan={12} className="bg-muted/30 p-0">
                             <div className="p-4">
-                              <h4 className="font-semibold mb-2">รายการสินค้า</h4>
+                              <h4 className="font-semibold mb-3">รายการสินค้า</h4>
                               <Table>
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead>ชื่อสินค้า</TableHead>
                                     <TableHead>Add-on</TableHead>
+                                    <TableHead>ส่วนผสม</TableHead>
                                     <TableHead className="text-center">จำนวน</TableHead>
-                                    <TableHead className="text-right">ราคา/หน่วย</TableHead>
+                                    <TableHead className="text-right">ราคา</TableHead>
+                                    <TableHead className="text-right">ต้นทุน</TableHead>
                                     <TableHead className="text-right">ส่วนลด</TableHead>
-                                    <TableHead className="text-right">ราคารวม</TableHead>
+                                    <TableHead className="text-right">รวม</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                   {order.order_items.map((item) => (
                                     <TableRow key={item.id}>
                                       <TableCell className="font-medium">{item.menu_item_name}</TableCell>
-                                      <TableCell className="text-sm">{formatAddons(item.selected_addons)}</TableCell>
+                                      <TableCell className="text-sm max-w-[150px] truncate" title={formatAddons(item.selected_addons)}>
+                                        {formatAddons(item.selected_addons)}
+                                      </TableCell>
+                                      <TableCell className="text-sm max-w-[200px] truncate" title={formatIngredients(item.ingredients)}>
+                                        {formatIngredients(item.ingredients)}
+                                      </TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-right">฿{item.unit_price.toLocaleString()}</TableCell>
+                                      <TableCell className="text-right text-red-600">฿{item.cost_price.toLocaleString()}</TableCell>
                                       <TableCell className="text-right text-orange-600">
                                         {item.item_discount > 0 
                                           ? `${item.item_discount}${item.item_discount_type === 'percentage' ? '%' : '฿'}` 
@@ -521,6 +759,31 @@ const DetailedOrderReport = () => {
                                   ))}
                                 </TableBody>
                               </Table>
+
+                              {/* Additional Order Info */}
+                              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div className="bg-background p-3 rounded-lg">
+                                  <span className="text-muted-foreground">ประเภทส่วนลดบิล:</span>
+                                  <span className="ml-2 font-medium">{getDiscountTypeLabel(order.bill_discount_type)}</span>
+                                </div>
+                                <div className="bg-background p-3 rounded-lg">
+                                  <span className="text-muted-foreground">แต้มที่ได้รับ:</span>
+                                  <span className="ml-2 font-medium text-amber-600">+{order.points_earned}</span>
+                                </div>
+                                {order.promotion_claims.length > 0 && (
+                                  <div className="bg-background p-3 rounded-lg col-span-2">
+                                    <span className="text-muted-foreground">รายละเอียดโปรโมชั่น:</span>
+                                    <div className="mt-1">
+                                      {order.promotion_claims.map((promo, idx) => (
+                                        <div key={idx} className="text-sm">
+                                          {promo.promotion_title} - ลด {promo.discount_value}{promo.discount_type === 'percentage' ? '%' : '฿'}
+                                          {promo.promo_code && <span className="text-muted-foreground"> (Code: {promo.promo_code})</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
