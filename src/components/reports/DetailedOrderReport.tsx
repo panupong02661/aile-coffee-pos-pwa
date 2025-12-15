@@ -25,6 +25,7 @@ interface OrderItem {
   id: string;
   menu_item_id: string | null;
   menu_item_name: string;
+  category_name: string | null;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -33,6 +34,8 @@ interface OrderItem {
   selected_addons: any[];
   cost_price: number;
   ingredients: Ingredient[];
+  item_profit: number;
+  item_profit_margin: number;
 }
 
 interface PointTransaction {
@@ -48,6 +51,16 @@ interface PromotionClaim {
   discount_value: number;
 }
 
+interface MemberInfo {
+  id: string;
+  name: string;
+  phone: string;
+  tier: string;
+  total_spent: number;
+  birth_date: string | null;
+  order_count: number;
+}
+
 interface DetailedOrder {
   id: string;
   order_number: string;
@@ -57,15 +70,19 @@ interface DetailedOrder {
   total_amount: number;
   bill_discount: number | null;
   bill_discount_type: string | null;
+  order_type: string;
+  order_source: string | null;
   member_id: string | null;
-  member_name: string | null;
-  member_phone: string | null;
+  member_info: MemberInfo | null;
   order_items: OrderItem[];
   points_redeemed: number;
   points_earned: number;
   promotion_claims: PromotionClaim[];
   total_cost: number;
   profit: number;
+  profit_margin: number;
+  time_period: string;
+  category_breakdown: { [key: string]: number };
 }
 
 const DetailedOrderReport = () => {
@@ -109,10 +126,18 @@ const DetailedOrderReport = () => {
     }
   };
 
+  const getTimePeriod = (dateStr: string) => {
+    const hour = new Date(dateStr).getHours();
+    if (hour >= 6 && hour < 12) return 'เช้า (06:00-12:00)';
+    if (hour >= 12 && hour < 17) return 'กลางวัน (12:00-17:00)';
+    if (hour >= 17 && hour < 21) return 'เย็น (17:00-21:00)';
+    return 'ดึก (21:00-06:00)';
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // Fetch orders
+      // Fetch orders with order_type and order_source
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -124,6 +149,8 @@ const DetailedOrderReport = () => {
           total_amount,
           bill_discount,
           bill_discount_type,
+          order_type,
+          order_source,
           member_id
         `)
         .gte('created_at', dateRange.from.toISOString())
@@ -149,15 +176,23 @@ const DetailedOrderReport = () => {
 
       if (itemsError) throw itemsError;
 
-      // Get unique menu_item_ids for cost and ingredients
+      // Get unique menu_item_ids for cost, category and ingredients
       const menuItemIds = [...new Set((itemsData || []).filter(i => i.menu_item_id).map(i => i.menu_item_id))] as string[];
       
-      // Fetch menu items for cost_price
+      // Fetch menu items for cost_price and category
       let menuItemsData: any[] = [];
       if (menuItemIds.length > 0) {
         const { data } = await supabase
           .from('menu_items')
-          .select('id, cost_price')
+          .select(`
+            id, 
+            cost_price,
+            category_id,
+            categories (
+              id,
+              name
+            )
+          `)
           .in('id', menuItemIds);
         menuItemsData = data || [];
       }
@@ -181,15 +216,30 @@ const DetailedOrderReport = () => {
         menuIngredientsData = data || [];
       }
 
-      // Fetch member info
+      // Fetch member info with tier, total_spent, birth_date
       const memberIds = ordersData.filter(o => o.member_id).map(o => o.member_id) as string[];
       let membersData: any[] = [];
       if (memberIds.length > 0) {
         const { data } = await supabase
           .from('members')
-          .select('id, name, phone')
+          .select('id, name, phone, tier, total_spent, birth_date')
           .in('id', memberIds);
         membersData = data || [];
+      }
+
+      // Count order frequency for each member
+      let memberOrderCounts: { [key: string]: number } = {};
+      if (memberIds.length > 0) {
+        const { data: countData } = await supabase
+          .from('orders')
+          .select('member_id')
+          .in('member_id', memberIds);
+        
+        (countData || []).forEach(o => {
+          if (o.member_id) {
+            memberOrderCounts[o.member_id] = (memberOrderCounts[o.member_id] || 0) + 1;
+          }
+        });
       }
 
       // Fetch point transactions for these orders
@@ -246,9 +296,13 @@ const DetailedOrderReport = () => {
             discount_value: pc.limited_promotions.discount_value,
           }));
 
-        // Build items with cost and ingredients
+        // Build category breakdown for the order
+        const categoryBreakdown: { [key: string]: number } = {};
+
+        // Build items with cost, category and ingredients
         const orderItems: OrderItem[] = items.map(item => {
           const menuItem = menuItemsData.find(m => m.id === item.menu_item_id);
+          const categoryName = menuItem?.categories?.name || 'ไม่ระบุหมวดหมู่';
           const itemIngredients = menuIngredientsData
             .filter(mi => mi.menu_item_id === item.menu_item_id && mi.ingredients)
             .map(mi => ({
@@ -258,23 +312,45 @@ const DetailedOrderReport = () => {
               cost: mi.quantity_needed * mi.ingredients.cost_per_unit * item.quantity,
             }));
 
+          const costPrice = menuItem?.cost_price ? Number(menuItem.cost_price) * item.quantity : 0;
+          const itemProfit = Number(item.total_price) - costPrice;
+          const itemProfitMargin = Number(item.total_price) > 0 ? (itemProfit / Number(item.total_price)) * 100 : 0;
+
+          // Add to category breakdown
+          categoryBreakdown[categoryName] = (categoryBreakdown[categoryName] || 0) + Number(item.total_price);
+
           return {
             id: item.id,
             menu_item_id: item.menu_item_id,
             menu_item_name: item.menu_item_name,
+            category_name: categoryName,
             quantity: item.quantity,
             unit_price: Number(item.unit_price),
             total_price: Number(item.total_price),
             item_discount: Number(item.item_discount || 0),
             item_discount_type: item.item_discount_type || 'amount',
             selected_addons: Array.isArray(item.selected_addons) ? item.selected_addons : [],
-            cost_price: menuItem?.cost_price ? Number(menuItem.cost_price) * item.quantity : 0,
+            cost_price: costPrice,
             ingredients: itemIngredients,
+            item_profit: itemProfit,
+            item_profit_margin: itemProfitMargin,
           };
         });
 
         const totalCost = orderItems.reduce((sum, item) => sum + item.cost_price, 0);
         const profit = Number(order.total_amount) - totalCost;
+        const profitMargin = Number(order.total_amount) > 0 ? (profit / Number(order.total_amount)) * 100 : 0;
+
+        // Build member info
+        const memberInfo: MemberInfo | null = member ? {
+          id: member.id,
+          name: member.name,
+          phone: member.phone,
+          tier: member.tier || 'bronze',
+          total_spent: Number(member.total_spent) || 0,
+          birth_date: member.birth_date,
+          order_count: memberOrderCounts[member.id] || 1,
+        } : null;
 
         return {
           id: order.id,
@@ -285,15 +361,19 @@ const DetailedOrderReport = () => {
           total_amount: Number(order.total_amount),
           bill_discount: order.bill_discount,
           bill_discount_type: order.bill_discount_type,
+          order_type: order.order_type || 'dine-in',
+          order_source: order.order_source,
           member_id: order.member_id,
-          member_name: member?.name || null,
-          member_phone: member?.phone || null,
+          member_info: memberInfo,
           order_items: orderItems,
           points_redeemed: pointsRedeemed,
           points_earned: pointsEarned,
           promotion_claims: orderPromotions,
           total_cost: totalCost,
           profit: profit,
+          profit_margin: profitMargin,
+          time_period: getTimePeriod(order.created_at),
+          category_breakdown: categoryBreakdown,
         };
       });
 
@@ -361,6 +441,26 @@ const DetailedOrderReport = () => {
     return type === 'percentage' || type === 'percent' ? 'เปอร์เซ็นต์' : 'จำนวนเงิน';
   };
 
+  const getOrderTypeText = (type: string) => {
+    const types: { [key: string]: string } = {
+      'dine-in': 'ทานที่ร้าน',
+      'takeaway': 'สั่งกลับบ้าน',
+      'delivery': 'เดลิเวอรี่',
+      'online': 'ออนไลน์',
+    };
+    return types[type] || type;
+  };
+
+  const getTierBadgeColor = (tier: string) => {
+    const colors: { [key: string]: string } = {
+      bronze: 'bg-amber-700 text-white',
+      silver: 'bg-gray-400 text-white',
+      gold: 'bg-yellow-500 text-black',
+      platinum: 'bg-gray-700 text-white',
+    };
+    return colors[tier?.toLowerCase()] || 'bg-gray-200';
+  };
+
   const exportToExcel = () => {
     try {
       const exportData: any[] = [];
@@ -370,20 +470,30 @@ const DetailedOrderReport = () => {
           exportData.push({
             'เลขออเดอร์': order.order_number,
             'วันที่สั่ง': format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: th }),
+            'ช่วงเวลา': order.time_period,
+            'ประเภทออเดอร์': getOrderTypeText(order.order_type),
+            'แหล่งที่มา': order.order_source || 'POS',
             'วิธีการชำระเงิน': getPaymentMethodText(order.payment_method),
             'สถานะ': order.status === 'completed' ? 'สำเร็จ' : order.status === 'pending' ? 'รอดำเนินการ' : order.status === 'cancelled' ? 'ยกเลิก' : order.status,
             'ลำดับสินค้า': index + 1,
             'ชื่อสินค้า': item.menu_item_name,
+            'หมวดหมู่': item.category_name || '-',
             'จำนวน': item.quantity,
             'ราคาต่อหน่วย': item.unit_price,
             'ต้นทุนสินค้า': item.cost_price,
+            'กำไรสินค้า': item.item_profit,
+            'กำไรขั้นต้น %': item.item_profit_margin.toFixed(1) + '%',
             'ส่วนผสม': formatIngredients(item.ingredients),
             'ส่วนลดสินค้า': item.item_discount,
             'ประเภทส่วนลดสินค้า': getDiscountTypeLabel(item.item_discount_type),
             'Add-on': formatAddons(item.selected_addons),
             'ราคารวม': item.total_price,
-            'ชื่อลูกค้า': order.member_name || '-',
-            'เบอร์โทรลูกค้า': order.member_phone || '-',
+            'ชื่อลูกค้า': order.member_info?.name || '-',
+            'เบอร์โทรลูกค้า': order.member_info?.phone || '-',
+            'Tier สมาชิก': order.member_info?.tier || '-',
+            'ยอดสะสม': order.member_info?.total_spent || '-',
+            'ความถี่ซื้อ (ครั้ง)': order.member_info?.order_count || '-',
+            'วันเกิด': order.member_info?.birth_date ? format(new Date(order.member_info.birth_date), 'dd/MM/yyyy') : '-',
             'ส่วนลดบิล': order.bill_discount || 0,
             'ประเภทส่วนลดบิล': getDiscountTypeLabel(order.bill_discount_type),
             'โปรโมชั่น/Code': order.promotion_claims.length > 0 
@@ -396,6 +506,7 @@ const DetailedOrderReport = () => {
             'แต้มที่ได้รับ': order.points_earned || 0,
             'ต้นทุนรวม': order.total_cost,
             'กำไร': order.profit,
+            'กำไรขั้นต้นบิล %': order.profit_margin.toFixed(1) + '%',
             'ยอดรวมออเดอร์': order.total_amount,
           });
         });
@@ -404,20 +515,30 @@ const DetailedOrderReport = () => {
           exportData.push({
             'เลขออเดอร์': order.order_number,
             'วันที่สั่ง': format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: th }),
+            'ช่วงเวลา': order.time_period,
+            'ประเภทออเดอร์': getOrderTypeText(order.order_type),
+            'แหล่งที่มา': order.order_source || 'POS',
             'วิธีการชำระเงิน': getPaymentMethodText(order.payment_method),
             'สถานะ': order.status === 'completed' ? 'สำเร็จ' : order.status === 'pending' ? 'รอดำเนินการ' : order.status === 'cancelled' ? 'ยกเลิก' : order.status,
             'ลำดับสินค้า': '-',
             'ชื่อสินค้า': '-',
+            'หมวดหมู่': '-',
             'จำนวน': '-',
             'ราคาต่อหน่วย': '-',
             'ต้นทุนสินค้า': '-',
+            'กำไรสินค้า': '-',
+            'กำไรขั้นต้น %': '-',
             'ส่วนผสม': '-',
             'ส่วนลดสินค้า': '-',
             'ประเภทส่วนลดสินค้า': '-',
             'Add-on': '-',
             'ราคารวม': '-',
-            'ชื่อลูกค้า': order.member_name || '-',
-            'เบอร์โทรลูกค้า': order.member_phone || '-',
+            'ชื่อลูกค้า': order.member_info?.name || '-',
+            'เบอร์โทรลูกค้า': order.member_info?.phone || '-',
+            'Tier สมาชิก': order.member_info?.tier || '-',
+            'ยอดสะสม': order.member_info?.total_spent || '-',
+            'ความถี่ซื้อ (ครั้ง)': order.member_info?.order_count || '-',
+            'วันเกิด': order.member_info?.birth_date ? format(new Date(order.member_info.birth_date), 'dd/MM/yyyy') : '-',
             'ส่วนลดบิล': order.bill_discount || 0,
             'ประเภทส่วนลดบิล': getDiscountTypeLabel(order.bill_discount_type),
             'โปรโมชั่น/Code': order.promotion_claims.length > 0 
@@ -428,6 +549,7 @@ const DetailedOrderReport = () => {
             'แต้มที่ได้รับ': order.points_earned || 0,
             'ต้นทุนรวม': order.total_cost,
             'กำไร': order.profit,
+            'กำไรขั้นต้นบิล %': order.profit_margin.toFixed(1) + '%',
             'ยอดรวมออเดอร์': order.total_amount,
           });
         }
@@ -469,6 +591,38 @@ const DetailedOrderReport = () => {
     }
   };
 
+  // Calculate item sales ranking
+  const itemSalesMap = new Map<string, { name: string; qty: number; revenue: number; profit: number }>();
+  orders.forEach(order => {
+    order.order_items.forEach(item => {
+      const existing = itemSalesMap.get(item.menu_item_name) || { name: item.menu_item_name, qty: 0, revenue: 0, profit: 0 };
+      existing.qty += item.quantity;
+      existing.revenue += item.total_price;
+      existing.profit += item.item_profit;
+      itemSalesMap.set(item.menu_item_name, existing);
+    });
+  });
+  const itemRanking = Array.from(itemSalesMap.values()).sort((a, b) => b.qty - a.qty);
+  const topSelling = itemRanking.slice(0, 5);
+  const lowSelling = itemRanking.slice(-5).reverse();
+
+  // Time period breakdown
+  const timePeriodMap = new Map<string, number>();
+  orders.forEach(order => {
+    const count = timePeriodMap.get(order.time_period) || 0;
+    timePeriodMap.set(order.time_period, count + 1);
+  });
+
+  // Category breakdown
+  const categoryMap = new Map<string, number>();
+  orders.forEach(order => {
+    Object.entries(order.category_breakdown).forEach(([cat, amount]) => {
+      const existing = categoryMap.get(cat) || 0;
+      categoryMap.set(cat, existing + amount);
+    });
+  });
+  const categoryRanking = Array.from(categoryMap.entries()).sort((a, b) => b[1] - a[1]);
+
   const summary = {
     totalOrders: orders.length,
     totalAmount: orders.reduce((sum, o) => sum + Number(o.total_amount), 0),
@@ -479,6 +633,8 @@ const DetailedOrderReport = () => {
     totalPointsRedeemed: orders.reduce((sum, o) => sum + o.points_redeemed, 0),
     totalPointsEarned: orders.reduce((sum, o) => sum + o.points_earned, 0),
   };
+
+  const avgProfitMargin = summary.totalAmount > 0 ? (summary.totalProfit / summary.totalAmount) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -624,7 +780,120 @@ const DetailedOrderReport = () => {
         </Card>
       </div>
 
-      {/* Orders Table */}
+      {/* Additional Analytics Section */}
+      {orders.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Profit Margin Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">กำไรขั้นต้น %</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-emerald-600">{avgProfitMargin.toFixed(1)}%</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                ต้นทุน: ฿{summary.totalCost.toLocaleString()} | กำไร: ฿{summary.totalProfit.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Time Period Breakdown */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">ช่วงเวลาขาย</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Array.from(timePeriodMap.entries()).map(([period, count]) => (
+                  <div key={period} className="flex justify-between items-center">
+                    <span className="text-sm">{period}</span>
+                    <Badge variant="secondary">{count} ออเดอร์</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Category Breakdown */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">หมวดหมู่ยอดนิยม</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {categoryRanking.slice(0, 5).map(([cat, amount]) => (
+                  <div key={cat} className="flex justify-between items-center">
+                    <span className="text-sm truncate max-w-[150px]">{cat}</span>
+                    <span className="text-sm font-medium">฿{Number(amount).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Top/Low Selling Products */}
+      {orders.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-green-600">🔥 สินค้าขายดี Top 5</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead className="text-right">จำนวน</TableHead>
+                    <TableHead className="text-right">รายได้</TableHead>
+                    <TableHead className="text-right">กำไร</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topSelling.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right">{item.qty}</TableCell>
+                      <TableCell className="text-right">฿{item.revenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-green-600">฿{item.profit.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-red-600">📉 สินค้าขายน้อย</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead className="text-right">จำนวน</TableHead>
+                    <TableHead className="text-right">รายได้</TableHead>
+                    <TableHead className="text-right">กำไร</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lowSelling.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right">{item.qty}</TableCell>
+                      <TableCell className="text-right">฿{item.revenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-red-600">฿{item.profit.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+
       <Card>
         <CardHeader>
           <CardTitle>รายการออเดอร์ ({orders.length} รายการ)</CardTitle>
@@ -680,10 +949,13 @@ const DetailedOrderReport = () => {
                         </TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>
-                          {order.member_name ? (
+                          {order.member_info ? (
                             <div>
-                              <div className="font-medium text-sm">{order.member_name}</div>
-                              <div className="text-xs text-muted-foreground">{order.member_phone}</div>
+                              <div className="font-medium text-sm">{order.member_info.name}</div>
+                              <div className="text-xs text-muted-foreground">{order.member_info.phone}</div>
+                              <Badge className={cn("text-xs mt-1", getTierBadgeColor(order.member_info.tier))}>
+                                {order.member_info.tier}
+                              </Badge>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
