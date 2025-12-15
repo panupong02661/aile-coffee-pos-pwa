@@ -1,14 +1,14 @@
-
 import { useState } from 'react';
 import MainSidebar from '@/components/MainSidebar';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, PieChart, TrendingUp, Users, Download } from 'lucide-react';
+import { BarChart, PieChart, TrendingUp, Users, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SalesReportChart from '@/components/reports/SalesReportChart';
 import ProductReportTable from '@/components/reports/ProductReportTable';
 import CustomerAnalytics from '@/components/reports/CustomerAnalytics';
+import DetailedOrderReport from '@/components/reports/DetailedOrderReport';
 import { useDashboardStatsOptimized } from '@/hooks/useDashboardStatsOptimized';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -181,7 +181,7 @@ const AdvancedReports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -204,16 +204,24 @@ const AdvancedReports = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">รายงานขั้นสูง</CardTitle>
+                <CardTitle className="text-2xl">รายงานขั้นสูง</CardTitle>
                 <CardDescription>ระบบรายงานและการวิเคราะห์ข้อมูลแบบละเอียด</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="sales" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                <Tabs defaultValue="detailed" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="detailed" className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      รายงานละเอียด
+                    </TabsTrigger>
                     <TabsTrigger value="sales">รายงานยอดขาย</TabsTrigger>
                     <TabsTrigger value="products">รายงานสินค้า</TabsTrigger>
                     <TabsTrigger value="customers">การวิเคราะห์ลูกค้า</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="detailed" className="mt-6">
+                    <DetailedOrderReport />
+                  </TabsContent>
                   
                   <TabsContent value="sales" className="mt-6">
                     <div className="space-y-6">
@@ -234,7 +242,7 @@ const AdvancedReports = () => {
                             <BarChart className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">฿12,345</div>
+                            <div className="text-2xl font-bold">฿{dashboardStats.todaySales?.toLocaleString() || 0}</div>
                             <p className="text-xs text-muted-foreground">+20.1% จากเมื่อวาน</p>
                           </CardContent>
                         </Card>
@@ -245,7 +253,7 @@ const AdvancedReports = () => {
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">฿345,678</div>
+                            <div className="text-2xl font-bold">฿{dashboardStats.monthSales?.toLocaleString() || 0}</div>
                             <p className="text-xs text-muted-foreground">+12.5% จากเดือนที่แล้ว</p>
                           </CardContent>
                         </Card>
@@ -256,7 +264,7 @@ const AdvancedReports = () => {
                             <Users className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">156</div>
+                            <div className="text-2xl font-bold">{dashboardStats.todayOrders || 0}</div>
                             <p className="text-xs text-muted-foreground">+8.2% จากเมื่อวาน</p>
                           </CardContent>
                         </Card>
@@ -267,7 +275,7 @@ const AdvancedReports = () => {
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">฿79</div>
+                            <div className="text-2xl font-bold">฿{dashboardStats.averageOrderValue?.toFixed(0) || 0}</div>
                             <p className="text-xs text-muted-foreground">ต่อออเดอร์</p>
                           </CardContent>
                         </Card>
