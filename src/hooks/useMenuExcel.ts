@@ -90,6 +90,20 @@ export const useMenuExcel = () => {
         return;
       }
 
+      // ลบเมนูเก่าทั้งหมดก่อน import
+      console.log('📊 Deleting all existing menu items...');
+      const { error: deleteError } = await supabase
+        .from('menu_items')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // ลบทั้งหมด
+      
+      if (deleteError) {
+        console.error('📊 Delete error:', deleteError);
+        toast.error('ไม่สามารถลบเมนูเก่าได้: ' + deleteError.message);
+        return;
+      }
+      console.log('📊 Deleted all existing menu items');
+
       // Create category lookup map (reverse)
       const categoryNameMap = categories.reduce((acc, cat) => {
         acc[cat.name] = cat.id;
@@ -144,20 +158,6 @@ export const useMenuExcel = () => {
             }
           }
 
-          // Check if menu item exists
-          const { data: existingItem, error: checkError } = await supabase
-            .from('menu_items')
-            .select('id')
-            .eq('name', String(name).trim())
-            .maybeSingle();
-
-          if (checkError) {
-            console.error(`📊 Check error for "${name}":`, checkError);
-            errors.push(`แถว ${rowNum}: ${checkError.message}`);
-            errorCount++;
-            continue;
-          }
-
           const menuData = {
             name: String(name).trim(),
             description: description ? String(description).trim() : null,
@@ -165,35 +165,19 @@ export const useMenuExcel = () => {
             cost_price: costPrice !== undefined && costPrice !== '' && costPrice !== null ? Number(costPrice) : 0,
             category_id: categoryId,
             image_url: imageUrl ? String(imageUrl).trim() : null,
-            is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '' || status === null,
-            updated_at: new Date().toISOString()
+            is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '' || status === null
           };
 
-          if (existingItem) {
-            // Update existing item
-            const { error: updateError } = await supabase
-              .from('menu_items')
-              .update(menuData)
-              .eq('id', existingItem.id);
+          // Insert new item (เนื่องจากลบเมนูเก่าแล้ว จึง insert ใหม่ทั้งหมด)
+          const { error: insertError } = await supabase
+            .from('menu_items')
+            .insert(menuData);
 
-            if (updateError) {
-              console.error(`📊 Update error for "${name}":`, updateError);
-              errors.push(`แถว ${rowNum}: ${updateError.message}`);
-              errorCount++;
-              continue;
-            }
-          } else {
-            // Insert new item
-            const { error: insertError } = await supabase
-              .from('menu_items')
-              .insert(menuData);
-
-            if (insertError) {
-              console.error(`📊 Insert error for "${name}":`, insertError);
-              errors.push(`แถว ${rowNum}: ${insertError.message}`);
-              errorCount++;
-              continue;
-            }
+          if (insertError) {
+            console.error(`📊 Insert error for "${name}":`, insertError);
+            errors.push(`แถว ${rowNum}: ${insertError.message}`);
+            errorCount++;
+            continue;
           }
 
           successCount++;
