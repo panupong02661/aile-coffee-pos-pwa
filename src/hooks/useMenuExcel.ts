@@ -151,9 +151,9 @@ export const useMenuExcel = () => {
             .from('menu_items')
             .select('id')
             .eq('name', String(name).trim())
-            .single();
+            .maybeSingle();
 
-          if (checkError && checkError.code !== 'PGRST116') {
+          if (checkError) {
             throw checkError;
           }
 
