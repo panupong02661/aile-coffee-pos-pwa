@@ -78,62 +78,56 @@ export const useMenuExcel = () => {
       const workbook = XLSX.read(data, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       
-      // Read as array of arrays first to get headers
-      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      // Read as JSON with headers
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
       
-      if (rawData.length < 2) {
+      console.log('📊 Import Excel - Total rows:', jsonData.length);
+      console.log('📊 First row sample:', jsonData[0]);
+      console.log('📊 Available keys:', jsonData.length > 0 ? Object.keys(jsonData[0]) : []);
+
+      if (jsonData.length === 0) {
         toast.error('ไม่พบข้อมูลในไฟล์');
         return;
       }
-
-      // Get headers from first row
-      const headers = rawData[0] as string[];
-      console.log('Excel headers:', headers);
-      
-      // Map header indices
-      const headerMap: Record<string, number> = {};
-      headers.forEach((header, index) => {
-        if (header) {
-          headerMap[header.trim()] = index;
-        }
-      });
-      
-      console.log('Header map:', headerMap);
 
       // Create category lookup map (reverse)
       const categoryNameMap = categories.reduce((acc, cat) => {
         acc[cat.name] = cat.id;
         return acc;
       }, {} as Record<string, string>);
+      
+      console.log('📊 Available categories:', Object.keys(categoryNameMap));
 
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
 
-      // Process data rows (skip header)
-      for (let i = 1; i < rawData.length; i++) {
-        const row = rawData[i];
-        const rowNum = i + 1; // Excel row number (1-indexed)
+      // Process data rows
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const rowNum = i + 2; // Excel row number (1-indexed, +1 for header)
         
         try {
-          // Get values by header index
-          const name = row[headerMap['ชื่อเมนู']];
-          const description = row[headerMap['คำอธิบาย']];
-          const price = row[headerMap['ราคา']];
-          const costPrice = row[headerMap['ต้นทุน']];
-          const category = row[headerMap['หมวดหมู่']];
-          const imageUrl = row[headerMap['รูปภาพ URL']];
-          const status = row[headerMap['สถานะ']];
+          // Get values - handle both Thai and English keys
+          const name = row['ชื่อเมนู'] || row['name'];
+          const description = row['คำอธิบาย'] || row['description'];
+          const price = row['ราคา'] || row['price'];
+          const costPrice = row['ต้นทุน'] || row['cost_price'];
+          const category = row['หมวดหมู่'] || row['category'];
+          const imageUrl = row['รูปภาพ URL'] || row['image_url'];
+          const status = row['สถานะ'] || row['status'];
+
+          console.log(`📊 Row ${rowNum}:`, { name, price, category, status });
 
           // Validate required fields
           if (!name || String(name).trim() === '') {
-            errors.push(`แถว ${rowNum}: ชื่อเมนูไม่สามารถว่างได้`);
+            errors.push(`แถว ${rowNum}: ชื่อเมนูว่าง`);
             errorCount++;
             continue;
           }
 
           // Price can be 0 or empty, default to 0
-          const priceNum = price !== undefined && price !== '' ? Number(price) : 0;
+          const priceNum = price !== undefined && price !== '' && price !== null ? Number(price) : 0;
           if (isNaN(priceNum)) {
             errors.push(`แถว ${rowNum}: ราคาไม่ถูกต้อง (${price})`);
             errorCount++;
@@ -142,8 +136,12 @@ export const useMenuExcel = () => {
 
           // Find category ID
           let categoryId = null;
-          if (category && categoryNameMap[String(category).trim()]) {
-            categoryId = categoryNameMap[String(category).trim()];
+          if (category && String(category).trim()) {
+            const categoryName = String(category).trim();
+            categoryId = categoryNameMap[categoryName] || null;
+            if (!categoryId) {
+              console.log(`📊 Category not found: "${categoryName}"`);
+            }
           }
 
           // Check if menu item exists
@@ -154,17 +152,20 @@ export const useMenuExcel = () => {
             .maybeSingle();
 
           if (checkError) {
-            throw checkError;
+            console.error(`📊 Check error for "${name}":`, checkError);
+            errors.push(`แถว ${rowNum}: ${checkError.message}`);
+            errorCount++;
+            continue;
           }
 
           const menuData = {
             name: String(name).trim(),
             description: description ? String(description).trim() : null,
             price: priceNum,
-            cost_price: costPrice !== undefined && costPrice !== '' ? Number(costPrice) : 0,
+            cost_price: costPrice !== undefined && costPrice !== '' && costPrice !== null ? Number(costPrice) : 0,
             category_id: categoryId,
             image_url: imageUrl ? String(imageUrl).trim() : null,
-            is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '',
+            is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '' || status === null,
             updated_at: new Date().toISOString()
           };
 
@@ -175,23 +176,36 @@ export const useMenuExcel = () => {
               .update(menuData)
               .eq('id', existingItem.id);
 
-            if (updateError) throw updateError;
+            if (updateError) {
+              console.error(`📊 Update error for "${name}":`, updateError);
+              errors.push(`แถว ${rowNum}: ${updateError.message}`);
+              errorCount++;
+              continue;
+            }
           } else {
             // Insert new item
             const { error: insertError } = await supabase
               .from('menu_items')
               .insert(menuData);
 
-            if (insertError) throw insertError;
+            if (insertError) {
+              console.error(`📊 Insert error for "${name}":`, insertError);
+              errors.push(`แถว ${rowNum}: ${insertError.message}`);
+              errorCount++;
+              continue;
+            }
           }
 
           successCount++;
-        } catch (error) {
-          console.error(`Error processing row ${rowNum}:`, row, error);
-          errors.push(`แถว ${rowNum}: ${error instanceof Error ? error.message : 'ข้อผิดพลาดไม่ทราบสาเหตุ'}`);
+        } catch (error: any) {
+          const errorMsg = error?.message || error?.toString() || JSON.stringify(error);
+          console.error(`📊 Error processing row ${rowNum}:`, error);
+          errors.push(`แถว ${rowNum}: ${errorMsg}`);
           errorCount++;
         }
       }
+
+      console.log(`📊 Import complete: ${successCount} success, ${errorCount} errors`);
 
       // Show results
       if (successCount > 0) {
@@ -202,15 +216,17 @@ export const useMenuExcel = () => {
       if (errorCount > 0) {
         const errorMessage = `มีข้อผิดพลาด ${errorCount} รายการ:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
         toast.error(errorMessage);
+        console.error('📊 All errors:', errors);
       }
 
       if (successCount === 0 && errorCount === 0) {
         toast.info('ไม่พบข้อมูลที่ต้องนำเข้า');
       }
 
-    } catch (error) {
-      console.error('Import error:', error);
-      toast.error('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.toString() || JSON.stringify(error);
+      console.error('📊 Import error:', error);
+      toast.error('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + errorMsg);
     } finally {
       setIsImporting(false);
     }
