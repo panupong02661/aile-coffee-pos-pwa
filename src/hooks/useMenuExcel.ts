@@ -74,6 +74,13 @@ export const useMenuExcel = () => {
   const importMenuFromExcel = async (file: File, categories: any[], onSuccess: () => void) => {
     setIsImporting(true);
     try {
+      // Check authentication first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('กรุณาเข้าสู่ระบบก่อนนำเข้าข้อมูล');
+        return;
+      }
+
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
