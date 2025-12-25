@@ -90,20 +90,6 @@ export const useMenuExcel = () => {
         return;
       }
 
-      // ลบเมนูเก่าทั้งหมดก่อน import
-      console.log('📊 Deleting all existing menu items...');
-      const { error: deleteError } = await supabase
-        .from('menu_items')
-        .delete()
-        .gte('created_at', '1900-01-01'); // ลบทั้งหมดโดยใช้เงื่อนไขที่จริงเสมอ
-      
-      if (deleteError) {
-        console.error('📊 Delete error:', deleteError);
-        toast.error('ไม่สามารถลบเมนูเก่าได้: ' + deleteError.message);
-        return;
-      }
-      console.log('📊 Deleted all existing menu items');
-
       // Create category lookup map (reverse)
       const categoryNameMap = categories.reduce((acc, cat) => {
         acc[cat.name] = cat.id;
@@ -112,11 +98,14 @@ export const useMenuExcel = () => {
       
       console.log('📊 Available categories:', Object.keys(categoryNameMap));
 
+      // เก็บชื่อเมนูที่อยู่ในไฟล์ import
+      const importedMenuNames: string[] = [];
+      
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
 
-      // Process data rows
+      // Process data rows - upsert เมนู
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
         const rowNum = i + 2; // Excel row number (1-indexed, +1 for header)
@@ -140,6 +129,9 @@ export const useMenuExcel = () => {
             continue;
           }
 
+          const trimmedName = String(name).trim();
+          importedMenuNames.push(trimmedName);
+
           // Price can be 0 or empty, default to 0
           const priceNum = price !== undefined && price !== '' && price !== null ? Number(price) : 0;
           if (isNaN(priceNum)) {
@@ -158,8 +150,15 @@ export const useMenuExcel = () => {
             }
           }
 
+          // Check if menu item exists
+          const { data: existingItem } = await supabase
+            .from('menu_items')
+            .select('id')
+            .eq('name', trimmedName)
+            .maybeSingle();
+
           const menuData = {
-            name: String(name).trim(),
+            name: trimmedName,
             description: description ? String(description).trim() : null,
             price: priceNum,
             cost_price: costPrice !== undefined && costPrice !== '' && costPrice !== null ? Number(costPrice) : 0,
@@ -168,16 +167,31 @@ export const useMenuExcel = () => {
             is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '' || status === null
           };
 
-          // Insert new item (เนื่องจากลบเมนูเก่าแล้ว จึง insert ใหม่ทั้งหมด)
-          const { error: insertError } = await supabase
-            .from('menu_items')
-            .insert(menuData);
+          if (existingItem) {
+            // Update existing item
+            const { error: updateError } = await supabase
+              .from('menu_items')
+              .update(menuData)
+              .eq('id', existingItem.id);
 
-          if (insertError) {
-            console.error(`📊 Insert error for "${name}":`, insertError);
-            errors.push(`แถว ${rowNum}: ${insertError.message}`);
-            errorCount++;
-            continue;
+            if (updateError) {
+              console.error(`📊 Update error for "${name}":`, updateError);
+              errors.push(`แถว ${rowNum}: ${updateError.message}`);
+              errorCount++;
+              continue;
+            }
+          } else {
+            // Insert new item
+            const { error: insertError } = await supabase
+              .from('menu_items')
+              .insert(menuData);
+
+            if (insertError) {
+              console.error(`📊 Insert error for "${name}":`, insertError);
+              errors.push(`แถว ${rowNum}: ${insertError.message}`);
+              errorCount++;
+              continue;
+            }
           }
 
           successCount++;
@@ -186,6 +200,21 @@ export const useMenuExcel = () => {
           console.error(`📊 Error processing row ${rowNum}:`, error);
           errors.push(`แถว ${rowNum}: ${errorMsg}`);
           errorCount++;
+        }
+      }
+
+      // ซ่อนเมนูที่ไม่อยู่ในไฟล์ import (ตั้ง is_available = false)
+      if (importedMenuNames.length > 0) {
+        console.log('📊 Hiding menus not in import file...');
+        const { error: hideError, count: hiddenCount } = await supabase
+          .from('menu_items')
+          .update({ is_available: false })
+          .not('name', 'in', `(${importedMenuNames.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',')})`);
+        
+        if (hideError) {
+          console.error('📊 Hide error:', hideError);
+        } else {
+          console.log(`📊 Hidden ${hiddenCount || 0} old menu items`);
         }
       }
 
