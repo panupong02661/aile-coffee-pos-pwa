@@ -77,12 +77,28 @@ export const useMenuExcel = () => {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as MenuExcelData[];
-
-      if (jsonData.length === 0) {
+      
+      // Read as array of arrays first to get headers
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      
+      if (rawData.length < 2) {
         toast.error('ไม่พบข้อมูลในไฟล์');
         return;
       }
+
+      // Get headers from first row
+      const headers = rawData[0] as string[];
+      console.log('Excel headers:', headers);
+      
+      // Map header indices
+      const headerMap: Record<string, number> = {};
+      headers.forEach((header, index) => {
+        if (header) {
+          headerMap[header.trim()] = index;
+        }
+      });
+      
+      console.log('Header map:', headerMap);
 
       // Create category lookup map (reverse)
       const categoryNameMap = categories.reduce((acc, cat) => {
@@ -94,32 +110,47 @@ export const useMenuExcel = () => {
       let errorCount = 0;
       const errors: string[] = [];
 
-      for (const row of jsonData) {
+      // Process data rows (skip header)
+      for (let i = 1; i < rawData.length; i++) {
+        const row = rawData[i];
+        const rowNum = i + 1; // Excel row number (1-indexed)
+        
         try {
+          // Get values by header index
+          const name = row[headerMap['ชื่อเมนู']];
+          const description = row[headerMap['คำอธิบาย']];
+          const price = row[headerMap['ราคา']];
+          const costPrice = row[headerMap['ต้นทุน']];
+          const category = row[headerMap['หมวดหมู่']];
+          const imageUrl = row[headerMap['รูปภาพ URL']];
+          const status = row[headerMap['สถานะ']];
+
           // Validate required fields
-          if (!row['ชื่อเมนู']) {
-            errors.push(`แถว ${successCount + errorCount + 1}: ชื่อเมนูไม่สามารถว่างได้`);
+          if (!name || String(name).trim() === '') {
+            errors.push(`แถว ${rowNum}: ชื่อเมนูไม่สามารถว่างได้`);
             errorCount++;
             continue;
           }
 
-          if (!row['ราคา'] || isNaN(Number(row['ราคา']))) {
-            errors.push(`แถว ${successCount + errorCount + 1}: ราคาไม่ถูกต้อง`);
+          // Price can be 0 or empty, default to 0
+          const priceNum = price !== undefined && price !== '' ? Number(price) : 0;
+          if (isNaN(priceNum)) {
+            errors.push(`แถว ${rowNum}: ราคาไม่ถูกต้อง (${price})`);
             errorCount++;
             continue;
           }
 
           // Find category ID
           let categoryId = null;
-          if (row['หมวดหมู่'] && categoryNameMap[row['หมวดหมู่']]) {
-            categoryId = categoryNameMap[row['หมวดหมู่']];
+          if (category && categoryNameMap[String(category).trim()]) {
+            categoryId = categoryNameMap[String(category).trim()];
           }
 
           // Check if menu item exists
           const { data: existingItem, error: checkError } = await supabase
             .from('menu_items')
             .select('id')
-            .eq('name', row['ชื่อเมนู'])
+            .eq('name', String(name).trim())
             .single();
 
           if (checkError && checkError.code !== 'PGRST116') {
@@ -127,13 +158,13 @@ export const useMenuExcel = () => {
           }
 
           const menuData = {
-            name: row['ชื่อเมนู'],
-            description: row['คำอธิบาย'] || null,
-            price: Number(row['ราคา']),
-            cost_price: Number(row['ต้นทุน']) || 0,
+            name: String(name).trim(),
+            description: description ? String(description).trim() : null,
+            price: priceNum,
+            cost_price: costPrice !== undefined && costPrice !== '' ? Number(costPrice) : 0,
             category_id: categoryId,
-            image_url: row['รูปภาพ URL'] || null,
-            is_available: row['สถานะ'] === 'พร้อมจำหน่าย',
+            image_url: imageUrl ? String(imageUrl).trim() : null,
+            is_available: status === 'พร้อมจำหน่าย' || status === undefined || status === '',
             updated_at: new Date().toISOString()
           };
 
@@ -156,8 +187,8 @@ export const useMenuExcel = () => {
 
           successCount++;
         } catch (error) {
-          console.error(`Error processing row:`, error);
-          errors.push(`แถว ${successCount + errorCount + 1}: ${error instanceof Error ? error.message : 'ข้อผิดพลาดไม่ทราบสาเหตุ'}`);
+          console.error(`Error processing row ${rowNum}:`, row, error);
+          errors.push(`แถว ${rowNum}: ${error instanceof Error ? error.message : 'ข้อผิดพลาดไม่ทราบสาเหตุ'}`);
           errorCount++;
         }
       }
@@ -173,9 +204,13 @@ export const useMenuExcel = () => {
         toast.error(errorMessage);
       }
 
+      if (successCount === 0 && errorCount === 0) {
+        toast.info('ไม่พบข้อมูลที่ต้องนำเข้า');
+      }
+
     } catch (error) {
       console.error('Import error:', error);
-      toast.error('เกิดข้อผิดพลาดในการนำเข้าข้อมูล');
+      toast.error('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsImporting(false);
     }
