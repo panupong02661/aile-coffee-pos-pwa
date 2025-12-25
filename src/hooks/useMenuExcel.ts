@@ -95,7 +95,7 @@ export const useMenuExcel = () => {
       const { error: deleteError } = await supabase
         .from('menu_items')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // ลบทั้งหมด
+        .gte('created_at', '1900-01-01'); // ลบทั้งหมดโดยใช้เงื่อนไขที่จริงเสมอ
       
       if (deleteError) {
         console.error('📊 Delete error:', deleteError);
