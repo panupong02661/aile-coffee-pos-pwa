@@ -107,19 +107,6 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
-  // Create and maintain Supabase channel for cross-device sync
-  useEffect(() => {
-    const channel = supabase.channel('customer-display-channel');
-    
-    channel.subscribe((status) => {
-      console.log('🛒 POS channel status:', status);
-    });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   // Send cart data to Customer Display (Display 2) using Supabase Realtime
   useEffect(() => {
     const displayData = {
@@ -141,8 +128,10 @@ const Cart = ({
       timestamp: Date.now()
     };
     
-    // Use Supabase Realtime broadcast for cross-device sync
-    const channel = supabase.channel('customer-display-channel');
+    // Use unique channel name per broadcast to avoid conflicts
+    const channelName = `cart-broadcast-${Date.now()}`;
+    const channel = supabase.channel(channelName);
+    
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         await channel.send({
@@ -151,6 +140,10 @@ const Cart = ({
           payload: displayData
         });
         console.log('🛒 Cart broadcast sent:', displayData);
+        // Cleanup after sending
+        setTimeout(() => {
+          supabase.removeChannel(channel);
+        }, 1000);
       }
     });
 
