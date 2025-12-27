@@ -172,16 +172,16 @@ const CustomerDisplay = () => {
           <h1 className="text-2xl font-bold text-green-800">{shopName}</h1>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full">
+        <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
           {/* Summary Card */}
-          <Card className="border-green-200 shadow-xl w-full mb-4">
-            <CardHeader className="bg-orange-600 text-white rounded-t-lg py-3">
-              <CardTitle className="flex items-center justify-center gap-2 text-lg">
-                <Receipt className="w-5 h-5" />
+          <Card className="border-green-200 shadow-lg w-full mb-3">
+            <CardHeader className="bg-orange-600 text-white rounded-t-lg py-2">
+              <CardTitle className="flex items-center justify-center gap-2 text-base">
+                <Receipt className="w-4 h-4" />
                 สรุปยอดชำระ
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-2">
+            <CardContent className="p-3 space-y-1 text-sm">
               <div className="flex justify-between text-coffee-700">
                 <span>ยอดรวม</span>
                 <span>฿{subtotal.toLocaleString()}</span>
@@ -200,8 +200,8 @@ const CustomerDisplay = () => {
               
               <div className="border-t border-coffee-200 pt-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-coffee-800">ยอดที่ต้องชำระ</span>
-                  <span className="text-3xl font-bold text-orange-600">
+                  <span className="text-base font-bold text-coffee-800">ยอดที่ต้องชำระ</span>
+                  <span className="text-2xl font-bold text-orange-600">
                     ฿{Math.max(0, finalTotal).toLocaleString()}
                   </span>
                 </div>
@@ -209,21 +209,19 @@ const CustomerDisplay = () => {
             </CardContent>
           </Card>
 
-          {/* QR Code Payment - Large - แสดง QR โดยตรง */}
-          <Card className="border-green-200 shadow-xl w-full">
-            <CardHeader className="bg-green-600 text-white rounded-t-lg py-3">
-              <CardTitle className="text-center text-xl">สแกนเพื่อชำระเงิน</CardTitle>
+          {/* QR Code Payment - Compact */}
+          <Card className="border-green-200 shadow-lg w-full">
+            <CardHeader className="bg-green-600 text-white rounded-t-lg py-2">
+              <CardTitle className="text-center text-base">สแกนเพื่อชำระเงิน</CardTitle>
             </CardHeader>
-            <CardContent className="p-6 flex flex-col items-center">
-              <div className="transform scale-125">
-                <QRCodePromptPay
-                  amount={Math.max(0, finalTotal)}
-                  defaultPhoneNumber={promptPayPhone}
-                  compact={true}
-                  shopLogoUrl={shopLogo}
-                />
-              </div>
-              <p className="text-center text-base text-green-700 mt-4 font-medium">
+            <CardContent className="p-4 flex flex-col items-center">
+              <QRCodePromptPay
+                amount={Math.max(0, finalTotal)}
+                defaultPhoneNumber={promptPayPhone}
+                compact={true}
+                shopLogoUrl={shopLogo}
+              />
+              <p className="text-center text-sm text-green-700 mt-2 font-medium">
                 สแกน QR Code ด้วยแอป Banking หรือ PromptPay
               </p>
             </CardContent>
