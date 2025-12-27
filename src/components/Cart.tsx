@@ -106,37 +106,37 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
-  // Send cart data to Customer Display (Display 2)
+  // Send cart data to Customer Display (Display 2) using localStorage for cross-tab sync
   useEffect(() => {
-    try {
-      const channel = new BroadcastChannel('customer-display');
-      const displayData = {
-        cartItems: cartItems.map(item => ({
-          id: item.id,
-          name: item.menu_item.name,
-          price: item.menu_item.price,
-          quantity: item.quantity,
-          addons: item.selected_addons.map(addon => ({
-            name: addon.name,
-            price: addon.price
-          })),
-          discount: item.item_discount,
-          discountType: item.item_discount_type
+    const displayData = {
+      cartItems: cartItems.map(item => ({
+        id: item.id,
+        name: item.menu_item.name,
+        price: item.menu_item.price,
+        quantity: item.quantity,
+        addons: item.selected_addons.map(addon => ({
+          name: addon.name,
+          price: addon.price
         })),
-        totalAmount: cartItems.reduce((sum, item) => sum + item.total_price, 0),
-        billDiscount,
-        billDiscountType
-      };
-      
-      channel.postMessage({
-        type: 'CART_UPDATE',
-        payload: displayData
-      });
-      
-      channel.close();
-    } catch (error) {
-      console.log('BroadcastChannel not supported or error:', error);
-    }
+        discount: item.item_discount,
+        discountType: item.item_discount_type
+      })),
+      totalAmount: cartItems.reduce((sum, item) => sum + item.total_price, 0),
+      billDiscount,
+      billDiscountType,
+      timestamp: Date.now()
+    };
+    
+    // Use localStorage for cross-tab communication (more reliable than BroadcastChannel)
+    localStorage.setItem('customer-display-data', JSON.stringify(displayData));
+    
+    // Also trigger storage event for same-origin tabs
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'customer-display-data',
+      newValue: JSON.stringify(displayData)
+    }));
+    
+    console.log('🛒 Cart sent to Display 2:', displayData);
   }, [cartItems, billDiscount, billDiscountType]);
 
   const subtotal = useMemo(() => 
