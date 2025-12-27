@@ -108,50 +108,75 @@ const Cart = ({
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
   // Send cart data to Customer Display (Display 2) using Supabase Realtime
-  useEffect(() => {
+  const syncCartToDisplay = useCallback(async (showPayment: boolean = false) => {
+    // คำนวณ subtotal และ total
+    const currentSubtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+    const currentBillDiscountAmount = billDiscountType === 'percent'
+      ? Math.min(currentSubtotal * billDiscount / 100, currentSubtotal)
+      : Math.min(billDiscount, currentSubtotal);
+    const currentTotal = Math.max(0, currentSubtotal - currentBillDiscountAmount);
+    
     const displayData = {
-      cartItems: cartItems.map(item => ({
-        id: item.id,
-        name: item.menu_item.name,
-        price: item.menu_item.price,
-        quantity: item.quantity,
-        addons: item.selected_addons.map(addon => ({
-          name: addon.name,
-          price: addon.price
-        })),
-        discount: item.item_discount,
-        discountType: item.item_discount_type
-      })),
-      totalAmount: cartItems.reduce((sum, item) => sum + item.total_price, 0),
+      cartItems: cartItems.map(item => {
+        // คำนวณราคาสินค้าหลังหักส่วนลดรายการ
+        const addonsTotal = item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+        const basePrice = item.menu_item.price + addonsTotal;
+        
+        return {
+          id: item.id,
+          name: item.menu_item.name,
+          price: item.menu_item.price,
+          quantity: item.quantity,
+          addons: item.selected_addons.map(addon => ({
+            name: addon.name,
+            price: addon.price
+          })),
+          discount: item.item_discount,
+          discountType: item.item_discount_type,
+          // ส่ง total_price ที่คำนวณแล้วจาก cart
+          totalPrice: item.total_price
+        };
+      }),
+      totalAmount: currentTotal,
+      subtotal: currentSubtotal,
       billDiscount,
       billDiscountType,
+      showPayment, // แสดง QR Code เมื่อกดชำระ
       timestamp: Date.now()
     };
     
-    // Store cart data in Supabase for cross-device sync
-    const syncCartToDisplay = async () => {
-      try {
-        // Use upsert to update or create the cart display data
-        const { error } = await supabase
-          .from('cart_display_sync' as any)
-          .upsert({
-            id: 'current-cart',
-            cart_data: displayData,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' });
-        
-        if (error) {
-          console.error('Cart sync error:', error);
-        } else {
-          console.log('🛒 Cart synced to display:', displayData);
-        }
-      } catch (err) {
-        console.error('Cart sync failed:', err);
+    try {
+      const { error } = await supabase
+        .from('cart_display_sync' as any)
+        .upsert({
+          id: 'current-cart',
+          cart_data: displayData,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      
+      if (error) {
+        console.error('Cart sync error:', error);
+      } else {
+        console.log('🛒 Cart synced to display:', displayData);
       }
-    };
-    
-    syncCartToDisplay();
+    } catch (err) {
+      console.error('Cart sync failed:', err);
+    }
   }, [cartItems, billDiscount, billDiscountType]);
+
+  // Sync cart data when items or discount changes
+  useEffect(() => {
+    syncCartToDisplay(false);
+  }, [syncCartToDisplay]);
+
+  // Sync payment modal state to customer display
+  useEffect(() => {
+    if (isPaymentModalOpen) {
+      syncCartToDisplay(true);
+    } else {
+      syncCartToDisplay(false);
+    }
+  }, [isPaymentModalOpen, syncCartToDisplay]);
 
   const subtotal = useMemo(() => 
     cartItems.reduce((sum, item) => sum + item.total_price, 0), 

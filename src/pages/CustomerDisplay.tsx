@@ -13,21 +13,26 @@ interface CartItem {
   addons?: { name: string; price: number }[];
   discount?: number;
   discountType?: 'percent' | 'amount';
+  totalPrice?: number; // ราคารวมหลังหักส่วนลดรายการ
 }
 
 interface DisplayData {
   cartItems: CartItem[];
   totalAmount: number;
+  subtotal?: number;
   billDiscount: number;
   billDiscountType: 'percent' | 'amount';
+  showPayment?: boolean; // แสดง QR เมื่อกดชำระ
 }
 
 const CustomerDisplay = () => {
   const [displayData, setDisplayData] = useState<DisplayData>({
     cartItems: [],
     totalAmount: 0,
+    subtotal: 0,
     billDiscount: 0,
-    billDiscountType: 'amount'
+    billDiscountType: 'amount',
+    showPayment: false
   });
   const [promptPayPhone, setPromptPayPhone] = useState('');
   const [shopLogo, setShopLogo] = useState<string | undefined>();
@@ -85,8 +90,10 @@ const CustomerDisplay = () => {
         setDisplayData({
           cartItems: cartData.cartItems || [],
           totalAmount: cartData.totalAmount || 0,
+          subtotal: cartData.subtotal || 0,
           billDiscount: cartData.billDiscount || 0,
-          billDiscountType: cartData.billDiscountType || 'amount'
+          billDiscountType: cartData.billDiscountType || 'amount',
+          showPayment: cartData.showPayment || false
         });
       }
     };
@@ -106,8 +113,10 @@ const CustomerDisplay = () => {
             setDisplayData({
               cartItems: cartData.cartItems || [],
               totalAmount: cartData.totalAmount || 0,
+              subtotal: cartData.subtotal || 0,
               billDiscount: cartData.billDiscount || 0,
-              billDiscountType: cartData.billDiscountType || 'amount'
+              billDiscountType: cartData.billDiscountType || 'amount',
+              showPayment: cartData.showPayment || false
             });
           }
         }
@@ -122,8 +131,14 @@ const CustomerDisplay = () => {
     };
   }, []);
 
-  // Calculate item total including addons
+  // Calculate item total - ใช้ totalPrice ที่ส่งมาถ้ามี หรือคำนวณเอง
   const calculateItemTotal = (item: CartItem) => {
+    // ถ้ามี totalPrice ที่ส่งมาจาก cart แล้ว ให้ใช้เลย
+    if (item.totalPrice !== undefined) {
+      return item.totalPrice;
+    }
+    
+    // คำนวณเอง (fallback)
     const addonsTotal = item.addons?.reduce((sum, addon) => sum + addon.price, 0) || 0;
     const baseTotal = (item.price + addonsTotal) * item.quantity;
     
@@ -137,15 +152,91 @@ const CustomerDisplay = () => {
     return baseTotal;
   };
 
-  // Calculate subtotal before bill discount
-  const subtotal = displayData.cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  // ใช้ subtotal และ totalAmount ที่ส่งมาจาก cart
+  const subtotal = displayData.subtotal || displayData.cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  const finalTotal = displayData.totalAmount;
 
-  // Calculate final total after bill discount
-  const finalTotal = displayData.billDiscount > 0
-    ? displayData.billDiscountType === 'percent'
-      ? subtotal * (1 - displayData.billDiscount / 100)
-      : subtotal - displayData.billDiscount
-    : subtotal;
+  // ถ้า showPayment = true แสดงหน้า QR Code เต็มจอ
+  if (displayData.showPayment && displayData.cartItems.length > 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4 flex flex-col">
+        {/* Header */}
+        <div className="text-center mb-4">
+          {shopLogo && (
+            <img 
+              src={shopLogo} 
+              alt={shopName} 
+              className="w-16 h-16 rounded-full mx-auto mb-2 object-cover border-4 border-white shadow-lg"
+            />
+          )}
+          <h1 className="text-2xl font-bold text-green-800">{shopName}</h1>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full">
+          {/* Summary Card */}
+          <Card className="border-green-200 shadow-xl w-full mb-4">
+            <CardHeader className="bg-orange-600 text-white rounded-t-lg py-3">
+              <CardTitle className="flex items-center justify-center gap-2 text-lg">
+                <Receipt className="w-5 h-5" />
+                สรุปยอดชำระ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2">
+              <div className="flex justify-between text-coffee-700">
+                <span>ยอดรวม</span>
+                <span>฿{subtotal.toLocaleString()}</span>
+              </div>
+              
+              {displayData.billDiscount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>ส่วนลด</span>
+                  <span>
+                    -{displayData.billDiscountType === 'percent' 
+                      ? `${displayData.billDiscount}%` 
+                      : `฿${displayData.billDiscount.toLocaleString()}`}
+                  </span>
+                </div>
+              )}
+              
+              <div className="border-t border-coffee-200 pt-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold text-coffee-800">ยอดที่ต้องชำระ</span>
+                  <span className="text-3xl font-bold text-orange-600">
+                    ฿{Math.max(0, finalTotal).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* QR Code Payment - Large */}
+          <Card className="border-green-200 shadow-xl w-full">
+            <CardHeader className="bg-green-600 text-white rounded-t-lg py-3">
+              <CardTitle className="text-center text-xl">สแกนเพื่อชำระเงิน</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 flex flex-col items-center">
+              <div className="transform scale-110">
+                <QRCodePromptPay
+                  amount={Math.max(0, finalTotal)}
+                  defaultPhoneNumber={promptPayPhone}
+                  compact={false}
+                  shopLogoUrl={shopLogo}
+                />
+              </div>
+              <p className="text-center text-base text-green-700 mt-4 font-medium">
+                สแกน QR Code ด้วยแอป Banking หรือ PromptPay
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-4 text-green-600 text-sm">
+          <p>ขอบคุณที่ใช้บริการ {shopName}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
