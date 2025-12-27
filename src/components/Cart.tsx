@@ -128,23 +128,29 @@ const Cart = ({
       timestamp: Date.now()
     };
     
-    // Use the same channel name as CustomerDisplay listens to
-    const channel = supabase.channel('customer-display-channel');
-    
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.send({
-          type: 'broadcast',
-          event: 'cart-update',
-          payload: displayData
-        });
-        console.log('🛒 Cart broadcast sent:', displayData);
+    // Store cart data in Supabase for cross-device sync
+    const syncCartToDisplay = async () => {
+      try {
+        // Use upsert to update or create the cart display data
+        const { error } = await supabase
+          .from('cart_display_sync')
+          .upsert({
+            id: 'current-cart',
+            cart_data: displayData,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        
+        if (error) {
+          console.error('Cart sync error:', error);
+        } else {
+          console.log('🛒 Cart synced to display:', displayData);
+        }
+      } catch (err) {
+        console.error('Cart sync failed:', err);
       }
-    });
-
-    return () => {
-      supabase.removeChannel(channel);
     };
+    
+    syncCartToDisplay();
   }, [cartItems, billDiscount, billDiscountType]);
 
   const subtotal = useMemo(() => 
