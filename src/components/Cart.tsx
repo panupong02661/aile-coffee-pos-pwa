@@ -107,6 +107,19 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
+  // Create and maintain Supabase channel for cross-device sync
+  useEffect(() => {
+    const channel = supabase.channel('customer-display-channel');
+    
+    channel.subscribe((status) => {
+      console.log('🛒 POS channel status:', status);
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Send cart data to Customer Display (Display 2) using Supabase Realtime
   useEffect(() => {
     const displayData = {
@@ -130,13 +143,20 @@ const Cart = ({
     
     // Use Supabase Realtime broadcast for cross-device sync
     const channel = supabase.channel('customer-display-channel');
-    channel.send({
-      type: 'broadcast',
-      event: 'cart-update',
-      payload: displayData
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.send({
+          type: 'broadcast',
+          event: 'cart-update',
+          payload: displayData
+        });
+        console.log('🛒 Cart broadcast sent:', displayData);
+      }
     });
-    
-    console.log('🛒 Cart broadcast sent:', displayData);
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [cartItems, billDiscount, billDiscountType]);
 
   const subtotal = useMemo(() => 
