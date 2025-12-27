@@ -12,6 +12,7 @@ import CodeModal from './CodeModal';
 import { useToast } from '@/hooks/use-toast';
 import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount } from '@/utils/promotionUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -106,7 +107,7 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
-  // Send cart data to Customer Display (Display 2) using localStorage for cross-tab sync
+  // Send cart data to Customer Display (Display 2) using Supabase Realtime
   useEffect(() => {
     const displayData = {
       cartItems: cartItems.map(item => ({
@@ -127,16 +128,15 @@ const Cart = ({
       timestamp: Date.now()
     };
     
-    // Use localStorage for cross-tab communication (more reliable than BroadcastChannel)
-    localStorage.setItem('customer-display-data', JSON.stringify(displayData));
+    // Use Supabase Realtime broadcast for cross-device sync
+    const channel = supabase.channel('customer-display-channel');
+    channel.send({
+      type: 'broadcast',
+      event: 'cart-update',
+      payload: displayData
+    });
     
-    // Also trigger storage event for same-origin tabs
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'customer-display-data',
-      newValue: JSON.stringify(displayData)
-    }));
-    
-    console.log('🛒 Cart sent to Display 2:', displayData);
+    console.log('🛒 Cart broadcast sent:', displayData);
   }, [cartItems, billDiscount, billDiscountType]);
 
   const subtotal = useMemo(() => 
