@@ -133,7 +133,7 @@ const Cart = ({
       try {
         // Use upsert to update or create the cart display data
         const { error } = await supabase
-          .from('cart_display_sync')
+          .from('cart_display_sync' as any)
           .upsert({
             id: 'current-cart',
             cart_data: displayData,
