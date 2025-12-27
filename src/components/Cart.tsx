@@ -106,6 +106,39 @@ const Cart = ({
     }
   }, [cartItems, promotions, onUpdateDiscount, toast]);
 
+  // Send cart data to Customer Display (Display 2)
+  useEffect(() => {
+    try {
+      const channel = new BroadcastChannel('customer-display');
+      const displayData = {
+        cartItems: cartItems.map(item => ({
+          id: item.id,
+          name: item.menu_item.name,
+          price: item.menu_item.price,
+          quantity: item.quantity,
+          addons: item.selected_addons.map(addon => ({
+            name: addon.name,
+            price: addon.price
+          })),
+          discount: item.item_discount,
+          discountType: item.item_discount_type
+        })),
+        totalAmount: cartItems.reduce((sum, item) => sum + item.total_price, 0),
+        billDiscount,
+        billDiscountType
+      };
+      
+      channel.postMessage({
+        type: 'CART_UPDATE',
+        payload: displayData
+      });
+      
+      channel.close();
+    } catch (error) {
+      console.log('BroadcastChannel not supported or error:', error);
+    }
+  }, [cartItems, billDiscount, billDiscountType]);
+
   const subtotal = useMemo(() => 
     cartItems.reduce((sum, item) => sum + item.total_price, 0), 
     [cartItems]

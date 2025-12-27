@@ -80,7 +80,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
     '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
     '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
-    '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging', '/wifi-vouchers'
+    '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging', '/wifi-vouchers',
+    '/customer-display'
   ];
   
   const menuItems = [
@@ -90,6 +91,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'analytics-dashboard', label: 'Analytics Dashboard', icon: TrendingUp, path: '/analytics-dashboard' },
     { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
+    { id: 'customer-display', label: 'จอแสดงผลลูกค้า', icon: Table, path: '/customer-display' },
     { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
     { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
