@@ -67,28 +67,57 @@ const CustomerDisplay = () => {
     fetchShopSettings();
   }, []);
 
-  // Listen for cart updates via Supabase Realtime broadcast
+  // Fetch initial cart data and listen for updates via Supabase Realtime
   useEffect(() => {
-    console.log('📺 Customer Display: Setting up Supabase Realtime...');
+    console.log('📺 Customer Display: Setting up...');
     
-    const channel = supabase.channel('customer-display-channel')
-      .on('broadcast', { event: 'cart-update' }, ({ payload }) => {
-        console.log('📺 Customer Display received broadcast:', payload);
-        if (payload) {
-          setDisplayData({
-            cartItems: payload.cartItems || [],
-            totalAmount: payload.totalAmount || 0,
-            billDiscount: payload.billDiscount || 0,
-            billDiscountType: payload.billDiscountType || 'amount'
-          });
+    // Fetch initial cart data
+    const fetchCartData = async () => {
+      const { data, error } = await supabase
+        .from('cart_display_sync' as any)
+        .select('cart_data')
+        .eq('id', 'current-cart')
+        .single();
+      
+      if (data && (data as any).cart_data) {
+        console.log('📺 Initial cart data:', (data as any).cart_data);
+        const cartData = (data as any).cart_data;
+        setDisplayData({
+          cartItems: cartData.cartItems || [],
+          totalAmount: cartData.totalAmount || 0,
+          billDiscount: cartData.billDiscount || 0,
+          billDiscountType: cartData.billDiscountType || 'amount'
+        });
+      }
+    };
+    
+    fetchCartData();
+    
+    // Listen for real-time updates
+    const channel = supabase
+      .channel('cart-display-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cart_display_sync' },
+        (payload: any) => {
+          console.log('📺 Realtime update received:', payload);
+          if (payload.new?.cart_data) {
+            const cartData = payload.new.cart_data;
+            setDisplayData({
+              cartItems: cartData.cartItems || [],
+              totalAmount: cartData.totalAmount || 0,
+              billDiscount: cartData.billDiscount || 0,
+              billDiscountType: cartData.billDiscountType || 'amount'
+            });
+          }
         }
-      })
+      )
       .subscribe((status) => {
-        console.log('📺 Supabase channel status:', status);
+        console.log('📺 Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('📺 Cleaning up Supabase channel...');
+      console.log('📺 Cleaning up...');
       supabase.removeChannel(channel);
     };
   }, []);

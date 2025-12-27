@@ -370,6 +370,27 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_display_sync: {
+        Row: {
+          cart_data: Json
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          cart_data?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          cart_data?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
