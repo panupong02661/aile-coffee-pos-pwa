@@ -67,56 +67,29 @@ const CustomerDisplay = () => {
     fetchShopSettings();
   }, []);
 
-  // Listen for cart updates via localStorage (cross-tab sync)
+  // Listen for cart updates via Supabase Realtime broadcast
   useEffect(() => {
-    // Load initial data from localStorage
-    const loadData = () => {
-      const stored = localStorage.getItem('customer-display-data');
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          console.log('📺 Customer Display loaded:', data);
+    console.log('📺 Customer Display: Setting up Supabase Realtime...');
+    
+    const channel = supabase.channel('customer-display-channel')
+      .on('broadcast', { event: 'cart-update' }, ({ payload }) => {
+        console.log('📺 Customer Display received broadcast:', payload);
+        if (payload) {
           setDisplayData({
-            cartItems: data.cartItems || [],
-            totalAmount: data.totalAmount || 0,
-            billDiscount: data.billDiscount || 0,
-            billDiscountType: data.billDiscountType || 'amount'
+            cartItems: payload.cartItems || [],
+            totalAmount: payload.totalAmount || 0,
+            billDiscount: payload.billDiscount || 0,
+            billDiscountType: payload.billDiscountType || 'amount'
           });
-        } catch (error) {
-          console.error('Error parsing display data:', error);
         }
-      }
-    };
-
-    // Load on mount
-    loadData();
-
-    // Listen for storage events (from other tabs or same tab)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'customer-display-data' && event.newValue) {
-        try {
-          const data = JSON.parse(event.newValue);
-          console.log('📺 Customer Display received update:', data);
-          setDisplayData({
-            cartItems: data.cartItems || [],
-            totalAmount: data.totalAmount || 0,
-            billDiscount: data.billDiscount || 0,
-            billDiscountType: data.billDiscountType || 'amount'
-          });
-        } catch (error) {
-          console.error('Error parsing display data:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Poll for changes every 500ms as backup (in case storage event doesn't fire in same tab)
-    const interval = setInterval(loadData, 500);
+      })
+      .subscribe((status) => {
+        console.log('📺 Supabase channel status:', status);
+      });
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
+      console.log('📺 Cleaning up Supabase channel...');
+      supabase.removeChannel(channel);
     };
   }, []);
 
