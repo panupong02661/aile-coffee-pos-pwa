@@ -67,19 +67,56 @@ const CustomerDisplay = () => {
     fetchShopSettings();
   }, []);
 
-  // Listen for cart updates via BroadcastChannel
+  // Listen for cart updates via localStorage (cross-tab sync)
   useEffect(() => {
-    const channel = new BroadcastChannel('customer-display');
-    
-    channel.onmessage = (event) => {
-      console.log('📺 Customer Display received:', event.data);
-      if (event.data.type === 'CART_UPDATE') {
-        setDisplayData(event.data.payload);
+    // Load initial data from localStorage
+    const loadData = () => {
+      const stored = localStorage.getItem('customer-display-data');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          console.log('📺 Customer Display loaded:', data);
+          setDisplayData({
+            cartItems: data.cartItems || [],
+            totalAmount: data.totalAmount || 0,
+            billDiscount: data.billDiscount || 0,
+            billDiscountType: data.billDiscountType || 'amount'
+          });
+        } catch (error) {
+          console.error('Error parsing display data:', error);
+        }
       }
     };
 
+    // Load on mount
+    loadData();
+
+    // Listen for storage events (from other tabs or same tab)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'customer-display-data' && event.newValue) {
+        try {
+          const data = JSON.parse(event.newValue);
+          console.log('📺 Customer Display received update:', data);
+          setDisplayData({
+            cartItems: data.cartItems || [],
+            totalAmount: data.totalAmount || 0,
+            billDiscount: data.billDiscount || 0,
+            billDiscountType: data.billDiscountType || 'amount'
+          });
+        } catch (error) {
+          console.error('Error parsing display data:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Poll for changes every 500ms as backup (in case storage event doesn't fire in same tab)
+    const interval = setInterval(loadData, 500);
+
     return () => {
-      channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
     };
   }, []);
 
