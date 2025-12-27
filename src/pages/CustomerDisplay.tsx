@@ -209,17 +209,17 @@ const CustomerDisplay = () => {
             </CardContent>
           </Card>
 
-          {/* QR Code Payment - Large */}
+          {/* QR Code Payment - Large - แสดง QR โดยตรง */}
           <Card className="border-green-200 shadow-xl w-full">
             <CardHeader className="bg-green-600 text-white rounded-t-lg py-3">
               <CardTitle className="text-center text-xl">สแกนเพื่อชำระเงิน</CardTitle>
             </CardHeader>
             <CardContent className="p-6 flex flex-col items-center">
-              <div className="transform scale-110">
+              <div className="transform scale-125">
                 <QRCodePromptPay
                   amount={Math.max(0, finalTotal)}
                   defaultPhoneNumber={promptPayPhone}
-                  compact={false}
+                  compact={true}
                   shopLogoUrl={shopLogo}
                 />
               </div>
@@ -271,35 +271,47 @@ const CustomerDisplay = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-coffee-100">
-                  {displayData.cartItems.map((item, index) => (
-                    <div key={item.id || index} className="p-4 hover:bg-coffee-50 transition-colors">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-coffee-800 text-lg">
-                            {item.name}
-                          </h3>
-                          <p className="text-coffee-600 text-sm">
-                            ฿{item.price.toLocaleString()} x {item.quantity}
-                          </p>
-                          {item.addons && item.addons.length > 0 && (
-                            <div className="mt-1 text-xs text-coffee-500">
-                              + {item.addons.map(a => `${a.name} (฿${a.price})`).join(', ')}
-                            </div>
-                          )}
-                          {item.discount && item.discount > 0 && (
-                            <div className="mt-1 text-xs text-red-500">
-                              ส่วนลด: {item.discountType === 'percent' ? `${item.discount}%` : `฿${item.discount}`}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-coffee-800 text-lg">
-                            ฿{calculateItemTotal(item).toLocaleString()}
-                          </span>
+                  {displayData.cartItems.map((item, index) => {
+                    const itemTotal = calculateItemTotal(item);
+                    const hasDiscount = item.discount && item.discount > 0;
+                    const addonsTotal = item.addons?.reduce((sum, addon) => sum + addon.price, 0) || 0;
+                    const originalPrice = (item.price + addonsTotal) * item.quantity;
+                    
+                    return (
+                      <div key={item.id || index} className="p-4 hover:bg-coffee-50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-coffee-800 text-lg">
+                              {item.name}
+                            </h3>
+                            <p className="text-coffee-600 text-sm">
+                              ฿{item.price.toLocaleString()} x {item.quantity}
+                            </p>
+                            {item.addons && item.addons.length > 0 && (
+                              <div className="mt-1 text-xs text-coffee-500">
+                                + {item.addons.map(a => `${a.name} (฿${a.price})`).join(', ')}
+                              </div>
+                            )}
+                            {hasDiscount && (
+                              <div className="mt-1 text-xs text-red-500">
+                                ส่วนลด: ฿{(originalPrice - itemTotal).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            {hasDiscount && (
+                              <span className="text-coffee-400 text-sm line-through block">
+                                ฿{originalPrice.toLocaleString()}
+                              </span>
+                            )}
+                            <span className={`font-bold text-lg ${hasDiscount ? 'text-red-600' : 'text-coffee-800'}`}>
+                              ฿{itemTotal.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
