@@ -128,9 +128,8 @@ const Cart = ({
       timestamp: Date.now()
     };
     
-    // Use unique channel name per broadcast to avoid conflicts
-    const channelName = `cart-broadcast-${Date.now()}`;
-    const channel = supabase.channel(channelName);
+    // Use the same channel name as CustomerDisplay listens to
+    const channel = supabase.channel('customer-display-channel');
     
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -140,10 +139,6 @@ const Cart = ({
           payload: displayData
         });
         console.log('🛒 Cart broadcast sent:', displayData);
-        // Cleanup after sending
-        setTimeout(() => {
-          supabase.removeChannel(channel);
-        }, 1000);
       }
     });
 
