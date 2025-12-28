@@ -46,6 +46,7 @@ interface Promotion {
   used_count: number;
   menu_item_ids: string[];
   category_ids: string[];
+  min_purchase: number;
 }
 
 const MenuPromotions = () => {
@@ -68,6 +69,7 @@ const MenuPromotions = () => {
     end_date: '',
     is_active: true,
     usage_limit: null as number | null,
+    min_purchase: 0,
     selectedMenuItems: [] as string[],
     selectedCategories: [] as string[],
   });
@@ -126,6 +128,7 @@ const MenuPromotions = () => {
         is_active: p.is_active,
         usage_limit: p.usage_limit,
         used_count: p.used_count,
+        min_purchase: Number(p.min_purchase) || 0,
         menu_item_ids: (promoMenuItems || [])
           .filter(pm => pm.promotion_id === p.id)
           .map(pm => pm.menu_item_id),
@@ -158,6 +161,7 @@ const MenuPromotions = () => {
       end_date: '',
       is_active: true,
       usage_limit: null,
+      min_purchase: 0,
       selectedMenuItems: [],
       selectedCategories: [],
     });
@@ -195,6 +199,7 @@ const MenuPromotions = () => {
             end_date: formData.end_date,
             is_active: formData.is_active,
             usage_limit: formData.usage_limit,
+            min_purchase: formData.min_purchase,
           })
           .eq('id', editingPromotion.id);
 
@@ -239,6 +244,7 @@ const MenuPromotions = () => {
             end_date: formData.end_date,
             is_active: formData.is_active,
             usage_limit: formData.usage_limit,
+            min_purchase: formData.min_purchase,
             used_count: 0,
           })
           .select()
@@ -291,6 +297,7 @@ const MenuPromotions = () => {
       end_date: promo.end_date.replace('Z', '').split('.')[0],
       is_active: promo.is_active,
       usage_limit: promo.usage_limit,
+      min_purchase: promo.min_purchase || 0,
       selectedMenuItems: promo.menu_item_ids,
       selectedCategories: promo.category_ids,
     });
@@ -491,6 +498,20 @@ const MenuPromotions = () => {
                     </div>
                     <div className="space-y-4">
                       <div>
+                        <Label htmlFor="min_purchase">ยอดซื้อขั้นต่ำ (บาท)</Label>
+                        <Input
+                          id="min_purchase"
+                          type="number"
+                          value={formData.min_purchase || ''}
+                          onChange={(e) => setFormData({ ...formData, min_purchase: parseFloat(e.target.value) || 0 })}
+                          placeholder="0 = ไม่มีขั้นต่ำ"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ลูกค้าต้องซื้อเมนูในหมวดหมู่นี้ขั้นต่ำตามที่กำหนดถึงจะได้ส่วนลด
+                        </p>
+                      </div>
+                      <div>
                         <Label htmlFor="usage_limit">จำกัดการใช้งาน (ครั้ง)</Label>
                         <Input
                           id="usage_limit"
@@ -653,6 +674,11 @@ const MenuPromotions = () => {
                             <span>
                               {format(new Date(promo.start_date), 'dd/MM/yyyy HH:mm')} - {format(new Date(promo.end_date), 'dd/MM/yyyy HH:mm')}
                             </span>
+                            {promo.min_purchase > 0 && (
+                              <Badge variant="outline" className="ml-2">
+                                ซื้อขั้นต่ำ ฿{promo.min_purchase}
+                              </Badge>
+                            )}
                           </div>
                           
                           <div className="flex flex-wrap gap-1">
