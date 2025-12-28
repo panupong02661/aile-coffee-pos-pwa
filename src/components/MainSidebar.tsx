@@ -54,7 +54,8 @@ import {
   Lock,
   AlertTriangle,
   Ticket,
-  MessageSquare
+  MessageSquare,
+  Tag
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -81,7 +82,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
     '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
     '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging', '/wifi-vouchers',
-    '/customer-display'
+    '/customer-display', '/menu-promotions'
   ];
   
   const menuItems = [
@@ -148,7 +149,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
     { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
     { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-    { id: 'promotions', label: 'โปรโมชั่น', icon: Percent, path: '/promotions' },
+    { id: 'promotions', label: 'จัดการแอปลูกค้า', icon: Percent, path: '/promotions' },
+    { id: 'menu-promotions', label: 'โปรโมชั่นตามเมนู/หมวดหมู่', icon: Tag, path: '/menu-promotions' },
     { id: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', icon: DollarSign, path: '/cost-analysis' },
     { id: 'coupon-management', label: 'จัดการคูปอง', icon: Ticket, path: '/coupon-management' },
     { id: 'review-management', label: 'จัดการรีวิว', icon: MessageSquare, path: '/review-management' },
