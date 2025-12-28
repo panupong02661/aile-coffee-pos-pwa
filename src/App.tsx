@@ -65,6 +65,7 @@ const FinancialSystem = lazy(() => import('./pages/FinancialSystem'));
 const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
+const MenuPromotions = lazy(() => import('./pages/MenuPromotions'));
 
 function AppContent() {
   usePrefetch();
@@ -92,6 +93,7 @@ function App() {
                   <Route path="/shop-settings" element={<ShopSettings />} />
                   <Route path="/business-settings" element={<BusinessSettings />} />
                   <Route path="/promotions" element={<Promotions />} />
+                  <Route path="/menu-promotions" element={<MenuPromotions />} />
                   <Route path="/online-system" element={<OnlineSystem />} />
                   <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
                   <Route path="/customer-app-management" element={<CustomerAppManagement />} />

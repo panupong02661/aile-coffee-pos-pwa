@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Plus, Edit, Trash2, Gift } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Gift, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import BirthdayGiftManager from '@/components/BirthdayGiftManager';
@@ -28,6 +29,7 @@ interface Promotion {
 }
 
 const Promotions = () => {
+  const navigate = useNavigate();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
@@ -278,8 +280,12 @@ const Promotions = () => {
           />
           
           <div className="container mx-auto space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
               <h1 className="text-3xl font-bold">จัดการแอปลูกค้า</h1>
+              <Button variant="outline" onClick={() => navigate('/menu-promotions')}>
+                <Tag className="w-4 h-4 mr-2" />
+                โปรโมชั่นตามเมนู/หมวดหมู่
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
