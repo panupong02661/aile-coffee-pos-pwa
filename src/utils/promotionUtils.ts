@@ -4,7 +4,8 @@ import { Promotion } from '@/hooks/usePromotions';
 
 export const calculatePromotionDiscount = (
   cartItem: CartItem,
-  promotions: Promotion[]
+  promotions: Promotion[],
+  allCartItems?: CartItem[]
 ): { discount: number; discountType: 'percent' | 'amount'; promotionName?: string } => {
   console.log('=== Calculating promotion discount ===');
   console.log('Item:', cartItem.menu_item.name, 'ID:', cartItem.menu_item.id);
@@ -21,6 +22,7 @@ export const calculatePromotionDiscount = (
     console.log('Promotion discount_value:', promotion.discount_value);
     console.log('Promotion menu_item_ids:', promotion.menu_item_ids);
     console.log('Promotion category_ids:', promotion.category_ids);
+    console.log('Promotion min_purchase:', promotion.min_purchase);
 
     let isEligible = false;
 
@@ -62,6 +64,46 @@ export const calculatePromotionDiscount = (
       // ไม่มีการระบุเฉพาะ - ใช้ได้กับทุกเมนู
       console.log('✅ Promotion applies to all items');
       isEligible = true;
+    }
+
+    // ตรวจสอบยอดซื้อขั้นต่ำ
+    if (isEligible && promotion.min_purchase && promotion.min_purchase > 0 && allCartItems) {
+      console.log('Checking min_purchase requirement:', promotion.min_purchase);
+      
+      // คำนวณยอดรวมของสินค้าที่อยู่ในเงื่อนไขโปรโมชั่น
+      let eligibleTotal = 0;
+      
+      for (const item of allCartItems) {
+        let itemIsEligible = false;
+        
+        if (hasSpecificMenuItems && promotion.menu_item_ids!.includes(item.menu_item.id)) {
+          itemIsEligible = true;
+        }
+        
+        if (!itemIsEligible && hasSpecificCategories && item.menu_item.category_id) {
+          if (promotion.category_ids!.includes(item.menu_item.category_id)) {
+            itemIsEligible = true;
+          }
+        }
+        
+        if (!hasSpecificMenuItems && !hasSpecificCategories) {
+          itemIsEligible = true;
+        }
+        
+        if (itemIsEligible) {
+          const basePrice = item.menu_item.price + item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+          eligibleTotal += basePrice * item.quantity;
+        }
+      }
+      
+      console.log('Eligible total in cart:', eligibleTotal);
+      
+      if (eligibleTotal < promotion.min_purchase) {
+        console.log('❌ Min purchase not met. Required:', promotion.min_purchase, 'Got:', eligibleTotal);
+        isEligible = false;
+      } else {
+        console.log('✅ Min purchase requirement met');
+      }
     }
 
     if (isEligible) {

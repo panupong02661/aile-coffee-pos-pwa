@@ -75,7 +75,8 @@ const Cart = ({
     if (promotions.length > 0 && cartItems.length > 0) {
       cartItems.forEach((item, index) => {
         console.log(`\n--- Processing item ${index + 1}: ${item.menu_item.name} ---`);
-        const promotionResult = calculatePromotionDiscount(item, promotions);
+        // ส่ง allCartItems เพื่อตรวจสอบยอดขั้นต่ำ
+        const promotionResult = calculatePromotionDiscount(item, promotions, cartItems);
         console.log('Promotion result for', item.menu_item.name, ':', promotionResult);
         
         // ใช้โปรโมชั่นเฉพาะเมื่อมีส่วนลดและยังไม่ได้ใช้หรือส่วนลดเปลี่ยนแปลง

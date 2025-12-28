@@ -2577,6 +2577,7 @@ export type Database = {
           end_date: string
           id: string
           is_active: boolean
+          min_purchase: number | null
           name: string
           start_date: string
           target_group: string
@@ -2592,6 +2593,7 @@ export type Database = {
           end_date: string
           id?: string
           is_active?: boolean
+          min_purchase?: number | null
           name: string
           start_date: string
           target_group?: string
@@ -2607,6 +2609,7 @@ export type Database = {
           end_date?: string
           id?: string
           is_active?: boolean
+          min_purchase?: number | null
           name?: string
           start_date?: string
           target_group?: string
