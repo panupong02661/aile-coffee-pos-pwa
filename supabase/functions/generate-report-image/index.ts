@@ -163,33 +163,36 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const prompt = `สร้างรูปภาพรายงานยอดขายแบบ Dashboard สำหรับร้านกาแฟ ด้วยข้อมูลต่อไปนี้:
+    const prompt = `Create a professional sales report dashboard image for a coffee shop.
 
-หัวข้อ: ${reportTitle}
-เวลาที่สร้าง: ${bangkokNow.toLocaleTimeString('th-TH')}
+IMPORTANT: All text MUST be in Thai language with CORRECT spelling. Do NOT use garbled or random characters.
 
-📊 สรุปยอดขาย:
-• ออเดอร์ทั้งหมด: ${totalOrders} รายการ
-• ยอดขายรวม: ${formatNumber(totalSales)} บาท
-• ส่วนลด: ${formatNumber(totalDiscount)} บาท
-• ยอดขายสุทธิ: ${formatNumber(netSales)} บาท
+Title at top: "${reportTitle}"
+Time: "อัปเดตล่าสุด: ${bangkokNow.toLocaleTimeString('th-TH')}"
 
-🏆 สินค้าขายดี 5 อันดับแรก:
+LEFT CARD - "สรุปยอดขาย" (Sales Summary):
+• "ออเดอร์ทั้งหมด: ${totalOrders} รายการ" (Total Orders)
+• "ยอดขายรวม: ${formatNumber(totalSales)} บาท" (Total Sales)
+• "ส่วนลด: ${formatNumber(totalDiscount)} บาท" (Discount)
+• "ยอดขายสุทธิ: ${formatNumber(netSales)} บาท" (Net Sales)
+
+RIGHT CARD - "สินค้าขายดี 5 อันดับแรก" (Top 5 Best Sellers):
 ${topMenusText || 'ไม่มีข้อมูล'}
 
-💳 ช่องทางการชำระเงิน:
+BOTTOM LEFT CARD - "ช่องทางการชำระเงิน" (Payment Methods):
 ${paymentText || 'ไม่มีข้อมูล'}
 
-👥 สมาชิกใหม่: ${newMembers?.length || 0} คน
+BOTTOM RIGHT CARD - "สมาชิก" (Members):
+"${newMembers?.length || 0} คน"
 
-ข้อกำหนดการออกแบบ:
-- สไตล์ Dashboard สมัยใหม่ ดูเรียบหรู พื้นหลังสีเข้ม
-- แสดงข้อความเป็นภาษาไทยทั้งหมด สะกดให้ถูกต้อง
-- แสดงกราฟแท่งสำหรับสินค้าขายดี 5 อันดับ
-- ใช้สี: น้ำเงิน (#3b82f6), เขียว (#22c55e), ส้ม (#f59e0b)
-- ใส่ไอคอนและอีโมจิประดับ
-- ขนาดรูป 1200x800 พิกเซล
-- ตกแต่งด้วยธีมร้านกาแฟ ใส่รูปถ้วยกาแฟ เมล็ดกาแฟ`;
+Design requirements:
+- Modern dashboard style with dark background and coffee theme
+- Use card layout with rounded corners
+- Colors: Blue (#3b82f6), Green (#22c55e), Orange (#f59e0b)
+- Add coffee cup and coffee bean decorations
+- Size: 1200x800 pixels
+- Use icons for each section
+- Show bar chart for top products`;
 
     console.log('🎨 Calling AI Gateway to generate image...');
     
