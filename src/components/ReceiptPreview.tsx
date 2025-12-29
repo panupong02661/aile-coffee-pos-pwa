@@ -47,6 +47,7 @@ interface ReceiptPreviewProps {
   memberPhone?: string;
   orderNumber?: string;
   wifiVoucher?: WiFiVoucher | null;
+  compact?: boolean;
 }
 
 const ReceiptPreview = ({ 
@@ -57,7 +58,8 @@ const ReceiptPreview = ({
   memberName,
   memberPhone,
   orderNumber,
-  wifiVoucher: propWifiVoucher
+  wifiVoucher: propWifiVoucher,
+  compact = false
 }: ReceiptPreviewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
@@ -123,9 +125,9 @@ const ReceiptPreview = ({
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="max-w-sm mx-auto bg-white border-2 border-dashed border-gray-300 p-6 font-mono text-sm">
+    <Card className={compact ? "border-0 shadow-none" : ""}>
+      <CardContent className={compact ? "p-2" : "pt-6"}>
+        <div className={`mx-auto bg-white border-2 border-dashed border-gray-300 font-mono text-sm ${compact ? "max-w-[280px] p-3" : "max-w-sm p-6"}`}>
           {/* Logo */}
           {receiptSettings.show_logo && shopSettings.logo_url && (
             <div className="text-center mb-4">

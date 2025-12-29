@@ -786,7 +786,7 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-4">
         <DialogHeader className="pb-1">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <div className="p-2 bg-gradient-to-br from-primary to-primary/70 rounded-xl shadow-md">
@@ -796,9 +796,9 @@ const PaymentModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-3 overflow-hidden">
           {/* Left Column - Payment Form */}
-          <div className="space-y-2.5 overflow-y-auto max-h-[calc(90vh-100px)] pr-2">
+          <div className="space-y-2 overflow-y-auto max-h-[calc(85vh-80px)] pr-1">
             {/* Order Summary - Enhanced with gradient */}
             <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
             <div className="flex justify-between items-center text-base font-semibold">
@@ -1109,7 +1109,7 @@ const PaymentModal = ({
         </div>
 
         {/* Right Column - Receipt Preview */}
-        <div className="hidden lg:block overflow-y-auto max-h-[calc(90vh-100px)] border-l pl-4">
+        <div className="hidden lg:block overflow-y-auto max-h-[calc(85vh-80px)] border-l pl-2">
           <ReceiptPreview 
             cartItems={cartItems}
             totalAmount={total}
@@ -1118,6 +1118,7 @@ const PaymentModal = ({
             memberName={selectedMember?.name}
             memberPhone={selectedMember?.phone}
             wifiVoucher={wifiVoucherPreview}
+            compact={true}
           />
         </div>
       </div>
