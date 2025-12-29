@@ -786,7 +786,7 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-3">
         <DialogHeader className="pb-1">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <div className="p-2 bg-gradient-to-br from-primary to-primary/70 rounded-xl shadow-md">
@@ -823,55 +823,55 @@ const PaymentModal = ({
           </div>
 
           {/* Order Type Selection - Enhanced with colorful buttons */}
-          <div>
-            <Label className="text-sm font-semibold mb-1.5 block text-foreground">ประเภทการสั่ง</Label>
-            <div className="grid grid-cols-3 gap-1.5">
+          <div className="min-w-0">
+            <Label className="text-xs font-semibold mb-1 block text-foreground">ประเภทการสั่ง</Label>
+            <div className="grid grid-cols-3 gap-1">
               <button
                 type="button"
                 onClick={() => setOrderType('dine_in')}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-1.5 rounded-lg border-2 transition-all min-w-0 ${
                   orderType === 'dine_in'
-                    ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-md scale-105'
+                    ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-sm'
                     : 'border-border bg-card hover:border-orange-300'
                 }`}
               >
-                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'dine_in' ? 'text-orange-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-4 h-4 ${orderType === 'dine_in' ? 'text-orange-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                   <path d="M3 9h18M9 21V9"/>
                 </svg>
-                <span className={`text-[10px] font-semibold ${orderType === 'dine_in' ? 'text-orange-700' : 'text-muted-foreground'}`}>ทานที่ร้าน</span>
+                <span className={`text-[9px] font-medium truncate ${orderType === 'dine_in' ? 'text-orange-700' : 'text-muted-foreground'}`}>ทานที่ร้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('takeaway')}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-1.5 rounded-lg border-2 transition-all min-w-0 ${
                   orderType === 'takeaway'
-                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md scale-105'
+                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-sm'
                     : 'border-border bg-card hover:border-blue-300'
                 }`}
               >
-                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-4 h-4 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                   <path d="M9 22V12h6v10"/>
                 </svg>
-                <span className={`text-[10px] font-semibold ${orderType === 'takeaway' ? 'text-blue-700' : 'text-muted-foreground'}`}>นำกลับบ้าน</span>
+                <span className={`text-[9px] font-medium truncate ${orderType === 'takeaway' ? 'text-blue-700' : 'text-muted-foreground'}`}>นำกลับบ้าน</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOrderType('delivery')}
-                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                className={`flex flex-col items-center justify-center p-1.5 rounded-lg border-2 transition-all min-w-0 ${
                   orderType === 'delivery'
-                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md scale-105'
+                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-sm'
                     : 'border-border bg-card hover:border-purple-300'
                 }`}
               >
-                <svg className={`w-5 h-5 mb-0.5 ${orderType === 'delivery' ? 'text-purple-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`w-4 h-4 ${orderType === 'delivery' ? 'text-purple-600' : 'text-muted-foreground'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="1" y="3" width="15" height="13" rx="2"/>
                   <path d="M16 8h5l3 3v5h-2m-4 0H3M7 19a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4z"/>
                 </svg>
-                <span className={`text-[10px] font-semibold ${orderType === 'delivery' ? 'text-purple-700' : 'text-muted-foreground'}`}>จัดส่ง</span>
+                <span className={`text-[9px] font-medium truncate ${orderType === 'delivery' ? 'text-purple-700' : 'text-muted-foreground'}`}>จัดส่ง</span>
               </button>
             </div>
           </div>
