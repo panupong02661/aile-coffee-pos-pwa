@@ -112,11 +112,23 @@ const NotificationPage = () => {
       }
 
       if (data) {
+        // Merge with defaults to ensure sendAsImage is preserved
+        const loadedDailyReports = (data as any).daily_reports || {};
+        const loadedMonthlyReports = (data as any).monthly_reports || {};
+        
         setSettings({
           onlineOrders: (data as any).online_orders || settings.onlineOrders,
           posOrders: (data as any).pos_orders || settings.posOrders,
-          dailyReports: (data as any).daily_reports || settings.dailyReports,
-          monthlyReports: (data as any).monthly_reports || settings.monthlyReports
+          dailyReports: {
+            ...settings.dailyReports,
+            ...loadedDailyReports,
+            sendAsImage: loadedDailyReports.sendAsImage ?? settings.dailyReports.sendAsImage
+          },
+          monthlyReports: {
+            ...settings.monthlyReports,
+            ...loadedMonthlyReports,
+            sendAsImage: loadedMonthlyReports.sendAsImage ?? settings.monthlyReports.sendAsImage
+          }
         });
       }
     } catch (error) {
