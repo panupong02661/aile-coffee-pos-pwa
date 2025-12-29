@@ -2,11 +2,19 @@
 import { CartItem } from '@/types';
 import { Promotion } from '@/hooks/usePromotions';
 
+export interface PromotionResult {
+  discount: number;
+  discountType: 'percent' | 'amount';
+  promotionName?: string;
+  applyType: 'item' | 'bill';
+  promotionId?: string;
+}
+
 export const calculatePromotionDiscount = (
   cartItem: CartItem,
   promotions: Promotion[],
   allCartItems?: CartItem[]
-): { discount: number; discountType: 'percent' | 'amount'; promotionName?: string } => {
+): PromotionResult => {
   console.log('=== Calculating promotion discount ===');
   console.log('Item:', cartItem.menu_item.name, 'ID:', cartItem.menu_item.id);
   console.log('Item category_id:', cartItem.menu_item.category_id);
@@ -15,6 +23,8 @@ export const calculatePromotionDiscount = (
   let bestDiscount = 0;
   let bestDiscountType: 'percent' | 'amount' = 'amount';
   let bestPromotionName = '';
+  let bestApplyType: 'item' | 'bill' = 'item';
+  let bestPromotionId = '';
 
   for (const promotion of promotions) {
     console.log(`--- Checking promotion: ${promotion.name} ---`);
@@ -23,6 +33,7 @@ export const calculatePromotionDiscount = (
     console.log('Promotion menu_item_ids:', promotion.menu_item_ids);
     console.log('Promotion category_ids:', promotion.category_ids);
     console.log('Promotion min_purchase:', promotion.min_purchase);
+    console.log('Promotion discount_apply_type:', promotion.discount_apply_type);
 
     let isEligible = false;
 
@@ -124,17 +135,84 @@ export const calculatePromotionDiscount = (
         bestDiscount = discountAmount;
         bestDiscountType = promotion.type === 'percentage' ? 'percent' : 'amount';
         bestPromotionName = promotion.name;
-        console.log(`🏆 New best promotion: ${bestPromotionName} with discount: ${bestDiscount}`);
+        bestApplyType = promotion.discount_apply_type || 'item';
+        bestPromotionId = promotion.id;
+        console.log(`🏆 New best promotion: ${bestPromotionName} with discount: ${bestDiscount}, applyType: ${bestApplyType}`);
       }
     }
   }
 
-  const result = {
+  const result: PromotionResult = {
     discount: bestDiscount,
     discountType: bestDiscountType,
-    promotionName: bestPromotionName
+    promotionName: bestPromotionName,
+    applyType: bestApplyType,
+    promotionId: bestPromotionId
   };
 
   console.log('=== Final promotion result ===', result);
   return result;
+};
+
+// คำนวณส่วนลดท้ายบิลสำหรับโปรโมชั่นประเภท 'bill'
+export const calculateBillPromotionDiscount = (
+  cartItems: CartItem[],
+  promotions: Promotion[]
+): { discount: number; discountType: 'percent' | 'amount'; promotionName: string } | null => {
+  console.log('=== Calculating bill promotion discount ===');
+  
+  // หาโปรโมชั่นที่เป็นประเภท 'bill' และครบยอดขั้นต่ำ
+  for (const promotion of promotions) {
+    if (promotion.discount_apply_type !== 'bill') continue;
+    if (!promotion.min_purchase || promotion.min_purchase <= 0) continue;
+    
+    console.log(`Checking bill promotion: ${promotion.name}`);
+    
+    const hasSpecificMenuItems = promotion.menu_item_ids && promotion.menu_item_ids.length > 0;
+    const hasSpecificCategories = promotion.category_ids && promotion.category_ids.length > 0;
+    
+    // คำนวณยอดรวมของสินค้าที่อยู่ในเงื่อนไขโปรโมชั่น
+    let eligibleTotal = 0;
+    
+    for (const item of cartItems) {
+      let itemIsEligible = false;
+      
+      if (hasSpecificMenuItems && promotion.menu_item_ids!.includes(item.menu_item.id)) {
+        itemIsEligible = true;
+      }
+      
+      if (!itemIsEligible && hasSpecificCategories && item.menu_item.category_id) {
+        if (promotion.category_ids!.includes(item.menu_item.category_id)) {
+          itemIsEligible = true;
+        }
+      }
+      
+      if (!hasSpecificMenuItems && !hasSpecificCategories) {
+        itemIsEligible = true;
+      }
+      
+      if (itemIsEligible) {
+        const basePrice = item.menu_item.price + item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+        eligibleTotal += basePrice * item.quantity;
+      }
+    }
+    
+    console.log('Eligible total for bill discount:', eligibleTotal, 'Required:', promotion.min_purchase);
+    
+    if (eligibleTotal >= promotion.min_purchase) {
+      const discountAmount = promotion.type === 'percentage'
+        ? (eligibleTotal * promotion.discount_value) / 100
+        : promotion.discount_value;
+      
+      console.log('✅ Bill promotion applied:', promotion.name, 'Discount:', discountAmount);
+      
+      return {
+        discount: discountAmount,
+        discountType: promotion.type === 'percentage' ? 'percent' : 'amount',
+        promotionName: promotion.name
+      };
+    }
+  }
+  
+  return null;
 };

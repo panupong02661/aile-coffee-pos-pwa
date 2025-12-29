@@ -11,7 +11,7 @@ import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
 import { useToast } from '@/hooks/use-toast';
 import { usePromotions } from '@/hooks/usePromotions';
-import { calculatePromotionDiscount } from '@/utils/promotionUtils';
+import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CartProps {
@@ -66,6 +66,9 @@ const Cart = ({
   // เพิ่ม usePromotions hook
   const { data: promotions = [] } = usePromotions();
 
+  // Track applied bill promotion to avoid duplicate toasts
+  const [appliedBillPromotion, setAppliedBillPromotion] = useState<string | null>(null);
+
   // ใช้ useEffect เพื่อใช้โปรโมชั่นอัตโนมัติเมื่อมีการเปลี่ยนแปลงตะกร้า
   useEffect(() => {
     console.log('🔄 Cart items or promotions changed');
@@ -73,20 +76,20 @@ const Cart = ({
     console.log('Promotions count:', promotions.length);
     
     if (promotions.length > 0 && cartItems.length > 0) {
+      // ตรวจสอบโปรโมชั่นแบบลดรายการ (item type)
       cartItems.forEach((item, index) => {
         console.log(`\n--- Processing item ${index + 1}: ${item.menu_item.name} ---`);
-        // ส่ง allCartItems เพื่อตรวจสอบยอดขั้นต่ำ
         const promotionResult = calculatePromotionDiscount(item, promotions, cartItems);
         console.log('Promotion result for', item.menu_item.name, ':', promotionResult);
         
-        // ใช้โปรโมชั่นเฉพาะเมื่อมีส่วนลดและยังไม่ได้ใช้หรือส่วนลดเปลี่ยนแปลง
-        if (promotionResult.discount > 0) {
+        // ใช้โปรโมชั่นเฉพาะเมื่อเป็นแบบ 'item' และมีส่วนลด
+        if (promotionResult.discount > 0 && promotionResult.applyType === 'item') {
           const currentDiscount = item.item_discount || 0;
           console.log('Current item discount:', currentDiscount);
           console.log('New promotion discount:', promotionResult.discount);
           
-          if (Math.abs(promotionResult.discount - currentDiscount) > 0.01) { // ใช้ threshold เล็กน้อยสำหรับการเปรียบเทียบ float
-            console.log('🎯 Applying promotion to', item.menu_item.name);
+          if (Math.abs(promotionResult.discount - currentDiscount) > 0.01) {
+            console.log('🎯 Applying item promotion to', item.menu_item.name);
             onUpdateDiscount(item.id, promotionResult.discount, promotionResult.discountType);
             toast({
               title: 'ใช้โปรโมชั่น',
@@ -95,18 +98,44 @@ const Cart = ({
           } else {
             console.log('ℹ️ Promotion already applied to', item.menu_item.name);
           }
-        } else {
-          // ลบส่วนลดถ้าไม่มีสิทธิ์แล้ว
+        } else if (promotionResult.applyType !== 'bill') {
+          // ลบส่วนลดถ้าไม่มีสิทธิ์แล้ว (แต่ไม่ลบถ้าเป็นโปรโมชั่นแบบ bill)
           if (item.item_discount > 0) {
             console.log('🗑️ Removing promotion from', item.menu_item.name);
             onUpdateDiscount(item.id, 0, 'amount');
           }
         }
       });
+
+      // ตรวจสอบโปรโมชั่นแบบลดท้ายบิล (bill type)
+      const billPromotion = calculateBillPromotionDiscount(cartItems, promotions);
+      if (billPromotion) {
+        console.log('🎯 Bill promotion found:', billPromotion);
+        // ใช้ส่วนลดท้ายบิลถ้ายังไม่ได้ใช้หรือส่วนลดเปลี่ยน
+        if (appliedBillPromotion !== billPromotion.promotionName) {
+          onUpdateBillDiscount(billPromotion.discount);
+          onUpdateBillDiscountType(billPromotion.discountType);
+          setAppliedBillPromotion(billPromotion.promotionName);
+          toast({
+            title: 'ใช้โปรโมชั่นท้ายบิล',
+            description: `ใช้โปรโมชั่น "${billPromotion.promotionName}" ลด ${billPromotion.discount.toFixed(0)} บาท`,
+          });
+        }
+      } else {
+        // ลบส่วนลดท้ายบิลถ้าไม่ครบเงื่อนไขแล้ว
+        if (appliedBillPromotion) {
+          console.log('🗑️ Removing bill promotion');
+          onUpdateBillDiscount(0);
+          setAppliedBillPromotion(null);
+        }
+      }
     } else {
       console.log('ℹ️ No promotions or cart items to process');
+      if (appliedBillPromotion) {
+        setAppliedBillPromotion(null);
+      }
     }
-  }, [cartItems, promotions, onUpdateDiscount, toast]);
+  }, [cartItems, promotions, onUpdateDiscount, onUpdateBillDiscount, onUpdateBillDiscountType, toast, appliedBillPromotion]);
 
   // Send cart data to Customer Display (Display 2) using Supabase Realtime
   const syncCartToDisplay = useCallback(async (showPayment: boolean = false) => {

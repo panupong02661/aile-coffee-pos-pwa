@@ -15,6 +15,7 @@ export interface Promotion {
   menu_item_ids?: string[];
   category_ids?: string[];
   min_purchase?: number;
+  discount_apply_type?: 'item' | 'bill';
 }
 
 export const usePromotions = () => {
@@ -86,7 +87,8 @@ export const usePromotions = () => {
           is_active: promotion.is_active,
           menu_item_ids: menuItems.map(item => item.menu_item_id),
           category_ids: categories.map(cat => cat.category_id),
-          min_purchase: Number(promotion.min_purchase) || 0
+          min_purchase: Number(promotion.min_purchase) || 0,
+          discount_apply_type: (promotion.discount_apply_type as 'item' | 'bill') || 'item'
         };
 
         console.log(`Promotion ${promotion.name}:`, {
