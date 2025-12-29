@@ -163,34 +163,33 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const prompt = `Create a professional Thai restaurant sales dashboard report image with the following data:
+    const prompt = `สร้างรูปภาพรายงานยอดขายแบบ Dashboard สำหรับร้านกาแฟ ด้วยข้อมูลต่อไปนี้:
 
-TITLE: ${reportTitle}
-Generated at: ${bangkokNow.toLocaleTimeString('th-TH')}
+หัวข้อ: ${reportTitle}
+เวลาที่สร้าง: ${bangkokNow.toLocaleTimeString('th-TH')}
 
-📊 SALES SUMMARY:
-- Total Orders: ${totalOrders} orders
-- Total Sales: ${formatNumber(totalSales)} THB
-- Discounts: ${formatNumber(totalDiscount)} THB  
-- Net Sales: ${formatNumber(netSales)} THB
+📊 สรุปยอดขาย:
+• ออเดอร์ทั้งหมด: ${totalOrders} รายการ
+• ยอดขายรวม: ${formatNumber(totalSales)} บาท
+• ส่วนลด: ${formatNumber(totalDiscount)} บาท
+• ยอดขายสุทธิ: ${formatNumber(netSales)} บาท
 
-🏆 TOP 5 BEST SELLERS:
-${topMenusText || 'No data available'}
+🏆 สินค้าขายดี 5 อันดับแรก:
+${topMenusText || 'ไม่มีข้อมูล'}
 
-💳 PAYMENT METHODS:
-${paymentText || 'No data available'}
+💳 ช่องทางการชำระเงิน:
+${paymentText || 'ไม่มีข้อมูล'}
 
-👥 New Members: ${newMembers?.length || 0}
+👥 สมาชิกใหม่: ${newMembers?.length || 0} คน
 
-Design requirements:
-- Modern, clean dashboard style with dark theme
-- Use Thai language for labels
-- Include bar chart visualization for top 5 items
-- Use colors: primary blue (#3b82f6), success green (#22c55e), warning orange (#f59e0b)
-- Include decorative icons/emojis
-- Make it visually appealing for sharing on LINE/Discord
-- Image dimensions should be 1200x800 pixels
-- Add coffee/cafe themed decorations since this is a coffee shop POS`;
+ข้อกำหนดการออกแบบ:
+- สไตล์ Dashboard สมัยใหม่ ดูเรียบหรู พื้นหลังสีเข้ม
+- แสดงข้อความเป็นภาษาไทยทั้งหมด สะกดให้ถูกต้อง
+- แสดงกราฟแท่งสำหรับสินค้าขายดี 5 อันดับ
+- ใช้สี: น้ำเงิน (#3b82f6), เขียว (#22c55e), ส้ม (#f59e0b)
+- ใส่ไอคอนและอีโมจิประดับ
+- ขนาดรูป 1200x800 พิกเซล
+- ตกแต่งด้วยธีมร้านกาแฟ ใส่รูปถ้วยกาแฟ เมล็ดกาแฟ`;
 
     console.log('🎨 Calling AI Gateway to generate image...');
     
