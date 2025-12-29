@@ -165,34 +165,46 @@ serve(async (req) => {
 
     const prompt = `Create a professional sales report dashboard image for a coffee shop.
 
-IMPORTANT: All text MUST be in Thai language with CORRECT spelling. Do NOT use garbled or random characters.
+CRITICAL: Use EXACTLY these Thai words with correct spelling (copy exactly as shown):
 
-Title at top: "${reportTitle}"
-Time: "อัปเดตล่าสุด: ${bangkokNow.toLocaleTimeString('th-TH')}"
+HEADER: "${reportTitle}"
 
-LEFT CARD - "สรุปยอดขาย" (Sales Summary):
-• "ออเดอร์ทั้งหมด: ${totalOrders} รายการ" (Total Orders)
-• "ยอดขายรวม: ${formatNumber(totalSales)} บาท" (Total Sales)
-• "ส่วนลด: ${formatNumber(totalDiscount)} บาท" (Discount)
-• "ยอดขายสุทธิ: ${formatNumber(netSales)} บาท" (Net Sales)
+ROW 1 - Four cards with white background and orange text:
 
-RIGHT CARD - "สินค้าขายดี 5 อันดับแรก" (Top 5 Best Sellers):
+CARD 1: "ยอดขายวันนี้" (label at top)
+- Show "฿${formatNumber(totalSales)}" in large orange text
+- Below: "${totalOrders} ออเดอร์"
+- Cart icon
+
+CARD 2: "ส่วนลดวันนี้" (label at top)
+- Show "฿${formatNumber(totalDiscount)}" in large orange text
+- Below: "ส่วนลดที่ให้"
+- Dollar icon
+
+CARD 3: "ยอดสุทธิวันนี้" (label at top)
+- Show "฿${formatNumber(netSales)}" in large orange text
+- Below: "หลังหักส่วนลด"
+- Chart icon
+
+CARD 4: "สมาชิกทั้งหมด" (label at top)
+- Show "${newMembers?.length || 0}" in large text
+- Below: "+0 วันนี้"
+- People icon
+
+ROW 2 - "Top 5 สินค้าขายดีวันนี้" (Top 5 Best Sellers Today):
 ${topMenusText || 'ไม่มีข้อมูล'}
 
-BOTTOM LEFT CARD - "ช่องทางการชำระเงิน" (Payment Methods):
+ROW 3 - "ช่องทางการชำระเงิน" (Payment Methods):
 ${paymentText || 'ไม่มีข้อมูล'}
 
-BOTTOM RIGHT CARD - "สมาชิก" (Members):
-"${newMembers?.length || 0} คน"
-
-Design requirements:
-- Modern dashboard style with dark background and coffee theme
-- Use card layout with rounded corners
-- Colors: Blue (#3b82f6), Green (#22c55e), Orange (#f59e0b)
-- Add coffee cup and coffee bean decorations
+Design:
+- Light gray background (#f5f5f5)
+- White cards with rounded corners and subtle shadow
+- Orange accent color (#f97316) for values
+- Gray text (#6b7280) for labels
+- Clean, minimal, modern dashboard style
 - Size: 1200x800 pixels
-- Use icons for each section
-- Show bar chart for top products`;
+- Add subtle icons for each card`;
 
     console.log('🎨 Calling AI Gateway to generate image...');
     
