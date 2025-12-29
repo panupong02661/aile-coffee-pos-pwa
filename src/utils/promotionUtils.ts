@@ -35,6 +35,13 @@ export const calculatePromotionDiscount = (
     console.log('Promotion min_purchase:', promotion.min_purchase);
     console.log('Promotion discount_apply_type:', promotion.discount_apply_type);
 
+    // ข้ามโปรโมชั่นประเภท 'bill' ใน calculatePromotionDiscount
+    // เพราะจะคำนวณใน calculateBillPromotionDiscount แทน
+    if (promotion.discount_apply_type === 'bill') {
+      console.log('⏭️ Skipping bill-type promotion in item calculation');
+      continue;
+    }
+
     let isEligible = false;
 
     // ตรวจสอบว่ามีการระบุเมนูหรือหมวดหมู่เฉพาะหรือไม่
@@ -130,12 +137,12 @@ export const calculatePromotionDiscount = (
         console.log(`Fixed amount discount: ${discountAmount}`);
       }
 
-      // เลือกโปรโมชั่นที่คุ้มที่สุด
+      // เลือกโปรโมชั่นที่คุ้มที่สุด (เฉพาะ item type)
       if (discountAmount > bestDiscount) {
         bestDiscount = discountAmount;
         bestDiscountType = promotion.type === 'percentage' ? 'percent' : 'amount';
         bestPromotionName = promotion.name;
-        bestApplyType = promotion.discount_apply_type || 'item';
+        bestApplyType = 'item';
         bestPromotionId = promotion.id;
         console.log(`🏆 New best promotion: ${bestPromotionName} with discount: ${bestDiscount}, applyType: ${bestApplyType}`);
       }

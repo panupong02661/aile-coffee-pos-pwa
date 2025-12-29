@@ -76,7 +76,8 @@ const Cart = ({
     console.log('Promotions count:', promotions.length);
     
     if (promotions.length > 0 && cartItems.length > 0) {
-      // ตรวจสอบโปรโมชั่นแบบลดรายการ (item type)
+      // ตรวจสอบโปรโมชั่นแบบลดรายการ (item type only)
+      // ถ้าโปรโมชั่นเป็นแบบ 'bill' จะไม่ลดรายการ แต่จะลดท้ายบิลแทน
       cartItems.forEach((item, index) => {
         console.log(`\n--- Processing item ${index + 1}: ${item.menu_item.name} ---`);
         const promotionResult = calculatePromotionDiscount(item, promotions, cartItems);
@@ -98,9 +99,10 @@ const Cart = ({
           } else {
             console.log('ℹ️ Promotion already applied to', item.menu_item.name);
           }
-        } else if (promotionResult.applyType !== 'bill') {
-          // ลบส่วนลดถ้าไม่มีสิทธิ์แล้ว (แต่ไม่ลบถ้าเป็นโปรโมชั่นแบบ bill)
-          if (item.item_discount > 0) {
+        } else if (promotionResult.discount === 0 || promotionResult.applyType === 'item') {
+          // ลบส่วนลดถ้าไม่มีสิทธิ์โปรโมชั่น item แล้ว
+          // แต่ไม่ลบถ้าโปรโมชั่นเป็นแบบ bill (จะลดท้ายบิลแทน)
+          if (item.item_discount > 0 && promotionResult.applyType !== 'bill') {
             console.log('🗑️ Removing promotion from', item.menu_item.name);
             onUpdateDiscount(item.id, 0, 'amount');
           }
