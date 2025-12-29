@@ -16,3 +16,5 @@ verify_jwt = false
 [functions.update-promptpay-phone]
 verify_jwt = false
 
+[functions.generate-report-image]
+verify_jwt = false

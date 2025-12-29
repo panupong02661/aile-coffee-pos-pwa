@@ -69,6 +69,7 @@ const NotificationPage = () => {
     dailyReports: {
       enabled: true,
       time: '18:00',
+      sendAsImage: true, // ส่งเป็นรูปภาพ Dashboard
       platforms: {
         line: { enabled: true, token: '', type: 'user' }, // type: 'user' or 'group'
         instagram: { enabled: false, token: '' },
@@ -82,6 +83,7 @@ const NotificationPage = () => {
       enabled: true,
       dayOfMonth: 1,
       time: '09:00',
+      sendAsImage: true, // ส่งเป็นรูปภาพ Dashboard
       platforms: {
         line: { enabled: true, token: '', type: 'user' },
         instagram: { enabled: false, token: '' },
@@ -370,48 +372,219 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
     console.log('Sending to Instagram:', reportData);
   };
 
+  // ฟังก์ชันสร้างรูปภาพรายงาน
+  const generateReportImage = async (reportType: 'daily' | 'monthly') => {
+    try {
+      console.log(`🖼️ Generating ${reportType} report image...`);
+      
+      const { data, error } = await supabase.functions.invoke('generate-report-image', {
+        body: { reportType }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to generate image');
+      }
+
+      return {
+        imageUrl: data.imageUrl,
+        reportData: data.reportData,
+        reportTitle: data.reportTitle
+      };
+    } catch (error) {
+      console.error('❌ Error generating report image:', error);
+      throw error;
+    }
+  };
+
+  // ฟังก์ชันส่งรูปภาพไป Discord
+  const sendDiscordReportWithImage = async (imageUrl: string, reportTitle: string, reportData: any, webhookUrl: string) => {
+    const topMenusList = reportData.topMenus
+      .map((menu: any, index: number) => 
+        `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
+      )
+      .join('\n');
+
+    const embed = {
+      title: `📊 ${reportTitle}`,
+      description: `สร้างเมื่อ ${reportData.date} เวลา ${reportData.time}`,
+      color: 0x3b82f6,
+      image: {
+        url: imageUrl
+      },
+      fields: [
+        {
+          name: '🛒 จำนวนออเดอร์',
+          value: `${reportData.totalOrders} รายการ`,
+          inline: true
+        },
+        {
+          name: '💰 ยอดขายรวม',
+          value: `${reportData.totalSales.toLocaleString()} บาท`,
+          inline: true
+        },
+        {
+          name: '💵 ยอดขายสุทธิ',
+          value: `${reportData.netSales.toLocaleString()} บาท`,
+          inline: true
+        },
+        {
+          name: '🏆 Top 5 เมนูขายดี',
+          value: topMenusList || 'ไม่มีข้อมูล',
+          inline: false
+        }
+      ],
+      footer: {
+        text: '☕ Aile Coffee POS System'
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: `📊 **${reportTitle}** - Dashboard Report`,
+        embeds: [embed]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Discord webhook failed: ${response.status}`);
+    }
+  };
+
+  // ฟังก์ชันส่งรูปภาพไป LINE
+  const sendLineReportWithImage = async (imageUrl: string, reportTitle: string, reportData: any, token: string, type: string = 'user') => {
+    try {
+      const topMenusList = reportData.topMenus
+        .slice(0, 5)
+        .map((menu: any, index: number) => 
+          `${index + 1}. ${menu.name} - ${menu.quantity} ชิ้น`
+        )
+        .join('\n');
+
+      const messageText = `📊 ${reportTitle}
+📅 ${reportData.date} เวลา ${reportData.time}
+
+🛒 ออเดอร์: ${reportData.totalOrders} รายการ
+💰 ยอดขาย: ${reportData.totalSales.toLocaleString()} บาท
+💸 ส่วนลด: ${reportData.totalDiscount.toLocaleString()} บาท
+💵 สุทธิ: ${reportData.netSales.toLocaleString()} บาท
+
+🏆 Top 5 เมนูขายดี:
+${topMenusList || 'ไม่มีข้อมูล'}
+
+📷 ดูรูปภาพรายงานด้านบน`;
+
+      // ส่งทั้งรูปภาพและข้อความ
+      const { data, error } = await supabase.functions.invoke('line-messaging', {
+        body: {
+          action: 'send',
+          userId: token,
+          message: messageText,
+          imageUrl: imageUrl // ส่ง URL รูปภาพด้วย
+        }
+      });
+
+      if (error) throw error;
+      
+      console.log(`✅ LINE report with image sent successfully to ${type}:`, data);
+    } catch (error) {
+      console.error('❌ Error sending LINE report with image:', error);
+      throw error;
+    }
+  };
+
   // ฟังก์ชันส่งรายงานทันที
-  const handleSendReportNow = async () => {
+  const handleSendReportNow = async (reportType: 'daily' | 'monthly' = 'daily') => {
     setIsGeneratingReport(true);
     
     try {
-      // สร้างรายงาน
-      const reportData = await generateDailyReport();
+      const reportSettings = reportType === 'daily' ? settings.dailyReports : settings.monthlyReports;
+      const sendAsImage = (reportSettings as any).sendAsImage;
       
       let sentCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
 
-      // ส่งไป Discord ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.discord.enabled && settings.dailyReports.platforms.discord.token) {
-        try {
-          await sendDiscordReport(reportData, settings.dailyReports.platforms.discord.token);
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(`Discord: ${error}`);
-        }
-      }
+      if (sendAsImage) {
+        // ส่งเป็นรูปภาพ
+        toast({
+          title: '🖼️ กำลังสร้างรูปภาพรายงาน...',
+          description: 'กรุณารอสักครู่',
+        });
 
-      // ส่งไป LINE ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.line.enabled && settings.dailyReports.platforms.line.token) {
-        try {
-          await sendLineReport(
-            reportData, 
-            settings.dailyReports.platforms.line.token,
-            settings.dailyReports.platforms.line.type || 'user'
-          );
-          sentCount++;
-        } catch (error) {
-          errorCount++;
-          errors.push(`LINE: ${error}`);
+        const { imageUrl, reportData, reportTitle } = await generateReportImage(reportType);
+        
+        // ส่งไป Discord ถ้าเปิดใช้งาน
+        if (reportSettings.platforms.discord.enabled && reportSettings.platforms.discord.token) {
+          try {
+            await sendDiscordReportWithImage(imageUrl, reportTitle, reportData, reportSettings.platforms.discord.token);
+            sentCount++;
+          } catch (error) {
+            errorCount++;
+            errors.push(`Discord: ${error}`);
+          }
+        }
+
+        // ส่งไป LINE ถ้าเปิดใช้งาน
+        if (reportSettings.platforms.line.enabled && reportSettings.platforms.line.token) {
+          try {
+            await sendLineReportWithImage(
+              imageUrl,
+              reportTitle,
+              reportData, 
+              reportSettings.platforms.line.token,
+              (reportSettings.platforms.line as any).type || 'user'
+            );
+            sentCount++;
+          } catch (error) {
+            errorCount++;
+            errors.push(`LINE: ${error}`);
+          }
+        }
+      } else {
+        // ส่งแบบข้อความปกติ
+        const reportData = await generateDailyReport();
+        
+        // ส่งไป Discord ถ้าเปิดใช้งาน
+        if (reportSettings.platforms.discord.enabled && reportSettings.platforms.discord.token) {
+          try {
+            await sendDiscordReport(reportData, reportSettings.platforms.discord.token);
+            sentCount++;
+          } catch (error) {
+            errorCount++;
+            errors.push(`Discord: ${error}`);
+          }
+        }
+
+        // ส่งไป LINE ถ้าเปิดใช้งาน
+        if (reportSettings.platforms.line.enabled && reportSettings.platforms.line.token) {
+          try {
+            await sendLineReport(
+              reportData, 
+              reportSettings.platforms.line.token,
+              (reportSettings.platforms.line as any).type || 'user'
+            );
+            sentCount++;
+          } catch (error) {
+            errorCount++;
+            errors.push(`LINE: ${error}`);
+          }
         }
       }
 
       // ส่งไป Telegram ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.telegram.enabled && settings.dailyReports.platforms.telegram.token) {
+      if (reportSettings.platforms.telegram.enabled && reportSettings.platforms.telegram.token) {
         try {
-          await sendTelegramReport(reportData, settings.dailyReports.platforms.telegram.token);
+          await sendTelegramReport({}, reportSettings.platforms.telegram.token);
           sentCount++;
         } catch (error) {
           errorCount++;
@@ -420,9 +593,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       }
 
       // ส่งไป Instagram ถ้าเปิดใช้งาน
-      if (settings.dailyReports.platforms.instagram.enabled && settings.dailyReports.platforms.instagram.token) {
+      if (reportSettings.platforms.instagram.enabled && reportSettings.platforms.instagram.token) {
         try {
-          await sendInstagramReport(reportData, settings.dailyReports.platforms.instagram.token);
+          await sendInstagramReport({}, reportSettings.platforms.instagram.token);
           sentCount++;
         } catch (error) {
           errorCount++;
@@ -433,7 +606,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       // แสดงผลลัพธ์
       if (sentCount > 0) {
         toast({
-          title: 'ส่งรายงานสำเร็จ! ✅',
+          title: sendAsImage ? '🖼️ ส่งรายงานพร้อมรูปภาพสำเร็จ! ✅' : 'ส่งรายงานสำเร็จ! ✅',
           description: `ส่งรายงานไปยัง ${sentCount} แพลตฟอร์มแล้ว${errorCount > 0 ? ` (มีข้อผิดพลาด ${errorCount} แพลตฟอร์ม)` : ''}`,
         });
       } else {
@@ -449,7 +622,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       }
 
     } catch (error) {
-      console.error('Error sending daily report:', error);
+      console.error('Error sending report:', error);
       toast({
         title: 'เกิดข้อผิดพลาด',
         description: 'ไม่สามารถสร้างหรือส่งรายงานได้',
@@ -996,7 +1169,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                     </div>
                   </div>
                   <Button
-                    onClick={handleSendReportNow}
+                    onClick={() => handleSendReportNow('daily')}
                     disabled={isGeneratingReport}
                     className="flex items-center gap-2"
                     variant="outline"
@@ -1026,6 +1199,34 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                 {settings.dailyReports.enabled && (
                   <>
                     <Separator />
+                    
+                    {/* ตัวเลือกส่งเป็นรูปภาพ */}
+                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <BarChart className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <Label htmlFor="daily-send-as-image" className="text-base font-medium">
+                            ส่งเป็นรูปภาพ Dashboard
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            สร้างรูปภาพสรุปยอดขายพร้อม Top 5 เมนูขายดี
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="daily-send-as-image"
+                        checked={(settings.dailyReports as any).sendAsImage || false}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            dailyReports: { ...prev.dailyReports, sendAsImage: checked } as any
+                          }))
+                        }
+                      />
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="daily-time">เวลาส่งรายงาน</Label>
@@ -1098,14 +1299,25 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
           <TabsContent value="monthly-reports">
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-purple-600" />
-                  <div>
-                    <CardTitle>รายงานประจำเดือน</CardTitle>
-                    <CardDescription>
-                      ส่งสรุปยอดขายประจำเดือนในวันและเวลาที่กำหนด
-                    </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <CardTitle>รายงานประจำเดือน</CardTitle>
+                      <CardDescription>
+                        ส่งสรุปยอดขายประจำเดือนในวันและเวลาที่กำหนด
+                      </CardDescription>
+                    </div>
                   </div>
+                  <Button
+                    onClick={() => handleSendReportNow('monthly')}
+                    disabled={isGeneratingReport}
+                    className="flex items-center gap-2"
+                    variant="outline"
+                  >
+                    <Send className="w-4 h-4" />
+                    {isGeneratingReport ? 'กำลังส่ง...' : 'ส่งสรุปทันที'}
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1128,6 +1340,34 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
                 {settings.monthlyReports.enabled && (
                   <>
                     <Separator />
+                    
+                    {/* ตัวเลือกส่งเป็นรูปภาพ */}
+                    <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                          <BarChart className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <Label htmlFor="monthly-send-as-image" className="text-base font-medium">
+                            ส่งเป็นรูปภาพ Dashboard
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            สร้างรูปภาพสรุปยอดขายเดือนพร้อม Top 5 เมนูขายดี
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="monthly-send-as-image"
+                        checked={(settings.monthlyReports as any).sendAsImage || false}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            monthlyReports: { ...prev.monthlyReports, sendAsImage: checked } as any
+                          }))
+                        }
+                      />
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="monthly-day">วันที่ส่งรายงาน</Label>
