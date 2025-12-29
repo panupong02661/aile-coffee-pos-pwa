@@ -47,6 +47,7 @@ interface Promotion {
   menu_item_ids: string[];
   category_ids: string[];
   min_purchase: number;
+  discount_apply_type: 'item' | 'bill';
 }
 
 const MenuPromotions = () => {
@@ -70,6 +71,7 @@ const MenuPromotions = () => {
     is_active: true,
     usage_limit: null as number | null,
     min_purchase: 0,
+    discount_apply_type: 'item' as 'item' | 'bill',
     selectedMenuItems: [] as string[],
     selectedCategories: [] as string[],
   });
@@ -129,6 +131,7 @@ const MenuPromotions = () => {
         usage_limit: p.usage_limit,
         used_count: p.used_count,
         min_purchase: Number(p.min_purchase) || 0,
+        discount_apply_type: (p.discount_apply_type as 'item' | 'bill') || 'item',
         menu_item_ids: (promoMenuItems || [])
           .filter(pm => pm.promotion_id === p.id)
           .map(pm => pm.menu_item_id),
@@ -162,6 +165,7 @@ const MenuPromotions = () => {
       is_active: true,
       usage_limit: null,
       min_purchase: 0,
+      discount_apply_type: 'item',
       selectedMenuItems: [],
       selectedCategories: [],
     });
@@ -200,6 +204,7 @@ const MenuPromotions = () => {
             is_active: formData.is_active,
             usage_limit: formData.usage_limit,
             min_purchase: formData.min_purchase,
+            discount_apply_type: formData.discount_apply_type,
           })
           .eq('id', editingPromotion.id);
 
@@ -245,6 +250,7 @@ const MenuPromotions = () => {
             is_active: formData.is_active,
             usage_limit: formData.usage_limit,
             min_purchase: formData.min_purchase,
+            discount_apply_type: formData.discount_apply_type,
             used_count: 0,
           })
           .select()
@@ -298,6 +304,7 @@ const MenuPromotions = () => {
       is_active: promo.is_active,
       usage_limit: promo.usage_limit,
       min_purchase: promo.min_purchase || 0,
+      discount_apply_type: promo.discount_apply_type || 'item',
       selectedMenuItems: promo.menu_item_ids,
       selectedCategories: promo.category_ids,
     });
@@ -511,6 +518,32 @@ const MenuPromotions = () => {
                           ลูกค้าต้องซื้อเมนูในหมวดหมู่นี้ขั้นต่ำตามที่กำหนดถึงจะได้ส่วนลด
                         </p>
                       </div>
+                      {formData.min_purchase > 0 && (
+                        <div>
+                          <Label htmlFor="discount_apply_type">รูปแบบการลด</Label>
+                          <Select 
+                            value={formData.discount_apply_type} 
+                            onValueChange={(v: 'item' | 'bill') => setFormData({ ...formData, discount_apply_type: v })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="item">
+                                ส่วนลดรายการ (ลดทุกรายการที่เข้าเงื่อนไข)
+                              </SelectItem>
+                              <SelectItem value="bill">
+                                ส่วนลดท้ายบิล (ลดท้ายบิลรวมครั้งเดียว)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formData.discount_apply_type === 'item' 
+                              ? 'ลดราคาแต่ละรายการที่เข้าเงื่อนไขโปรโมชั่น' 
+                              : 'ลดยอดรวมท้ายบิลเพียงครั้งเดียว'}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <Label htmlFor="usage_limit">จำกัดการใช้งาน (ครั้ง)</Label>
                         <Input
