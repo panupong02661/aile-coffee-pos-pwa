@@ -72,7 +72,7 @@ const MenuGrid = ({
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`} style={{ overflow: 'visible' }}>
+    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`}>
       {menuItems
         .filter(item => item.is_available === true)
         .map((item) => {
@@ -80,71 +80,48 @@ const MenuGrid = ({
           const isInCart = quantityInCart > 0;
           
           return (
-            <div 
-              key={item.id} 
-              style={{ position: 'relative', overflow: 'visible' }}
+            <Card 
+              key={item.id}
+              className={`relative cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 h-full ${
+                isMobile ? 'active:scale-95 touch-manipulation' : ''
+              } ${isInCart ? 'border-[3px] border-orange-500 bg-orange-50/70' : 'border border-coffee-300'}`}
+              onClick={() => handleItemClick(item)}
             >
-              <Card 
-                className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 h-full ${
-                  isMobile ? 'active:scale-95 touch-manipulation' : ''
-                } ${isInCart ? 'border-[3px] border-orange-500 bg-orange-50/70' : 'border border-coffee-300'}`}
-                onClick={() => handleItemClick(item)}
-                style={{ overflow: 'visible' }}
-              >
-                <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`} style={{ overflow: 'visible' }}>
-                  <div className={`${sizeClasses[itemSize]} flex flex-col`}>
-                    {item.image && (
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-4/5 object-cover rounded-md mb-1"
-                        loading="lazy"
-                      />
-                    )}
-                    <div className="flex-1 flex flex-col justify-between px-1">
-                      <h3 className={`font-medium line-clamp-2 ${
-                        isInCart ? 'text-orange-600' : 'text-coffee-800'
-                      } ${
-                        isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                      }`}>
-                        {item.name}
-                      </h3>
-                      <p className={`font-semibold ${
-                        isInCart ? 'text-orange-500' : 'text-coffee-600'
-                      } ${
-                        isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                      }`}>
-                        ฿{item.price}
-                      </p>
-                    </div>
+              <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'} relative`}>
+                <div className={`${sizeClasses[itemSize]} flex flex-col`}>
+                  {item.image && (
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-full h-4/5 object-cover rounded-md mb-1"
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="flex-1 flex flex-col justify-between px-1">
+                    <h3 className={`font-medium line-clamp-2 ${
+                      isInCart ? 'text-orange-600' : 'text-coffee-800'
+                    } ${
+                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
+                      {item.name}
+                    </h3>
+                    <p className={`font-semibold ${
+                      isInCart ? 'text-orange-500' : 'text-coffee-600'
+                    } ${
+                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
+                      ฿{item.price}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-              {/* Cart quantity badge */}
-              {isInCart && (
-                <div 
-                  style={{
-                    position: 'absolute',
-                    bottom: '4px',
-                    right: '4px',
-                    zIndex: 9999,
-                    backgroundColor: '#f97316',
-                    color: 'white',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    pointerEvents: 'none'
-                  }}
-                >
-                  x{quantityInCart} <Check style={{ width: '12px', height: '12px' }} />
                 </div>
-              )}
-            </div>
+                {/* Cart quantity badge - inside CardContent with absolute positioning */}
+                {isInCart && (
+                  <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-lg z-10">
+                    x{quantityInCart} <Check className="w-3 h-3" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
     </div>
