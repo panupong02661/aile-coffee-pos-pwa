@@ -30,6 +30,10 @@ const MenuGrid = ({
     cartItemMap.set(menuItemId, currentQty + cartItem.quantity);
   });
 
+  // Debug: Log cart data
+  console.log('🎯 MenuGrid received cartItems:', cartItems.length, 'items');
+  console.log('🎯 MenuGrid cartItemMap entries:', JSON.stringify(Array.from(cartItemMap.entries())));
+
   const handleItemClick = (item: MenuItem) => {
     onAddToCart(item);
   };
