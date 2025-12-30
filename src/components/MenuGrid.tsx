@@ -72,7 +72,7 @@ const MenuGrid = ({
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`}>
+    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`} style={{ overflow: 'visible' }}>
       {menuItems
         .filter(item => item.is_available === true)
         .map((item) => {
@@ -80,14 +80,18 @@ const MenuGrid = ({
           const isInCart = quantityInCart > 0;
           
           return (
-            <div key={item.id} className="relative">
+            <div 
+              key={item.id} 
+              style={{ position: 'relative', overflow: 'visible' }}
+            >
               <Card 
                 className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 h-full ${
                   isMobile ? 'active:scale-95 touch-manipulation' : ''
-                } ${isInCart ? 'ring-2 ring-orange-500 border-orange-500 border-2 bg-orange-50' : 'border-coffee-300'}`}
+                } ${isInCart ? 'border-[3px] border-orange-500 bg-orange-50/70' : 'border border-coffee-300'}`}
                 onClick={() => handleItemClick(item)}
+                style={{ overflow: 'visible' }}
               >
-                <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`}>
+                <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`} style={{ overflow: 'visible' }}>
                   <div className={`${sizeClasses[itemSize]} flex flex-col`}>
                     {item.image && (
                       <img 
@@ -116,11 +120,29 @@ const MenuGrid = ({
                   </div>
                 </CardContent>
               </Card>
-              {/* Cart quantity badge - outside Card for proper visibility */}
+              {/* Cart quantity badge */}
               {isInCart && (
-                <span className="absolute bottom-1 right-1 z-50 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-md">
-                  x{quantityInCart} <Check className="w-3 h-3" />
-                </span>
+                <div 
+                  style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    right: '4px',
+                    zIndex: 9999,
+                    backgroundColor: '#f97316',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  x{quantityInCart} <Check style={{ width: '12px', height: '12px' }} />
+                </div>
               )}
             </div>
           );
