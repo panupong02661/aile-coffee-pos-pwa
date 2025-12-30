@@ -1,7 +1,8 @@
-import { MenuItem, Addon } from '@/types';
+import { MenuItem, Addon, CartItem } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { memo } from 'react';
+import { Check } from 'lucide-react';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -9,6 +10,7 @@ interface MenuGridProps {
   onAddToCart: (item: MenuItem, selectedAddons?: Addon[]) => void;
   gridColumns?: number;
   itemSize?: 'small' | 'medium' | 'large';
+  cartItems?: CartItem[];
 }
 
 const MenuGrid = ({ 
@@ -16,9 +18,17 @@ const MenuGrid = ({
   addons, 
   onAddToCart, 
   gridColumns = 4,
-  itemSize = 'medium' 
+  itemSize = 'medium',
+  cartItems = []
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
+
+  // Get cart item IDs and quantities for highlighting
+  const cartItemMap = new Map<string, number>();
+  cartItems.forEach(cartItem => {
+    const currentQty = cartItemMap.get(cartItem.menu_item.id) || 0;
+    cartItemMap.set(cartItem.menu_item.id, currentQty + cartItem.quantity);
+  });
 
   const handleItemClick = (item: MenuItem) => {
     // ส่งต่อการคลิกไปยัง POS เพื่อจัดการ addons
@@ -94,40 +104,55 @@ const MenuGrid = ({
     <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`}>
       {menuItems
         .filter(item => item.is_available === true) // Only show available items
-        .map((item) => (
-          <Card 
-            key={item.id} 
-            className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border-coffee-200 ${
-              isMobile ? 'active:scale-95 touch-manipulation' : ''
-            }`}
-            onClick={() => handleItemClick(item)}
-          >
-            <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`}>
-              <div className={`${sizeClasses[itemSize]} flex flex-col`}>
-                {item.image && (
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="w-full h-4/5 object-cover rounded-md mb-1"
-                    loading="lazy"
-                  />
-                )}
-                <div className="flex-1 flex flex-col justify-between px-1">
-                  <h3 className={`font-medium text-coffee-800 line-clamp-2 ${
-                    isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                  }`}>
-                    {item.name}
-                  </h3>
-                  <p className={`text-coffee-600 font-semibold ${
-                    isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                  }`}>
-                    ฿{item.price}
-                  </p>
+        .map((item) => {
+          const quantityInCart = cartItemMap.get(item.id) || 0;
+          const isInCart = quantityInCart > 0;
+          
+          return (
+            <Card 
+              key={item.id} 
+              className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 relative ${
+                isMobile ? 'active:scale-95 touch-manipulation' : ''
+              } ${isInCart ? 'ring-2 ring-green-500 border-green-500 bg-green-50' : 'border-coffee-200'}`}
+              onClick={() => handleItemClick(item)}
+            >
+              {/* Cart indicator badge */}
+              {isInCart && (
+                <div className="absolute -top-1 -right-1 z-10 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md">
+                  {quantityInCart}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              )}
+              <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`}>
+                <div className={`${sizeClasses[itemSize]} flex flex-col`}>
+                  {item.image && (
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className={`w-full h-4/5 object-cover rounded-md mb-1 ${isInCart ? 'opacity-90' : ''}`}
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="flex-1 flex flex-col justify-between px-1">
+                    <h3 className={`font-medium line-clamp-2 ${
+                      isInCart ? 'text-green-800' : 'text-coffee-800'
+                    } ${
+                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
+                      {item.name}
+                    </h3>
+                    <p className={`font-semibold ${
+                      isInCart ? 'text-green-600' : 'text-coffee-600'
+                    } ${
+                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
+                    }`}>
+                      ฿{item.price}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
     </div>
   );
 };
