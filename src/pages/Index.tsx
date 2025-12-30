@@ -387,6 +387,7 @@ const Index = () => {
                   onAddToCart={handleMenuItemClick}
                   gridColumns={gridColumns}
                   itemSize={itemSize}
+                  cartItems={cartItems}
                 />
               </div>
             </div>
