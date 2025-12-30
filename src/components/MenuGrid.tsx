@@ -82,19 +82,19 @@ const MenuGrid = ({
           return (
             <Card 
               key={item.id} 
-              className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 relative ${
+              className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 relative overflow-visible ${
                 isMobile ? 'active:scale-95 touch-manipulation' : ''
               } ${isInCart 
-                ? 'ring-2 ring-green-500 border-green-500 bg-green-50/50' 
+                ? 'ring-2 ring-orange-400 border-orange-400' 
                 : 'border-coffee-200'
               }`}
               onClick={() => handleItemClick(item)}
             >
-              {/* Cart quantity badge */}
+              {/* Cart quantity badge - bottom right corner like reference image */}
               {isInCart && (
-                <div className="absolute -top-2 -right-2 z-10 bg-green-500 text-white rounded-full min-w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg px-1">
-                  <Check className="w-3 h-3 mr-0.5" />
-                  {quantityInCart}
+                <div className="absolute bottom-1 right-1 z-10 bg-orange-400 text-white rounded px-1.5 py-0.5 flex items-center gap-0.5 text-xs font-bold shadow-md">
+                  <span>x{quantityInCart}</span>
+                  <Check className="w-3 h-3" />
                 </div>
               )}
               <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'}`}>
@@ -103,20 +103,20 @@ const MenuGrid = ({
                     <img 
                       src={item.image} 
                       alt={item.name}
-                      className={`w-full h-4/5 object-cover rounded-md mb-1 ${isInCart ? 'ring-2 ring-green-400' : ''}`}
+                      className="w-full h-4/5 object-cover rounded-md mb-1"
                       loading="lazy"
                     />
                   )}
                   <div className="flex-1 flex flex-col justify-between px-1">
                     <h3 className={`font-medium line-clamp-2 ${
-                      isInCart ? 'text-green-700' : 'text-coffee-800'
+                      isInCart ? 'text-orange-600' : 'text-coffee-800'
                     } ${
                       isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                     }`}>
                       {item.name}
                     </h3>
                     <p className={`font-semibold ${
-                      isInCart ? 'text-green-600' : 'text-coffee-600'
+                      isInCart ? 'text-orange-500' : 'text-coffee-600'
                     } ${
                       isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
                     }`}>
