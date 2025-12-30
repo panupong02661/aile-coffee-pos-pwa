@@ -42,6 +42,7 @@ interface ReceiptPreviewProps {
   cartItems?: CartItem[];
   totalAmount?: number;
   discountAmount?: number;
+  itemDiscountAmount?: number;
   paymentMethod?: string;
   memberName?: string;
   memberPhone?: string;
@@ -54,6 +55,7 @@ const ReceiptPreview = ({
   cartItems = [], 
   totalAmount = 0,
   discountAmount = 0,
+  itemDiscountAmount = 0,
   paymentMethod = '',
   memberName,
   memberPhone,
@@ -224,9 +226,15 @@ const ReceiptPreview = ({
                 <span>ยอดรวม:</span>
                 <span>{subtotal.toLocaleString()} บาท</span>
               </div>
+              {itemDiscountAmount > 0 && (
+                <div className="flex justify-between mb-1 text-red-600">
+                  <span>ส่วนลดรายการ:</span>
+                  <span>-{itemDiscountAmount.toLocaleString()} บาท</span>
+                </div>
+              )}
               {discountAmount > 0 && (
                 <div className="flex justify-between mb-1 text-red-600">
-                  <span>ส่วนลด:</span>
+                  <span>ส่วนลดท้ายบิล:</span>
                   <span>-{discountAmount.toLocaleString()} บาท</span>
                 </div>
               )}
