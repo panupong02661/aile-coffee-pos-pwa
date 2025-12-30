@@ -1,8 +1,7 @@
 import { MenuItem, Addon, CartItem } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { memo } from 'react';
-import { Check } from 'lucide-react';
+import { memo, useMemo } from 'react';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -23,12 +22,17 @@ const MenuGrid = ({
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
 
-  // Get cart item IDs and quantities for highlighting
-  const cartItemMap = new Map<string, number>();
-  cartItems.forEach(cartItem => {
-    const currentQty = cartItemMap.get(cartItem.menu_item.id) || 0;
-    cartItemMap.set(cartItem.menu_item.id, currentQty + cartItem.quantity);
-  });
+  // Get cart item IDs and quantities for highlighting - use useMemo to avoid recalculation
+  const cartItemMap = useMemo(() => {
+    const map = new Map<string, number>();
+    cartItems.forEach(cartItem => {
+      const menuItemId = cartItem.menu_item.id;
+      const currentQty = map.get(menuItemId) || 0;
+      map.set(menuItemId, currentQty + cartItem.quantity);
+    });
+    console.log('🛒 CartItemMap updated:', Array.from(map.entries()));
+    return map;
+  }, [cartItems]);
 
   const handleItemClick = (item: MenuItem) => {
     // ส่งต่อการคลิกไปยัง POS เพื่อจัดการ addons
@@ -157,4 +161,26 @@ const MenuGrid = ({
   );
 };
 
-export default memo(MenuGrid);
+// Custom comparison for memo - compare cartItems length and IDs
+const areEqual = (prevProps: MenuGridProps, nextProps: MenuGridProps) => {
+  // Always re-render if cartItems changed
+  if (prevProps.cartItems?.length !== nextProps.cartItems?.length) {
+    return false;
+  }
+  
+  // Check if cart item quantities changed
+  const prevIds = prevProps.cartItems?.map(i => `${i.menu_item.id}:${i.quantity}`).join(',') || '';
+  const nextIds = nextProps.cartItems?.map(i => `${i.menu_item.id}:${i.quantity}`).join(',') || '';
+  if (prevIds !== nextIds) {
+    return false;
+  }
+
+  // Check other props
+  return (
+    prevProps.menuItems === nextProps.menuItems &&
+    prevProps.gridColumns === nextProps.gridColumns &&
+    prevProps.itemSize === nextProps.itemSize
+  );
+};
+
+export default memo(MenuGrid, areEqual);
