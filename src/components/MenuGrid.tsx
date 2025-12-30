@@ -22,9 +22,6 @@ const MenuGrid = ({
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
 
-  // Debug: log cartItems received
-  console.log('MenuGrid cartItems:', cartItems.length, cartItems.map(c => ({ id: c.menu_item.id, name: c.menu_item.name, qty: c.quantity })));
-
   // Get cart item IDs and quantities for highlighting
   const cartItemMap = new Map<string, number>();
   cartItems.forEach(cartItem => {
@@ -32,8 +29,6 @@ const MenuGrid = ({
     const currentQty = cartItemMap.get(menuItemId) || 0;
     cartItemMap.set(menuItemId, currentQty + cartItem.quantity);
   });
-  
-  console.log('MenuGrid cartItemMap:', Array.from(cartItemMap.entries()));
 
   const handleItemClick = (item: MenuItem) => {
     onAddToCart(item);
