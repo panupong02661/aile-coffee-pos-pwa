@@ -22,6 +22,9 @@ const MenuGrid = ({
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
 
+  // Debug: log cartItems received
+  console.log('MenuGrid cartItems:', cartItems.length, cartItems.map(c => ({ id: c.menu_item.id, name: c.menu_item.name, qty: c.quantity })));
+
   // Get cart item IDs and quantities for highlighting
   const cartItemMap = new Map<string, number>();
   cartItems.forEach(cartItem => {
@@ -29,6 +32,8 @@ const MenuGrid = ({
     const currentQty = cartItemMap.get(menuItemId) || 0;
     cartItemMap.set(menuItemId, currentQty + cartItem.quantity);
   });
+  
+  console.log('MenuGrid cartItemMap:', Array.from(cartItemMap.entries()));
 
   const handleItemClick = (item: MenuItem) => {
     onAddToCart(item);
@@ -84,15 +89,36 @@ const MenuGrid = ({
               key={item.id} 
               className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 relative overflow-visible ${
                 isMobile ? 'active:scale-95 touch-manipulation' : ''
-              } ${isInCart 
-                ? 'ring-2 ring-orange-400 border-orange-400' 
-                : 'border-coffee-200'
               }`}
+              style={isInCart ? {
+                border: '3px solid #f97316',
+                boxShadow: '0 0 0 2px #f97316',
+                backgroundColor: '#fff7ed'
+              } : {
+                borderColor: '#d6bcab'
+              }}
               onClick={() => handleItemClick(item)}
             >
               {/* Cart quantity badge - bottom right corner like reference image */}
               {isInCart && (
-                <div className="absolute bottom-1 right-1 z-10 bg-orange-400 text-white rounded px-1.5 py-0.5 flex items-center gap-0.5 text-xs font-bold shadow-md">
+                <div 
+                  style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    right: '4px',
+                    zIndex: 20,
+                    backgroundColor: '#f97316',
+                    color: 'white',
+                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                >
                   <span>x{quantityInCart}</span>
                   <Check className="w-3 h-3" />
                 </div>
