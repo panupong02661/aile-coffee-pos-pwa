@@ -1733,6 +1733,7 @@ export type Database = {
           email: string | null
           gender: string | null
           id: string
+          is_favorite: boolean | null
           join_date: string
           name: string
           phone: string
@@ -1747,6 +1748,7 @@ export type Database = {
           email?: string | null
           gender?: string | null
           id?: string
+          is_favorite?: boolean | null
           join_date?: string
           name: string
           phone: string
@@ -1761,6 +1763,7 @@ export type Database = {
           email?: string | null
           gender?: string | null
           id?: string
+          is_favorite?: boolean | null
           join_date?: string
           name?: string
           phone?: string
