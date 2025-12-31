@@ -256,27 +256,40 @@ export const useOfflinePOS = () => {
       console.log('📱 Initializing offline POS...');
       
       // Load stored data
-      const stored = await getStoredData();
-      if (stored) {
-        setOfflineData(stored);
-        setLastSyncTime(stored.lastSync);
-        console.log('📦 Loaded cached data:', {
-          menuItems: stored.menuItems.length,
-          categories: stored.categories.length
-        });
+      try {
+        const stored = await getStoredData();
+        if (stored) {
+          setOfflineData(stored);
+          setLastSyncTime(stored.lastSync);
+          console.log('📦 Loaded cached data:', {
+            menuItems: stored.menuItems.length,
+            categories: stored.categories.length,
+            addons: stored.addons.length
+          });
+        } else {
+          console.log('📭 No cached data found');
+        }
+      } catch (e) {
+        console.error('❌ Error loading cached data:', e);
       }
 
       // Load pending orders count
-      const orders = await getStoredOrders();
-      setPendingOrdersCount(orders.filter(o => !o.synced).length);
+      try {
+        const orders = await getStoredOrders();
+        setPendingOrdersCount(orders.filter(o => !o.synced).length);
+        console.log('📋 Pending orders:', orders.filter(o => !o.synced).length);
+      } catch (e) {
+        console.error('❌ Error loading pending orders:', e);
+      }
 
       // Check network status using Capacitor Network plugin
       try {
         const status = await Network.getStatus();
         setIsOnline(status.connected);
-        console.log('📡 Network status:', status.connected ? 'online' : 'offline');
+        console.log('📡 Capacitor Network status:', status.connected ? 'online' : 'offline', status);
       } catch (e) {
         // Fallback to navigator.onLine
+        console.log('⚠️ Capacitor Network not available, using navigator.onLine');
         setIsOnline(navigator.onLine);
       }
     };
