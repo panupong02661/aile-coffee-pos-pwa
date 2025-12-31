@@ -76,29 +76,44 @@ const CustomerDisplay = () => {
   useEffect(() => {
     console.log('📺 Customer Display: Setting up...');
     
-    // Fetch initial cart data
+    // Fetch cart data function
     const fetchCartData = async () => {
-      const { data, error } = await supabase
-        .from('cart_display_sync' as any)
-        .select('cart_data')
-        .eq('id', 'current-cart')
-        .single();
-      
-      if (data && (data as any).cart_data) {
-        console.log('📺 Initial cart data:', (data as any).cart_data);
-        const cartData = (data as any).cart_data;
-        setDisplayData({
-          cartItems: cartData.cartItems || [],
-          totalAmount: cartData.totalAmount || 0,
-          subtotal: cartData.subtotal || 0,
-          billDiscount: cartData.billDiscount || 0,
-          billDiscountType: cartData.billDiscountType || 'amount',
-          showPayment: cartData.showPayment || false
-        });
+      try {
+        const { data, error } = await supabase
+          .from('cart_display_sync' as any)
+          .select('cart_data, updated_at')
+          .eq('id', 'current-cart')
+          .single();
+        
+        if (error) {
+          console.error('📺 Error fetching cart:', error);
+          return;
+        }
+        
+        if (data && (data as any).cart_data) {
+          console.log('📺 Cart data loaded:', (data as any).cart_data.cartItems?.length || 0, 'items');
+          const cartData = (data as any).cart_data;
+          setDisplayData({
+            cartItems: cartData.cartItems || [],
+            totalAmount: cartData.totalAmount || 0,
+            subtotal: cartData.subtotal || 0,
+            billDiscount: cartData.billDiscount || 0,
+            billDiscountType: cartData.billDiscountType || 'amount',
+            showPayment: cartData.showPayment || false
+          });
+        }
+      } catch (err) {
+        console.error('📺 Fetch error:', err);
       }
     };
     
+    // Initial fetch
     fetchCartData();
+    
+    // Polling every 2 seconds as backup (in case realtime fails)
+    const pollInterval = setInterval(() => {
+      fetchCartData();
+    }, 2000);
     
     // Listen for real-time updates
     const channel = supabase
@@ -127,6 +142,7 @@ const CustomerDisplay = () => {
 
     return () => {
       console.log('📺 Cleaning up...');
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, []);
