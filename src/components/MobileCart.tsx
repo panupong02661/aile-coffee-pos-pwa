@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +14,7 @@ import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Drawer,
   DrawerContent,
@@ -75,6 +76,69 @@ const MobileCart = ({
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('qr');
   const { toast } = useToast();
+
+  // Send cart data to Customer Display using Supabase Realtime
+  const syncCartToDisplay = useCallback(async (showPayment: boolean = false) => {
+    const currentSubtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
+    const currentBillDiscountAmount = billDiscountType === 'percent'
+      ? Math.min(currentSubtotal * billDiscount / 100, currentSubtotal)
+      : Math.min(billDiscount, currentSubtotal);
+    const currentTotal = Math.max(0, currentSubtotal - currentBillDiscountAmount);
+    
+    const displayData = {
+      cartItems: cartItems.map(item => ({
+        id: item.id,
+        name: item.menu_item.name,
+        price: item.menu_item.price,
+        quantity: item.quantity,
+        addons: item.selected_addons.map(addon => ({
+          name: addon.name,
+          price: addon.price
+        })),
+        discount: item.item_discount,
+        discountType: item.item_discount_type,
+        totalPrice: item.total_price
+      })),
+      totalAmount: currentTotal,
+      subtotal: currentSubtotal,
+      billDiscount,
+      billDiscountType,
+      showPayment,
+      timestamp: Date.now()
+    };
+    
+    try {
+      const { error } = await supabase
+        .from('cart_display_sync' as any)
+        .upsert({
+          id: 'current-cart',
+          cart_data: displayData,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      
+      if (error) {
+        console.error('📱 Mobile cart sync error:', error);
+      } else {
+        console.log('📱 Mobile cart synced to display:', displayData);
+      }
+    } catch (err) {
+      console.error('📱 Mobile cart sync failed:', err);
+    }
+  }, [cartItems, billDiscount, billDiscountType]);
+
+  // Sync cart data when items or discount changes
+  useEffect(() => {
+    syncCartToDisplay(false);
+  }, [syncCartToDisplay]);
+
+  // Sync payment modal state to customer display
+  useEffect(() => {
+    if (isPaymentModalOpen) {
+      syncCartToDisplay(true);
+    } else {
+      syncCartToDisplay(false);
+    }
+  }, [isPaymentModalOpen, syncCartToDisplay]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
   
