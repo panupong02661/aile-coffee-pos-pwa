@@ -1,9 +1,11 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Award, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Award, Star, FileSpreadsheet, FileText } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { exportToExcel, exportToPDF, formatDashboardDataForExport } from '@/utils/exportUtils';
+import { toast } from 'sonner';
 
 const MembershipDashboard = () => {
   const { members, loading } = useSupabaseData();
@@ -83,8 +85,49 @@ const MembershipDashboard = () => {
     </div>
   );
 
+  const handleExportExcel = () => {
+    const data = formatDashboardDataForExport(members);
+    exportToExcel(data, `รายงานแดชบอร์ดสมาชิก_${new Date().toLocaleDateString('th-TH')}`, 'แดชบอร์ด');
+    toast.success('ส่งออกไฟล์ Excel สำเร็จ');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['ลำดับ', 'ชื่อ', 'เบอร์โทร', 'ระดับ', 'แต้มสะสม', 'ยอดซื้อรวม'];
+    const rows = members.map((m, i) => [
+      String(i + 1),
+      m.name,
+      m.phone,
+      getTierName(m.tier),
+      m.points.toLocaleString(),
+      `฿${m.total_spent.toLocaleString()}`
+    ]);
+
+    const summary = [
+      { label: 'สมาชิกทั้งหมด', value: `${members.length} คน` },
+      { label: 'สมาชิกเงิน', value: `${silverMembers.length} คน` },
+      { label: 'สมาชิกทอง', value: `${goldMembers.length} คน` },
+      { label: 'สมาชิกแพลตินัม', value: `${platinumMembers.length} คน` },
+      { label: 'แต้มทั้งหมด', value: totalPoints.toLocaleString() },
+    ];
+
+    exportToPDF('รายงานแดชบอร์ดสมาชิก', headers, rows, 'dashboard', summary);
+    toast.success('กำลังเปิดหน้าพิมพ์ PDF');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Export Buttons */}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={handleExportExcel}>
+          <FileSpreadsheet className="w-4 h-4 mr-2" />
+          Excel
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <FileText className="w-4 h-4 mr-2" />
+          PDF
+        </Button>
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

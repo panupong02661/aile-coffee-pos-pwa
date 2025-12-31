@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Edit, Trash2, Award, Receipt } from 'lucide-react';
+import { Edit, Trash2, Award, Receipt, FileSpreadsheet, FileText } from 'lucide-react';
 import MemberEditForm from '@/components/MemberEditForm';
 import MemberPurchaseHistoryModal from '@/components/MemberPurchaseHistoryModal';
+import { exportToExcel, exportToPDF, formatMemberDataForExport } from '@/utils/exportUtils';
+import { toast as sonnerToast } from 'sonner';
 
 interface Member {
   id: string;
@@ -110,6 +111,35 @@ const MemberList = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    const data = formatMemberDataForExport(filteredMembers);
+    exportToExcel(data, `รายชื่อสมาชิก_${new Date().toLocaleDateString('th-TH')}`, 'สมาชิก');
+    sonnerToast.success('ส่งออกไฟล์ Excel สำเร็จ');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['ลำดับ', 'ชื่อ', 'เบอร์โทร', 'อีเมล', 'ระดับ', 'แต้ม', 'ยอดซื้อรวม', 'วันที่เข้าร่วม'];
+    const rows = filteredMembers.map((m, i) => [
+      String(i + 1),
+      m.name,
+      m.phone,
+      m.email || '-',
+      getTierName(m.tier),
+      m.points.toLocaleString(),
+      `฿${m.total_spent.toLocaleString()}`,
+      new Date(m.join_date).toLocaleDateString('th-TH')
+    ]);
+
+    const summary = [
+      { label: 'จำนวนที่แสดง', value: `${filteredMembers.length} คน` },
+      { label: 'แต้มรวม', value: filteredMembers.reduce((sum, m) => sum + m.points, 0).toLocaleString() },
+      { label: 'ยอดซื้อรวม', value: `฿${filteredMembers.reduce((sum, m) => sum + m.total_spent, 0).toLocaleString()}` },
+    ];
+
+    exportToPDF('รายชื่อสมาชิก', headers, rows, 'members', summary);
+    sonnerToast.success('กำลังเปิดหน้าพิมพ์ PDF');
+  };
+
   useEffect(() => {
     fetchMembers();
   }, []);
@@ -132,11 +162,25 @@ const MemberList = () => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="w-5 h-5" />
-            รายชื่อสมาชิก
-          </CardTitle>
-          <CardDescription>จัดการข้อมูลสมาชิกทั้งหมด</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                รายชื่อสมาชิก
+              </CardTitle>
+              <CardDescription>จัดการข้อมูลสมาชิกทั้งหมด</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
