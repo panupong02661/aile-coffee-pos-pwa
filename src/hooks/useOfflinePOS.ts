@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Preferences } from '@capacitor/preferences';
+import { Network } from '@capacitor/network';
 
 // Types for offline data
 interface OfflineMenuItem {
@@ -77,47 +79,83 @@ const OFFLINE_DATA_KEY = 'pos_offline_data';
 const OFFLINE_ORDERS_KEY = 'pos_offline_orders';
 const DATA_VERSION = 1;
 
-// Helper functions for localStorage
-const getStoredData = (): OfflineData | null => {
+// Capacitor Preferences helpers for native app compatibility
+const getStoredData = async (): Promise<OfflineData | null> => {
   try {
-    const data = localStorage.getItem(OFFLINE_DATA_KEY);
-    return data ? JSON.parse(data) : null;
+    const { value } = await Preferences.get({ key: OFFLINE_DATA_KEY });
+    if (value) {
+      console.log('📱 Loaded offline data from Capacitor Preferences');
+      return JSON.parse(value);
+    }
+    // Fallback to localStorage for web
+    const localData = localStorage.getItem(OFFLINE_DATA_KEY);
+    if (localData) {
+      console.log('🌐 Loaded offline data from localStorage');
+      return JSON.parse(localData);
+    }
+    return null;
   } catch (e) {
     console.error('Error reading offline data:', e);
-    return null;
-  }
-};
-
-const setStoredData = (data: OfflineData): void => {
-  try {
-    localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error('Error saving offline data:', e);
-    // Try to clear old data and save again
+    // Try localStorage as fallback
     try {
-      localStorage.removeItem(OFFLINE_DATA_KEY);
-      localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(data));
-    } catch (e2) {
-      console.error('Failed to save offline data even after clearing:', e2);
+      const localData = localStorage.getItem(OFFLINE_DATA_KEY);
+      return localData ? JSON.parse(localData) : null;
+    } catch {
+      return null;
     }
   }
 };
 
-const getStoredOrders = (): OfflineOrder[] => {
+const setStoredData = async (data: OfflineData): Promise<void> => {
   try {
-    const data = localStorage.getItem(OFFLINE_ORDERS_KEY);
-    return data ? JSON.parse(data) : [];
+    const jsonData = JSON.stringify(data);
+    // Save to both Capacitor Preferences and localStorage for maximum compatibility
+    await Preferences.set({ key: OFFLINE_DATA_KEY, value: jsonData });
+    localStorage.setItem(OFFLINE_DATA_KEY, jsonData);
+    console.log('💾 Saved offline data to storage');
   } catch (e) {
-    console.error('Error reading offline orders:', e);
-    return [];
+    console.error('Error saving offline data:', e);
+    // Try localStorage only as fallback
+    try {
+      localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(data));
+    } catch (e2) {
+      console.error('Failed to save offline data:', e2);
+    }
   }
 };
 
-const setStoredOrders = (orders: OfflineOrder[]): void => {
+const getStoredOrders = async (): Promise<OfflineOrder[]> => {
   try {
-    localStorage.setItem(OFFLINE_ORDERS_KEY, JSON.stringify(orders));
+    const { value } = await Preferences.get({ key: OFFLINE_ORDERS_KEY });
+    if (value) {
+      return JSON.parse(value);
+    }
+    // Fallback to localStorage
+    const localData = localStorage.getItem(OFFLINE_ORDERS_KEY);
+    return localData ? JSON.parse(localData) : [];
+  } catch (e) {
+    console.error('Error reading offline orders:', e);
+    try {
+      const localData = localStorage.getItem(OFFLINE_ORDERS_KEY);
+      return localData ? JSON.parse(localData) : [];
+    } catch {
+      return [];
+    }
+  }
+};
+
+const setStoredOrders = async (orders: OfflineOrder[]): Promise<void> => {
+  try {
+    const jsonData = JSON.stringify(orders);
+    await Preferences.set({ key: OFFLINE_ORDERS_KEY, value: jsonData });
+    localStorage.setItem(OFFLINE_ORDERS_KEY, jsonData);
   } catch (e) {
     console.error('Error saving offline orders:', e);
+    try {
+      localStorage.setItem(OFFLINE_ORDERS_KEY, JSON.stringify(orders));
+    } catch {
+      // Silent fail
+    }
   }
 };
 
@@ -127,46 +165,160 @@ export const useOfflinePOS = () => {
   const [offlineData, setOfflineData] = useState<OfflineData | null>(null);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const isInitialized = useRef(false);
 
-  // Monitor online status
+  // Sync pending orders to Supabase
+  const syncPendingOrders = useCallback(async (): Promise<number> => {
+    if (!navigator.onLine) {
+      console.log('Cannot sync orders: offline');
+      return 0;
+    }
+
+    const orders = await getStoredOrders();
+    const pendingOrders = orders.filter(o => !o.synced);
+
+    if (pendingOrders.length === 0) {
+      console.log('No pending orders to sync');
+      return 0;
+    }
+
+    setIsSyncing(true);
+    console.log(`🔄 Syncing ${pendingOrders.length} pending orders...`);
+
+    let syncedCount = 0;
+
+    for (const order of pendingOrders) {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .insert({
+            order_number: order.order_number,
+            total_amount: order.total_amount,
+            payment_method: order.payment_method,
+            member_id: order.member_id || null,
+            bill_discount: order.bill_discount || 0,
+            bill_discount_type: order.bill_discount_type || 'amount',
+            items_count: order.items.length,
+            order_type: 'dine-in',
+            status: 'completed',
+            created_at: order.created_at
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Save order items
+        if (order.items && data) {
+          const orderItems = order.items.map((item: any) => ({
+            order_id: data.id,
+            menu_item_id: item.menu_item?.id || item.menu_item_id,
+            menu_item_name: item.menu_item?.name || item.name || 'Unknown',
+            quantity: item.quantity,
+            unit_price: item.menu_item?.price || item.unit_price || 0,
+            total_price: (item.menu_item?.price || item.unit_price || 0) * item.quantity,
+            selected_addons: item.addons || [],
+            item_discount: item.item_discount || 0,
+            item_discount_type: item.item_discount_type || 'amount'
+          }));
+
+          await supabase.from('order_items').insert(orderItems);
+        }
+
+        // Mark as synced
+        order.synced = true;
+        syncedCount++;
+        console.log(`✅ Order synced: ${order.order_number}`);
+      } catch (error) {
+        console.error(`❌ Error syncing order ${order.order_number}:`, error);
+      }
+    }
+
+    // Update stored orders
+    await setStoredOrders(orders);
+    setPendingOrdersCount(orders.filter(o => !o.synced).length);
+
+    if (syncedCount > 0) {
+      toast.success(`ซิงค์ออเดอร์สำเร็จ ${syncedCount} รายการ`);
+    }
+
+    setIsSyncing(false);
+    console.log(`✅ Synced ${syncedCount}/${pendingOrders.length} orders`);
+    return syncedCount;
+  }, []);
+
+  // Initialize and monitor network status
   useEffect(() => {
+    const initializeOfflineData = async () => {
+      if (isInitialized.current) return;
+      isInitialized.current = true;
+
+      console.log('📱 Initializing offline POS...');
+      
+      // Load stored data
+      const stored = await getStoredData();
+      if (stored) {
+        setOfflineData(stored);
+        setLastSyncTime(stored.lastSync);
+        console.log('📦 Loaded cached data:', {
+          menuItems: stored.menuItems.length,
+          categories: stored.categories.length
+        });
+      }
+
+      // Load pending orders count
+      const orders = await getStoredOrders();
+      setPendingOrdersCount(orders.filter(o => !o.synced).length);
+
+      // Check network status using Capacitor Network plugin
+      try {
+        const status = await Network.getStatus();
+        setIsOnline(status.connected);
+        console.log('📡 Network status:', status.connected ? 'online' : 'offline');
+      } catch (e) {
+        // Fallback to navigator.onLine
+        setIsOnline(navigator.onLine);
+      }
+    };
+
+    initializeOfflineData();
+
+    // Listen to network changes using Capacitor
+    const networkListener = Network.addListener('networkStatusChange', (status) => {
+      console.log('📡 Network status changed:', status.connected ? 'online' : 'offline');
+      setIsOnline(status.connected);
+      
+      if (status.connected) {
+        // Auto sync when back online
+        syncPendingOrders();
+      } else {
+        toast.warning('ออฟไลน์ - ระบบจะใช้ข้อมูลที่บันทึกไว้', {
+          duration: 3000,
+        });
+      }
+    });
+
+    // Also listen to browser events as fallback
     const handleOnline = () => {
-      console.log('🟢 Network online');
+      console.log('🟢 Browser: Network online');
       setIsOnline(true);
-      // Auto sync when back online
       syncPendingOrders();
     };
 
     const handleOffline = () => {
-      console.log('🔴 Network offline');
+      console.log('🔴 Browser: Network offline');
       setIsOnline(false);
-      toast.warning('ออฟไลน์ - ระบบจะใช้ข้อมูลที่บันทึกไว้', {
-        duration: 3000,
-      });
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initialize
-    setIsOnline(navigator.onLine);
-    
-    // Load stored data
-    const stored = getStoredData();
-    if (stored) {
-      setOfflineData(stored);
-      setLastSyncTime(stored.lastSync);
-    }
-
-    // Load pending orders count
-    const orders = getStoredOrders();
-    setPendingOrdersCount(orders.filter(o => !o.synced).length);
-
     return () => {
+      networkListener.then(listener => listener.remove());
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncPendingOrders]);
 
   // Sync menu data from Supabase
   const syncMenuData = useCallback(async (): Promise<boolean> => {
@@ -210,6 +362,8 @@ export const useOfflinePOS = () => {
       if (menuAddonGroupsRes.error) throw menuAddonGroupsRes.error;
       if (categoryAddonGroupsRes.error) throw categoryAddonGroupsRes.error;
 
+      const storedOrders = await getStoredOrders();
+      
       const newData: OfflineData = {
         menuItems: menuItemsRes.data || [],
         categories: categoriesRes.data || [],
@@ -217,13 +371,13 @@ export const useOfflinePOS = () => {
         addonGroups: addonGroupsRes.data || [],
         menuAddonGroups: menuAddonGroupsRes.data || [],
         categoryAddonGroups: categoryAddonGroupsRes.data || [],
-        orders: getStoredOrders(),
+        orders: storedOrders,
         lastSync: new Date().toISOString(),
         version: DATA_VERSION
       };
 
-      // Save to localStorage
-      setStoredData(newData);
+      // Save to storage
+      await setStoredData(newData);
       setOfflineData(newData);
       setLastSyncTime(newData.lastSync);
 
@@ -308,9 +462,9 @@ export const useOfflinePOS = () => {
     }
 
     // Save offline
-    const orders = getStoredOrders();
+    const orders = await getStoredOrders();
     orders.push(offlineOrder);
-    setStoredOrders(orders);
+    await setStoredOrders(orders);
     setPendingOrdersCount(orders.filter(o => !o.synced).length);
 
     toast.info('บันทึกออเดอร์ในโหมดออฟไลน์', {
@@ -321,91 +475,11 @@ export const useOfflinePOS = () => {
     return { success: true, orderId };
   }, [isOnline]);
 
-  // Sync pending orders to Supabase
-  const syncPendingOrders = useCallback(async (): Promise<number> => {
-    if (!isOnline) {
-      console.log('Cannot sync orders: offline');
-      return 0;
-    }
-
-    const orders = getStoredOrders();
-    const pendingOrders = orders.filter(o => !o.synced);
-
-    if (pendingOrders.length === 0) {
-      console.log('No pending orders to sync');
-      return 0;
-    }
-
-    setIsSyncing(true);
-    console.log(`🔄 Syncing ${pendingOrders.length} pending orders...`);
-
-    let syncedCount = 0;
-
-    for (const order of pendingOrders) {
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .insert({
-            order_number: order.order_number,
-            total_amount: order.total_amount,
-            payment_method: order.payment_method,
-            member_id: order.member_id || null,
-            bill_discount: order.bill_discount || 0,
-            bill_discount_type: order.bill_discount_type || 'amount',
-            items_count: order.items.length,
-            order_type: 'dine-in',
-            status: 'completed',
-            created_at: order.created_at
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Save order items
-        if (order.items && data) {
-          const orderItems = order.items.map((item: any) => ({
-            order_id: data.id,
-            menu_item_id: item.menu_item?.id || item.menu_item_id,
-            menu_item_name: item.menu_item?.name || item.name || 'Unknown',
-            quantity: item.quantity,
-            unit_price: item.menu_item?.price || item.unit_price || 0,
-            total_price: (item.menu_item?.price || item.unit_price || 0) * item.quantity,
-            selected_addons: item.addons || [],
-            item_discount: item.item_discount || 0,
-            item_discount_type: item.item_discount_type || 'amount'
-          }));
-
-          await supabase.from('order_items').insert(orderItems);
-        }
-
-        // Mark as synced
-        order.synced = true;
-        syncedCount++;
-        console.log(`✅ Order synced: ${order.order_number}`);
-      } catch (error) {
-        console.error(`❌ Error syncing order ${order.order_number}:`, error);
-      }
-    }
-
-    // Update stored orders
-    setStoredOrders(orders);
-    setPendingOrdersCount(orders.filter(o => !o.synced).length);
-
-    if (syncedCount > 0) {
-      toast.success(`ซิงค์ออเดอร์สำเร็จ ${syncedCount} รายการ`);
-    }
-
-    setIsSyncing(false);
-    console.log(`✅ Synced ${syncedCount}/${pendingOrders.length} orders`);
-    return syncedCount;
-  }, [isOnline]);
-
   // Clear synced orders (keep unsynced)
-  const clearSyncedOrders = useCallback(() => {
-    const orders = getStoredOrders();
+  const clearSyncedOrders = useCallback(async () => {
+    const orders = await getStoredOrders();
     const unsyncedOrders = orders.filter(o => !o.synced);
-    setStoredOrders(unsyncedOrders);
+    await setStoredOrders(unsyncedOrders);
     setPendingOrdersCount(unsyncedOrders.length);
   }, []);
 
