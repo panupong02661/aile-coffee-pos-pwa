@@ -38,6 +38,15 @@ interface MobileCartProps {
   onCodeApply?: (giftData: any) => void;
   appliedGiftCode?: any;
   onPaymentComplete?: () => void;
+  onMemberUpdate?: (updatedMember: {
+    id: string;
+    phone: string;
+    name: string;
+    email?: string;
+    tier: 'silver' | 'gold' | 'platinum';
+    points: number;
+    total_spent: number;
+  }) => void;
   selectedMember?: {
     id: string;
     phone: string;
@@ -66,6 +75,7 @@ const MobileCart = ({
   onCodeApply,
   appliedGiftCode,
   onPaymentComplete,
+  onMemberUpdate,
   selectedMember,
   onProceedToPayment
 }: MobileCartProps) => {
@@ -364,6 +374,7 @@ const MobileCart = ({
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
         appliedGiftCode={appliedGiftCode}
+        onMemberUpdate={onMemberUpdate}
       />
 
       {selectedItemForDiscount && (
