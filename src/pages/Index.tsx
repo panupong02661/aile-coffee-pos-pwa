@@ -6,9 +6,11 @@ import Cart from '@/components/Cart';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useOfflinePOS } from '@/hooks/useOfflinePOS';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +50,7 @@ const Index = () => {
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
-  const [availableAddons, setAvailableAddons] = useState<DatabaseAddon[]>([]);
+  const [availableAddons, setAvailableAddons] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [appliedGiftCode, setAppliedGiftCode] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,13 +72,39 @@ const Index = () => {
   } = useCart();
 
   const { 
-    categories, 
-    menuItems, 
-    addons, 
+    categories: onlineCategories, 
+    menuItems: onlineMenuItems, 
+    addons: onlineAddons, 
     loading, 
     getAddonGroupsForMenuItem, 
-    getAddonGroupsForCategory 
+    getAddonGroupsForCategory,
+    addonGroups
   } = useSupabaseData();
+
+  // Offline POS support
+  const {
+    isOnline,
+    isSyncing,
+    pendingOrdersCount,
+    syncMenuData,
+    getCachedMenuItems,
+    getCachedCategories,
+    getCachedAddons,
+    getCachedAddonGroups,
+    hasOfflineData
+  } = useOfflinePOS();
+
+  // Use offline data when not online
+  const categories = isOnline ? onlineCategories : getCachedCategories();
+  const menuItems = isOnline ? onlineMenuItems : getCachedMenuItems();
+  const addons = isOnline ? onlineAddons : getCachedAddons();
+
+  // Sync data when coming online or on mount
+  useEffect(() => {
+    if (isOnline && !loading) {
+      syncMenuData();
+    }
+  }, [isOnline, loading]);
 
   // Save grid settings to localStorage when changed
   useEffect(() => {
@@ -312,10 +340,23 @@ const Index = () => {
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  if (loading) {
+  // Show loading only when online and no offline data available
+  if (loading && isOnline && !hasOfflineData()) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+      </div>
+    );
+  }
+
+  // Show offline message if no data available
+  if (!isOnline && !hasOfflineData()) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center gap-4 p-4">
+        <div className="text-coffee-600 text-center">
+          <div className="text-xl font-semibold mb-2">ไม่มีข้อมูลออฟไลน์</div>
+          <div className="text-sm text-muted-foreground">กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนู</div>
+        </div>
       </div>
     );
   }
@@ -330,6 +371,9 @@ const Index = () => {
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
+      {/* Offline Indicator */}
+      <OfflineIndicator compact />
+      
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
