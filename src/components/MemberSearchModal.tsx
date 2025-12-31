@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -17,6 +16,7 @@ interface Member {
   tier: 'silver' | 'gold' | 'platinum';
   points: number;
   total_spent: number;
+  is_favorite?: boolean;
 }
 
 interface MemberSearchModalProps {
@@ -29,6 +29,7 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
   const [searchTerm, setSearchTerm] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
+  const [favoriteMembers, setFavoriteMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -51,6 +52,7 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
     
     setMembers(typedMembers);
     setFilteredMembers(typedMembers);
+    setFavoriteMembers(typedMembers.filter(m => m.is_favorite));
     setLoading(false);
   };
 
@@ -107,9 +109,11 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
     setSearchTerm('');
   };
 
+  const hasFavorites = favoriteMembers.length > 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className={`${hasFavorites ? 'max-w-3xl' : 'max-w-md'} max-h-[80vh] overflow-hidden flex flex-col`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="w-5 h-5" />
@@ -128,34 +132,74 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
           {loading ? (
             <div className="text-center py-8 text-gray-500">กำลังโหลดข้อมูลสมาชิก...</div>
           ) : (
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {filteredMembers.map((member) => (
-                <Card key={member.id} className="cursor-pointer hover:bg-gray-50 transition-colors">
-                  <CardContent className="p-4" onClick={() => handleSelectMember(member)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{member.name}</h3>
-                          <Badge className={getTierBadgeColor(member.tier)}>
-                            <span className="flex items-center gap-1">
-                              {getTierIcon(member.tier)}
-                              {getTierName(member.tier)}
-                            </span>
-                          </Badge>
+            <div className={`flex-1 overflow-hidden ${hasFavorites ? 'grid grid-cols-2 gap-4' : ''}`}>
+              {/* All Members List */}
+              <div className="overflow-y-auto space-y-2 pr-2">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">รายชื่อสมาชิก</h3>
+                {filteredMembers.map((member) => (
+                  <Card key={member.id} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                    <CardContent className="p-3" onClick={() => handleSelectMember(member)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-sm">{member.name}</h3>
+                            {member.is_favorite && (
+                              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                            )}
+                            <Badge className={`text-xs ${getTierBadgeColor(member.tier)}`}>
+                              <span className="flex items-center gap-1">
+                                {getTierIcon(member.tier)}
+                                {getTierName(member.tier)}
+                              </span>
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-600">{member.phone}</p>
+                          <p className="text-xs text-coffee-600 font-medium">
+                            {member.points.toLocaleString()} แต้ม
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600">{member.phone}</p>
-                        <p className="text-sm text-coffee-600 font-medium">
-                          {member.points.toLocaleString()} แต้ม
-                        </p>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {filteredMembers.length === 0 && !loading && (
-                <div className="text-center py-8 text-gray-500">
-                  {searchTerm ? 'ไม่พบสมาชิกที่ค้นหา' : 'ไม่มีข้อมูลสมาชิก'}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {filteredMembers.length === 0 && !loading && (
+                  <div className="text-center py-8 text-gray-500">
+                    {searchTerm ? 'ไม่พบสมาชิกที่ค้นหา' : 'ไม่มีข้อมูลสมาชิก'}
+                  </div>
+                )}
+              </div>
+
+              {/* Favorite Members Section */}
+              {hasFavorites && (
+                <div className="overflow-y-auto space-y-2 pl-2 border-l">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    รายการโปรด
+                  </h3>
+                  {favoriteMembers.map((member) => (
+                    <Card key={member.id} className="cursor-pointer hover:bg-yellow-50 transition-colors border-yellow-200">
+                      <CardContent className="p-3" onClick={() => handleSelectMember(member)}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium text-sm">{member.name}</h3>
+                              <Badge className={`text-xs ${getTierBadgeColor(member.tier)}`}>
+                                <span className="flex items-center gap-1">
+                                  {getTierIcon(member.tier)}
+                                  {getTierName(member.tier)}
+                                </span>
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-600">{member.phone}</p>
+                            <p className="text-xs text-coffee-600 font-medium">
+                              {member.points.toLocaleString()} แต้ม
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>

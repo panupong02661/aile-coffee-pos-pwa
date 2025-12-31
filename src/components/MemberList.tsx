@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Edit, Trash2, Award, Receipt, FileSpreadsheet, FileText } from 'lucide-react';
+import { Edit, Trash2, Award, Receipt, FileSpreadsheet, FileText, Star } from 'lucide-react';
 import MemberEditForm from '@/components/MemberEditForm';
 import MemberPurchaseHistoryModal from '@/components/MemberPurchaseHistoryModal';
 import { exportToExcel, exportToPDF, formatMemberDataForExport } from '@/utils/exportUtils';
@@ -23,6 +23,7 @@ interface Member {
   points: number;
   total_spent: number;
   join_date: string;
+  is_favorite?: boolean;
 }
 
 const MemberList = () => {
@@ -90,6 +91,26 @@ const MemberList = () => {
     }
     
     toast({ title: 'สำเร็จ', description: 'ลบสมาชิกเรียบร้อยแล้ว' });
+    fetchMembers();
+  };
+
+  const toggleFavorite = async (member: Member) => {
+    const newFavoriteStatus = !member.is_favorite;
+    
+    const { error } = await supabase
+      .from('members')
+      .update({ is_favorite: newFavoriteStatus })
+      .eq('id', member.id);
+    
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัพเดทรายการโปรดได้', variant: 'destructive' });
+      return;
+    }
+    
+    toast({ 
+      title: 'สำเร็จ', 
+      description: newFavoriteStatus ? 'เพิ่มเป็นรายการโปรดแล้ว' : 'ลบออกจากรายการโปรดแล้ว' 
+    });
     fetchMembers();
   };
 
@@ -233,6 +254,15 @@ const MemberList = () => {
                     <TableCell>{new Date(member.join_date).toLocaleDateString('th-TH')}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleFavorite(member)}
+                          className={member.is_favorite ? 'text-yellow-500' : 'text-gray-400'}
+                          title={member.is_favorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มเป็นรายการโปรด'}
+                        >
+                          <Star className={`w-4 h-4 ${member.is_favorite ? 'fill-yellow-500' : ''}`} />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
