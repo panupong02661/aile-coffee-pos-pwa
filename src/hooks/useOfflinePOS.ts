@@ -247,6 +247,30 @@ export const useOfflinePOS = () => {
     return syncedCount;
   }, []);
 
+  // Load cached data immediately on mount (synchronous-like for faster initial render)
+  useEffect(() => {
+    const loadCachedDataImmediately = async () => {
+      try {
+        // Try localStorage first for faster access
+        const localData = localStorage.getItem(OFFLINE_DATA_KEY);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          setOfflineData(parsed);
+          setLastSyncTime(parsed.lastSync);
+          console.log('🚀 Immediately loaded cached data from localStorage:', {
+            menuItems: parsed.menuItems?.length || 0,
+            categories: parsed.categories?.length || 0,
+            addons: parsed.addons?.length || 0
+          });
+        }
+      } catch (e) {
+        console.error('Error loading immediate cache:', e);
+      }
+    };
+    
+    loadCachedDataImmediately();
+  }, []);
+
   // Initialize and monitor network status
   useEffect(() => {
     const initializeOfflineData = async () => {
@@ -255,19 +279,19 @@ export const useOfflinePOS = () => {
 
       console.log('📱 Initializing offline POS...');
       
-      // Load stored data
+      // Load stored data from Capacitor Preferences (may have more recent data)
       try {
         const stored = await getStoredData();
-        if (stored) {
+        if (stored && stored.menuItems?.length > 0) {
           setOfflineData(stored);
           setLastSyncTime(stored.lastSync);
-          console.log('📦 Loaded cached data:', {
+          console.log('📦 Loaded cached data from Preferences:', {
             menuItems: stored.menuItems.length,
             categories: stored.categories.length,
             addons: stored.addons.length
           });
         } else {
-          console.log('📭 No cached data found');
+          console.log('📭 No cached data found in Preferences');
         }
       } catch (e) {
         console.error('❌ Error loading cached data:', e);
@@ -283,39 +307,60 @@ export const useOfflinePOS = () => {
       }
 
       // Check network status using Capacitor Network plugin
+      let currentOnline = navigator.onLine;
       try {
         const status = await Network.getStatus();
-        setIsOnline(status.connected);
-        console.log('📡 Capacitor Network status:', status.connected ? 'online' : 'offline', status);
+        currentOnline = status.connected;
+        console.log('📡 Capacitor Network status:', currentOnline ? 'online' : 'offline', status);
       } catch (e) {
         // Fallback to navigator.onLine
-        console.log('⚠️ Capacitor Network not available, using navigator.onLine');
-        setIsOnline(navigator.onLine);
+        console.log('⚠️ Capacitor Network not available, using navigator.onLine:', currentOnline);
+      }
+      
+      setIsOnline(currentOnline);
+
+      // Auto sync menu data if online and no cached data
+      if (currentOnline) {
+        console.log('🌐 Online - attempting to sync menu data...');
+        // Delay sync slightly to allow component to mount
+        setTimeout(async () => {
+          try {
+            await syncMenuDataInternal();
+            await syncPendingOrders();
+          } catch (e) {
+            console.error('Error in auto-sync:', e);
+          }
+        }, 500);
       }
     };
 
     initializeOfflineData();
 
     // Listen to network changes using Capacitor
-    const networkListener = Network.addListener('networkStatusChange', (status) => {
-      console.log('📡 Network status changed:', status.connected ? 'online' : 'offline');
-      setIsOnline(status.connected);
-      
-      if (status.connected) {
-        // Auto sync when back online
-        syncPendingOrders();
-      } else {
-        toast.warning('ออฟไลน์ - ระบบจะใช้ข้อมูลที่บันทึกไว้', {
-          duration: 3000,
-        });
-      }
-    });
+    let networkListenerPromise: Promise<any> | null = null;
+    try {
+      networkListenerPromise = Network.addListener('networkStatusChange', (status) => {
+        console.log('📡 Network status changed:', status.connected ? 'online' : 'offline');
+        setIsOnline(status.connected);
+        
+        if (status.connected) {
+          // Auto sync when back online
+          syncMenuDataInternal().then(() => syncPendingOrders());
+        } else {
+          toast.warning('ออฟไลน์ - ระบบจะใช้ข้อมูลที่บันทึกไว้', {
+            duration: 3000,
+          });
+        }
+      });
+    } catch (e) {
+      console.log('Capacitor Network listener not available');
+    }
 
     // Also listen to browser events as fallback
     const handleOnline = () => {
       console.log('🟢 Browser: Network online');
       setIsOnline(true);
-      syncPendingOrders();
+      syncMenuDataInternal().then(() => syncPendingOrders());
     };
 
     const handleOffline = () => {
@@ -327,21 +372,23 @@ export const useOfflinePOS = () => {
     window.addEventListener('offline', handleOffline);
 
     return () => {
-      networkListener.then(listener => listener.remove());
+      if (networkListenerPromise) {
+        networkListenerPromise.then(listener => listener?.remove?.());
+      }
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, [syncPendingOrders]);
 
-  // Sync menu data from Supabase
-  const syncMenuData = useCallback(async (): Promise<boolean> => {
-    if (!isOnline) {
-      console.log('Cannot sync: offline');
+  // Internal sync function that doesn't depend on isOnline state
+  const syncMenuDataInternal = async (): Promise<boolean> => {
+    if (!navigator.onLine) {
+      console.log('Cannot sync: navigator offline');
       return false;
     }
 
     setIsSyncing(true);
-    console.log('🔄 Syncing menu data...');
+    console.log('🔄 Syncing menu data (internal)...');
 
     try {
       // Fetch all data in parallel
@@ -394,7 +441,7 @@ export const useOfflinePOS = () => {
       setOfflineData(newData);
       setLastSyncTime(newData.lastSync);
 
-      console.log('✅ Menu data synced:', {
+      console.log('✅ Menu data synced (internal):', {
         categories: newData.categories.length,
         menuItems: newData.menuItems.length,
         addons: newData.addons.length
@@ -402,12 +449,17 @@ export const useOfflinePOS = () => {
 
       return true;
     } catch (error) {
-      console.error('❌ Error syncing menu data:', error);
+      console.error('❌ Error syncing menu data (internal):', error);
       return false;
     } finally {
       setIsSyncing(false);
     }
-  }, [isOnline]);
+  };
+
+  // Sync menu data from Supabase (public wrapper)
+  const syncMenuData = useCallback(async (): Promise<boolean> => {
+    return syncMenuDataInternal();
+  }, []);
 
   // Save order (works offline)
   const saveOrder = useCallback(async (orderData: {

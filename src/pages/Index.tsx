@@ -101,40 +101,32 @@ const Index = () => {
   const cachedAddons = getCachedAddons();
 
   // Use online data if available, otherwise use offline cache
-  const categories = isOnline && onlineCategories.length > 0 
+  // Priority: online data > cached data
+  const categories = (onlineCategories.length > 0) 
     ? onlineCategories 
     : cachedCategories;
-  const menuItems = isOnline && onlineMenuItems.length > 0 
+  const menuItems = (onlineMenuItems.length > 0) 
     ? onlineMenuItems 
     : cachedMenuItems;
-  const addons = isOnline && onlineAddons.length > 0 
+  const addons = (onlineAddons.length > 0) 
     ? onlineAddons 
     : cachedAddons;
 
-  // Sync data when online and data is loaded
-  useEffect(() => {
-    const performSync = async () => {
-      if (isOnline && !loading && onlineMenuItems.length > 0) {
-        console.log('🔄 Auto-syncing menu data for offline use...');
-        await syncMenuData();
-      }
-    };
-    performSync();
-  }, [isOnline, loading, onlineMenuItems.length]);
-
   // Log offline data status for debugging
   useEffect(() => {
-    console.log('📊 Offline Data Status:', {
+    console.log('📊 Data Status:', {
       isOnline,
+      loading,
       hasOfflineData: hasOfflineData(),
       cachedMenuItems: cachedMenuItems.length,
       cachedCategories: cachedCategories.length,
       onlineMenuItems: onlineMenuItems.length,
       onlineCategories: onlineCategories.length,
       usingMenuItems: menuItems.length,
-      usingCategories: categories.length
+      usingCategories: categories.length,
+      offlineDataFromHook: offlineData?.menuItems?.length || 0
     });
-  }, [isOnline, cachedMenuItems.length, cachedCategories.length, onlineMenuItems.length, menuItems.length]);
+  }, [isOnline, loading, cachedMenuItems.length, cachedCategories.length, onlineMenuItems.length, menuItems.length, offlineData]);
 
   // Save grid settings to localStorage when changed
   useEffect(() => {
@@ -372,19 +364,23 @@ const Index = () => {
 
   // Determine if we have usable data (either online or offline)
   const hasUsableData = menuItems.length > 0;
-  const isDataLoading = loading && isOnline && !hasUsableData;
+  // Only show loading if we're online, loading, AND have no cached data to use
+  const isDataLoading = loading && isOnline && !hasUsableData && !hasOfflineData();
 
-  // Show loading only when online and no data available at all
+  // Show loading only when truly loading with no backup data
   if (isDataLoading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+        <div className="text-coffee-600 text-center">
+          <div className="text-lg mb-2">กำลังโหลดข้อมูล...</div>
+          {isSyncing && <div className="text-sm text-muted-foreground">กำลังซิงค์ข้อมูล...</div>}
+        </div>
       </div>
     );
   }
 
   // Show offline message if no data available at all
-  if (!hasUsableData) {
+  if (!hasUsableData && !hasOfflineData()) {
     return (
       <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center gap-4 p-4">
         <div className="text-coffee-600 text-center">
@@ -394,7 +390,7 @@ const Index = () => {
           <div className="text-sm text-muted-foreground">
             {isOnline 
               ? 'กรุณาเพิ่มเมนูในระบบจัดการเมนู' 
-              : 'กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนู'}
+              : 'กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนูครั้งแรก'}
           </div>
           {isSyncing && (
             <div className="mt-4 text-sm text-coffee-500">กำลังซิงค์ข้อมูล...</div>
