@@ -461,7 +461,7 @@ export const useOfflinePOS = () => {
     return syncMenuDataInternal();
   }, []);
 
-  // Save order (works offline)
+  // Save order (works offline) - Always saves locally first for reliability
   const saveOrder = useCallback(async (orderData: {
     order_number: string;
     items: any[];
@@ -487,8 +487,30 @@ export const useOfflinePOS = () => {
       synced: false
     };
 
+    // ALWAYS save locally first for reliability
+    try {
+      const orders = await getStoredOrders();
+      orders.push(offlineOrder);
+      await setStoredOrders(orders);
+      console.log('💾 Order saved locally first:', orderId);
+    } catch (localError) {
+      console.error('❌ Error saving order locally:', localError);
+      // Even if local save fails, try to save to Supabase
+    }
+
+    // Check actual network status (not just state)
+    let actuallyOnline = navigator.onLine;
+    try {
+      const status = await Network.getStatus();
+      actuallyOnline = status.connected;
+    } catch {
+      // Use navigator.onLine as fallback
+    }
+
+    console.log('📡 Actual network status for save:', actuallyOnline);
+
     // If online, try to save directly to Supabase
-    if (isOnline) {
+    if (actuallyOnline) {
       try {
         const { data, error } = await supabase
           .from('orders')
@@ -518,19 +540,46 @@ export const useOfflinePOS = () => {
           await supabase.from('order_items').insert(orderItems);
         }
 
+        // Mark local order as synced
+        try {
+          const orders = await getStoredOrders();
+          const orderIndex = orders.findIndex(o => o.id === orderId);
+          if (orderIndex >= 0) {
+            orders[orderIndex].synced = true;
+            await setStoredOrders(orders);
+          }
+          setPendingOrdersCount(orders.filter(o => !o.synced).length);
+        } catch (e) {
+          console.error('Error updating sync status:', e);
+        }
+
         console.log('✅ Order saved online:', data.id);
         return { success: true, orderId: data.id };
       } catch (error) {
-        console.error('❌ Error saving order online, saving offline:', error);
-        // Fall through to offline save
+        console.error('❌ Error saving order online, keeping local:', error);
+        // Order is already saved locally, just update pending count
+        try {
+          const orders = await getStoredOrders();
+          setPendingOrdersCount(orders.filter(o => !o.synced).length);
+        } catch (e) {
+          // Ignore
+        }
+        
+        toast.info('บันทึกออเดอร์ในโหมดออฟไลน์', {
+          description: 'จะซิงค์เมื่อเชื่อมต่ออินเทอร์เน็ต'
+        });
+        
+        return { success: true, orderId };
       }
     }
 
-    // Save offline
-    const orders = await getStoredOrders();
-    orders.push(offlineOrder);
-    await setStoredOrders(orders);
-    setPendingOrdersCount(orders.filter(o => !o.synced).length);
+    // Offline - order already saved locally
+    try {
+      const orders = await getStoredOrders();
+      setPendingOrdersCount(orders.filter(o => !o.synced).length);
+    } catch (e) {
+      // Ignore
+    }
 
     toast.info('บันทึกออเดอร์ในโหมดออฟไลน์', {
       description: 'จะซิงค์เมื่อเชื่อมต่ออินเทอร์เน็ต'
@@ -538,7 +587,7 @@ export const useOfflinePOS = () => {
 
     console.log('📦 Order saved offline:', orderId);
     return { success: true, orderId };
-  }, [isOnline]);
+  }, []);
 
   // Clear synced orders (keep unsynced)
   const clearSyncedOrders = useCallback(async () => {
