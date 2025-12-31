@@ -91,20 +91,50 @@ const Index = () => {
     getCachedCategories,
     getCachedAddons,
     getCachedAddonGroups,
-    hasOfflineData
+    hasOfflineData,
+    offlineData
   } = useOfflinePOS();
 
-  // Use offline data when not online
-  const categories = isOnline ? onlineCategories : getCachedCategories();
-  const menuItems = isOnline ? onlineMenuItems : getCachedMenuItems();
-  const addons = isOnline ? onlineAddons : getCachedAddons();
+  // Get offline cached data
+  const cachedMenuItems = getCachedMenuItems();
+  const cachedCategories = getCachedCategories();
+  const cachedAddons = getCachedAddons();
 
-  // Sync data when coming online or on mount
+  // Use online data if available, otherwise use offline cache
+  const categories = isOnline && onlineCategories.length > 0 
+    ? onlineCategories 
+    : cachedCategories;
+  const menuItems = isOnline && onlineMenuItems.length > 0 
+    ? onlineMenuItems 
+    : cachedMenuItems;
+  const addons = isOnline && onlineAddons.length > 0 
+    ? onlineAddons 
+    : cachedAddons;
+
+  // Sync data when online and data is loaded
   useEffect(() => {
-    if (isOnline && !loading) {
-      syncMenuData();
-    }
-  }, [isOnline, loading]);
+    const performSync = async () => {
+      if (isOnline && !loading && onlineMenuItems.length > 0) {
+        console.log('🔄 Auto-syncing menu data for offline use...');
+        await syncMenuData();
+      }
+    };
+    performSync();
+  }, [isOnline, loading, onlineMenuItems.length]);
+
+  // Log offline data status for debugging
+  useEffect(() => {
+    console.log('📊 Offline Data Status:', {
+      isOnline,
+      hasOfflineData: hasOfflineData(),
+      cachedMenuItems: cachedMenuItems.length,
+      cachedCategories: cachedCategories.length,
+      onlineMenuItems: onlineMenuItems.length,
+      onlineCategories: onlineCategories.length,
+      usingMenuItems: menuItems.length,
+      usingCategories: categories.length
+    });
+  }, [isOnline, cachedMenuItems.length, cachedCategories.length, onlineMenuItems.length, menuItems.length]);
 
   // Save grid settings to localStorage when changed
   useEffect(() => {
@@ -340,8 +370,12 @@ const Index = () => {
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Show loading only when online and no offline data available
-  if (loading && isOnline && !hasOfflineData()) {
+  // Determine if we have usable data (either online or offline)
+  const hasUsableData = menuItems.length > 0;
+  const isDataLoading = loading && isOnline && !hasUsableData;
+
+  // Show loading only when online and no data available at all
+  if (isDataLoading) {
     return (
       <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
@@ -349,13 +383,22 @@ const Index = () => {
     );
   }
 
-  // Show offline message if no data available
-  if (!isOnline && !hasOfflineData()) {
+  // Show offline message if no data available at all
+  if (!hasUsableData) {
     return (
       <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center gap-4 p-4">
         <div className="text-coffee-600 text-center">
-          <div className="text-xl font-semibold mb-2">ไม่มีข้อมูลออฟไลน์</div>
-          <div className="text-sm text-muted-foreground">กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนู</div>
+          <div className="text-xl font-semibold mb-2">
+            {isOnline ? 'ไม่พบข้อมูลเมนู' : 'ไม่มีข้อมูลออฟไลน์'}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {isOnline 
+              ? 'กรุณาเพิ่มเมนูในระบบจัดการเมนู' 
+              : 'กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนู'}
+          </div>
+          {isSyncing && (
+            <div className="mt-4 text-sm text-coffee-500">กำลังซิงค์ข้อมูล...</div>
+          )}
         </div>
       </div>
     );
