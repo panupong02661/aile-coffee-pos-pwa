@@ -28,6 +28,15 @@ interface CartProps {
   onCodeApply?: (giftData: any) => void;
   appliedGiftCode?: any;
   onPaymentComplete?: () => void;
+  onMemberUpdate?: (updatedMember: {
+    id: string;
+    phone: string;
+    name: string;
+    email?: string;
+    tier: 'silver' | 'gold' | 'platinum';
+    points: number;
+    total_spent: number;
+  }) => void;
   selectedMember?: {
     id: string;
     phone: string;
@@ -53,6 +62,7 @@ const Cart = ({
   onCodeApply,
   appliedGiftCode,
   onPaymentComplete,
+  onMemberUpdate,
   selectedMember
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -462,6 +472,7 @@ const Cart = ({
         billDiscountType={billDiscountType}
         selectedMember={selectedMember}
         appliedGiftCode={appliedGiftCode}
+        onMemberUpdate={onMemberUpdate}
       />
 
       <DiscountModal

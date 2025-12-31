@@ -90,6 +90,15 @@ interface PaymentModalProps {
     total_spent: number;
   } | null;
   appliedGiftCode?: any;
+  onMemberUpdate?: (updatedMember: {
+    id: string;
+    phone: string;
+    name: string;
+    email?: string;
+    tier: 'silver' | 'gold' | 'platinum';
+    points: number;
+    total_spent: number;
+  }) => void;
 }
 
 const PaymentModal = ({ 
@@ -101,7 +110,8 @@ const PaymentModal = ({
   billDiscount = 0, 
   billDiscountType = 'amount',
   selectedMember = null,
-  appliedGiftCode = null
+  appliedGiftCode = null,
+  onMemberUpdate
 }: PaymentModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState<string>(total.toString());
@@ -541,15 +551,18 @@ const PaymentModal = ({
       // Handle member points
       if (selectedMember) {
         try {
+          let newPoints = selectedMember.points;
+          let newTotalSpent = selectedMember.total_spent + actualTotal;
+          
           if (method === 'points' && pointsUsed > 0) {
-            const newPoints = selectedMember.points - pointsUsed;
+            newPoints = selectedMember.points - pointsUsed;
             console.log(`[PaymentModal] Updating member points: ${selectedMember.points} - ${pointsUsed} = ${newPoints}`);
 
             await supabase
               .from('members')
               .update({
                 points: newPoints,
-                total_spent: selectedMember.total_spent + actualTotal
+                total_spent: newTotalSpent
               })
               .eq('id', selectedMember.id);
 
@@ -566,14 +579,14 @@ const PaymentModal = ({
           } else {
             // Earn points from purchase
             const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
-            const newPoints = selectedMember.points + pointsEarned;
+            newPoints = selectedMember.points + pointsEarned;
             console.log(`[PaymentModal] Adding points: ${selectedMember.points} + ${pointsEarned} = ${newPoints}`);
 
             await supabase
               .from('members')
               .update({
                 points: newPoints,
-                total_spent: selectedMember.total_spent + actualTotal
+                total_spent: newTotalSpent
               })
               .eq('id', selectedMember.id);
 
@@ -588,6 +601,16 @@ const PaymentModal = ({
                   description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
                 });
             }
+          }
+          
+          // อัปเดต member state แบบเรียลไทม์
+          if (onMemberUpdate) {
+            onMemberUpdate({
+              ...selectedMember,
+              points: newPoints,
+              total_spent: newTotalSpent
+            });
+            console.log(`[PaymentModal] Member updated in real-time: points=${newPoints}, total_spent=${newTotalSpent}`);
           }
         } catch (pointError) {
           console.warn(`[PaymentModal] Points handling error (non-critical):`, pointError);

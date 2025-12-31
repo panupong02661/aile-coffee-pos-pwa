@@ -280,6 +280,11 @@ const POS = () => {
     setSelectedMember(null);
   };
 
+  const handleMemberUpdate = (updatedMember: Member) => {
+    console.log('🔄 Member updated in real-time:', updatedMember);
+    setSelectedMember(updatedMember);
+  };
+
   const handleMenuItemClick = (menuItem: any) => {
     console.log('Menu item clicked:', menuItem);
     
@@ -553,6 +558,7 @@ const POS = () => {
                     onCodeApply={handleCodeApply}
                     appliedGiftCode={appliedGiftCode}
                     onPaymentComplete={handlePaymentComplete}
+                    onMemberUpdate={handleMemberUpdate}
                   />
                 </div>
               </div>
@@ -598,6 +604,7 @@ const POS = () => {
           onCodeApply={handleCodeApply}
           appliedGiftCode={appliedGiftCode}
           onPaymentComplete={handlePaymentComplete}
+          onMemberUpdate={handleMemberUpdate}
         />
       )}
 
