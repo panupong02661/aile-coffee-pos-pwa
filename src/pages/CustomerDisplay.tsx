@@ -43,7 +43,8 @@ const CustomerDisplay = () => {
     const fetchShopSettings = async () => {
       try {
         // Get PromptPay phone from edge function
-        const { data: phoneData } = await supabase.functions.invoke('get-promptpay-phone');
+        const { data: phoneData, error: phoneError } = await supabase.functions.invoke('get-promptpay-phone');
+        console.log('📞 PromptPay phone data:', phoneData, phoneError);
         if (phoneData?.phone) {
           setPromptPayPhone(phoneData.phone);
         }
@@ -285,7 +286,7 @@ const CustomerDisplay = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-coffee-100">
-                  {displayData.cartItems.map((item, index) => {
+                {displayData.cartItems.map((item, index) => {
                     const itemTotal = calculateItemTotal(item);
                     const hasDiscount = item.discount && item.discount > 0;
                     const addonsTotal = item.addons?.reduce((sum, addon) => sum + addon.price, 0) || 0;
