@@ -459,7 +459,7 @@ const POS = () => {
 
   return (
     <div 
-      className="h-dvh bg-background flex overflow-hidden" 
+      className="h-[100dvh] max-h-[100dvh] bg-background flex overflow-hidden" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -468,12 +468,12 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-dvh max-h-dvh transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col h-full max-h-full transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Fixed Header */}
         <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${
-          isMobile ? 'p-1.5' : 'p-2'
+          isMobile ? 'p-1' : 'p-1.5'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -502,13 +502,13 @@ const POS = () => {
         
         {/* Fixed Content Area */}
         <div className={`flex-1 flex min-h-0 overflow-hidden ${
-          isMobile ? 'flex-col gap-1 p-1' : 'gap-2 p-2'
+          isMobile ? 'flex-col gap-1 p-1' : 'gap-1.5 p-1.5'
         }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-1' : 'p-2'
+                isMobile ? 'p-1' : 'p-1.5'
               }`} 
               style={{ 
                 scrollbarWidth: 'thin',
@@ -537,30 +537,26 @@ const POS = () => {
             </div>
           </div>
 
-          {/* Desktop Cart */}
+          {/* Desktop/Tablet Cart */}
           {!isMobile && (
-            <div className="w-64 lg:w-72 xl:w-80 flex-shrink-0 min-h-0 overflow-hidden">
-              <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <Cart
-                    cartItems={cartItems}
-                    onUpdateQuantity={updateQuantity}
-                    onRemoveItem={removeFromCart}
-                    onUpdateDiscount={updateDiscount}
-                    onClearCart={handleClearCart}
-                    billDiscount={billDiscount}
-                    billDiscountType={billDiscountType}
-                    onUpdateBillDiscount={setBillDiscount}
-                    onUpdateBillDiscountType={setBillDiscountType}
-                    onRestoreCart={restoreCart}
-                    selectedMember={selectedMember}
-                    onCodeApply={handleCodeApply}
-                    appliedGiftCode={appliedGiftCode}
-                    onPaymentComplete={handlePaymentComplete}
-                    onMemberUpdate={handleMemberUpdate}
-                  />
-                </div>
-              </div>
+            <div className="w-56 md:w-60 lg:w-64 xl:w-72 flex-shrink-0 min-h-0 overflow-hidden">
+              <Cart
+                cartItems={cartItems}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeFromCart}
+                onUpdateDiscount={updateDiscount}
+                onClearCart={handleClearCart}
+                billDiscount={billDiscount}
+                billDiscountType={billDiscountType}
+                onUpdateBillDiscount={setBillDiscount}
+                onUpdateBillDiscountType={setBillDiscountType}
+                onRestoreCart={restoreCart}
+                selectedMember={selectedMember}
+                onCodeApply={handleCodeApply}
+                appliedGiftCode={appliedGiftCode}
+                onPaymentComplete={handlePaymentComplete}
+                onMemberUpdate={handleMemberUpdate}
+              />
             </div>
           )}
         </div>
