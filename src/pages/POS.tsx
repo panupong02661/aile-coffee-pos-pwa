@@ -539,10 +539,10 @@ const POS = () => {
 
           {/* Desktop Cart - Fixed */}
           {!isMobile && (
-            <div className="w-80 flex-shrink-0 overflow-hidden">
-              <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm">
+            <div className="w-72 xl:w-80 flex-shrink-0 overflow-hidden max-h-full">
+              <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
                 {/* Cart Content - Scrollable */}
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden min-h-0">
                   <Cart
                     cartItems={cartItems}
                     onUpdateQuantity={updateQuantity}
