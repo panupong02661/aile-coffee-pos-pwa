@@ -61,16 +61,16 @@ const MenuGrid = ({
 
   const getSizeClasses = () => {
     if (isMobile) {
-      return { small: 'h-36', medium: 'h-40', large: 'h-44' };
+      return { small: 'h-32', medium: 'h-36', large: 'h-40' };
     }
     
     if (gridColumns >= 8) {
-      return { small: 'h-24', medium: 'h-28', large: 'h-32' };
+      return { small: 'h-20', medium: 'h-24', large: 'h-28' };
     } else if (gridColumns >= 5) {
-      return { small: 'h-28', medium: 'h-32', large: 'h-36' };
+      return { small: 'h-24', medium: 'h-28', large: 'h-32' };
     }
     
-    return { small: 'h-36', medium: 'h-44', large: 'h-52' };
+    return { small: 'h-28', medium: 'h-32', large: 'h-40' };
   };
 
   const sizeClasses = getSizeClasses();
