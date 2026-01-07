@@ -459,7 +459,7 @@ const POS = () => {
 
   return (
     <div 
-      className="h-[100dvh] max-h-[100dvh] bg-background flex overflow-hidden" 
+      className="fixed inset-0 bg-background flex overflow-hidden" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -468,12 +468,12 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-full max-h-full transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Fixed Header */}
         <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${
-          isMobile ? 'p-1' : 'p-1.5'
+          isMobile ? 'p-1' : 'py-1 px-1.5'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -500,15 +500,15 @@ const POS = () => {
           />
         </div>
         
-        {/* Fixed Content Area */}
-        <div className={`flex-1 flex min-h-0 overflow-hidden ${
-          isMobile ? 'flex-col gap-1 p-1' : 'gap-1.5 p-1.5'
-        }`}>
+        {/* Content Area - fills remaining space */}
+        <div className={`flex-1 flex overflow-hidden ${
+          isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1'
+        }`} style={{ minHeight: 0 }}>
           {/* Menu Grid Container */}
-          <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
             <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-1' : 'p-1.5'
+                isMobile ? 'p-1' : 'p-1'
               }`} 
               style={{ 
                 scrollbarWidth: 'thin',
@@ -539,7 +539,7 @@ const POS = () => {
 
           {/* Desktop/Tablet Cart */}
           {!isMobile && (
-            <div className="w-56 md:w-60 lg:w-64 xl:w-72 flex-shrink-0 min-h-0 overflow-hidden">
+            <div className="w-48 md:w-52 lg:w-56 xl:w-64 flex-shrink-0 overflow-hidden" style={{ minHeight: 0 }}>
               <Cart
                 cartItems={cartItems}
                 onUpdateQuantity={updateQuantity}
