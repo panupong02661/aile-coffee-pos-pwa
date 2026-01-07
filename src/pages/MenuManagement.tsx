@@ -31,6 +31,7 @@ const MenuManagement = () => {
   const [editingAddonGroup, setEditingAddonGroup] = useState<any>(null);
   const [editingAddon, setEditingAddon] = useState<any>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 
   const { isMobile } = useDevice();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,52 +211,80 @@ const MenuManagement = () => {
                 </TabsList>
 
                 <TabsContent value="menu-items" className="mt-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">รายการเมนู ({menuItems.length})</h3>
-                    <div className="flex gap-2">
-                      {/* Export Button */}
-                      <Button 
-                        onClick={handleExportMenu}
-                        disabled={isExporting || menuItems.length === 0}
-                        variant="outline"
-                        className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        {isExporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'}
-                      </Button>
+                  <div className="flex flex-col gap-4 mb-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">รายการเมนู ({selectedCategoryFilter === 'all' ? menuItems.length : menuItems.filter(item => item.category_id === selectedCategoryFilter).length})</h3>
+                      <div className="flex gap-2">
+                        {/* Export Button */}
+                        <Button 
+                          onClick={handleExportMenu}
+                          disabled={isExporting || menuItems.length === 0}
+                          variant="outline"
+                          className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {isExporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'}
+                        </Button>
 
-                      {/* Import Button */}
-                      <Button 
-                        onClick={handleImportMenu}
-                        disabled={isImporting}
-                        variant="outline"
-                        className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {isImporting ? 'กำลังนำเข้า...' : 'นำเข้า Excel'}
-                      </Button>
+                        {/* Import Button */}
+                        <Button 
+                          onClick={handleImportMenu}
+                          disabled={isImporting}
+                          variant="outline"
+                          className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {isImporting ? 'กำลังนำเข้า...' : 'นำเข้า Excel'}
+                        </Button>
 
-                      {/* Hidden file input */}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx,.xls"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
+                        {/* Hidden file input */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
 
-                      {/* Add Menu Button */}
-                      <Button 
-                        onClick={() => setIsMenuFormOpen(true)}
-                        className="bg-coffee-600 hover:bg-coffee-700"
+                        {/* Add Menu Button */}
+                        <Button 
+                          onClick={() => setIsMenuFormOpen(true)}
+                          className="bg-coffee-600 hover:bg-coffee-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          เพิ่มเมนูใหม่
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Category Filter */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedCategoryFilter === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedCategoryFilter('all')}
+                        className={selectedCategoryFilter === 'all' ? 'bg-coffee-600 hover:bg-coffee-700' : 'border-coffee-200 text-coffee-600 hover:bg-coffee-50'}
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        เพิ่มเมนูใหม่
+                        เมนูทั้งหมด ({menuItems.length})
                       </Button>
+                      {categories.map((category) => {
+                        const count = menuItems.filter(item => item.category_id === category.id).length;
+                        return (
+                          <Button
+                            key={category.id}
+                            variant={selectedCategoryFilter === category.id ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedCategoryFilter(category.id)}
+                            className={selectedCategoryFilter === category.id ? 'bg-coffee-600 hover:bg-coffee-700' : 'border-coffee-200 text-coffee-600 hover:bg-coffee-50'}
+                          >
+                            {category.name} ({count})
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
                   <MenuItemsList 
-                    menuItems={menuItems} 
+                    menuItems={selectedCategoryFilter === 'all' ? menuItems : menuItems.filter(item => item.category_id === selectedCategoryFilter)} 
                     categories={categories}
                     onEdit={(item) => handleEdit(item, 'menu')}
                     onStatusChange={handleStatusChange}
