@@ -539,7 +539,7 @@ const POS = () => {
 
           {/* Desktop/Tablet Cart */}
           {!isMobile && (
-            <div className="w-48 md:w-52 lg:w-56 xl:w-64 flex-shrink-0 overflow-hidden" style={{ minHeight: 0 }}>
+            <div className="w-60 md:w-64 lg:w-72 xl:w-80 flex-shrink-0 overflow-hidden" style={{ minHeight: 0 }}>
               <Cart
                 cartItems={cartItems}
                 onUpdateQuantity={updateQuantity}
