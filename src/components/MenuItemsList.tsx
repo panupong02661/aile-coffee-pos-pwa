@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Folder } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,12 +10,19 @@ import { toast } from 'sonner';
 
 interface MenuItemsListProps {
   menuItems: any[];
+  categories?: any[];
   onEdit: (item: any) => void;
   onStatusChange?: () => void;
 }
 
-const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStatusChange }) => {
+const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [], onEdit, onStatusChange }) => {
   const [localMenuItems, setLocalMenuItems] = React.useState(menuItems);
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return null;
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || null;
+  };
 
   // Update local state when props change - simple sync
   React.useEffect(() => {
@@ -95,6 +103,13 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, onEdit, onStat
                 {item.is_available ? 'ใช้งาน' : 'ไม่ใช้งาน'}
               </Badge>
             </div>
+            
+            {getCategoryName(item.category_id) && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                <Folder className="w-3 h-3" />
+                <span>{getCategoryName(item.category_id)}</span>
+              </div>
+            )}
             
             {item.description && (
               <p className="text-sm text-gray-600 mb-2">{item.description}</p>
