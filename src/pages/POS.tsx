@@ -459,7 +459,7 @@ const POS = () => {
 
   return (
     <div 
-      className="h-screen bg-background flex overflow-hidden fixed inset-0" 
+      className="h-dvh bg-background flex overflow-hidden" 
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -468,12 +468,12 @@ const POS = () => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col h-full transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col h-dvh max-h-dvh transition-all duration-300 ease-in-out ${
         isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
         {/* Fixed Header */}
-        <div className={`flex-shrink-0 bg-background border-b border-border sticky top-0 z-20 ${
-          isMobile ? 'p-2 pb-1' : 'p-2 pb-1'
+        <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${
+          isMobile ? 'p-1.5' : 'p-2'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
@@ -500,13 +500,13 @@ const POS = () => {
           />
         </div>
         
-        {/* Fixed Content Area - Reduced padding */}
-        <div className={`flex-1 flex overflow-hidden ${
+        {/* Fixed Content Area */}
+        <div className={`flex-1 flex min-h-0 overflow-hidden ${
           isMobile ? 'flex-col gap-1 p-1' : 'gap-2 p-2'
         }`}>
-          {/* Menu Grid Container - Fixed */}
-          <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-card rounded-lg border border-border shadow-sm">
+          {/* Menu Grid Container */}
+          <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+            <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-1' : 'p-2'
               }`} 
@@ -537,12 +537,11 @@ const POS = () => {
             </div>
           </div>
 
-          {/* Desktop Cart - Fixed */}
+          {/* Desktop Cart */}
           {!isMobile && (
-            <div className="w-72 xl:w-80 flex-shrink-0 overflow-hidden max-h-full">
+            <div className="w-64 lg:w-72 xl:w-80 flex-shrink-0 min-h-0 overflow-hidden">
               <div className="h-full flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-                {/* Cart Content - Scrollable */}
-                <div className="flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <Cart
                     cartItems={cartItems}
                     onUpdateQuantity={updateQuantity}

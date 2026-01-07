@@ -280,8 +280,8 @@ const Cart = ({
 
   return (
     <>
-      <Card className="h-full flex flex-col border-coffee-200 overflow-hidden max-h-full">
-        <CardHeader className="pb-2 pt-2 px-3 flex-shrink-0">
+      <Card className="h-full flex flex-col border-coffee-200 overflow-hidden">
+        <CardHeader className="py-2 px-3 flex-shrink-0">
           <div className="flex justify-between items-center">
             <CardTitle className="text-coffee-800 text-sm truncate">
               ตะกร้าสินค้า
