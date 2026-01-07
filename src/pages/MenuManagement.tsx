@@ -256,6 +256,7 @@ const MenuManagement = () => {
                   </div>
                   <MenuItemsList 
                     menuItems={menuItems} 
+                    categories={categories}
                     onEdit={(item) => handleEdit(item, 'menu')}
                     onStatusChange={handleStatusChange}
                   />
