@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, X, Crop } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import ImageCropper from './ImageCropper';
+
+// Lazy load ImageCropper to avoid loading react-cropper on every page
+const ImageCropper = lazy(() => import('./ImageCropper'));
 
 interface MenuFormProps {
   isOpen: boolean;
@@ -334,12 +336,16 @@ const MenuForm: React.FC<MenuFormProps> = ({
         </DialogContent>
       </Dialog>
 
-      <ImageCropper
-        isOpen={showCropper}
-        onClose={() => setShowCropper(false)}
-        onCrop={handleCroppedImage}
-        imageSrc={originalImage}
-      />
+      {showCropper && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">กำลังโหลด...</div></div>}>
+          <ImageCropper
+            isOpen={showCropper}
+            onClose={() => setShowCropper(false)}
+            onCrop={handleCroppedImage}
+            imageSrc={originalImage}
+          />
+        </Suspense>
+      )}
     </>
   );
 };
