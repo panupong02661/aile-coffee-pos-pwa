@@ -26,7 +26,10 @@ const MenuManagement = () => {
   const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
   const [isAddonGroupFormOpen, setIsAddonGroupFormOpen] = useState(false);
   const [isAddonFormOpen, setIsAddonFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingMenuItem, setEditingMenuItem] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingAddonGroup, setEditingAddonGroup] = useState<any>(null);
+  const [editingAddon, setEditingAddon] = useState<any>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string>('');
 
   const { isMobile } = useDevice();
@@ -57,39 +60,52 @@ const MenuManagement = () => {
   };
 
   const handleEdit = (item: any, type: string) => {
-    setEditingItem(item);
     switch (type) {
       case 'menu':
+        setEditingMenuItem(item);
         setIsMenuFormOpen(true);
         break;
       case 'category':
+        setEditingCategory(item);
         setIsCategoryFormOpen(true);
         break;
       case 'addonGroup':
+        setEditingAddonGroup(item);
         setIsAddonGroupFormOpen(true);
         break;
       case 'addon':
+        setEditingAddon(item);
         setIsAddonFormOpen(true);
         break;
     }
   };
 
-  const handleFormClose = () => {
+  const handleMenuFormClose = () => {
     setIsMenuFormOpen(false);
-    setIsCategoryFormOpen(false);
-    setIsAddonGroupFormOpen(false);
-    setIsAddonFormOpen(false);
-    setEditingItem(null);
+    setEditingMenuItem(null);
     setSelectedPhoto('');
   };
 
+  const handleCategoryFormClose = () => {
+    setIsCategoryFormOpen(false);
+    setEditingCategory(null);
+  };
+
+  const handleAddonGroupFormClose = () => {
+    setIsAddonGroupFormOpen(false);
+    setEditingAddonGroup(null);
+  };
+
+  const handleAddonFormClose = () => {
+    setIsAddonFormOpen(false);
+    setEditingAddon(null);
+  };
+
   const handleFormSuccess = () => {
-    // Call individual refetch functions
     refetch.categories();
     refetch.menuItems();
     refetch.addonGroups();
     refetch.addons();
-    handleFormClose();
   };
 
   const handlePhotoCapture = (photoUri: string) => {
@@ -310,33 +326,33 @@ const MenuManagement = () => {
       {/* Forms */}
       <MenuForm
         isOpen={isMenuFormOpen}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
+        onClose={handleMenuFormClose}
+        onSuccess={() => { handleFormSuccess(); handleMenuFormClose(); }}
         categories={categories}
-        editMenuItem={editingItem}
+        editMenuItem={editingMenuItem}
         capturedPhoto={selectedPhoto}
       />
 
       <CategoryForm
         isOpen={isCategoryFormOpen}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
-        editCategory={editingItem}
+        onClose={handleCategoryFormClose}
+        onSuccess={() => { handleFormSuccess(); handleCategoryFormClose(); }}
+        editCategory={editingCategory}
       />
 
       <AddonGroupForm
         isOpen={isAddonGroupFormOpen}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
-        editAddonGroup={editingItem}
+        onClose={handleAddonGroupFormClose}
+        onSuccess={() => { handleFormSuccess(); handleAddonGroupFormClose(); }}
+        editAddonGroup={editingAddonGroup}
       />
 
       <AddonForm
         isOpen={isAddonFormOpen}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
+        onClose={handleAddonFormClose}
+        onSuccess={() => { handleFormSuccess(); handleAddonFormClose(); }}
         addonGroups={addonGroups}
-        editAddon={editingItem}
+        editAddon={editingAddon}
       />
     </div>
   );
