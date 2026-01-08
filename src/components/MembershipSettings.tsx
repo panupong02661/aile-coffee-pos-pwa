@@ -77,7 +77,7 @@ const MembershipSettings = () => {
         })
         .eq('id', settingToUpdate.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error saving membership settings:', error);
