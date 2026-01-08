@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Star, Award, Crown, Gem } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CustomerProfile {
   id: string;
@@ -19,7 +20,60 @@ interface MemberCardProps {
   currentUser: CustomerProfile;
 }
 
-const MemberCard = ({ currentUser }: MemberCardProps) => {
+const MemberCard = ({ currentUser: initialUser }: MemberCardProps) => {
+  const [currentUser, setCurrentUser] = useState<CustomerProfile>(initialUser);
+
+  // Sync with props when they change from parent
+  useEffect(() => {
+    setCurrentUser(initialUser);
+  }, [initialUser]);
+
+  // Real-time subscription for member updates
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    console.log('🔔 MemberCard: Setting up realtime subscription for member:', currentUser.id);
+
+    const channel = supabase
+      .channel(`member-card-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'members',
+          filter: `id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row) return;
+          
+          console.log('🔄 MemberCard: Realtime update received:', {
+            points: row.points,
+            total_spent: row.total_spent,
+            tier: row.tier
+          });
+
+          setCurrentUser(prev => ({
+            ...prev,
+            points: row.points ?? prev.points,
+            total_spent: row.total_spent ?? prev.total_spent,
+            tier: row.tier ?? prev.tier,
+            name: row.name ?? prev.name,
+            phone: row.phone ?? prev.phone
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 MemberCard: Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔔 MemberCard: Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
   const getTierDisplayName = (tier: string): string => {
     switch (tier) {
       case 'bronze': return 'สมาชิกทองแดง';
