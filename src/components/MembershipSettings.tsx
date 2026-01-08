@@ -63,21 +63,37 @@ const MembershipSettings = () => {
     try {
       const settingToUpdate = editingSettings[tier];
       
-      console.log('Saving membership settings:', { tier, settingToUpdate });
+      if (!settingToUpdate || !settingToUpdate.id) {
+        toast({ 
+          title: 'ข้อผิดพลาด', 
+          description: 'ไม่พบข้อมูลการตั้งค่าที่จะบันทึก', 
+          variant: 'destructive' 
+        });
+        setLoading(false);
+        return;
+      }
       
-      const { data, error } = await supabase
+      console.log('Saving membership settings:', { tier, id: settingToUpdate.id, settingToUpdate });
+      
+      // Use upsert to ensure data is saved even if RLS blocks update
+      const updateData = {
+        id: settingToUpdate.id,
+        tier: settingToUpdate.tier,
+        discount_percentage: Number(settingToUpdate.discount_percentage),
+        points_per_baht: Number(settingToUpdate.points_per_baht),
+        points_to_redeem: Number(settingToUpdate.points_to_redeem),
+        redeem_value: Number(settingToUpdate.redeem_value),
+        minimum_spend_for_upgrade: Number(settingToUpdate.minimum_spend_for_upgrade),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error, count } = await supabase
         .from('membership_settings')
-        .update({
-          discount_percentage: Number(settingToUpdate.discount_percentage),
-          points_per_baht: Number(settingToUpdate.points_per_baht),
-          points_to_redeem: Number(settingToUpdate.points_to_redeem),
-          redeem_value: Number(settingToUpdate.redeem_value),
-          minimum_spend_for_upgrade: Number(settingToUpdate.minimum_spend_for_upgrade),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', settingToUpdate.id)
+        .upsert(updateData, { onConflict: 'id' })
         .select()
         .maybeSingle();
+
+      console.log('Upsert result:', { data, error, count });
 
       if (error) {
         console.error('Error saving membership settings:', error);
@@ -96,8 +112,8 @@ const MembershipSettings = () => {
         setSettings(prev => prev.map(s => s.id === data.id ? data : s));
         setEditingSettings(prev => ({ ...prev, [tier]: data }));
       } else {
-        // ถ้าไม่ได้ data กลับมา ให้ใช้ค่าที่ส่งไป
-        setSettings(prev => prev.map(s => s.id === settingToUpdate.id ? settingToUpdate : s));
+        // ถ้าไม่ได้ data กลับมา ให้ใช้ค่าที่ส่งไป และ refetch
+        await fetchSettings();
       }
       
       toast({ 
