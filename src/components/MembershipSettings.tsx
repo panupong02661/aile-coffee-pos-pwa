@@ -91,9 +91,14 @@ const MembershipSettings = () => {
 
       console.log('Membership settings saved successfully:', data);
       
-      // อัปเดตข้อมูลในหน้าด้วยค่าที่ได้จากฐานข้อมูล
-      setSettings(prev => prev.map(s => s.id === data.id ? data : s));
-      setEditingSettings(prev => ({ ...prev, [tier]: data }));
+      // อัปเดตข้อมูลในหน้าด้วยค่าที่ได้จากฐานข้อมูล หรือใช้ค่าที่ส่งไป
+      if (data) {
+        setSettings(prev => prev.map(s => s.id === data.id ? data : s));
+        setEditingSettings(prev => ({ ...prev, [tier]: data }));
+      } else {
+        // ถ้าไม่ได้ data กลับมา ให้ใช้ค่าที่ส่งไป
+        setSettings(prev => prev.map(s => s.id === settingToUpdate.id ? settingToUpdate : s));
+      }
       
       toast({ 
         title: 'สำเร็จ', 
