@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ export const useAllOrders = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -50,7 +50,7 @@ export const useAllOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const refreshOrders = () => {
     fetchOrders();
@@ -58,7 +58,40 @@ export const useAllOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+
+    // Real-time subscription for orders
+    const channel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('Order change detected:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newOrder = payload.new as Order;
+            setOrders(prev => [newOrder, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedOrder = payload.new as Order;
+            setOrders(prev => prev.map(order => 
+              order.id === updatedOrder.id ? updatedOrder : order
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedOrder = payload.old as Order;
+            setOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchOrders]);
 
   return {
     orders,
