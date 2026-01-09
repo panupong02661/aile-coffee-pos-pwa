@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,10 +19,11 @@ export const useAllOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
-      setLoading(true);
+      console.log('📦 Fetching all orders...');
       
       const { data, error } = await supabase
         .from('orders')
@@ -39,6 +40,7 @@ export const useAllOrders = () => {
         return;
       }
 
+      console.log('📦 Orders fetched:', data?.length || 0);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -52,46 +54,104 @@ export const useAllOrders = () => {
     }
   }, [toast]);
 
-  const refreshOrders = () => {
+  const refreshOrders = useCallback(() => {
+    setLoading(true);
     fetchOrders();
-  };
+  }, [fetchOrders]);
 
-  useEffect(() => {
-    fetchOrders();
+  const setupRealtimeSubscription = useCallback(() => {
+    // Clean up existing channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
-    // Real-time subscription for orders
-    const channel = supabase
-      .channel('orders-realtime')
+    const channelName = `orders-realtime-${Date.now()}`;
+    console.log('📡 Setting up realtime subscription:', channelName);
+
+    channelRef.current = supabase
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'orders'
         },
         (payload) => {
-          console.log('Order change detected:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as Order;
-            setOrders(prev => [newOrder, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedOrder = payload.new as Order;
-            setOrders(prev => prev.map(order => 
-              order.id === updatedOrder.id ? updatedOrder : order
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            const deletedOrder = payload.old as Order;
-            setOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
-          }
+          console.log('🆕 New order inserted:', payload.new);
+          const newOrder = payload.new as Order;
+          setOrders(prev => [newOrder, ...prev]);
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('📝 Order updated:', payload.new);
+          const updatedOrder = payload.new as Order;
+          setOrders(prev => prev.map(order => 
+            order.id === updatedOrder.id ? updatedOrder : order
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('🗑️ Order deleted:', payload.old);
+          const deletedOrder = payload.old as { id: string };
+          setOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Orders subscription status:', status);
+        if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          console.log('🔄 Reconnecting realtime...');
+          setTimeout(() => {
+            setupRealtimeSubscription();
+          }, 2000);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Orders realtime connected!');
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    setupRealtimeSubscription();
+
+    // Polling fallback every 5 seconds as backup
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+
+    // Handle visibility change - refetch when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👀 Tab visible, refreshing orders...');
+        fetchOrders();
+        setupRealtimeSubscription();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchOrders]);
+  }, [fetchOrders, setupRealtimeSubscription]);
 
   return {
     orders,
