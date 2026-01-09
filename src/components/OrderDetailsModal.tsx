@@ -4,10 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Calendar, User, Phone, CreditCard, Package, MapPin, FileText } from 'lucide-react';
-
+import { Calendar, User, Phone, CreditCard, Package, MapPin, FileText, Receipt } from 'lucide-react';
+import OrderReceiptView from './OrderReceiptView';
 interface OrderItem {
   id: string;
   menu_item_name: string;
@@ -179,138 +180,164 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }: OrderDetailsModalProps)
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : orderDetails ? (
-          <div className="space-y-6">
-            {/* Order Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ข้อมูลออเดอร์</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">เลขออเดอร์:</span>
-                    <span className="font-medium">{orderDetails.order_number}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">วันที่สั่ง:</span>
-                    <span className="font-medium">{formatDate(orderDetails.created_at)}</span>
-                  </div>
-                </div>
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details" className="gap-2">
+                <FileText className="w-4 h-4" />
+                รายละเอียด
+              </TabsTrigger>
+              <TabsTrigger value="receipt" className="gap-2">
+                <Receipt className="w-4 h-4" />
+                ใบเสร็จ
+              </TabsTrigger>
+            </TabsList>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">วิธีการชำระ:</span>
-                    <Badge className={getStatusBadgeColor(orderDetails.payment_method)}>
-                      {getPaymentMethodText(orderDetails.payment_method)}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">สถานะ:</span>
-                    <Badge className={getStatusBadgeColor(orderDetails.payment_status || 'completed')}>
-                      {getStatusText(orderDetails.payment_status || 'completed')}
-                    </Badge>
-                  </div>
-                </div>
-
-                {orderDetails.member_name && (
+            <TabsContent value="details" className="space-y-6 mt-4">
+              {/* Order Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">ข้อมูลออเดอร์</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">สมาชิก:</span>
-                      <span className="font-medium">{orderDetails.member_name}</span>
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">เลขออเดอร์:</span>
+                      <span className="font-medium">{orderDetails.order_number}</span>
                     </div>
-                    {orderDetails.member_phone && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">วันที่สั่ง:</span>
+                      <span className="font-medium">{formatDate(orderDetails.created_at)}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">วิธีการชำระ:</span>
+                      <Badge className={getStatusBadgeColor(orderDetails.payment_method)}>
+                        {getPaymentMethodText(orderDetails.payment_method)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">สถานะ:</span>
+                      <Badge className={getStatusBadgeColor(orderDetails.payment_status || 'completed')}>
+                        {getStatusText(orderDetails.payment_status || 'completed')}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {orderDetails.member_name && (
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">เบอร์โทร:</span>
-                        <span className="font-medium">{orderDetails.member_phone}</span>
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">สมาชิก:</span>
+                        <span className="font-medium">{orderDetails.member_name}</span>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {orderDetails.customer_notes && (
-                  <div>
-                    <span className="text-sm text-gray-600">หมายเหตุ:</span>
-                    <p className="mt-1 text-sm bg-gray-50 p-2 rounded">{orderDetails.customer_notes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Order Items */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">รายการสินค้า</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {orderDetails.items.map((item, index) => (
-                    <div key={item.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.menu_item_name}</h4>
-                        <div className="text-sm text-gray-600 mt-1">
-                          <span>จำนวน: {item.quantity}</span>
-                          <span className="mx-2">•</span>
-                          <span>ราคาต่อหน่วย: ฿{item.unit_price.toLocaleString()}</span>
+                      {orderDetails.member_phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">เบอร์โทร:</span>
+                          <span className="font-medium">{orderDetails.member_phone}</span>
                         </div>
-                        {item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
-                          <div className="text-sm text-gray-500 mt-1">
-                            <span>ตัวเลือกเพิ่มเติม: </span>
-                            {item.selected_addons.map((addon: any, idx: number) => (
-                              <span key={idx}>
-                                {addon.name} {addon.price > 0 && `(+฿${addon.price})`}
-                                {idx < item.selected_addons.length - 1 && ', '}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {item.item_discount > 0 && (
-                          <div className="text-sm text-red-600 mt-1">
-                            ส่วนลด: -฿{item.item_discount.toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">฿{item.total_price.toLocaleString()}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Order Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">สรุปการสั่งซื้อ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>ยอดรวมสินค้า:</span>
-                    <span>฿{orderDetails.items.reduce((sum, item) => sum + item.total_price + (item.item_discount || 0), 0).toLocaleString()}</span>
-                  </div>
-                  {orderDetails.bill_discount && orderDetails.bill_discount > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>ส่วนลดท้ายบิล:</span>
-                      <span>-฿{orderDetails.bill_discount.toLocaleString()}</span>
+                      )}
                     </div>
                   )}
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>ยอดชำระสุทธิ:</span>
-                    <span>฿{orderDetails.total_amount.toLocaleString()}</span>
+
+                  {orderDetails.customer_notes && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
+                      <p className="mt-1 text-sm bg-muted p-2 rounded">{orderDetails.customer_notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Items */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">รายการสินค้า</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {orderDetails.items.map((item, index) => (
+                      <div key={item.id} className="flex justify-between items-start p-3 bg-muted rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.menu_item_name}</h4>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <span>จำนวน: {item.quantity}</span>
+                            <span className="mx-2">•</span>
+                            <span>ราคาต่อหน่วย: ฿{item.unit_price.toLocaleString()}</span>
+                          </div>
+                          {item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
+                            <div className="text-sm text-muted-foreground mt-1">
+                              <span>ตัวเลือกเพิ่มเติม: </span>
+                              {item.selected_addons.map((addon: any, idx: number) => (
+                                <span key={idx}>
+                                  {addon.name} {addon.price > 0 && `(+฿${addon.price})`}
+                                  {idx < item.selected_addons.length - 1 && ', '}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {item.item_discount > 0 && (
+                            <div className="text-sm text-destructive mt-1">
+                              ส่วนลด: -฿{item.item_discount.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">฿{item.total_price.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">สรุปการสั่งซื้อ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>ยอดรวมสินค้า:</span>
+                      <span>฿{orderDetails.items.reduce((sum, item) => sum + item.total_price + (item.item_discount || 0), 0).toLocaleString()}</span>
+                    </div>
+                    {orderDetails.bill_discount && orderDetails.bill_discount > 0 && (
+                      <div className="flex justify-between text-destructive">
+                        <span>ส่วนลดท้ายบิล:</span>
+                        <span>-฿{orderDetails.bill_discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>ยอดชำระสุทธิ:</span>
+                      <span>฿{orderDetails.total_amount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="receipt" className="mt-4">
+              <OrderReceiptView
+                orderNumber={orderDetails.order_number}
+                orderDate={orderDetails.created_at}
+                items={orderDetails.items}
+                totalAmount={orderDetails.total_amount}
+                billDiscount={orderDetails.bill_discount}
+                paymentMethod={orderDetails.payment_method}
+                memberName={orderDetails.member_name}
+                memberPhone={orderDetails.member_phone}
+              />
+            </TabsContent>
+          </Tabs>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             ไม่พบข้อมูลออเดอร์
           </div>
         )}
