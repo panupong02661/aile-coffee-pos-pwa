@@ -702,10 +702,94 @@ const PaymentModal = ({
       description: `ยอดชำระ ฿${total.toLocaleString()}`,
     });
 
-    // บันทึกข้อมูลใน background
-    setTimeout(async () => {
+    // 📸 บันทึกใบเสร็จลงอัลบั้มทันที (ไม่รอ database save)
+    // เตรียมข้อมูลก่อนเพื่อบันทึกทันที
+    const saveReceiptImmediately = async () => {
       try {
-        console.log(`[PaymentModal] Background processing for payment method: ${paymentMethod}`);
+        console.log('[PaymentModal] 📸 Saving receipt IMMEDIATELY...');
+        
+        // ดึงข้อมูล shop settings แบบ parallel
+        const [shopResult, receiptResult] = await Promise.all([
+          supabase.from('shop_settings').select('shop_name, address, phone, tax_id, logo_url').limit(1).single(),
+          supabase.from('receipt_settings').select('footer_message').limit(1).single()
+        ]);
+        
+        const shopData = shopResult.data;
+        const receiptData = receiptResult.data;
+
+        // เตรียมข้อมูลใบเสร็จ
+        const receiptItems = cartItems?.map(item => ({
+          name: item.menu_item.name,
+          quantity: item.quantity,
+          price: item.menu_item.price,
+          addons: item.selected_addons?.map(addon => ({
+            name: addon.name,
+            price: addon.price,
+          })),
+          item_discount: item.item_discount || 0,
+          item_discount_type: item.item_discount_type || 'amount',
+        })) || [];
+
+        const subtotal = cartItems?.reduce((sum, item) => {
+          const itemTotal = item.menu_item.price * item.quantity;
+          const addonsTotal = (item.selected_addons || []).reduce((a, addon) => a + addon.price, 0);
+          return sum + itemTotal + addonsTotal;
+        }, 0) || 0;
+
+        const itemDiscountTotal = cartItems?.reduce((sum, item) => {
+          if (item.item_discount > 0) {
+            if (item.item_discount_type === 'percent') {
+              const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
+              return sum + Math.round(itemTotal * item.item_discount / 100);
+            }
+            return sum + item.item_discount;
+          }
+          return sum;
+        }, 0) || 0;
+
+        // สร้าง order number ชั่วคราวสำหรับใบเสร็จ (จะถูกอัพเดทจาก DB ทีหลัง)
+        const tempOrderNumber = `POS-${Date.now().toString().slice(-8)}`;
+
+        const receiptSaved = await saveReceiptToAlbum({
+          shopLogoUrl: shopData?.logo_url || undefined,
+          shopName: shopData?.shop_name || undefined,
+          shopAddress: shopData?.address || undefined,
+          shopPhone: shopData?.phone || undefined,
+          taxId: shopData?.tax_id || undefined,
+          orderNumber: tempOrderNumber,
+          orderDate: new Date(),
+          items: receiptItems,
+          subtotal: subtotal,
+          billDiscount: billDiscount,
+          itemDiscountTotal: itemDiscountTotal,
+          totalAmount: total,
+          paymentMethod: paymentMethod,
+          memberName: selectedMember?.name,
+          memberPhone: selectedMember?.phone,
+          wifiVoucher: wifiVoucherPreview ? {
+            username: wifiVoucherPreview.username,
+            password: wifiVoucherPreview.password,
+            qr_code_url: wifiVoucherPreview.qr_code_url,
+          } : null,
+          footerMessage: receiptData?.footer_message || undefined,
+        });
+
+        if (receiptSaved) {
+          console.log('✅ Receipt saved to album IMMEDIATELY!');
+          toast({
+            title: "📸 บันทึกใบเสร็จสำเร็จ",
+            description: "ใบเสร็จถูกบันทึกลงอัลบั้มรูปภาพแล้ว",
+          });
+        }
+      } catch (receiptError) {
+        console.error('[PaymentModal] Immediate receipt save failed:', receiptError);
+      }
+    };
+
+    // บันทึก DB ใน background
+    const saveDatabaseInBackground = async () => {
+      try {
+        console.log(`[PaymentModal] Background DB processing for: ${paymentMethod}`);
         
         if (!cartItems || cartItems.length === 0) {
           toast({
@@ -747,93 +831,10 @@ const PaymentModal = ({
         if (savedOrder) {
           console.log('Background database save completed successfully');
           
-          // ลบ voucher ที่บันทึกสำเร็จออกจาก reserved list (เพราะ DB จะ mark is_used แล้ว)
+          // ลบ voucher ที่บันทึกสำเร็จออกจาก reserved list
           if (savedOrder.wifi_voucher?.id) {
             console.log('[PaymentModal] Voucher saved, removing from reserved:', savedOrder.wifi_voucher.id);
             setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
-          }
-          
-          // 📸 บันทึกใบเสร็จลงอัลบั้มอัตโนมัติ
-          try {
-            console.log('[PaymentModal] Saving receipt to photo album...');
-            
-            // ดึงข้อมูล shop settings
-            const { data: shopData } = await supabase
-              .from('shop_settings')
-              .select('shop_name, address, phone, tax_id, logo_url')
-              .limit(1)
-              .single();
-            
-            const { data: receiptData } = await supabase
-              .from('receipt_settings')
-              .select('footer_message')
-              .limit(1)
-              .single();
-
-            // เตรียมข้อมูลใบเสร็จ
-            const receiptItems = cartItems.map(item => ({
-              name: item.menu_item.name,
-              quantity: item.quantity,
-              price: item.menu_item.price,
-              addons: item.selected_addons?.map(addon => ({
-                name: addon.name,
-                price: addon.price,
-              })),
-              item_discount: item.item_discount || 0,
-              item_discount_type: item.item_discount_type || 'amount',
-            }));
-
-            const subtotal = cartItems.reduce((sum, item) => {
-              const itemTotal = item.menu_item.price * item.quantity;
-              const addonsTotal = (item.selected_addons || []).reduce((a, addon) => a + addon.price, 0);
-              return sum + itemTotal + addonsTotal;
-            }, 0);
-
-            const itemDiscountTotal = cartItems.reduce((sum, item) => {
-              if (item.item_discount > 0) {
-                if (item.item_discount_type === 'percent') {
-                  const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
-                  return sum + Math.round(itemTotal * item.item_discount / 100);
-                }
-                return sum + item.item_discount;
-              }
-              return sum;
-            }, 0);
-
-            const receiptSaved = await saveReceiptToAlbum({
-              shopLogoUrl: shopData?.logo_url || undefined,
-              shopName: shopData?.shop_name || undefined,
-              shopAddress: shopData?.address || undefined,
-              shopPhone: shopData?.phone || undefined,
-              taxId: shopData?.tax_id || undefined,
-              orderNumber: savedOrder.order_number,
-              orderDate: new Date(),
-              items: receiptItems,
-              subtotal: subtotal,
-              billDiscount: billDiscount,
-              itemDiscountTotal: itemDiscountTotal,
-              totalAmount: total,
-              paymentMethod: paymentMethod,
-              memberName: selectedMember?.name,
-              memberPhone: selectedMember?.phone,
-              wifiVoucher: savedOrder.wifi_voucher ? {
-                username: savedOrder.wifi_voucher.username,
-                password: savedOrder.wifi_voucher.password,
-                qr_code_url: savedOrder.wifi_voucher.qr_code_url,
-              } : null,
-              footerMessage: receiptData?.footer_message || undefined,
-            });
-
-            if (receiptSaved) {
-              console.log('✅ Receipt saved to album successfully');
-              toast({
-                title: "📸 บันทึกใบเสร็จสำเร็จ",
-                description: "ใบเสร็จถูกบันทึกลงอัลบั้มรูปภาพแล้ว",
-              });
-            }
-          } catch (receiptError) {
-            console.error('[PaymentModal] Receipt save to album failed:', receiptError);
-            // ไม่แสดง error เพราะเป็น non-critical feature
           }
           
           toast({
@@ -841,13 +842,11 @@ const PaymentModal = ({
             description: "ข้อมูลออเดอร์ถูกบันทึกเรียบร้อยแล้ว",
           });
           
-          // Notification ถูกส่งไปแล้วใน saveOrderToDatabase หลัง order+items save สำเร็จ
           console.log('[PaymentModal] Order save completed - notification already sent');
         }
         
       } catch (error) {
         console.error('Background processing error:', error);
-        // ถ้า save ไม่สำเร็จ ต้องคืน voucher กลับไป
         if (reservedVoucherId) {
           console.log('[PaymentModal] Save failed, releasing reserved voucher:', reservedVoucherId);
           setReservedVoucherIds(prev => prev.filter(id => id !== reservedVoucherId));
@@ -858,7 +857,11 @@ const PaymentModal = ({
           variant: "destructive"
         });
       }
-    }, 0);
+    };
+
+    // 🚀 รันทั้งสองแบบ parallel ทันที - ไม่รอกัน
+    saveReceiptImmediately();
+    saveDatabaseInBackground();
   };
 
   const handleMethodChange = (value: string) => {
