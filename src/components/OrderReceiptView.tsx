@@ -117,15 +117,54 @@ const OrderReceiptView = ({
   const subtotal = items.reduce((sum, item) => sum + item.total_price + (item.item_discount || 0), 0);
   const itemDiscountTotal = items.reduce((sum, item) => sum + (item.item_discount || 0), 0);
 
+  // Preload image and convert to base64 for html2canvas compatibility
+  const preloadImage = async (): Promise<void> => {
+    if (!shopSettings?.logo_url || !receiptSettings?.show_logo) return;
+    
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve();
+      img.onerror = () => resolve(); // Continue even if image fails
+      img.src = shopSettings.logo_url + '?t=' + Date.now(); // Cache bust
+      // Timeout after 3 seconds
+      setTimeout(() => resolve(), 3000);
+    });
+  };
+
+  // Capture receipt as canvas with image support
+  const captureReceipt = async (): Promise<HTMLCanvasElement | null> => {
+    if (!receiptRef.current) return null;
+
+    // Preload the logo image first
+    await preloadImage();
+
+    // Small delay to ensure image is rendered
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return html2canvas(receiptRef.current, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      imageTimeout: 5000,
+    });
+  };
+
   // Share functionality
   const handleShare = async () => {
     if (!receiptRef.current) return;
 
     try {
-      const canvas = await html2canvas(receiptRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2
-      });
+      toast.loading('กำลังสร้างรูปภาพ...');
+      const canvas = await captureReceipt();
+      toast.dismiss();
+
+      if (!canvas) {
+        toast.error('ไม่สามารถสร้างรูปภาพได้');
+        return;
+      }
       
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -154,6 +193,7 @@ const OrderReceiptView = ({
       }, 'image/png');
     } catch (error) {
       console.error('Error sharing:', error);
+      toast.dismiss();
       toast.error('เกิดข้อผิดพลาดในการแชร์');
     }
   };
@@ -170,13 +210,19 @@ const OrderReceiptView = ({
     if (!receiptRef.current) return;
 
     try {
-      const canvas = await html2canvas(receiptRef.current, {
-        backgroundColor: '#ffffff',
-        scale: 2
-      });
+      toast.loading('กำลังสร้างรูปภาพ...');
+      const canvas = await captureReceipt();
+      toast.dismiss();
+
+      if (!canvas) {
+        toast.error('ไม่สามารถสร้างรูปภาพได้');
+        return;
+      }
+
       downloadImage(canvas);
     } catch (error) {
       console.error('Error downloading:', error);
+      toast.dismiss();
       toast.error('เกิดข้อผิดพลาดในการดาวน์โหลด');
     }
   };
@@ -249,6 +295,7 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
                 src={shopSettings.logo_url}
                 alt="Logo"
                 className="w-14 h-14 mx-auto object-contain"
+                crossOrigin="anonymous"
               />
             </div>
           )}
