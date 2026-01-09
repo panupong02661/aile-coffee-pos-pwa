@@ -250,48 +250,62 @@ export const saveReceiptToAlbum = async (data: ReceiptData): Promise<boolean> =>
 
     if (Capacitor.isNativePlatform()) {
       // Save to device photo gallery using @capacitor-community/media
-      console.log('📱 Saving to native device photo album...');
+      console.log('📱 [ReceiptSaver] Saving to native device photo album...');
+      console.log('📱 [ReceiptSaver] Platform:', Capacitor.getPlatform());
 
       try {
-        // First save to temp file
-        const tempFileName = `temp_${fileName}`;
+        // First save to temp file in Cache directory
+        const tempFileName = `receipt_temp_${Date.now()}.png`;
+        console.log('📁 [ReceiptSaver] Creating temp file:', tempFileName);
+        
         const tempResult = await Filesystem.writeFile({
           path: tempFileName,
           data: base64Data,
           directory: Directory.Cache,
         });
 
-        console.log('📁 Temp file created:', tempResult.uri);
+        console.log('📁 [ReceiptSaver] Temp file created at:', tempResult.uri);
 
-        // Check/create album for receipts
-        const albumName = 'ใบเสร็จ';
-        let albums;
-        
+        // Get file path for Media plugin
+        const filePath = tempResult.uri;
+        console.log('📷 [ReceiptSaver] Attempting to save to Photos with path:', filePath);
+
+        // Save directly to photo library (no album needed for simplicity)
         try {
-          albums = await Media.getAlbums();
-          console.log('📚 Available albums:', albums.albums?.map(a => a.name));
-        } catch (albumError) {
-          console.log('Could not get albums, will try to create:', albumError);
-        }
-
-        // Try to create album if it doesn't exist
-        const existingAlbum = albums?.albums?.find(a => a.name === albumName);
-        if (!existingAlbum) {
+          await Media.savePhoto({
+            path: filePath,
+          });
+          console.log('✅ [ReceiptSaver] Receipt saved to Photos app successfully!');
+        } catch (saveError: any) {
+          console.error('❌ [ReceiptSaver] Media.savePhoto failed:', saveError?.message || saveError);
+          
+          // Try alternative approach - save with album
           try {
-            await Media.createAlbum({ name: albumName });
-            console.log('📁 Created album:', albumName);
-          } catch (createError) {
-            console.log('Album creation skipped (may already exist):', createError);
+            const albumName = 'Receipts';
+            console.log('📷 [ReceiptSaver] Trying with album:', albumName);
+            
+            // Try to create album first
+            try {
+              await Media.createAlbum({ name: albumName });
+              console.log('📁 [ReceiptSaver] Album created:', albumName);
+            } catch {
+              console.log('📁 [ReceiptSaver] Album may already exist');
+            }
+
+            // Get albums to find identifier
+            const albums = await Media.getAlbums();
+            const album = albums.albums?.find(a => a.name === albumName);
+            
+            await Media.savePhoto({
+              path: filePath,
+              albumIdentifier: album?.identifier,
+            });
+            console.log('✅ [ReceiptSaver] Receipt saved to Photos with album!');
+          } catch (albumError: any) {
+            console.error('❌ [ReceiptSaver] Album approach also failed:', albumError?.message || albumError);
+            throw albumError;
           }
         }
-
-        // Save image to photo library
-        await Media.savePhoto({
-          path: tempResult.uri,
-          albumIdentifier: existingAlbum?.identifier,
-        });
-
-        console.log('✅ Receipt saved to Photos app successfully!');
 
         // Clean up temp file
         try {
@@ -299,25 +313,27 @@ export const saveReceiptToAlbum = async (data: ReceiptData): Promise<boolean> =>
             path: tempFileName,
             directory: Directory.Cache,
           });
+          console.log('🧹 [ReceiptSaver] Temp file cleaned up');
         } catch (cleanupError) {
-          console.log('Temp file cleanup failed (non-critical):', cleanupError);
+          console.log('⚠️ [ReceiptSaver] Temp file cleanup failed (non-critical)');
         }
 
         return true;
-      } catch (mediaError) {
-        console.error('Media save failed, trying filesystem fallback:', mediaError);
+      } catch (mediaError: any) {
+        console.error('❌ [ReceiptSaver] All media save methods failed:', mediaError?.message || mediaError);
         
-        // Fallback to filesystem if Media plugin fails
+        // Fallback to filesystem if Media plugin fails completely
         try {
+          console.log('📁 [ReceiptSaver] Trying Documents fallback...');
           await Filesystem.writeFile({
             path: fileName,
             data: base64Data,
             directory: Directory.Documents,
           });
-          console.log('✅ Receipt saved to Documents (fallback)');
+          console.log('✅ [ReceiptSaver] Receipt saved to Documents (fallback)');
           return true;
-        } catch (fsError) {
-          console.error('Filesystem fallback also failed:', fsError);
+        } catch (fsError: any) {
+          console.error('❌ [ReceiptSaver] Filesystem fallback also failed:', fsError?.message || fsError);
           return false;
         }
       }
