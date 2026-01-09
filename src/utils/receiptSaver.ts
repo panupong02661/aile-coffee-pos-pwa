@@ -1,5 +1,6 @@
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { Media } from '@capacitor-community/media';
 import html2canvas from 'html2canvas';
 
 interface ReceiptData {
@@ -248,41 +249,76 @@ export const saveReceiptToAlbum = async (data: ReceiptData): Promise<boolean> =>
     const fileName = `receipt_${data.orderNumber}_${Date.now()}.png`;
 
     if (Capacitor.isNativePlatform()) {
-      // Save to device using Capacitor Filesystem
-      console.log('📱 Saving to native device album...');
+      // Save to device photo gallery using @capacitor-community/media
+      console.log('📱 Saving to native device photo album...');
 
       try {
-        // Try to save to Documents first (works on both iOS and Android)
-        await Filesystem.writeFile({
-          path: fileName,
+        // First save to temp file
+        const tempFileName = `temp_${fileName}`;
+        const tempResult = await Filesystem.writeFile({
+          path: tempFileName,
           data: base64Data,
-          directory: Directory.Documents,
+          directory: Directory.Cache,
         });
 
-        console.log('✅ Receipt saved to Documents');
-        return true;
-      } catch (docError) {
-        console.log('Documents save failed, trying external storage...', docError);
+        console.log('📁 Temp file created:', tempResult.uri);
+
+        // Check/create album for receipts
+        const albumName = 'ใบเสร็จ';
+        let albums;
         
         try {
-          // Fallback to external storage (Android)
-          await Filesystem.writeFile({
-            path: `DCIM/Receipts/${fileName}`,
-            data: base64Data,
-            directory: Directory.External,
+          albums = await Media.getAlbums();
+          console.log('📚 Available albums:', albums.albums?.map(a => a.name));
+        } catch (albumError) {
+          console.log('Could not get albums, will try to create:', albumError);
+        }
+
+        // Try to create album if it doesn't exist
+        const existingAlbum = albums?.albums?.find(a => a.name === albumName);
+        if (!existingAlbum) {
+          try {
+            await Media.createAlbum({ name: albumName });
+            console.log('📁 Created album:', albumName);
+          } catch (createError) {
+            console.log('Album creation skipped (may already exist):', createError);
+          }
+        }
+
+        // Save image to photo library
+        await Media.savePhoto({
+          path: tempResult.uri,
+          albumIdentifier: existingAlbum?.identifier,
+        });
+
+        console.log('✅ Receipt saved to Photos app successfully!');
+
+        // Clean up temp file
+        try {
+          await Filesystem.deleteFile({
+            path: tempFileName,
+            directory: Directory.Cache,
           });
-          console.log('✅ Receipt saved to DCIM/Receipts');
-          return true;
-        } catch (extError) {
-          console.error('External storage save failed:', extError);
-          // Final fallback to cache
+        } catch (cleanupError) {
+          console.log('Temp file cleanup failed (non-critical):', cleanupError);
+        }
+
+        return true;
+      } catch (mediaError) {
+        console.error('Media save failed, trying filesystem fallback:', mediaError);
+        
+        // Fallback to filesystem if Media plugin fails
+        try {
           await Filesystem.writeFile({
             path: fileName,
             data: base64Data,
-            directory: Directory.Cache,
+            directory: Directory.Documents,
           });
-          console.log('✅ Receipt saved to cache');
+          console.log('✅ Receipt saved to Documents (fallback)');
           return true;
+        } catch (fsError) {
+          console.error('Filesystem fallback also failed:', fsError);
+          return false;
         }
       }
     } else {
