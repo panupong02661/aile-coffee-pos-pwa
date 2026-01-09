@@ -13,6 +13,7 @@ import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
 import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
+import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
 // Function to send POS order notification with complete details
 const sendPosOrderNotification = async (order: any, orderItems: any[] = [], discountCode?: string) => {
@@ -750,6 +751,89 @@ const PaymentModal = ({
           if (savedOrder.wifi_voucher?.id) {
             console.log('[PaymentModal] Voucher saved, removing from reserved:', savedOrder.wifi_voucher.id);
             setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
+          }
+          
+          // 📸 บันทึกใบเสร็จลงอัลบั้มอัตโนมัติ
+          try {
+            console.log('[PaymentModal] Saving receipt to photo album...');
+            
+            // ดึงข้อมูล shop settings
+            const { data: shopData } = await supabase
+              .from('shop_settings')
+              .select('shop_name, address, phone, tax_id, logo_url')
+              .limit(1)
+              .single();
+            
+            const { data: receiptData } = await supabase
+              .from('receipt_settings')
+              .select('footer_message')
+              .limit(1)
+              .single();
+
+            // เตรียมข้อมูลใบเสร็จ
+            const receiptItems = cartItems.map(item => ({
+              name: item.menu_item.name,
+              quantity: item.quantity,
+              price: item.menu_item.price,
+              addons: item.selected_addons?.map(addon => ({
+                name: addon.name,
+                price: addon.price,
+              })),
+              item_discount: item.item_discount || 0,
+              item_discount_type: item.item_discount_type || 'amount',
+            }));
+
+            const subtotal = cartItems.reduce((sum, item) => {
+              const itemTotal = item.menu_item.price * item.quantity;
+              const addonsTotal = (item.selected_addons || []).reduce((a, addon) => a + addon.price, 0);
+              return sum + itemTotal + addonsTotal;
+            }, 0);
+
+            const itemDiscountTotal = cartItems.reduce((sum, item) => {
+              if (item.item_discount > 0) {
+                if (item.item_discount_type === 'percent') {
+                  const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
+                  return sum + Math.round(itemTotal * item.item_discount / 100);
+                }
+                return sum + item.item_discount;
+              }
+              return sum;
+            }, 0);
+
+            const receiptSaved = await saveReceiptToAlbum({
+              shopLogoUrl: shopData?.logo_url || undefined,
+              shopName: shopData?.shop_name || undefined,
+              shopAddress: shopData?.address || undefined,
+              shopPhone: shopData?.phone || undefined,
+              taxId: shopData?.tax_id || undefined,
+              orderNumber: savedOrder.order_number,
+              orderDate: new Date(),
+              items: receiptItems,
+              subtotal: subtotal,
+              billDiscount: billDiscount,
+              itemDiscountTotal: itemDiscountTotal,
+              totalAmount: total,
+              paymentMethod: paymentMethod,
+              memberName: selectedMember?.name,
+              memberPhone: selectedMember?.phone,
+              wifiVoucher: savedOrder.wifi_voucher ? {
+                username: savedOrder.wifi_voucher.username,
+                password: savedOrder.wifi_voucher.password,
+                qr_code_url: savedOrder.wifi_voucher.qr_code_url,
+              } : null,
+              footerMessage: receiptData?.footer_message || undefined,
+            });
+
+            if (receiptSaved) {
+              console.log('✅ Receipt saved to album successfully');
+              toast({
+                title: "📸 บันทึกใบเสร็จสำเร็จ",
+                description: "ใบเสร็จถูกบันทึกลงอัลบั้มรูปภาพแล้ว",
+              });
+            }
+          } catch (receiptError) {
+            console.error('[PaymentModal] Receipt save to album failed:', receiptError);
+            // ไม่แสดง error เพราะเป็น non-critical feature
           }
           
           toast({
