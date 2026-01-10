@@ -31,20 +31,103 @@ interface Member {
   total_spent: number;
 }
 
+interface SoundPopupSettings {
+  online: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+  pos: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+}
+
 const POS = () => {
   console.log('🚀 POS Component Started');
   
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
   
+  // Sound and popup settings from database
+  const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
+    online: { soundEnabled: true, popupEnabled: true, volume: 80 },
+    pos: { soundEnabled: false, popupEnabled: false, volume: 80 }
+  });
+  
+  // Load notification settings from database
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading notification settings:', error);
+          return;
+        }
+        
+        if (data) {
+          const soundPopup = (data as any).sound_popup;
+          if (soundPopup) {
+            console.log('📢 POS - Loaded sound popup settings:', soundPopup);
+            setSoundPopupSettings(soundPopup);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+      }
+    };
+    
+    loadSettings();
+    
+    // Subscribe to changes in real-time
+    const channel = supabase
+      .channel('pos-notification-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notification_settings'
+        },
+        (payload) => {
+          console.log('📢 POS - Settings changed:', payload);
+          const newData = payload.new as any;
+          if (newData) {
+            const soundPopup = newData.sound_popup;
+            if (soundPopup) {
+              setSoundPopupSettings(soundPopup);
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+  
   console.log('📱 isMobile:', isMobile);
   
   // Simple audio functions for testing
   const playBellSound = async () => {
+    // Check if POS sound is enabled in settings
+    if (!soundPopupSettings.pos.soundEnabled) {
+      console.log('🔇 POS sound disabled in settings, skipping');
+      return;
+    }
+    
     try {
       const audio = new Audio('/sounds/default-notification.mp3');
-      audio.volume = 0.8;
+      audio.volume = (soundPopupSettings.pos.volume || 80) / 100;
       await audio.play();
+      console.log('🔔 POS sound played (enabled in settings)');
     } catch (error) {
       console.log('Failed to play notification sound:', error);
     }
@@ -145,45 +228,8 @@ const POS = () => {
     localStorage.setItem('pos-item-size', itemSize);
   }, [itemSize]);
 
-  // Listen for online orders in realtime
-  useEffect(() => {
-    console.log('🔔 Setting up online order listener for POS...');
-    
-    const channel = supabase
-      .channel('pos-online-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-          filter: 'order_source=eq.online'
-        },
-        async (payload) => {
-          console.log('🛒 New online order detected:', payload);
-          
-          const order = payload.new as any;
-          
-          // Play notification sound
-          await playBellSound();
-          
-          // Show toast notification
-          toast({
-            title: "🛒 มีออเดอร์ออนไลน์ใหม่!",
-            description: `ออเดอร์ #${order.order_number || 'N/A'} - ฿${order.total_amount || 0}`,
-            duration: 10000,
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 POS online order subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔌 Cleaning up online order listener');
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+  // NOTE: Online order notifications are handled by GlobalNotificationProvider
+  // This listener is removed to prevent duplicate notifications
 
   const activeCategoryIds = new Set(
     (categories || [])
