@@ -160,8 +160,14 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         },
         async (payload) => {
           console.log('🔔 🎉 REAL-TIME ORDER INSERT DETECTED 🎉:', payload);
-          console.log('🔔 Order data:', JSON.stringify(payload.new, null, 2));
           const order = payload.new as any;
+          
+          // 🚫 FIRST CHECK: Skip ALL processing for POS/in-store orders immediately
+          const orderSource = order.order_source || 'pos';
+          if (orderSource === 'pos' || orderSource === 'in_store') {
+            console.log(`🚫 Skipping ALL notifications for POS/in-store order: ${order.order_number}`);
+            return;
+          }
           
           // Skip test/trigger orders
           if (order.order_number && order.order_number.includes('-TRIGGER')) {
@@ -185,108 +191,87 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           globalProcessedOrders.add(order.id);
           lastOrderId = order.id;
           
-          console.log(`🎯 Processing unique order: ${order.id} | Processed set size: ${globalProcessedOrders.size}`);
+          console.log(`🎯 Processing ONLINE order: ${order.id} | Source: ${orderSource}`);
           
-          // Handle both POS and online orders for UI notifications
-          console.log(`🎯 New order detected: ${order.order_number} (source: ${order.order_source || 'pos'})`);
+          // Send notifications ONLY for online orders via edge function
+          const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
           
-          // Send notifications for BOTH online and POS/in_store orders via edge function
-          if (order.order_source === 'online' || order.order_source === 'pos' || order.order_source === 'in_store' || !order.order_source) {
-            // Use cache key to prevent duplicate calls
-            const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
-            
-            if (globalProcessedOrders.has(notificationCacheKey)) {
-              console.log(`🚫 Notification already sent for order ${order.order_number}, skipping edge function call`);
-            } else {
-              try {
-                // Mark notification as being sent
-                globalProcessedOrders.add(notificationCacheKey);
-                
-                // Call notification edge function for any new order (POS or online)
-                console.log('🚀 Calling send-order-notification edge function (ONCE)...');
-                
-                // Wait briefly for order items to be inserted
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Fetch complete order with items for notification
-                const { data: completeOrder, error } = await supabase
-                  .from('orders')
-                  .select(`
-                    *,
-                    members (
-                      name,
-                      phone
-                    ),
-                    order_items (
-                      id,
-                      menu_item_name,
-                      quantity,
-                      unit_price,
-                      total_price,
-                      selected_addons,
-                      item_discount,
-                      item_discount_type
-                    )
-                  `)
-                  .eq('id', order.id)
-                  .single();
+          if (!globalProcessedOrders.has(notificationCacheKey)) {
+            try {
+              // Mark notification as being sent
+              globalProcessedOrders.add(notificationCacheKey);
+              
+              console.log('🚀 Calling send-order-notification edge function for ONLINE order...');
+              
+              // Wait briefly for order items to be inserted
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Fetch complete order with items for notification
+              const { data: completeOrder, error } = await supabase
+                .from('orders')
+                .select(`
+                  *,
+                  members (
+                    name,
+                    phone
+                  ),
+                  order_items (
+                    id,
+                    menu_item_name,
+                    quantity,
+                    unit_price,
+                    total_price,
+                    selected_addons,
+                    item_discount,
+                    item_discount_type
+                  )
+                `)
+                .eq('id', order.id)
+                .single();
 
-                if (error || !completeOrder) {
-                  console.error('❌ Failed to fetch complete order:', error);
-                  // Remove from notification cache on failure
-                  globalProcessedOrders.delete(notificationCacheKey);
-                  return;
-                }
-
-                // Prepare order data for notifications
-                const orderData = {
-                  order_number: order.order_number,
-                  total_amount: order.total_amount,
-                  items_count: order.items_count,
-                  member_id: order.member_id,
-                  payment_method: order.payment_method,
-                  order_source: order.order_source || 'pos',
-                  status: order.status || 'confirmed',
-                  created_at: order.created_at,
-                  customer_notes: order.customer_notes,
-                  customer_name: completeOrder.members?.name || 'ลูกค้า',
-                  customer_phone: completeOrder.members?.phone || '',
-                  bill_discount: completeOrder.bill_discount || 0,
-                  bill_discount_type: completeOrder.bill_discount_type || 'amount',
-                  order_items: completeOrder.order_items || []
-                };
-                
-                console.log('📦 Order data for notification (SINGLE CALL):', orderData);
-                
-                // Send notification ONCE
-                const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
-                  body: { orderData }
-                });
-
-                if (edgeFunctionError) {
-                  console.error('❌ Failed to send notifications:', edgeFunctionError);
-                  // Remove from notification cache on failure
-                  globalProcessedOrders.delete(notificationCacheKey);
-                } else {
-                  console.log('✅ Notifications sent successfully (ONCE):', notificationResult);
-                }
-                
-              } catch (notificationError) {
-                console.error('❌ Error in notification process:', notificationError);
-                // Remove from notification cache on error
+              if (error || !completeOrder) {
+                console.error('❌ Failed to fetch complete order:', error);
                 globalProcessedOrders.delete(notificationCacheKey);
+                return;
               }
+
+              // Prepare order data for notifications
+              const orderData = {
+                order_number: order.order_number,
+                total_amount: order.total_amount,
+                items_count: order.items_count,
+                member_id: order.member_id,
+                payment_method: order.payment_method,
+                order_source: orderSource,
+                status: order.status || 'confirmed',
+                created_at: order.created_at,
+                customer_notes: order.customer_notes,
+                customer_name: completeOrder.members?.name || 'ลูกค้า',
+                customer_phone: completeOrder.members?.phone || '',
+                bill_discount: completeOrder.bill_discount || 0,
+                bill_discount_type: completeOrder.bill_discount_type || 'amount',
+                order_items: completeOrder.order_items || []
+              };
+              
+              // Send notification
+              const { data: notificationResult, error: edgeFunctionError } = await supabase.functions.invoke('send-order-notification', {
+                body: { orderData }
+              });
+
+              if (edgeFunctionError) {
+                console.error('❌ Failed to send notifications:', edgeFunctionError);
+                globalProcessedOrders.delete(notificationCacheKey);
+              } else {
+                console.log('✅ Notifications sent successfully:', notificationResult);
+              }
+              
+            } catch (notificationError) {
+              console.error('❌ Error in notification process:', notificationError);
+              globalProcessedOrders.delete(notificationCacheKey);
             }
           }
           
-          // 🚫 Skip UI notification for POS orders - only show for ONLINE orders
-          const orderSource = order.order_source || 'pos';
-          if (orderSource === 'pos' || orderSource === 'in_store') {
-            console.log(`🚫 Skipping UI notification for POS/in-store order: ${order.order_number}`);
-            return;
-          }
-          
-          // Show UI notification ONLY for online orders
+          // Show UI notification and sound ONLY for online orders
           console.log(`🔔 Preparing UI notification for ONLINE order: ${order.order_number}`);
           await handleNewOrderUI({
             orderId: order.id,
