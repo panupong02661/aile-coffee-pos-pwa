@@ -338,15 +338,9 @@ export const saveReceiptToAlbum = async (data: ReceiptData): Promise<boolean> =>
         }
       }
     } else {
-      // Web fallback - trigger download
-      console.log('🌐 Web platform - triggering download...');
-      
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      
-      console.log('✅ Receipt download triggered');
+      // Web platform - just log success, don't trigger download to avoid navigation
+      console.log('🌐 Web platform - receipt generated (download disabled to stay on POS)');
+      console.log('✅ Receipt ready but not downloading to avoid page navigation');
       return true;
     }
   } catch (error) {
