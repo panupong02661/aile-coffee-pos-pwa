@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAutoPrint } from './useAutoPrint';
@@ -9,6 +9,19 @@ let isGlobalSetup = false;
 let globalProcessedOrders = new Set<string>();
 let globalPollingInterval: any = null;
 
+interface SoundPopupSettings {
+  online: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+  pos: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+}
+
 export const useOrderNotifications = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudioInitializedRef = useRef(false);
@@ -16,6 +29,70 @@ export const useOrderNotifications = () => {
   const isIOSRef = useRef(false);
   const instanceIdRef = useRef<string>(`${Date.now()}-${Math.random()}`);
   const { isAutoPrintEnabled, printOrderReceipt } = useAutoPrint();
+  
+  // Sound and popup settings from database
+  const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
+    online: { soundEnabled: true, popupEnabled: true, volume: 80 },
+    pos: { soundEnabled: false, popupEnabled: false, volume: 80 }
+  });
+
+  // Load notification settings from database
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading notification settings:', error);
+          return;
+        }
+        
+        if (data) {
+          // Try to parse sound_popup from various possible locations
+          const soundPopup = (data as any).sound_popup || (data as any).soundPopup;
+          if (soundPopup) {
+            console.log('📢 Loaded sound popup settings:', soundPopup);
+            setSoundPopupSettings(soundPopup);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+      }
+    };
+    
+    loadSettings();
+    
+    // Also subscribe to changes in real-time
+    const channel = supabase
+      .channel('notification-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notification_settings'
+        },
+        (payload) => {
+          console.log('📢 Notification settings changed:', payload);
+          const newData = payload.new as any;
+          if (newData) {
+            const soundPopup = newData.sound_popup || newData.soundPopup;
+            if (soundPopup) {
+              setSoundPopupSettings(soundPopup);
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Detect iOS
   useEffect(() => {
@@ -357,20 +434,29 @@ export const useOrderNotifications = () => {
                 discountInfo += `\n🏷️ ${discountText}`;
               }
 
-              // Play sound notification IMMEDIATELY
-              await playBellSound();
+              // Check settings before playing sound
+              if (soundPopupSettings.online.soundEnabled) {
+                console.log('🔔 Playing sound for online order (enabled in settings)');
+                await playBellSound();
+              } else {
+                console.log('🔇 Sound disabled for online orders in settings');
+              }
               
-              // Show DETAILED toast notification with COMPLETE order info
-              toast.success('🔔 มีออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!', {
-                description: `📋 ออเดอร์ #${order.order_number}\n👤 ${customerInfo}\n${order.customer_notes ? `📝 หมายเหตุ: ${order.customer_notes}\n` : ''}\n🛍️ รายการสินค้า (${order.order_items.length} เมนู):\n${orderItemsText}${discountInfo}\n\n💳 วิธีชำระ: ${order.payment_method === 'points' ? 'แต้ม' : order.payment_method === 'online' ? 'ออนไลน์' : order.payment_method}\n💵 ยอดรวมทั้งหมด: ฿${order.total_amount}`,
-                duration: 25000,
-                action: {
-                  label: 'ดูรายละเอียด',
-                  onClick: () => {
-                    window.location.href = '/online-orders';
+              // Show toast notification only if popup is enabled
+              if (soundPopupSettings.online.popupEnabled) {
+                toast.success('🔔 มีออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!', {
+                  description: `📋 ออเดอร์ #${order.order_number}\n👤 ${customerInfo}\n${order.customer_notes ? `📝 หมายเหตุ: ${order.customer_notes}\n` : ''}\n🛍️ รายการสินค้า (${order.order_items.length} เมนู):\n${orderItemsText}${discountInfo}\n\n💳 วิธีชำระ: ${order.payment_method === 'points' ? 'แต้ม' : order.payment_method === 'online' ? 'ออนไลน์' : order.payment_method}\n💵 ยอดรวมทั้งหมด: ฿${order.total_amount}`,
+                  duration: 25000,
+                  action: {
+                    label: 'ดูรายละเอียด',
+                    onClick: () => {
+                      window.location.href = '/online-orders';
+                    }
                   }
-                }
-              });
+                });
+              } else {
+                console.log('🔕 Popup disabled for online orders in settings');
+              }
 
               // Auto-print receipt if enabled
               if (isAutoPrintEnabled) {

@@ -22,6 +22,19 @@ interface OnlineOrder {
   bill_discount_type?: string;
 }
 
+interface SoundPopupSettings {
+  online: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+  pos: {
+    soundEnabled: boolean;
+    popupEnabled: boolean;
+    volume: number;
+  };
+}
+
 // Global state management for processed orders (single unified set)
 let globalProcessedOrders = new Set<string>();
 
@@ -32,6 +45,10 @@ let lastOrderId: string | null = null;
 const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [newOrder, setNewOrder] = useState<OnlineOrder | null>(null);
+  const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
+    online: { soundEnabled: true, popupEnabled: true, volume: 80 },
+    pos: { soundEnabled: false, popupEnabled: false, volume: 80 }
+  });
   
   const notificationChannelRef = useRef<any>(null);
   const orderChannelRef = useRef<any>(null);
@@ -41,6 +58,63 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Use iOS notification service
   const { isIOS, triggerIOSNotification } = useIOSNotificationService();
+
+  // Load notification settings from database
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading notification settings:', error);
+          return;
+        }
+        
+        if (data) {
+          const soundPopup = (data as any).sound_popup;
+          if (soundPopup) {
+            console.log('📢 GlobalNotificationProvider - Loaded sound popup settings:', soundPopup);
+            setSoundPopupSettings(soundPopup);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+      }
+    };
+    
+    loadSettings();
+    
+    // Subscribe to changes in real-time
+    const channel = supabase
+      .channel('global-notification-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notification_settings'
+        },
+        (payload) => {
+          console.log('📢 GlobalNotificationProvider - Settings changed:', payload);
+          const newData = payload.new as any;
+          if (newData) {
+            const soundPopup = newData.sound_popup;
+            if (soundPopup) {
+              setSoundPopupSettings(soundPopup);
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Initialize audio context for notification sound
   useEffect(() => {
@@ -395,14 +469,25 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           bill_discount_type: completeOrder.bill_discount_type
         };
         
-        setNewOrder(orderForNotification);
-        setShowOrderAlert(true);
+        // Check settings before showing popup
+        if (soundPopupSettings.online.popupEnabled) {
+          setNewOrder(orderForNotification);
+          setShowOrderAlert(true);
+          console.log('📢 Popup enabled for online orders, showing alert');
+        } else {
+          console.log('🔕 Popup disabled for online orders in settings');
+        }
         
-        // Play notification sound
-        await playNotificationSound();
+        // Check settings before playing sound
+        if (soundPopupSettings.online.soundEnabled) {
+          console.log('🔔 Sound enabled for online orders, playing notification');
+          await playNotificationSound();
+        } else {
+          console.log('🔇 Sound disabled for online orders in settings');
+        }
         
-        // Enhanced iOS notification
-        if (isIOS) {
+        // Enhanced iOS notification (only if sound is enabled)
+        if (isIOS && soundPopupSettings.online.soundEnabled) {
           console.log('🍎 Triggering iOS notification');
           await triggerIOSNotification({
             orderNumber: completeOrder.order_number,
@@ -411,7 +496,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           });
         }
         
-        console.log(`✅ UI notification displayed for: ${completeOrder.order_number} with ${completeOrder.order_items.length} items`);
+        console.log(`✅ UI notification processed for: ${completeOrder.order_number} with ${completeOrder.order_items.length} items`);
       } else {
         console.error('❌ Failed to fetch complete order data for UI after all attempts');
       }
