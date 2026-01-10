@@ -674,177 +674,95 @@ const PaymentModal = ({
       return;
     }
 
-    setIsProcessing(true);
-    
-    console.log('[PaymentModal] 🚀 Starting FAST payment process (target: <5 seconds)...');
-    const startTime = Date.now();
-    
-    try {
-      // ✅ Validate ก่อน
-      if (!cartItems || cartItems.length === 0) {
-        toast({
-          title: "คำเตือน",
-          description: "ไม่มีสินค้าในตะกร้า กรุณาตรวจสอบ",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-
-      if (paymentMethod === 'cash') {
-        const receivedAmount = parseFloat(cashReceived || '0');
-        if (isNaN(receivedAmount) || receivedAmount < total) {
-          toast({
-            title: "คำเตือน",
-            description: "จำนวนเงินไม่เพียงพอ กรุณาตรวจสอบ",
-            variant: "destructive"
-          });
-          setIsProcessing(false);
-          return;
-        }
-      } else if (paymentMethod === 'points' && selectedMember) {
-        const pointsVal = parseInt(pointsToUse || '0');
-        const minimumPoints = getMinimumPoints();
-        const maximumPoints = getMaximumPoints();
-
-        if (pointsVal < minimumPoints || pointsVal > maximumPoints) {
-          toast({
-            title: "คำเตือน",
-            description: "จำนวนแต้มไม่ถูกต้อง กรุณาตรวจสอบ",
-            variant: "destructive"
-          });
-          setIsProcessing(false);
-          return;
-        }
-      }
-
-      // 🔒 จอง WiFi voucher
-      let reservedVoucherId: string | null = null;
-      if (wifiVoucherPreview?.id) {
-        reservedVoucherId = wifiVoucherPreview.id;
-        console.log('[PaymentModal] Reserving WiFi voucher:', reservedVoucherId);
-        setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
-      }
-
-      // 🚀 STEP 1: บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
-      console.log('[PaymentModal] STEP 1: Saving to database IMMEDIATELY...');
-      const dbStartTime = Date.now();
-      
-      const savedOrder = await saveOrderToDatabase(paymentMethod);
-      
-      const dbEndTime = Date.now();
-      console.log(`[PaymentModal] ✅ Database saved in ${dbEndTime - dbStartTime}ms`);
-
-      if (!savedOrder) {
-        throw new Error('Failed to save order to database');
-      }
-
-      // ลบ voucher จาก reserved list
-      if (savedOrder.wifi_voucher?.id) {
-        setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
-      }
-
-      // 🔔 STEP 2: แจ้งเตือนถูกส่งแล้วใน saveOrderToDatabase (non-blocking)
-      // Notification ถูกส่งแบบ fire-and-forget ใน saveOrderToDatabase แล้ว
-
-      // ✅ STEP 3: ปิด modal และ clear cart
-      const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
-      onPayment(paymentMethod, cashAmount);
-      
-      setIsProcessing(false);
-      onClose();
-
-      const totalTime = Date.now() - startTime;
-      console.log(`[PaymentModal] ✅ Payment completed in ${totalTime}ms (target: <5000ms)`);
-
+    // ✅ Validate ก่อน (sync - เร็วมาก)
+    if (!cartItems || cartItems.length === 0) {
       toast({
-        title: "✅ ชำระเงินสำเร็จ",
-        description: `ยอดชำระ ฿${total.toLocaleString()} - บันทึกเรียบร้อย`,
-      });
-
-      // 📸 STEP 4: บันทึกใบเสร็จ (background - ไม่ต้องรอ)
-      (async () => {
-        try {
-          console.log('[PaymentModal] 📸 Saving receipt in background...');
-          
-          const [shopResult, receiptResult] = await Promise.all([
-            supabase.from('shop_settings').select('shop_name, address, phone, tax_id, logo_url').limit(1).single(),
-            supabase.from('receipt_settings').select('footer_message').limit(1).single()
-          ]);
-          
-          const shopData = shopResult.data;
-          const receiptData = receiptResult.data;
-
-          const receiptItems = cartItems?.map(item => ({
-            name: item.menu_item.name,
-            quantity: item.quantity,
-            price: item.menu_item.price,
-            addons: item.selected_addons?.map(addon => ({
-              name: addon.name,
-              price: addon.price,
-            })),
-            item_discount: item.item_discount || 0,
-            item_discount_type: item.item_discount_type || 'amount',
-          })) || [];
-
-          const subtotal = cartItems?.reduce((sum, item) => {
-            const itemTotal = item.menu_item.price * item.quantity;
-            const addonsTotal = (item.selected_addons || []).reduce((a, addon) => a + addon.price, 0);
-            return sum + itemTotal + addonsTotal;
-          }, 0) || 0;
-
-          const itemDiscountTotal = cartItems?.reduce((sum, item) => {
-            if (item.item_discount > 0) {
-              if (item.item_discount_type === 'percent') {
-                const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
-                return sum + Math.round(itemTotal * item.item_discount / 100);
-              }
-              return sum + item.item_discount;
-            }
-            return sum;
-          }, 0) || 0;
-
-          const receiptSaved = await saveReceiptToAlbum({
-            shopLogoUrl: shopData?.logo_url || undefined,
-            shopName: shopData?.shop_name || undefined,
-            shopAddress: shopData?.address || undefined,
-            shopPhone: shopData?.phone || undefined,
-            taxId: shopData?.tax_id || undefined,
-            orderNumber: savedOrder.order_number,
-            orderDate: new Date(),
-            items: receiptItems,
-            subtotal: subtotal,
-            billDiscount: billDiscount,
-            itemDiscountTotal: itemDiscountTotal,
-            totalAmount: total,
-            paymentMethod: paymentMethod,
-            memberName: selectedMember?.name,
-            memberPhone: selectedMember?.phone,
-            wifiVoucher: savedOrder.wifi_voucher ? {
-              username: savedOrder.wifi_voucher.username,
-              password: savedOrder.wifi_voucher.password,
-              qr_code_url: savedOrder.wifi_voucher.qr_code_url,
-            } : null,
-            footerMessage: receiptData?.footer_message || undefined,
-          });
-
-          if (receiptSaved) {
-            console.log('✅ Receipt saved to album!');
-          }
-        } catch (receiptError) {
-          console.error('[PaymentModal] Receipt save failed:', receiptError);
-        }
-      })();
-
-    } catch (error) {
-      console.error('[PaymentModal] Payment failed:', error);
-      setIsProcessing(false);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
+        title: "คำเตือน",
+        description: "ไม่มีสินค้าในตะกร้า กรุณาตรวจสอบ",
         variant: "destructive"
       });
+      return;
     }
+
+    if (paymentMethod === 'cash') {
+      const receivedAmount = parseFloat(cashReceived || '0');
+      if (isNaN(receivedAmount) || receivedAmount < total) {
+        toast({
+          title: "คำเตือน",
+          description: "จำนวนเงินไม่เพียงพอ กรุณาตรวจสอบ",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (paymentMethod === 'points' && selectedMember) {
+      const pointsVal = parseInt(pointsToUse || '0');
+      const minimumPoints = getMinimumPoints();
+      const maximumPoints = getMaximumPoints();
+
+      if (pointsVal < minimumPoints || pointsVal > maximumPoints) {
+        toast({
+          title: "คำเตือน",
+          description: "จำนวนแต้มไม่ถูกต้อง กรุณาตรวจสอบ",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // 🔒 จอง WiFi voucher
+    let reservedVoucherId: string | null = null;
+    if (wifiVoucherPreview?.id) {
+      reservedVoucherId = wifiVoucherPreview.id;
+      setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
+    }
+
+    // 🚀 ปิด modal ทันที - ไม่ต้องรอ DB!
+    const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
+    onPayment(paymentMethod, cashAmount);
+    onClose();
+
+    toast({
+      title: "✅ ชำระเงินสำเร็จ",
+      description: `ยอดชำระ ฿${total.toLocaleString()}`,
+    });
+
+    // เล่นเสียงทันที
+    playPaymentSuccessBell();
+
+    console.log('[PaymentModal] 🚀 Payment confirmed - processing in background...');
+
+    // 📦 ทำทุกอย่างใน background (ไม่บล็อก UI)
+    const currentCartItems = [...cartItems];
+    const currentPaymentMethod = paymentMethod;
+    const currentBillDiscount = billDiscount;
+    const currentBillDiscountType = billDiscountType;
+    const currentSelectedMember = selectedMember ? { ...selectedMember } : null;
+    const currentAppliedGiftCode = appliedGiftCode;
+    const currentTotal = total;
+    const currentWifiVoucher = wifiVoucherPreview;
+
+    // Background processing - fire and forget
+    (async () => {
+      try {
+        console.log('[PaymentModal] Background: Saving order to database...');
+        const savedOrder = await saveOrderToDatabase(currentPaymentMethod);
+        
+        if (savedOrder) {
+          console.log('[PaymentModal] ✅ Background: Order saved successfully');
+          
+          if (savedOrder.wifi_voucher?.id) {
+            setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
+          }
+        }
+      } catch (error) {
+        console.error('[PaymentModal] ❌ Background save failed:', error);
+        toast({
+          title: "⚠️ คำเตือน",
+          description: "มีปัญหาในการบันทึกข้อมูล กรุณาตรวจสอบ",
+          variant: "destructive"
+        });
+      }
+    })();
   };
 
   const handleMethodChange = (value: string) => {
