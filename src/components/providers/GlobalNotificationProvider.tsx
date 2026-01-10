@@ -459,7 +459,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       let itemText = `${item.menu_item_name} x${item.quantity}`;
       
       // Add detailed addon information with pricing
-      if (item.selected_addons && item.selected_addons.length > 0) {
+      if (item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0) {
         const addons = item.selected_addons.map((addon: any) => {
           if (addon.price && addon.price > 0) {
             return `+${addon.name} (+฿${addon.price})`;

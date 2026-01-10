@@ -161,7 +161,7 @@ const Cart = ({
     const displayData = {
       cartItems: cartItems.map(item => {
         // คำนวณราคาสินค้าหลังหักส่วนลดรายการ
-        const addonsTotal = item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+        const addonsTotal = Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0;
         const basePrice = item.menu_item.price + addonsTotal;
         
         return {
@@ -169,10 +169,10 @@ const Cart = ({
           name: item.menu_item.name,
           price: item.menu_item.price,
           quantity: item.quantity,
-          addons: item.selected_addons.map(addon => ({
+          addons: Array.isArray(item.selected_addons) ? item.selected_addons.map(addon => ({
             name: addon.name,
             price: addon.price
-          })),
+          })) : [],
           discount: item.item_discount,
           discountType: item.item_discount_type,
           // ส่ง total_price ที่คำนวณแล้วจาก cart
@@ -305,7 +305,7 @@ const Cart = ({
                 <div className="flex justify-between text-xs text-orange-600">
                   <span>ส่วนลดรายการ:</span>
                   <span>-฿{cartItems.reduce((sum, item) => {
-                    const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+                    const basePrice = item.menu_item.price + (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0);
                     const totalBasePrice = basePrice * item.quantity;
                     return sum + (totalBasePrice - item.total_price);
                   }, 0)}</span>
@@ -392,7 +392,7 @@ const Cart = ({
                         <h4 className="font-medium text-sm text-coffee-800">
                           {item.menu_item.name}
                         </h4>
-                        {item.selected_addons.length > 0 && (
+                        {Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
                           <div className="text-xs text-coffee-600 mt-1">
                             {item.selected_addons.map(addon => addon.name).join(', ')}
                           </div>

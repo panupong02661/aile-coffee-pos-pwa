@@ -101,10 +101,10 @@ const MobileCart = ({
         name: item.menu_item.name,
         price: item.menu_item.price,
         quantity: item.quantity,
-        addons: item.selected_addons.map(addon => ({
+        addons: Array.isArray(item.selected_addons) ? item.selected_addons.map(addon => ({
           name: addon.name,
           price: addon.price
-        })),
+        })) : [],
         discount: item.item_discount,
         discountType: item.item_discount_type,
         totalPrice: item.total_price
@@ -249,7 +249,7 @@ const MobileCart = ({
                           <div className="text-sm text-coffee-500 mt-1">
                             ราคา: ฿{item.menu_item.price}
                           </div>
-                          {item.selected_addons.length > 0 && (
+                          {Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
                             <div className="mt-2 space-y-1">
                               <div className="text-xs font-medium text-coffee-700">เพิ่มเติม:</div>
                               {item.selected_addons.map((addon, index) => (
@@ -320,7 +320,7 @@ const MobileCart = ({
                   <div className="flex justify-between text-sm text-orange-600">
                     <span>ส่วนลดรายการ:</span>
                     <span>-฿{cartItems.reduce((sum, item) => {
-                      const basePrice = item.menu_item.price + item.selected_addons.reduce((s, addon) => s + addon.price, 0);
+                      const basePrice = item.menu_item.price + (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0);
                       const totalBasePrice = basePrice * item.quantity;
                       return sum + (totalBasePrice - item.total_price);
                     }, 0)}</span>
