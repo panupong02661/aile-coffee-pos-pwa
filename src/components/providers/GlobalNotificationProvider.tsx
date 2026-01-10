@@ -343,10 +343,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // เพิ่มเวลาที่สั่งซื้อจริงสำหรับแสดงผล
       console.log(`🎯 Processing order for UI display: ${orderData.orderNumber} at ${orderData.orderCreatedAt}`);
       
-      // Fetch complete order data for UI with retry logic
+      // Fetch complete order data for UI with retry logic (faster)
       let completeOrder = null;
       let attempts = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 3; // Reduced from 5
       
       while (attempts < maxAttempts && !completeOrder) {
         attempts++;
@@ -382,7 +382,7 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           break;
         } else {
           console.log(`⏳ Attempt ${attempts}: Order items not ready, waiting...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 2000ms to 500ms
         }
       }
 

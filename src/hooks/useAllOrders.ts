@@ -129,10 +129,10 @@ export const useAllOrders = () => {
     fetchOrders();
     setupRealtimeSubscription();
 
-    // 🚀 FAST polling every 1 second for immediate updates
+    // 🔧 Polling ทุก 10 วินาที เป็น backup (realtime จะ handle ทันที)
     const pollInterval = setInterval(() => {
       fetchOrders();
-    }, 1000);
+    }, 10000);
 
     // Handle visibility change - refetch when tab becomes visible
     const handleVisibilityChange = () => {

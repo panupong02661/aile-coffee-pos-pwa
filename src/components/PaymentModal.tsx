@@ -669,8 +669,13 @@ const PaymentModal = ({
 
   const handlePayment = async () => {
     if (isProcessing) {
+      console.log('[PaymentModal] ⚠️ Already processing, skipping...');
       return;
     }
+
+    // ✅ Set processing state
+    setIsProcessing(true);
+    console.log('[PaymentModal] 🚀 Starting payment process...');
 
     // ✅ Validate ก่อน (sync - เร็วมาก)
     if (!cartItems || cartItems.length === 0) {
@@ -679,6 +684,7 @@ const PaymentModal = ({
         description: "ไม่มีสินค้าในตะกร้า กรุณาตรวจสอบ",
         variant: "destructive"
       });
+      setIsProcessing(false);
       return;
     }
 
@@ -690,6 +696,7 @@ const PaymentModal = ({
           description: "จำนวนเงินไม่เพียงพอ กรุณาตรวจสอบ",
           variant: "destructive"
         });
+        setIsProcessing(false);
         return;
       }
     } else if (paymentMethod === 'points' && selectedMember) {
@@ -703,6 +710,7 @@ const PaymentModal = ({
           description: "จำนวนแต้มไม่ถูกต้อง กรุณาตรวจสอบ",
           variant: "destructive"
         });
+        setIsProcessing(false);
         return;
       }
     }
@@ -714,22 +722,18 @@ const PaymentModal = ({
       setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
     }
 
-    // 🚀 เล่นเสียงและแสดง toast ทันที (ก่อน DB)
-    playPaymentSuccessBell();
-    toast({
-      title: "✅ กำลังบันทึก...",
-      description: `ยอดชำระ ฿${total.toLocaleString()}`,
-    });
-
-    console.log('[PaymentModal] 🚀 Starting FAST payment processing...');
     const startTime = Date.now();
 
     try {
       // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
+      console.log('[PaymentModal] 📦 Saving to database...');
       const savedOrder = await saveOrderToDatabase(paymentMethod);
       
       const dbTime = Date.now() - startTime;
       console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
+
+      // ✅ เล่นเสียงหลังจาก save สำเร็จ
+      playPaymentSuccessBell();
 
       // ✅ ปิด modal หลังจาก DB เสร็จ
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
@@ -758,9 +762,11 @@ const PaymentModal = ({
       
       toast({
         title: "❌ เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกออเดอร์ได้",
+        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกออเดอร์ได้ กรุณาลองใหม่",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
