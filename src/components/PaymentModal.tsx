@@ -381,40 +381,17 @@ const PaymentModal = ({
     }
   };
 
-  const generateUniqueOrderNumber = async (maxRetries = 3) => {
-    // 🚀 FAST: ลอง RPC แค่ 1 ครั้ง ถ้าไม่ได้ใช้ fallback ทันที
-    try {
-      console.log(`[PaymentModal] Generating order number via RPC...`);
-      
-      // ใช้ timeout 2 วินาที เพื่อไม่ให้รอนาน
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('RPC timeout')), 2000)
-      );
-      
-      const rpcPromise = supabase.rpc('generate_order_number');
-      
-      const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
-      
-      if (result?.data && !result?.error) {
-        console.log(`[PaymentModal] Generated order number: ${result.data}`);
-        return result.data;
-      }
-      
-      throw new Error(result?.error?.message || 'RPC failed');
-      
-    } catch (error) {
-      console.warn(`[PaymentModal] RPC failed, using fast fallback:`, error);
-      
-      // 🚀 FAST FALLBACK: ใช้ timestamp + random number
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      
-      const fallbackOrderNumber = `ORD-${dateStr}-${timeStr}-${random}`;
-      console.log(`[PaymentModal] Using fast fallback order number: ${fallbackOrderNumber}`);
-      return fallbackOrderNumber;
-    }
+  const generateUniqueOrderNumber = () => {
+    // 🚀 INSTANT: ใช้ timestamp + random ทันที ไม่ต้องรอ RPC
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const ms = String(now.getMilliseconds()).padStart(3, '0');
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    
+    const orderNumber = `ORD-${dateStr}-${timeStr}${ms}${random}`;
+    console.log(`[PaymentModal] Generated instant order number: ${orderNumber}`);
+    return orderNumber;
   };
 
   const saveOrderToDatabase = async (method: PaymentMethod) => {
@@ -441,8 +418,8 @@ const PaymentModal = ({
         console.log(`[PaymentModal] Points payment: ${pointsUsed} points = ฿${pointsValue}, remaining: ฿${actualTotal}`);
       }
 
-      // Generate order number
-      const orderNumber = await generateUniqueOrderNumber();
+      // Generate order number - INSTANT (no async)
+      const orderNumber = generateUniqueOrderNumber();
       
       // Prepare order data
       const orderData = {
