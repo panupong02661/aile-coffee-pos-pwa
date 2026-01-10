@@ -279,16 +279,22 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
           }
           
-          // Show UI notification for both POS and online orders
-          console.log(`🔔 Preparing UI notification for order: ${order.order_number} (${order.order_source || 'pos'})`);
-          // ลบ setTimeout และเรียกทันที เพื่อป้องกันการซ้ำ
+          // 🚫 Skip UI notification for POS orders - only show for ONLINE orders
+          const orderSource = order.order_source || 'pos';
+          if (orderSource === 'pos' || orderSource === 'in_store') {
+            console.log(`🚫 Skipping UI notification for POS/in-store order: ${order.order_number}`);
+            return;
+          }
+          
+          // Show UI notification ONLY for online orders
+          console.log(`🔔 Preparing UI notification for ONLINE order: ${order.order_number}`);
           await handleNewOrderUI({
             orderId: order.id,
             orderNumber: order.order_number,
             totalAmount: order.total_amount,
             memberId: order.member_id,
-            orderSource: order.order_source || 'pos',
-            orderCreatedAt: order.created_at // เพิ่มเวลาที่สั่งซื้อจริง
+            orderSource: orderSource,
+            orderCreatedAt: order.created_at
           });
         }
       )
