@@ -2027,6 +2027,7 @@ export type Database = {
           pos_orders: Json | null
           selected_sound_id: string | null
           sound_enabled: boolean | null
+          sound_popup: Json | null
           updated_at: string | null
           volume: number | null
         }
@@ -2040,6 +2041,7 @@ export type Database = {
           pos_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
+          sound_popup?: Json | null
           updated_at?: string | null
           volume?: number | null
         }
@@ -2053,6 +2055,7 @@ export type Database = {
           pos_orders?: Json | null
           selected_sound_id?: string | null
           sound_enabled?: boolean | null
+          sound_popup?: Json | null
           updated_at?: string | null
           volume?: number | null
         }
