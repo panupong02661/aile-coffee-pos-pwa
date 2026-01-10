@@ -23,10 +23,10 @@ export const useCart = () => {
         name: item.menu_item.name,
         price: item.menu_item.price,
         quantity: item.quantity,
-        addons: item.selected_addons.map(addon => ({
+        addons: Array.isArray(item.selected_addons) ? item.selected_addons.map(addon => ({
           name: addon.name,
           price: addon.price
-        })),
+        })) : [],
         discount: item.item_discount,
         discountType: item.item_discount_type,
         totalPrice: item.total_price
@@ -111,7 +111,7 @@ export const useCart = () => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
         const basePrice = item.menu_item.price + 
-          item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+          (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((sum, addon) => sum + addon.price, 0) : 0);
         
         let discountAmount = 0;
         if (item.item_discount_type === 'percent') {
@@ -138,7 +138,7 @@ export const useCart = () => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
         const basePrice = item.menu_item.price + 
-          item.selected_addons.reduce((sum, addon) => sum + addon.price, 0);
+          (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((sum, addon) => sum + addon.price, 0) : 0);
         const totalBasePrice = basePrice * item.quantity;
         
         let discountAmount = 0;

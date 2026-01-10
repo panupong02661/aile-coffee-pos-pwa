@@ -315,7 +315,7 @@ export const useOrderNotifications = () => {
                 let itemText = `${index + 1}. ${item.menu_item_name} x${item.quantity}`;
                 
                 // Add COMPLETE addon information with prices - วิปครีม, ช็อกโกแลตชิป, etc.
-                if (item.selected_addons && item.selected_addons.length > 0) {
+                if (item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0) {
                   console.log(`📎 Add-ons found for ${item.menu_item_name}:`, item.selected_addons);
                   
                   const addons = item.selected_addons.map((addon: any) => {

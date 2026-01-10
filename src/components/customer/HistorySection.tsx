@@ -299,7 +299,7 @@ const HistorySection: React.FC<HistorySectionProps> = ({ currentUser }) => {
                                     </p>
                                     
                                     {/* แสดงแอดออน */}
-                                    {item.selected_addons && item.selected_addons.length > 0 && (
+                                    {item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
                                       <div className="mt-2 space-y-1">
                                         <p className="text-xs font-medium text-gray-500">ตัวเลือกเพิ่มเติม:</p>
                                         {item.selected_addons.map((addon, addonIndex) => (
