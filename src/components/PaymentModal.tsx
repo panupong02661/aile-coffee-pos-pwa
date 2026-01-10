@@ -528,121 +528,74 @@ const PaymentModal = ({
         appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
       ).then(() => console.log('✅ POS notification sent')).catch(err => console.warn('⚠️ POS notification failed:', err));
 
-      // 🚀 ทำ parallel: stock reduction + member points + wifi voucher (ไม่ต้องรอทีละอัน)
-      console.log(`[PaymentModal] Starting parallel processing (stock + points + wifi)...`);
-      const parallelStartTime = Date.now();
+      // 🚀 FAST: Fire-and-forget ทุกอย่าง - ไม่รอเลย!
+      console.log(`[PaymentModal] 🚀 Starting fire-and-forget background tasks...`);
       
       let wifiVoucher: { id: string; username: string; password: string; qr_code_url: string | null } | null = null;
       
-      // Run all in parallel for speed
-      const parallelPromises = [];
+      // 1. Stock reduction (fire-and-forget - ไม่บล็อก)
+      reduceStockForOrder(orderItems)
+        .then(r => r.success && console.log(`[PaymentModal] ✅ Stock reduced`))
+        .catch(err => console.warn('[PaymentModal] Stock error:', err));
       
-      // 1. Stock reduction (background - don't block)
-      parallelPromises.push(
-        reduceStockForOrder(orderItems).then(stockResult => {
-          if (stockResult.success && stockResult.successCount > 0) {
-            console.log(`[PaymentModal] Stock reduced: ${stockResult.successCount} items`);
-          } else if (!stockResult.success) {
-            console.warn(`[PaymentModal] Stock reduction issues:`, stockResult.error);
-          }
-        }).catch(err => console.warn('[PaymentModal] Stock error:', err))
-      );
-      
-      // 2. Member points update
+      // 2. Member points update (fire-and-forget - ไม่บล็อก)
       if (selectedMember) {
-        parallelPromises.push(
-          (async () => {
+        (async () => {
+          try {
             let newPoints = selectedMember.points;
             let newTotalSpent = selectedMember.total_spent + actualTotal;
             
             if (method === 'points' && pointsUsed > 0) {
               newPoints = selectedMember.points - pointsUsed;
-              
-              // Update member and log transaction in parallel
-              await Promise.all([
-                supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id),
-                supabase.from('point_transactions').insert({
-                  member_id: selectedMember.id,
-                  order_id: order.id,
-                  points_change: -pointsUsed,
-                  transaction_type: 'redeem',
-                  description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
-                })
-              ]);
+              supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id);
+              supabase.from('point_transactions').insert({
+                member_id: selectedMember.id,
+                order_id: order.id,
+                points_change: -pointsUsed,
+                transaction_type: 'redeem',
+                description: `ใช้แต้มชำระเงิน ${pointsUsed} แต้ม ออเดอร์ ${orderNumber}`
+              });
             } else {
               const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
               newPoints = selectedMember.points + pointsEarned;
-              
-              const updatePromises = [];
-              
-              updatePromises.push(
-                (async () => {
-                  await supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id);
-                })()
-              );
-              
+              supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id);
               if (pointsEarned > 0) {
-                updatePromises.push(
-                  (async () => {
-                    await supabase.from('point_transactions').insert({
-                      member_id: selectedMember.id,
-                      order_id: order.id,
-                      points_change: pointsEarned,
-                      transaction_type: 'earn',
-                      description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
-                    });
-                  })()
-                );
+                supabase.from('point_transactions').insert({
+                  member_id: selectedMember.id,
+                  order_id: order.id,
+                  points_change: pointsEarned,
+                  transaction_type: 'earn',
+                  description: `รับแต้มจากการซื้อสินค้า ออเดอร์ ${orderNumber}`
+                });
               }
-              
-              await Promise.all(updatePromises);
             }
             
-            // Update UI state
             if (onMemberUpdate) {
               onMemberUpdate({ ...selectedMember, points: newPoints, total_spent: newTotalSpent });
             }
-            console.log(`[PaymentModal] Member points updated: ${newPoints}`);
-          })().catch(err => console.warn('[PaymentModal] Points error:', err))
-        );
+            console.log(`[PaymentModal] ✅ Member points updated`);
+          } catch (err) {
+            console.warn('[PaymentModal] Points error:', err);
+          }
+        })();
       }
       
-      // 3. WiFi voucher assignment
-      parallelPromises.push(
-        (async () => {
-          try {
-            const { getWiFiVoucherByAmount } = await import('@/utils/wifiVoucherUtils');
-            const voucher = await getWiFiVoucherByAmount(actualTotal);
-            
-            if (voucher) {
-              wifiVoucher = {
-                id: voucher.id,
-                username: voucher.username,
-                password: voucher.password,
-                qr_code_url: voucher.qr_code_url
-              };
-              
-              await supabase.from('orders').update({
-                wifi_voucher_id: wifiVoucher.id,
-                wifi_voucher_username: wifiVoucher.username,
-                wifi_voucher_password: wifiVoucher.password,
-              }).eq('id', order.id);
-              
-              console.log('[PaymentModal] WiFi voucher assigned:', voucher.username);
-            }
-          } catch (err) {
-            console.warn('[PaymentModal] WiFi voucher error:', err);
+      // 3. WiFi voucher assignment (fire-and-forget - ไม่บล็อก)
+      (async () => {
+        try {
+          const { getWiFiVoucherByAmount } = await import('@/utils/wifiVoucherUtils');
+          const voucher = await getWiFiVoucherByAmount(actualTotal);
+          if (voucher) {
+            wifiVoucher = { id: voucher.id, username: voucher.username, password: voucher.password, qr_code_url: voucher.qr_code_url };
+            supabase.from('orders').update({ wifi_voucher_id: voucher.id, wifi_voucher_username: voucher.username, wifi_voucher_password: voucher.password }).eq('id', order.id);
+            console.log('[PaymentModal] ✅ WiFi voucher assigned');
           }
-        })()
-      );
+        } catch (err) {
+          console.warn('[PaymentModal] WiFi error:', err);
+        }
+      })();
       
-      // Wait for all parallel operations (with 2 second timeout to not block too long)
-      await Promise.race([
-        Promise.all(parallelPromises),
-        new Promise(resolve => setTimeout(resolve, 2000))
-      ]);
-      
-      console.log(`[PaymentModal] Parallel processing completed in ${Date.now() - parallelStartTime}ms`);
+      console.log(`[PaymentModal] 🚀 Background tasks started (not waiting)`);
       console.log('[PaymentModal] Order processing completed successfully');
       
       // Return order data
