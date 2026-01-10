@@ -228,7 +228,7 @@ export const useOrderNotifications = () => {
     };
   }, []);
 
-  // ENHANCED REAL-TIME POLLING: Check every second for new online orders
+  // ENHANCED REAL-TIME POLLING: Check every 5 seconds for new online orders (reduced to prevent DB overload)
   useEffect(() => {
     // Check if this instance should be the global singleton
     const shouldBeSingleton = !globalNotificationInstance || !isGlobalSetup;
@@ -242,11 +242,11 @@ export const useOrderNotifications = () => {
     globalNotificationInstance = instanceIdRef.current;
     isGlobalSetup = true;
     
-    console.log(`🏆 Instance ${instanceIdRef.current} - Claimed SINGLETON status for REAL-TIME POLLING every second`);
+    console.log(`🏆 Instance ${instanceIdRef.current} - Claimed SINGLETON status for polling every 5 seconds`);
     
     let lastCheckedTime = new Date();
     
-    // Real-time polling function - checks every second
+    // Real-time polling function - checks every 5 seconds
     const pollForNewOnlineOrders = async () => {
       try {
         console.log(`⏰ POLLING - Checking for new online orders since ${lastCheckedTime.toISOString()}`);
@@ -420,9 +420,9 @@ export const useOrderNotifications = () => {
       }
     };
 
-    // Start polling every second
-    globalPollingInterval = setInterval(pollForNewOnlineOrders, 1000);
-    console.log('⏰ POLLING - Started real-time polling every 1 second for online orders');
+    // Start polling every 5 seconds (reduced from 1 second to prevent DB overload)
+    globalPollingInterval = setInterval(pollForNewOnlineOrders, 5000);
+    console.log('⏰ POLLING - Started polling every 5 seconds for online orders');
 
     // Initial poll
     pollForNewOnlineOrders();
