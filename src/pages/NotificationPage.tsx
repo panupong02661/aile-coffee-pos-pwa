@@ -26,7 +26,11 @@ import {
   Zap,
   Save,
   TestTube,
-  CheckCircle
+  CheckCircle,
+  Volume2,
+  VolumeX,
+  BellRing,
+  Monitor
 } from 'lucide-react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
@@ -91,6 +95,21 @@ const NotificationPage = () => {
         telegram: { enabled: false, token: '' }
       },
       message: 'สรุปยอดขายประจำเดือน {{month}}\nยอดขายรวม: {{totalSales}} บาท\nเป้าหมาย: {{target}} บาท\nอัตราการเติบโต: {{growth}}%'
+    },
+    // การตั้งค่าเสียงและป๊อปอัพ
+    soundPopup: {
+      // การตั้งค่าสำหรับออเดอร์ออนไลน์
+      online: {
+        soundEnabled: true,
+        popupEnabled: true,
+        volume: 80
+      },
+      // การตั้งค่าสำหรับออเดอร์ POS
+      pos: {
+        soundEnabled: false,
+        popupEnabled: false,
+        volume: 80
+      }
     }
   });
 
@@ -115,6 +134,7 @@ const NotificationPage = () => {
         // Merge with defaults to ensure sendAsImage is preserved
         const loadedDailyReports = (data as any).daily_reports || {};
         const loadedMonthlyReports = (data as any).monthly_reports || {};
+        const loadedSoundPopup = (data as any).sound_popup || {};
         
         setSettings({
           onlineOrders: (data as any).online_orders || settings.onlineOrders,
@@ -128,6 +148,18 @@ const NotificationPage = () => {
             ...settings.monthlyReports,
             ...loadedMonthlyReports,
             sendAsImage: loadedMonthlyReports.sendAsImage ?? settings.monthlyReports.sendAsImage
+          },
+          soundPopup: {
+            ...settings.soundPopup,
+            ...loadedSoundPopup,
+            online: {
+              ...settings.soundPopup.online,
+              ...(loadedSoundPopup.online || {})
+            },
+            pos: {
+              ...settings.soundPopup.pos,
+              ...(loadedSoundPopup.pos || {})
+            }
           }
         });
       }
@@ -161,6 +193,7 @@ const NotificationPage = () => {
         pos_orders: settings.posOrders,
         daily_reports: settings.dailyReports,
         monthly_reports: settings.monthlyReports,
+        sound_popup: settings.soundPopup,
         updated_at: new Date().toISOString()
       };
 
@@ -967,7 +1000,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
             </div>
 
         <Tabs defaultValue="online-orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="online-orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               ออเดอร์ออนไลน์
@@ -983,6 +1016,10 @@ ${topMenusList || 'ไม่มีข้อมูล'}
             <TabsTrigger value="monthly-reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               รายงานประจำเดือน
+            </TabsTrigger>
+            <TabsTrigger value="sound-popup" className="flex items-center gap-2">
+              <Volume2 className="w-4 h-4" />
+              เสียงและป๊อปอัพ
             </TabsTrigger>
           </TabsList>
 
@@ -1470,6 +1507,227 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                     </div>
                   </>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* การตั้งค่าเสียงและป๊อปอัพ */}
+          <TabsContent value="sound-popup">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Volume2 className="w-6 h-6 text-purple-600" />
+                  <div>
+                    <CardTitle>การตั้งค่าเสียงและป๊อปอัพ</CardTitle>
+                    <CardDescription>
+                      ตั้งค่าเสียงแจ้งเตือนและป๊อปอัพสำหรับออเดอร์ออนไลน์และ POS
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* การตั้งค่าสำหรับออเดอร์ออนไลน์ */}
+                <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                      <ShoppingCart className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-800 dark:text-green-200">ออเดอร์ออนไลน์ (Online)</h3>
+                      <p className="text-sm text-green-600 dark:text-green-400">การแจ้งเตือนเมื่อมีออเดอร์จากลูกค้า</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* เสียงแจ้งเตือน */}
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        {settings.soundPopup.online.soundEnabled ? (
+                          <Volume2 className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <VolumeX className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Label htmlFor="online-sound-enabled" className="font-medium">เสียงแจ้งเตือน</Label>
+                          <p className="text-xs text-muted-foreground">เปิด/ปิดเสียงเมื่อมีออเดอร์ใหม่</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="online-sound-enabled"
+                        checked={settings.soundPopup.online.soundEnabled}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              online: { ...prev.soundPopup.online, soundEnabled: checked }
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                    
+                    {/* ป๊อปอัพแจ้งเตือน */}
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <BellRing className={`w-5 h-5 ${settings.soundPopup.online.popupEnabled ? 'text-green-600' : 'text-gray-400'}`} />
+                        <div>
+                          <Label htmlFor="online-popup-enabled" className="font-medium">ป๊อปอัพแจ้งเตือน</Label>
+                          <p className="text-xs text-muted-foreground">แสดงป๊อปอัพเมื่อมีออเดอร์ใหม่</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="online-popup-enabled"
+                        checked={settings.soundPopup.online.popupEnabled}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              online: { ...prev.soundPopup.online, popupEnabled: checked }
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Volume Slider for Online */}
+                  {settings.soundPopup.online.soundEnabled && (
+                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium">ระดับเสียง</Label>
+                        <span className="text-sm text-muted-foreground">{settings.soundPopup.online.volume}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={settings.soundPopup.online.volume}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              online: { ...prev.soundPopup.online, volume: parseInt(e.target.value) }
+                            }
+                          }))
+                        }
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* การตั้งค่าสำหรับออเดอร์ POS */}
+                <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
+                      <Monitor className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-200">ออเดอร์ POS (หน้าร้าน)</h3>
+                      <p className="text-sm text-orange-600 dark:text-orange-400">การแจ้งเตือนเมื่อมีออเดอร์จากหน้า POS</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* เสียงแจ้งเตือน */}
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        {settings.soundPopup.pos.soundEnabled ? (
+                          <Volume2 className="w-5 h-5 text-orange-600" />
+                        ) : (
+                          <VolumeX className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <Label htmlFor="pos-sound-enabled" className="font-medium">เสียงแจ้งเตือน</Label>
+                          <p className="text-xs text-muted-foreground">เปิด/ปิดเสียงเมื่อมีออเดอร์ใหม่</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="pos-sound-enabled"
+                        checked={settings.soundPopup.pos.soundEnabled}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              pos: { ...prev.soundPopup.pos, soundEnabled: checked }
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                    
+                    {/* ป๊อปอัพแจ้งเตือน */}
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center gap-3">
+                        <BellRing className={`w-5 h-5 ${settings.soundPopup.pos.popupEnabled ? 'text-orange-600' : 'text-gray-400'}`} />
+                        <div>
+                          <Label htmlFor="pos-popup-enabled" className="font-medium">ป๊อปอัพแจ้งเตือน</Label>
+                          <p className="text-xs text-muted-foreground">แสดงป๊อปอัพเมื่อมีออเดอร์ใหม่</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="pos-popup-enabled"
+                        checked={settings.soundPopup.pos.popupEnabled}
+                        onCheckedChange={(checked) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              pos: { ...prev.soundPopup.pos, popupEnabled: checked }
+                            }
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Volume Slider for POS */}
+                  {settings.soundPopup.pos.soundEnabled && (
+                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium">ระดับเสียง</Label>
+                        <span className="text-sm text-muted-foreground">{settings.soundPopup.pos.volume}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={settings.soundPopup.pos.volume}
+                        onChange={(e) =>
+                          setSettings(prev => ({
+                            ...prev,
+                            soundPopup: {
+                              ...prev.soundPopup,
+                              pos: { ...prev.soundPopup.pos, volume: parseInt(e.target.value) }
+                            }
+                          }))
+                        }
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* คำอธิบายเพิ่มเติม */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-blue-800 dark:text-blue-200">คำแนะนำ</h4>
+                      <ul className="text-sm text-blue-700 dark:text-blue-300 mt-1 space-y-1">
+                        <li>• <strong>ออเดอร์ออนไลน์</strong>: แนะนำให้เปิดเสียงและป๊อปอัพ เพื่อรับทราบออเดอร์จากลูกค้าทันที</li>
+                        <li>• <strong>ออเดอร์ POS</strong>: สามารถปิดได้ เนื่องจากพนักงานรับออเดอร์เองที่หน้าร้านอยู่แล้ว</li>
+                        <li>• การตั้งค่านี้จะมีผลกับการแจ้งเตือนในแอปพลิเคชันทั้งหมด</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
