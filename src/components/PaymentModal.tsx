@@ -68,6 +68,10 @@ const PaymentModal = ({
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   const [wifiVoucherPreview, setWifiVoucherPreview] = useState<{ id: string; username: string; password: string; qr_code_url: string | null } | null>(null);
+  const [soundPopupSettings, setSoundPopupSettings] = useState<{
+    pos: { soundEnabled: boolean; popupEnabled: boolean; volume: number };
+    online: { soundEnabled: boolean; popupEnabled: boolean; volume: number };
+  } | null>(null);
   const { toast } = useToast();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -148,12 +152,53 @@ const PaymentModal = ({
       setWifiVoucherPreview(null);
       loadMembershipSettings();
       loadPromptPayPhone();
+      loadSoundPopupSettings();
       // โหลด WiFi voucher preview ทันที (ไม่ต้อง delay เพราะใช้ reservedVoucherIds แทน)
       loadWifiVoucherPreview();
     } else {
       setWifiVoucherPreview(null);
     }
   }, [isOpen, reservedVoucherIds]);
+
+  // Load sound popup settings
+  const loadSoundPopupSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .maybeSingle();
+      
+      if (data) {
+        const rawData = data as any;
+        if (rawData.sound_popup) {
+          const settings = rawData.sound_popup;
+          setSoundPopupSettings({
+            pos: settings.pos || { soundEnabled: false, popupEnabled: false, volume: 80 },
+            online: settings.online || { soundEnabled: true, popupEnabled: true, volume: 80 }
+          });
+          console.log('[PaymentModal] Loaded sound popup settings:', settings);
+        } else {
+          // Default: POS sound disabled
+          setSoundPopupSettings({
+            pos: { soundEnabled: false, popupEnabled: false, volume: 80 },
+            online: { soundEnabled: true, popupEnabled: true, volume: 80 }
+          });
+        }
+      } else {
+        // Default: POS sound disabled
+        setSoundPopupSettings({
+          pos: { soundEnabled: false, popupEnabled: false, volume: 80 },
+          online: { soundEnabled: true, popupEnabled: true, volume: 80 }
+        });
+      }
+    } catch (error) {
+      console.error('[PaymentModal] Error loading sound popup settings:', error);
+      setSoundPopupSettings({
+        pos: { soundEnabled: false, popupEnabled: false, volume: 80 },
+        online: { soundEnabled: true, popupEnabled: true, volume: 80 }
+      });
+    }
+  };
 
   // Load PromptPay phone from shop_settings via edge function
   const loadPromptPayPhone = async () => {
@@ -571,8 +616,12 @@ const PaymentModal = ({
       const dbTime = Date.now() - startTime;
       console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
 
-      // ✅ เล่นเสียงหลังจาก save สำเร็จ
-      playPaymentSuccessBell();
+      // ✅ เล่นเสียงหลังจาก save สำเร็จ (ถ้าเปิดการตั้งค่า POS sound)
+      if (soundPopupSettings?.pos?.soundEnabled) {
+        playPaymentSuccessBell();
+      } else {
+        console.log('[PaymentModal] 🔇 POS sound disabled, skipping bell');
+      }
 
       // ✅ ปิด modal หลังจาก DB เสร็จ
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
