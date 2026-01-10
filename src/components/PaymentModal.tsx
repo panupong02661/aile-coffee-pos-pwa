@@ -15,72 +15,7 @@ import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
-// Function to send POS order notification with complete details - FAST with timeout
-const sendPosOrderNotification = async (order: any, orderItems: any[] = [], discountCode?: string): Promise<void> => {
-  const startTime = Date.now();
-  const TIMEOUT_MS = 3000; // 3 second timeout for notification
-  
-  try {
-    console.log('🏪 Sending POS order notification for:', order.order_number);
-    
-    // Format order items for notification with COMPLETE addon details
-    const formattedOrderItems = orderItems.map((item: any) => ({
-      id: item.id || null,
-      menu_item_name: item.menu_item_name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-      item_discount: item.item_discount || 0,
-      item_discount_type: item.item_discount_type || 'amount',
-      selected_addons: item.selected_addons ? 
-        (typeof item.selected_addons === 'string' ? 
-          JSON.parse(item.selected_addons) : 
-          item.selected_addons) : []
-    }));
-
-    // Prepare complete order data for notification with POS source
-    const orderData = {
-      id: order.id,
-      order_number: order.order_number,
-      total_amount: order.total_amount,
-      items_count: formattedOrderItems.reduce((sum, item) => sum + item.quantity, 0),
-      member_id: order.member_id,
-      payment_method: order.payment_method,
-      order_source: 'pos',
-      status: 'completed',
-      created_at: order.created_at || new Date().toISOString(),
-      customer_notes: '',
-      customer_name: order.member_name || order.customer_name || 'ลูกค้า',
-      customer_phone: order.member_phone || order.customer_phone || '',
-      bill_discount: order.bill_discount || 0,
-      bill_discount_type: order.bill_discount_type || 'amount',
-      discount_code: discountCode || null,
-      order_items: formattedOrderItems
-    };
-
-    // Call with timeout - don't wait forever
-    const notificationPromise = supabase.functions.invoke('send-order-notification', {
-      body: { orderData }
-    });
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Notification timeout')), TIMEOUT_MS)
-    );
-
-    const response = await Promise.race([notificationPromise, timeoutPromise]) as any;
-
-    const elapsed = Date.now() - startTime;
-    if (response?.error) {
-      console.warn(`⚠️ POS notification warning (${elapsed}ms):`, response.error);
-    } else {
-      console.log(`✅ POS notification sent in ${elapsed}ms`);
-    }
-  } catch (error) {
-    const elapsed = Date.now() - startTime;
-    console.warn(`⚠️ POS notification skipped after ${elapsed}ms:`, error);
-    // Don't throw - notification failure shouldn't block payment
-  }
-};
+// POS order notifications removed - only online orders should trigger notifications
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -484,26 +419,7 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order items saved successfully`);
 
-      // 🔔 ส่ง notification แบบ fire-and-forget (ไม่รอ - ไม่บล็อก)
-      console.log('🔔 Sending POS notification (fire-and-forget)...');
-      
-      // Fire and forget - don't await
-      sendPosOrderNotification(
-        {
-          id: order.id,
-          order_number: order.order_number,
-          total_amount: order.total_amount,
-          created_at: order.created_at,
-          member_id: selectedMember?.id || null,
-          payment_method: method,
-          bill_discount: billDiscount,
-          bill_discount_type: billDiscountType,
-          member_name: selectedMember?.name || null,
-          member_phone: selectedMember?.phone || null,
-        },
-        orderItems,
-        appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
-      ).then(() => console.log('✅ POS notification sent')).catch(err => console.warn('⚠️ POS notification failed:', err));
+      // 🚫 POS notification removed - only ONLINE orders should trigger notifications
 
       // 🚀 FAST: Fire-and-forget ทุกอย่าง - ไม่รอเลย!
       console.log(`[PaymentModal] 🚀 Starting fire-and-forget background tasks...`);
