@@ -129,10 +129,10 @@ export const useAllOrders = () => {
     fetchOrders();
     setupRealtimeSubscription();
 
-    // Polling fallback every 5 seconds as backup
+    // 🚀 FAST polling every 1 second for immediate updates
     const pollInterval = setInterval(() => {
       fetchOrders();
-    }, 5000);
+    }, 1000);
 
     // Handle visibility change - refetch when tab becomes visible
     const handleVisibilityChange = () => {

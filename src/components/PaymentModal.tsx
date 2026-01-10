@@ -514,11 +514,11 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order items saved successfully`);
 
-      // 🔔 ส่ง notification ทันที (รอผลลัพธ์แต่มี timeout 3 วินาที)
-      console.log('🔔 Sending POS notification with timeout...');
-      const notificationStartTime = Date.now();
+      // 🔔 ส่ง notification แบบ fire-and-forget (ไม่รอ - ไม่บล็อก)
+      console.log('🔔 Sending POS notification (fire-and-forget)...');
       
-      await sendPosOrderNotification(
+      // Fire and forget - don't await
+      sendPosOrderNotification(
         {
           id: order.id,
           order_number: order.order_number,
@@ -533,9 +533,7 @@ const PaymentModal = ({
         },
         orderItems,
         appliedGiftCode?.gift_code || appliedGiftCode?.promo_code || appliedGiftCode?.gift_name || undefined
-      );
-      
-      console.log(`✅ POS notification completed in ${Date.now() - notificationStartTime}ms`);
+      ).then(() => console.log('✅ POS notification sent')).catch(err => console.warn('⚠️ POS notification failed:', err));
 
       // 🚀 ทำ parallel: stock reduction + member points + wifi voucher (ไม่ต้องรอทีละอัน)
       console.log(`[PaymentModal] Starting parallel processing (stock + points + wifi)...`);
@@ -716,53 +714,54 @@ const PaymentModal = ({
       setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
     }
 
-    // 🚀 ปิด modal ทันที - ไม่ต้องรอ DB!
-    const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
-    onPayment(paymentMethod, cashAmount);
-    onClose();
-
+    // 🚀 เล่นเสียงและแสดง toast ทันที (ก่อน DB)
+    playPaymentSuccessBell();
     toast({
-      title: "✅ ชำระเงินสำเร็จ",
+      title: "✅ กำลังบันทึก...",
       description: `ยอดชำระ ฿${total.toLocaleString()}`,
     });
 
-    // เล่นเสียงทันที
-    playPaymentSuccessBell();
+    console.log('[PaymentModal] 🚀 Starting FAST payment processing...');
+    const startTime = Date.now();
 
-    console.log('[PaymentModal] 🚀 Payment confirmed - processing in background...');
+    try {
+      // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
+      const savedOrder = await saveOrderToDatabase(paymentMethod);
+      
+      const dbTime = Date.now() - startTime;
+      console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
 
-    // 📦 ทำทุกอย่างใน background (ไม่บล็อก UI)
-    const currentCartItems = [...cartItems];
-    const currentPaymentMethod = paymentMethod;
-    const currentBillDiscount = billDiscount;
-    const currentBillDiscountType = billDiscountType;
-    const currentSelectedMember = selectedMember ? { ...selectedMember } : null;
-    const currentAppliedGiftCode = appliedGiftCode;
-    const currentTotal = total;
-    const currentWifiVoucher = wifiVoucherPreview;
+      // ✅ ปิด modal หลังจาก DB เสร็จ
+      const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
+      onPayment(paymentMethod, cashAmount);
+      onClose();
 
-    // Background processing - fire and forget
-    (async () => {
-      try {
-        console.log('[PaymentModal] Background: Saving order to database...');
-        const savedOrder = await saveOrderToDatabase(currentPaymentMethod);
-        
-        if (savedOrder) {
-          console.log('[PaymentModal] ✅ Background: Order saved successfully');
-          
-          if (savedOrder.wifi_voucher?.id) {
-            setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
-          }
-        }
-      } catch (error) {
-        console.error('[PaymentModal] ❌ Background save failed:', error);
-        toast({
-          title: "⚠️ คำเตือน",
-          description: "มีปัญหาในการบันทึกข้อมูล กรุณาตรวจสอบ",
-          variant: "destructive"
-        });
+      // แสดง toast สำเร็จ
+      toast({
+        title: "✅ ชำระเงินสำเร็จ",
+        description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}`,
+      });
+
+      if (savedOrder?.wifi_voucher?.id) {
+        setReservedVoucherIds(prev => prev.filter(id => id !== savedOrder.wifi_voucher.id));
       }
-    })();
+
+      console.log(`[PaymentModal] ✅ Total payment time: ${Date.now() - startTime}ms`);
+
+    } catch (error) {
+      console.error('[PaymentModal] ❌ Payment failed:', error);
+      
+      // คืน voucher ที่จองไว้
+      if (reservedVoucherId) {
+        setReservedVoucherIds(prev => prev.filter(id => id !== reservedVoucherId));
+      }
+      
+      toast({
+        title: "❌ เกิดข้อผิดพลาด",
+        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกออเดอร์ได้",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleMethodChange = (value: string) => {
