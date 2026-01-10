@@ -381,46 +381,39 @@ const PaymentModal = ({
     }
   };
 
-  const generateUniqueOrderNumber = async (maxRetries = 10) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[PaymentModal] Generating order number, attempt ${attempt}/${maxRetries}`);
-        
-        const { data: orderNumber, error } = await supabase.rpc('generate_order_number');
-        
-        if (error) {
-          console.warn(`[PaymentModal] Order number generation failed (attempt ${attempt}):`, error.message);
-          
-          if (attempt === maxRetries) {
-            const fallbackOrderNumber = `ORD-FB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-            console.log(`[PaymentModal] Using fallback order number: ${fallbackOrderNumber}`);
-            return fallbackOrderNumber;
-          }
-          
-          const delay = 50 * Math.pow(2, Math.min(attempt - 1, 5));
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-        
-        if (!orderNumber) {
-          throw new Error('No order number returned from database function');
-        }
-        
-        console.log(`[PaymentModal] Generated order number: ${orderNumber}`);
-        return orderNumber;
-        
-      } catch (error) {
-        console.warn(`[PaymentModal] Unexpected error generating order number (attempt ${attempt}):`, error);
-        
-        if (attempt === maxRetries) {
-          const fallbackOrderNumber = `ORD-FB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-          console.log(`[PaymentModal] Using fallback order number: ${fallbackOrderNumber}`);
-          return fallbackOrderNumber;
-        }
-        
-        const delay = 50 * Math.pow(2, Math.min(attempt - 1, 5));
-        await new Promise(resolve => setTimeout(resolve, delay));
+  const generateUniqueOrderNumber = async (maxRetries = 3) => {
+    // 🚀 FAST: ลอง RPC แค่ 1 ครั้ง ถ้าไม่ได้ใช้ fallback ทันที
+    try {
+      console.log(`[PaymentModal] Generating order number via RPC...`);
+      
+      // ใช้ timeout 2 วินาที เพื่อไม่ให้รอนาน
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('RPC timeout')), 2000)
+      );
+      
+      const rpcPromise = supabase.rpc('generate_order_number');
+      
+      const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
+      
+      if (result?.data && !result?.error) {
+        console.log(`[PaymentModal] Generated order number: ${result.data}`);
+        return result.data;
       }
+      
+      throw new Error(result?.error?.message || 'RPC failed');
+      
+    } catch (error) {
+      console.warn(`[PaymentModal] RPC failed, using fast fallback:`, error);
+      
+      // 🚀 FAST FALLBACK: ใช้ timestamp + random number
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      
+      const fallbackOrderNumber = `ORD-${dateStr}-${timeStr}-${random}`;
+      console.log(`[PaymentModal] Using fast fallback order number: ${fallbackOrderNumber}`);
+      return fallbackOrderNumber;
     }
   };
 
