@@ -95,30 +95,40 @@ export function generatePromptPayQR(data: PromptPayData): string {
   const poiMethod = data.amount && data.amount > 0 ? '12' : '11';
 
   let merchantAccountInfo: string;
-  const guid = tlv('00', 'A000000677010111');
+  
+  // Different AIDs for different proxy types
+  // A000000677010111 = PromptPay (Phone/NationalID/TaxID/E-Wallet)
+  // A000000677010112 = PromptPay Credit Transfer (Bank Account)
+  const PROMPTPAY_AID = 'A000000677010111';
+  const PROMPTPAY_CREDIT_TRANSFER_AID = 'A000000677010112';
 
   if (data.bankAccount) {
-    // Bank Account mode (ID 04 in sub-field)
-    // Format: bank code (3 digits) + account number
+    // Bank Account mode - uses different AID (A000000677010112)
+    // Sub-field 04: Bank Code (3 digits) + Account Number
+    const guid = tlv('00', PROMPTPAY_CREDIT_TRANSFER_AID);
     const bankAccountId = data.bankAccount.bankCode + data.bankAccount.accountNumber.replace(/\D/g, '');
     const account = tlv('04', bankAccountId);
     merchantAccountInfo = tlv('29', guid + account);
   } else if (data.nationalId) {
     // National ID mode (ID 02 in sub-field) - 13 digits
+    const guid = tlv('00', PROMPTPAY_AID);
     const nationalIdClean = data.nationalId.replace(/\D/g, '');
     const account = tlv('02', nationalIdClean);
     merchantAccountInfo = tlv('29', guid + account);
   } else if (data.taxId) {
-    // Tax ID mode (ID 02 in sub-field) - 13 digits with prefix
+    // Tax ID mode (ID 02 in sub-field) - 13 digits
+    const guid = tlv('00', PROMPTPAY_AID);
     const taxIdClean = data.taxId.replace(/\D/g, '');
     const account = tlv('02', taxIdClean);
     merchantAccountInfo = tlv('29', guid + account);
   } else if (data.eWalletId) {
     // E-Wallet mode (ID 03 in sub-field)
+    const guid = tlv('00', PROMPTPAY_AID);
     const account = tlv('03', data.eWalletId);
     merchantAccountInfo = tlv('29', guid + account);
   } else if (data.phoneNumber) {
     // Phone number mode (ID 01 in sub-field)
+    const guid = tlv('00', PROMPTPAY_AID);
     const formattedPhone = formatPhoneNumber(data.phoneNumber);
     const account = tlv('01', formattedPhone);
     merchantAccountInfo = tlv('29', guid + account);
