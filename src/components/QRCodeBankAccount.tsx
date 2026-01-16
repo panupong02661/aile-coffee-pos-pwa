@@ -41,6 +41,11 @@ const QRCodeBankAccount = ({
       return;
     }
 
+    if (!bankCode) {
+      if (!compact) setError('กรุณาเลือกธนาคาร');
+      return;
+    }
+
     const formattedAccount = formatAccountNumber(accountNumber);
     
     if (!validateThaiAccountNumber(formattedAccount)) {
@@ -50,11 +55,15 @@ const QRCodeBankAccount = ({
     
     try {
       console.log('✅ Generating PromptPay QR Code (Bank Account)');
+      console.log('  🏦 Bank Code:', bankCode);
       console.log('  🏦 Account:', formattedAccount);
       console.log('  💰 Amount:', qrAmount);
       
       const promptPayData: PromptPayData = {
-        accountNumber: formattedAccount,
+        bankAccount: {
+          bankCode: bankCode,
+          accountNumber: formattedAccount
+        },
         amount: qrAmount > 0 ? qrAmount : undefined
       };
       
@@ -159,13 +168,13 @@ const QRCodeBankAccount = ({
     }
   }, [defaultBankCode]);
 
-  // Auto-generate QR whenever account is valid
+  // Auto-generate QR whenever account and bank code are valid
   useEffect(() => {
     const formattedAccount = formatAccountNumber(accountNumber);
-    if (formattedAccount && validateThaiAccountNumber(formattedAccount)) {
+    if (formattedAccount && bankCode && validateThaiAccountNumber(formattedAccount)) {
       generateQR();
     }
-  }, [accountNumber, qrAmount, shopLogoUrl]);
+  }, [accountNumber, bankCode, qrAmount, shopLogoUrl]);
 
   // Compact mode - show only QR code
   if (compact) {

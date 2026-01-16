@@ -2,7 +2,13 @@
 // PromptPay QR Code Generator ตามมาตรฐาน EMVCo
 export interface PromptPayData {
   phoneNumber?: string;
-  accountNumber?: string;
+  nationalId?: string;      // เลขบัตรประชาชน 13 หลัก
+  taxId?: string;           // เลขประจำตัวผู้เสียภาษี
+  eWalletId?: string;       // e-Wallet ID
+  bankAccount?: {           // บัญชีธนาคาร
+    bankCode: string;       // รหัสธนาคาร 3 หลัก
+    accountNumber: string;  // เลขบัญชี
+  };
   amount?: number;
 }
 
@@ -89,20 +95,35 @@ export function generatePromptPayQR(data: PromptPayData): string {
   const poiMethod = data.amount && data.amount > 0 ? '12' : '11';
 
   let merchantAccountInfo: string;
+  const guid = tlv('00', 'A000000677010111');
 
-  if (data.accountNumber) {
-    // Bank Account mode - use account number (ID 02 in sub-field)
-    const guid = tlv('00', 'A000000677010111');
-    const account = tlv('02', data.accountNumber);
+  if (data.bankAccount) {
+    // Bank Account mode (ID 04 in sub-field)
+    // Format: bank code (3 digits) + account number
+    const bankAccountId = data.bankAccount.bankCode + data.bankAccount.accountNumber.replace(/\D/g, '');
+    const account = tlv('04', bankAccountId);
+    merchantAccountInfo = tlv('29', guid + account);
+  } else if (data.nationalId) {
+    // National ID mode (ID 02 in sub-field) - 13 digits
+    const nationalIdClean = data.nationalId.replace(/\D/g, '');
+    const account = tlv('02', nationalIdClean);
+    merchantAccountInfo = tlv('29', guid + account);
+  } else if (data.taxId) {
+    // Tax ID mode (ID 02 in sub-field) - 13 digits with prefix
+    const taxIdClean = data.taxId.replace(/\D/g, '');
+    const account = tlv('02', taxIdClean);
+    merchantAccountInfo = tlv('29', guid + account);
+  } else if (data.eWalletId) {
+    // E-Wallet mode (ID 03 in sub-field)
+    const account = tlv('03', data.eWalletId);
     merchantAccountInfo = tlv('29', guid + account);
   } else if (data.phoneNumber) {
-    // Phone number mode
+    // Phone number mode (ID 01 in sub-field)
     const formattedPhone = formatPhoneNumber(data.phoneNumber);
-    const guid = tlv('00', 'A000000677010111');
     const account = tlv('01', formattedPhone);
     merchantAccountInfo = tlv('29', guid + account);
   } else {
-    throw new Error('Either phoneNumber or accountNumber is required');
+    throw new Error('At least one identifier (phone, nationalId, taxId, eWalletId, or bankAccount) is required');
   }
 
   // Build payload
