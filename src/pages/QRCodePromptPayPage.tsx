@@ -8,9 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import QRCodePromptPay from '@/components/QRCodePromptPay';
 import QRCodeBankAccount from '@/components/QRCodeBankAccount';
+import QRCodeNationalId from '@/components/QRCodeNationalId';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
-import { Settings, QrCode, Phone, Building2 } from 'lucide-react';
+import { Settings, QrCode, Phone, Building2, IdCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { THAI_BANKS } from '@/utils/promptpay';
@@ -25,7 +26,7 @@ const QRCodePromptPayPage = () => {
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
   const [selectedPhone, setSelectedPhone] = useState(DEFAULT_PHONE);
   const [customAmount, setCustomAmount] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'phone' | 'account'>('phone');
+  const [activeTab, setActiveTab] = useState<'phone' | 'account' | 'nationalid'>('phone');
   
   // Bank account state
   const [savedAccounts, setSavedAccounts] = useState<Array<{account: string, bankCode: string}>>(() => {
@@ -35,6 +36,14 @@ const QRCodePromptPayPage = () => {
   const [newAccountNumber, setNewAccountNumber] = useState('');
   const [newBankCode, setNewBankCode] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<{account: string, bankCode: string} | null>(null);
+  
+  // National ID state
+  const [savedNationalIds, setSavedNationalIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('promptpay-national-ids');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newNationalId, setNewNationalId] = useState('');
+  const [selectedNationalId, setSelectedNationalId] = useState('');
   
   const { toast } = useToast();
   const handleToggleSidebar = () => {
@@ -130,6 +139,41 @@ const QRCodePromptPayPage = () => {
     }
   };
 
+  // National ID functions
+  const formatNationalIdInput = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 13);
+    if (digits.length <= 1) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 1)}-${digits.slice(1)}`;
+    if (digits.length <= 10) return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5, 10)}-${digits.slice(10)}`;
+    return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5, 10)}-${digits.slice(10, 12)}-${digits.slice(12)}`;
+  };
+
+  const saveNationalId = () => {
+    const cleaned = newNationalId.replace(/\D/g, '');
+    if (cleaned.length === 13) {
+      const formatted = formatNationalIdInput(cleaned);
+      const updated = [formatted];
+      setSavedNationalIds(updated);
+      localStorage.setItem('promptpay-national-ids', JSON.stringify(updated));
+      setNewNationalId('');
+      setSelectedNationalId(formatted);
+      toast({ 
+        title: 'บันทึกเลขบัตรประชาชนสำเร็จ', 
+        description: `บันทึกเลขบัตรประชาชน ${formatted}` 
+      });
+    }
+  };
+
+  const removeNationalId = (id: string) => {
+    const updated = savedNationalIds.filter(i => i !== id);
+    setSavedNationalIds(updated);
+    localStorage.setItem('promptpay-national-ids', JSON.stringify(updated));
+    if (selectedNationalId === id) {
+      setSelectedNationalId('');
+    }
+  };
+
   // โหลดเบอร์จาก shop_settings ผ่าน Edge Function เมื่อเริ่มต้น (ปลอด RLS)
   useEffect(() => {
     const loadPhone = async () => {
@@ -167,6 +211,11 @@ const QRCodePromptPayPage = () => {
     if (savedAccounts.length > 0) {
       setSelectedAccount(savedAccounts[0]);
     }
+
+    // Load saved national ID
+    if (savedNationalIds.length > 0) {
+      setSelectedNationalId(savedNationalIds[0]);
+    }
   }, []);
   return (
     <div className="h-screen bg-cream-50 flex overflow-hidden">
@@ -195,15 +244,22 @@ const QRCodePromptPayPage = () => {
               </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'phone' | 'account')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'phone' | 'account' | 'nationalid')} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="phone" className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  เบอร์โทรศัพท์
+                  <span className="hidden sm:inline">เบอร์โทรศัพท์</span>
+                  <span className="sm:hidden">เบอร์</span>
+                </TabsTrigger>
+                <TabsTrigger value="nationalid" className="flex items-center gap-2">
+                  <IdCard className="w-4 h-4" />
+                  <span className="hidden sm:inline">บัตรประชาชน</span>
+                  <span className="sm:hidden">บัตร ปชช.</span>
                 </TabsTrigger>
                 <TabsTrigger value="account" className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
-                  เลขบัญชีธนาคาร
+                  <span className="hidden sm:inline">เลขบัญชี</span>
+                  <span className="sm:hidden">บัญชี</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -467,6 +523,130 @@ const QRCodePromptPayPage = () => {
                         <div className="text-center py-8 text-gray-500">
                           <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                           <p>กรุณาเพิ่มเลขบัญชีธนาคารก่อน</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="nationalid">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* National ID Settings Panel */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <IdCard className="w-5 h-5" />
+                        ตั้งค่าเลขบัตรประชาชน
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-national-id">เลขบัตรประชาชน 13 หลัก</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="new-national-id"
+                            type="text"
+                            placeholder="x-xxxx-xxxxx-xx-x"
+                            value={newNationalId}
+                            onChange={(e) => setNewNationalId(formatNationalIdInput(e.target.value))}
+                            className="flex-1 font-mono"
+                            maxLength={17}
+                          />
+                          <Button 
+                            onClick={saveNationalId}
+                            disabled={newNationalId.replace(/\D/g, '').length !== 13}
+                            className="bg-coffee-600 hover:bg-coffee-700"
+                          >
+                            บันทึก
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          เลขบัตรประชาชน 13 หลักที่ลงทะเบียน PromptPay
+                        </p>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label>เลขบัตรที่บันทึกไว้</Label>
+                        {savedNationalIds.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">ยังไม่มีเลขบัตรที่บันทึกไว้</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {savedNationalIds.map((id, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <span className="text-sm font-mono">{id}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSelectedNationalId(id)}
+                                    className={`text-xs ${selectedNationalId === id ? 'bg-coffee-100' : ''}`}
+                                  >
+                                    เลือก
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => removeNationalId(id)}
+                                    className="text-xs text-red-600 hover:text-red-700"
+                                  >
+                                    ลบ
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-amount-nationalid">จำนวนเงินเริ่มต้น</Label>
+                        <Input
+                          id="custom-amount-nationalid"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={customAmount || ''}
+                          onChange={(e) => setCustomAmount(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* QR Code Display - National ID */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <QrCode className="w-5 h-5" />
+                        QR Code PromptPay (บัตรประชาชน)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedNationalId ? (
+                        <>
+                          <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+                            <p className="text-sm text-gray-700">
+                              <span className="font-semibold">เลขบัตรประชาชน:</span>{' '}
+                              <span className="font-mono">{selectedNationalId}</span>
+                            </p>
+                          </div>
+                          <QRCodeNationalId 
+                            key={selectedNationalId}
+                            defaultNationalId={selectedNationalId.replace(/\D/g, '')}
+                            amount={customAmount}
+                            compact
+                          />
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <IdCard className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>กรุณาเพิ่มเลขบัตรประชาชนก่อน</p>
                         </div>
                       )}
                     </CardContent>
