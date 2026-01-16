@@ -1,16 +1,19 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import QRCodePromptPay from '@/components/QRCodePromptPay';
+import QRCodeBankAccount from '@/components/QRCodeBankAccount';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
-import { Settings, QrCode } from 'lucide-react';
+import { Settings, QrCode, Phone, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { THAI_BANKS } from '@/utils/promptpay';
 
 const QRCodePromptPayPage = () => {
   const DEFAULT_PHONE = '0812345678'; // เบอร์ PromptPay เริ่มต้น
@@ -22,6 +25,17 @@ const QRCodePromptPayPage = () => {
   const [newPhoneNumber, setNewPhoneNumber] = useState('');
   const [selectedPhone, setSelectedPhone] = useState(DEFAULT_PHONE);
   const [customAmount, setCustomAmount] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'phone' | 'account'>('phone');
+  
+  // Bank account state
+  const [savedAccounts, setSavedAccounts] = useState<Array<{account: string, bankCode: string}>>(() => {
+    const saved = localStorage.getItem('promptpay-bank-accounts');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newAccountNumber, setNewAccountNumber] = useState('');
+  const [newBankCode, setNewBankCode] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState<{account: string, bankCode: string} | null>(null);
+  
   const { toast } = useToast();
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -85,6 +99,37 @@ const QRCodePromptPayPage = () => {
     }
   };
 
+  // Bank account functions
+  const saveBankAccount = () => {
+    const trimmedAccount = newAccountNumber.trim().replace(/\D/g, '');
+    if (trimmedAccount && newBankCode) {
+      const newEntry = { account: trimmedAccount, bankCode: newBankCode };
+      const updated = [newEntry]; // Keep only one account
+      setSavedAccounts(updated);
+      localStorage.setItem('promptpay-bank-accounts', JSON.stringify(updated));
+      setNewAccountNumber('');
+      setNewBankCode('');
+      setSelectedAccount(newEntry);
+      toast({ 
+        title: 'บันทึกเลขบัญชีสำเร็จ', 
+        description: `บันทึกเลขบัญชี ${trimmedAccount}` 
+      });
+    }
+  };
+
+  const selectBankAccount = (entry: {account: string, bankCode: string}) => {
+    setSelectedAccount(entry);
+  };
+
+  const removeBankAccount = (account: string) => {
+    const updated = savedAccounts.filter(a => a.account !== account);
+    setSavedAccounts(updated);
+    localStorage.setItem('promptpay-bank-accounts', JSON.stringify(updated));
+    if (selectedAccount?.account === account) {
+      setSelectedAccount(null);
+    }
+  };
+
   // โหลดเบอร์จาก shop_settings ผ่าน Edge Function เมื่อเริ่มต้น (ปลอด RLS)
   useEffect(() => {
     const loadPhone = async () => {
@@ -117,6 +162,11 @@ const QRCodePromptPayPage = () => {
       }
     };
     loadPhone();
+
+    // Load saved bank account
+    if (savedAccounts.length > 0) {
+      setSelectedAccount(savedAccounts[0]);
+    }
   }, []);
   return (
     <div className="h-screen bg-cream-50 flex overflow-hidden">
@@ -145,117 +195,285 @@ const QRCodePromptPayPage = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Settings Panel */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-coffee-800">
-                    <Settings className="w-5 h-5" />
-                    ตั้งค่าหมายเลขโทรศัพท์
-                  </CardTitle>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-phone">เพิ่มหมายเลขใหม่</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="new-phone"
-                        type="tel"
-                        placeholder="081-234-5678"
-                        value={newPhoneNumber}
-                        onChange={(e) => setNewPhoneNumber(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={savePhoneNumber}
-                        disabled={!newPhoneNumber.trim()}
-                        className="bg-coffee-600 hover:bg-coffee-700"
-                      >
-                        บันทึก
-                      </Button>
-                    </div>
-                  </div>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'phone' | 'account')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="phone" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  เบอร์โทรศัพท์
+                </TabsTrigger>
+                <TabsTrigger value="account" className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  เลขบัญชีธนาคาร
+                </TabsTrigger>
+              </TabsList>
 
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>หมายเลขที่บันทึกไว้</Label>
-                    {savedPhoneNumbers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">ยังไม่มีหมายเลขที่บันทึกไว้</p>
-                    ) : (
+              <TabsContent value="phone">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Phone Settings Panel */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <Settings className="w-5 h-5" />
+                        ตั้งค่าหมายเลขโทรศัพท์
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        {savedPhoneNumbers.map((phone, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm">{phone}</span>
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setActivePhone(phone)}
-                                className="text-xs"
-                              >
-                                เลือก
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => removePhoneNumber(phone)}
-                                className="text-xs text-red-600 hover:text-red-700"
-                              >
-                                ลบ
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                        <Label htmlFor="new-phone">เพิ่มหมายเลขใหม่</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="new-phone"
+                            type="tel"
+                            placeholder="081-234-5678"
+                            value={newPhoneNumber}
+                            onChange={(e) => setNewPhoneNumber(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={savePhoneNumber}
+                            disabled={!newPhoneNumber.trim()}
+                            className="bg-coffee-600 hover:bg-coffee-700"
+                          >
+                            บันทึก
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  <Separator />
+                      <Separator />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="custom-amount">จำนวนเงินเริ่มต้น</Label>
-                    <Input
-                      id="custom-amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={customAmount || ''}
-                      onChange={(e) => setCustomAmount(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="space-y-2">
+                        <Label>หมายเลขที่บันทึกไว้</Label>
+                        {savedPhoneNumbers.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">ยังไม่มีหมายเลขที่บันทึกไว้</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {savedPhoneNumbers.map((phone, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <span className="text-sm">{phone}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setActivePhone(phone)}
+                                    className="text-xs"
+                                  >
+                                    เลือก
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => removePhoneNumber(phone)}
+                                    className="text-xs text-red-600 hover:text-red-700"
+                                  >
+                                    ลบ
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-              {/* QR Code Display */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-coffee-800">
-                    <QrCode className="w-5 h-5" />
-                    QR Code PromptPay
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      <span className="font-semibold">หมายเลขโทรศัพท์:</span> {selectedPhone}
-                    </p>
-                    {selectedPhone === DEFAULT_PHONE && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        ⚠️ กำลังใช้เบอร์เริ่มต้น - กรุณาเพิ่มเบอร์ของคุณและกด "บันทึก" เพื่ออัปเดตในระบบ
-                      </p>
-                    )}
-                  </div>
-                  <QRCodePromptPay 
-                    key={selectedPhone}
-                    defaultPhoneNumber={selectedPhone}
-                    amount={customAmount}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-amount-phone">จำนวนเงินเริ่มต้น</Label>
+                        <Input
+                          id="custom-amount-phone"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={customAmount || ''}
+                          onChange={(e) => setCustomAmount(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* QR Code Display - Phone */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <QrCode className="w-5 h-5" />
+                        QR Code PromptPay
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-700">
+                          <span className="font-semibold">หมายเลขโทรศัพท์:</span> {selectedPhone}
+                        </p>
+                        {selectedPhone === DEFAULT_PHONE && (
+                          <p className="text-xs text-amber-600 mt-1">
+                            ⚠️ กำลังใช้เบอร์เริ่มต้น - กรุณาเพิ่มเบอร์ของคุณและกด "บันทึก" เพื่ออัปเดตในระบบ
+                          </p>
+                        )}
+                      </div>
+                      <QRCodePromptPay 
+                        key={selectedPhone}
+                        defaultPhoneNumber={selectedPhone}
+                        amount={customAmount}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="account">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Bank Account Settings Panel */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <Building2 className="w-5 h-5" />
+                        ตั้งค่าเลขบัญชีธนาคาร
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bank-select">เลือกธนาคาร</Label>
+                        <Select value={newBankCode} onValueChange={setNewBankCode}>
+                          <SelectTrigger id="bank-select">
+                            <SelectValue placeholder="เลือกธนาคาร" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {THAI_BANKS.map((bank) => (
+                              <SelectItem key={bank.code} value={bank.code}>
+                                {bank.name} ({bank.shortName})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="new-account">เลขบัญชีธนาคาร</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="new-account"
+                            type="text"
+                            placeholder="xxx-x-xxxxx-x"
+                            value={newAccountNumber}
+                            onChange={(e) => setNewAccountNumber(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={saveBankAccount}
+                            disabled={!newAccountNumber.trim() || !newBankCode}
+                            className="bg-coffee-600 hover:bg-coffee-700"
+                          >
+                            บันทึก
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">เลขบัญชี 10-15 หลัก</p>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label>บัญชีที่บันทึกไว้</Label>
+                        {savedAccounts.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">ยังไม่มีบัญชีที่บันทึกไว้</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {savedAccounts.map((entry, index) => {
+                              const bank = THAI_BANKS.find(b => b.code === entry.bankCode);
+                              return (
+                                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                  <div>
+                                    <span className="text-sm font-medium">{entry.account}</span>
+                                    {bank && (
+                                      <span className="text-xs text-gray-500 ml-2">({bank.shortName})</span>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => selectBankAccount(entry)}
+                                      className={`text-xs ${selectedAccount?.account === entry.account ? 'bg-coffee-100' : ''}`}
+                                    >
+                                      เลือก
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => removeBankAccount(entry.account)}
+                                      className="text-xs text-red-600 hover:text-red-700"
+                                    >
+                                      ลบ
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-amount-account">จำนวนเงินเริ่มต้น</Label>
+                        <Input
+                          id="custom-amount-account"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={customAmount || ''}
+                          onChange={(e) => setCustomAmount(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* QR Code Display - Bank Account */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                        <QrCode className="w-5 h-5" />
+                        QR Code PromptPay (เลขบัญชี)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedAccount ? (
+                        <>
+                          <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                            <p className="text-sm text-gray-700">
+                              <span className="font-semibold">เลขบัญชี:</span> {selectedAccount.account}
+                            </p>
+                            {(() => {
+                              const bank = THAI_BANKS.find(b => b.code === selectedAccount.bankCode);
+                              return bank && (
+                                <p className="text-sm text-gray-600">
+                                  <span className="font-semibold">ธนาคาร:</span> {bank.name}
+                                </p>
+                              );
+                            })()}
+                          </div>
+                          <QRCodeBankAccount 
+                            key={`${selectedAccount.account}-${selectedAccount.bankCode}`}
+                            defaultAccountNumber={selectedAccount.account}
+                            defaultBankCode={selectedAccount.bankCode}
+                            amount={customAmount}
+                            compact
+                          />
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>กรุณาเพิ่มเลขบัญชีธนาคารก่อน</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

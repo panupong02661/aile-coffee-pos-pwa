@@ -1,9 +1,35 @@
 
 // PromptPay QR Code Generator ตามมาตรฐาน EMVCo
 export interface PromptPayData {
-  phoneNumber: string;
+  phoneNumber?: string;
+  accountNumber?: string;
   amount?: number;
 }
+
+// Thai Bank codes for PromptPay
+export const THAI_BANKS = [
+  { code: '002', name: 'ธนาคารกรุงเทพ', shortName: 'BBL' },
+  { code: '004', name: 'ธนาคารกสิกรไทย', shortName: 'KBANK' },
+  { code: '006', name: 'ธนาคารกรุงไทย', shortName: 'KTB' },
+  { code: '011', name: 'ธนาคารทหารไทยธนชาต', shortName: 'TTB' },
+  { code: '014', name: 'ธนาคารไทยพาณิชย์', shortName: 'SCB' },
+  { code: '017', name: 'ธนาคารซิตี้แบงก์', shortName: 'CITI' },
+  { code: '020', name: 'ธนาคารสแตนดาร์ดชาร์เตอร์ด', shortName: 'SCBT' },
+  { code: '022', name: 'ธนาคารซีไอเอ็มบีไทย', shortName: 'CIMBT' },
+  { code: '024', name: 'ธนาคารยูโอบี', shortName: 'UOBT' },
+  { code: '025', name: 'ธนาคารกรุงศรีอยุธยา', shortName: 'BAY' },
+  { code: '030', name: 'ธนาคารออมสิน', shortName: 'GSB' },
+  { code: '033', name: 'ธนาคารอาคารสงเคราะห์', shortName: 'GHB' },
+  { code: '034', name: 'ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร', shortName: 'BAAC' },
+  { code: '066', name: 'ธนาคารอิสลามแห่งประเทศไทย', shortName: 'ISBT' },
+  { code: '067', name: 'ธนาคารทิสโก้', shortName: 'TISCO' },
+  { code: '069', name: 'ธนาคารเกียรตินาคินภัทร', shortName: 'KKP' },
+  { code: '070', name: 'ธนาคารไอซีบีซี (ไทย)', shortName: 'ICBCT' },
+  { code: '071', name: 'ธนาคารไทยเครดิต', shortName: 'TCD' },
+  { code: '073', name: 'ธนาคารแลนด์ แอนด์ เฮ้าส์', shortName: 'LHFG' },
+] as const;
+
+export type BankCode = typeof THAI_BANKS[number]['code'];
 
 // CRC16-CCITT calculation for EMVCo
 function crc16(data: string): string {
@@ -56,21 +82,28 @@ function formatPhoneNumber(phoneNumber: string): string {
 
 // Generate EMVCo compliant PromptPay QR Code data
 export function generatePromptPayQR(data: PromptPayData): string {
-  const formattedPhone = formatPhoneNumber(data.phoneNumber);
-
   // Helper to build TLV fields
   const tlv = (id: string, value: string) => id + value.length.toString().padStart(2, '0') + value;
 
   // Point of Initiation: 11 = static, 12 = dynamic (use dynamic when amount is specified)
   const poiMethod = data.amount && data.amount > 0 ? '12' : '11';
 
-  // Merchant Account Information for PromptPay (ID 29)
-  // Sub-fields:
-  // 00: GUID "A000000677010111"
-  // 01: Mobile number in 0066XXXXXXXXX format
-  const guid = tlv('00', 'A000000677010111');
-  const account = tlv('01', formattedPhone);
-  const merchantAccountInfo = tlv('29', guid + account);
+  let merchantAccountInfo: string;
+
+  if (data.accountNumber) {
+    // Bank Account mode - use account number (ID 02 in sub-field)
+    const guid = tlv('00', 'A000000677010111');
+    const account = tlv('02', data.accountNumber);
+    merchantAccountInfo = tlv('29', guid + account);
+  } else if (data.phoneNumber) {
+    // Phone number mode
+    const formattedPhone = formatPhoneNumber(data.phoneNumber);
+    const guid = tlv('00', 'A000000677010111');
+    const account = tlv('01', formattedPhone);
+    merchantAccountInfo = tlv('29', guid + account);
+  } else {
+    throw new Error('Either phoneNumber or accountNumber is required');
+  }
 
   // Build payload
   let qrData = '';
@@ -93,6 +126,18 @@ export function generatePromptPayQR(data: PromptPayData): string {
   qrData += checksum;
 
   return qrData;
+}
+
+// Validate Thai bank account number (10-15 digits depending on bank)
+export function validateThaiAccountNumber(accountNumber: string): boolean {
+  const digits = accountNumber.replace(/\D/g, '');
+  // Most Thai bank accounts are 10-12 digits, some can be up to 15
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+// Format account number for PromptPay (remove non-digits)
+export function formatAccountNumber(accountNumber: string): string {
+  return accountNumber.replace(/\D/g, '');
 }
 
 // Validate Thai phone number
