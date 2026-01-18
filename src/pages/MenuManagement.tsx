@@ -288,6 +288,7 @@ const MenuManagement = () => {
                     categories={categories}
                     onEdit={(item) => handleEdit(item, 'menu')}
                     onStatusChange={handleStatusChange}
+                    onDelete={() => refetch.menuItems()}
                   />
                 </TabsContent>
 
@@ -306,6 +307,7 @@ const MenuManagement = () => {
                     categories={categories} 
                     onEdit={(item) => handleEdit(item, 'category')} 
                     onStatusChange={() => refetch.categories()}
+                    onDelete={() => refetch.categories()}
                   />
                 </TabsContent>
 
