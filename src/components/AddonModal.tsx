@@ -1,11 +1,33 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { MenuItem, Addon } from '@/types';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
+
+interface AddonDisplayConfig {
+  fontSize: string;
+  fontWeight: string;
+  textColor: string;
+  backgroundColor: string;
+  selectedTextColor: string;
+  selectedBackgroundColor: string;
+  borderRadius: string;
+  minHeight: string;
+}
+
+const defaultConfig: AddonDisplayConfig = {
+  fontSize: '14',
+  fontWeight: 'bold',
+  textColor: '#5d4a3f',
+  backgroundColor: '#ffffff',
+  selectedTextColor: '#ffffff',
+  selectedBackgroundColor: '#6f4e37',
+  borderRadius: '8',
+  minHeight: '52',
+};
 
 interface AddonModalProps {
   isOpen: boolean;
@@ -17,6 +39,14 @@ interface AddonModalProps {
 
 const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
   const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
+  const [displayConfig, setDisplayConfig] = useState<AddonDisplayConfig>(defaultConfig);
+
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('addonDisplayConfig');
+    if (savedConfig) {
+      setDisplayConfig(JSON.parse(savedConfig));
+    }
+  }, [isOpen]);
 
   if (!menuItem) return null;
 
@@ -77,29 +107,41 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                   
                   {/* แสดง 3 addon ต่อบรรทัด */}
                   <div className="grid grid-cols-3 gap-1.5">
-                    {groupAddons.map(addon => (
-                      <Button
-                        key={addon.id}
-                        variant={isAddonSelected(addon) ? "default" : "outline"}
-                        className={`h-auto min-h-[52px] text-center justify-center p-2 ${
-                          isAddonSelected(addon) 
-                            ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
-                            : 'hover:bg-coffee-50'
-                        }`}
-                        onClick={() => handleAddonToggle(addon, groupName)}
-                      >
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="truncate w-full text-center text-sm font-bold">{addon.name}</span>
-                          <span className={`text-xs font-semibold h-4 ${
-                            Number(addon.price) > 0 
-                              ? (isAddonSelected(addon) ? 'text-orange-200' : 'text-orange-600')
-                              : 'invisible'
-                          }`}>
-                            {Number(addon.price) > 0 ? `+฿${Number(addon.price)}` : '-'}
-                          </span>
-                        </div>
-                      </Button>
-                    ))}
+                    {groupAddons.map(addon => {
+                      const isSelected = isAddonSelected(addon);
+                      const fontWeightValue = displayConfig.fontWeight === 'normal' ? 400 : displayConfig.fontWeight === 'medium' ? 500 : displayConfig.fontWeight === 'semibold' ? 600 : 700;
+                      
+                      return (
+                        <button
+                          key={addon.id}
+                          className="text-center justify-center p-2 border transition-all hover:opacity-80"
+                          style={{
+                            minHeight: `${displayConfig.minHeight}px`,
+                            fontSize: `${displayConfig.fontSize}px`,
+                            fontWeight: fontWeightValue,
+                            color: isSelected ? displayConfig.selectedTextColor : displayConfig.textColor,
+                            backgroundColor: isSelected ? displayConfig.selectedBackgroundColor : displayConfig.backgroundColor,
+                            borderRadius: `${displayConfig.borderRadius}px`,
+                            borderColor: isSelected ? displayConfig.selectedBackgroundColor : '#e5e7eb',
+                          }}
+                          onClick={() => handleAddonToggle(addon, groupName)}
+                        >
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="truncate w-full text-center">{addon.name}</span>
+                            <span 
+                              className={`h-4 ${Number(addon.price) > 0 ? '' : 'invisible'}`}
+                              style={{
+                                fontSize: `${Math.max(parseInt(displayConfig.fontSize) - 2, 10)}px`,
+                                fontWeight: 600,
+                                color: isSelected ? '#fed7aa' : '#ea580c',
+                              }}
+                            >
+                              {Number(addon.price) > 0 ? `+฿${Number(addon.price)}` : '-'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
