@@ -14,6 +14,7 @@ import CategoriesList from '@/components/CategoriesList';
 import AddonGroupsList from '@/components/AddonGroupsList';
 import AddonsList from '@/components/AddonsList';
 import MobilePhotoCapture from '@/components/MobilePhotoCapture';
+import AddonDisplaySettings from '@/components/AddonDisplaySettings';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useDevice } from '@/hooks/useDevice';
 import { useMenuExcel } from '@/hooks/useMenuExcel';
@@ -203,11 +204,12 @@ const MenuManagement = () => {
             
             <CardContent>
               <Tabs defaultValue="menu-items" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="menu-items">รายการเมนู</TabsTrigger>
                   <TabsTrigger value="categories">หมวดหมู่</TabsTrigger>
                   <TabsTrigger value="addon-groups">กลุ่ม Add-on</TabsTrigger>
                   <TabsTrigger value="addons">Add-ons</TabsTrigger>
+                  <TabsTrigger value="addon-settings">ตั้งค่า Add-on</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="menu-items" className="mt-6">
@@ -348,6 +350,10 @@ const MenuManagement = () => {
                     onDelete={() => refetch.addons()}
                     onStatusChange={() => refetch.addons()}
                   />
+                </TabsContent>
+
+                <TabsContent value="addon-settings" className="mt-6">
+                  <AddonDisplaySettings />
                 </TabsContent>
               </Tabs>
             </CardContent>
