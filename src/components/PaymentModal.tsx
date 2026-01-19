@@ -707,12 +707,12 @@ const PaymentModal = ({
           {/* Left Column - Payment Form */}
           <div className="space-y-2 overflow-y-auto max-h-[calc(85vh-80px)] pr-1">
             {/* Order Summary - Enhanced with gradient */}
-            {/* ยอดชำระ และ เงินทอน แยกกัน 2 ช่อง */}
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            {/* ยอดชำระ, เงินทอน และจำนวนเงินที่รับ แยกกัน 3 ช่อง */}
+            <div className={`grid gap-2 mb-2 ${paymentMethod === 'cash' ? 'grid-cols-3' : 'grid-cols-2'}`}>
               {/* ช่องยอดชำระ */}
               <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
-                <div className="flex justify-between items-center text-base font-semibold">
-                  <span className="text-foreground">ยอดชำระ:</span>
+                <div className="flex flex-col items-center text-base font-semibold">
+                  <span className="text-foreground text-xs">ยอดชำระ:</span>
                   <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                     ฿{total.toLocaleString()}
                   </span>
@@ -725,8 +725,8 @@ const PaymentModal = ({
                   ? 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-300'
                   : 'bg-gradient-to-br from-muted/30 to-muted/10 border-muted/30'
               }`}>
-                <div className="flex justify-between items-center text-base font-semibold">
-                  <span className="text-foreground">เงินทอน:</span>
+                <div className="flex flex-col items-center text-base font-semibold">
+                  <span className="text-foreground text-xs">เงินทอน:</span>
                   <span className={`text-xl font-bold ${
                     paymentMethod === 'cash' && change > 0
                       ? 'text-orange-600'
@@ -736,6 +736,18 @@ const PaymentModal = ({
                   </span>
                 </div>
               </div>
+
+              {/* ช่องจำนวนเงินที่ได้รับ - แสดงเฉพาะเมื่อเลือกเงินสด */}
+              {paymentMethod === 'cash' && (
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-2.5 rounded-2xl border-2 border-blue-300 shadow-sm">
+                  <div className="flex flex-col items-center text-base font-semibold">
+                    <span className="text-foreground text-xs">รับเงิน:</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      ฿{cashReceived ? parseFloat(cashReceived).toLocaleString() : '0'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* ข้อมูลสมาชิก */}
@@ -883,18 +895,6 @@ const PaymentModal = ({
           {/* Cash Input and Banknotes - Compact */}
           {paymentMethod === 'cash' && (
             <div className="space-y-1.5">
-              <div>
-                <Label htmlFor="cash-received" className="text-sm">จำนวนเงินที่รับ (บาท)</Label>
-                <Input
-                  id="cash-received"
-                  type="number"
-                  value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
-                  min={total}
-                  step="0.01"
-                  className="mt-0.5 h-9 text-sm"
-                />
-              </div>
 
               {/* Banknote Buttons - Compact */}
               <div>
