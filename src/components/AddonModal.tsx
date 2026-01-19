@@ -81,7 +81,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                       <Button
                         key={addon.id}
                         variant={isAddonSelected(addon) ? "default" : "outline"}
-                        className={`h-auto min-h-[52px] text-center justify-center p-1.5 text-xs ${
+                        className={`h-auto min-h-[52px] text-center justify-center p-2 ${
                           isAddonSelected(addon) 
                             ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
                             : 'hover:bg-coffee-50'
@@ -89,8 +89,8 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                         onClick={() => handleAddonToggle(addon, groupName)}
                       >
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className="truncate w-full text-center">{addon.name}</span>
-                          <span className={`text-[10px] font-medium h-3 ${
+                          <span className="truncate w-full text-center text-sm font-bold">{addon.name}</span>
+                          <span className={`text-xs font-semibold h-4 ${
                             Number(addon.price) > 0 
                               ? (isAddonSelected(addon) ? 'text-orange-200' : 'text-orange-600')
                               : 'invisible'
