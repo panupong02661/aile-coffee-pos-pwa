@@ -70,29 +70,32 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
               
               return (
-                <div key={groupName} className="space-y-3">
+                <div key={groupName} className="space-y-2">
                   <h3 className="font-bold text-lg text-coffee-800">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
                   
-                  <div className="space-y-2">
+                  {/* แสดง 3 addon ต่อบรรทัด */}
+                  <div className="grid grid-cols-3 gap-1.5">
                     {groupAddons.map(addon => (
                       <Button
                         key={addon.id}
                         variant={isAddonSelected(addon) ? "default" : "outline"}
-                        className={`w-full h-auto text-left justify-between p-2 text-sm ${
+                        className={`h-auto text-center justify-center p-1.5 text-xs ${
                           isAddonSelected(addon) 
                             ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
                             : 'hover:bg-coffee-50'
                         }`}
                         onClick={() => handleAddonToggle(addon, groupName)}
                       >
-                        <span className="flex-1 text-left truncate pr-2">{addon.name}</span>
-                        {Number(addon.price) > 0 && (
-                          <span className="text-orange-600 font-medium flex-shrink-0">
-                            +฿{Number(addon.price)}
-                          </span>
-                        )}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="truncate w-full text-center">{addon.name}</span>
+                          {Number(addon.price) > 0 && (
+                            <span className={`text-[10px] font-medium ${isAddonSelected(addon) ? 'text-orange-200' : 'text-orange-600'}`}>
+                              +฿{Number(addon.price)}
+                            </span>
+                          )}
+                        </div>
                       </Button>
                     ))}
                   </div>

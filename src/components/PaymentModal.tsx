@@ -750,22 +750,25 @@ const PaymentModal = ({
               )}
             </div>
             
-            {/* ข้อมูลสมาชิก */}
-            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
+            {/* ข้อมูลสมาชิก - แสดงในบรรทัดเดียว */}
             {selectedMember && (
-              <div className="mt-1.5 text-xs">
-                <div className="font-medium text-foreground">{selectedMember.name} ({selectedMember.phone})</div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-[10px] font-medium">
-                    {getTierDisplayName(selectedMember.tier)}
-                  </span>
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[10px] font-medium">
-                    {selectedMember.points.toLocaleString()} แต้ม
-                  </span>
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2 rounded-xl border-2 border-primary/20 shadow-sm">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium text-sm text-foreground truncate">{selectedMember.name}</span>
+                    <span className="text-xs text-muted-foreground">({selectedMember.phone})</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full text-[10px] font-medium">
+                      {getTierDisplayName(selectedMember.tier)}
+                    </span>
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[10px] font-medium">
+                      {selectedMember.points.toLocaleString()} แต้ม
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
-          </div>
 
           {/* Order Type Selection - Enhanced with colorful buttons */}
           <div className="min-w-0">
