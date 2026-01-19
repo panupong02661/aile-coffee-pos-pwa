@@ -146,9 +146,11 @@ const PaymentModal = ({
   // Track reserved voucher IDs to exclude from preview (persists across modal opens)
   const [reservedVoucherIds, setReservedVoucherIds] = useState<string[]>([]);
 
-  // รีเซ็ต wifi voucher preview ทุกครั้งที่ modal เปิด
+  // รีเซ็ต state ทุกครั้งที่ modal เปิด/ปิด
   useEffect(() => {
     if (isOpen) {
+      // รีเซ็ตจำนวนเงินที่รับเป็นค่าว่างเมื่อเปิด modal
+      setCashReceived('');
       setWifiVoucherPreview(null);
       loadMembershipSettings();
       loadPromptPayPhone();
@@ -156,6 +158,8 @@ const PaymentModal = ({
       // โหลด WiFi voucher preview ทันที (ไม่ต้อง delay เพราะใช้ reservedVoucherIds แทน)
       loadWifiVoucherPreview();
     } else {
+      // รีเซ็ตจำนวนเงินที่รับเป็นค่าว่างเมื่อปิด modal
+      setCashReceived('');
       setWifiVoucherPreview(null);
     }
   }, [isOpen, reservedVoucherIds]);
