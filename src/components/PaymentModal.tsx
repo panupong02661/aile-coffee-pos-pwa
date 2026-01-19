@@ -711,9 +711,16 @@ const PaymentModal = ({
             <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
             <div className="flex justify-between items-center text-base font-semibold">
               <span className="text-foreground">ยอดชำระ:</span>
-              <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                ฿{total.toLocaleString()}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  ฿{total.toLocaleString()}
+                </span>
+                {paymentMethod === 'cash' && change > 0 && (
+                  <span className="text-sm font-semibold text-orange-600">
+                    เงินทอน: ฿{change.toLocaleString()}
+                  </span>
+                )}
+              </div>
             </div>
             {selectedMember && (
               <div className="mt-1.5 text-xs">
