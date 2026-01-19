@@ -673,9 +673,8 @@ const PaymentModal = ({
   };
 
   const handleBanknoteClick = (amount: number) => {
-    const currentAmount = parseFloat(cashReceived || '0');
-    const newAmount = currentAmount + amount;
-    setCashReceived(newAmount.toString());
+    // เมื่อกดธนบัตร จะแทนที่ค่าเดิมทั้งหมด (ไม่รวมกับค่าก่อนหน้า)
+    setCashReceived(amount.toString());
   };
 
   const handleExactPayment = () => {
@@ -708,20 +707,39 @@ const PaymentModal = ({
           {/* Left Column - Payment Form */}
           <div className="space-y-2 overflow-y-auto max-h-[calc(85vh-80px)] pr-1">
             {/* Order Summary - Enhanced with gradient */}
-            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
-            <div className="flex justify-between items-center text-base font-semibold">
-              <span className="text-foreground">ยอดชำระ:</span>
-              <div className="flex items-center gap-3">
-                <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  ฿{total.toLocaleString()}
-                </span>
-                {paymentMethod === 'cash' && change > 0 && (
-                  <span className="text-sm font-semibold text-orange-600">
-                    เงินทอน: ฿{change.toLocaleString()}
+            {/* ยอดชำระ และ เงินทอน แยกกัน 2 ช่อง */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {/* ช่องยอดชำระ */}
+              <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
+                <div className="flex justify-between items-center text-base font-semibold">
+                  <span className="text-foreground">ยอดชำระ:</span>
+                  <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    ฿{total.toLocaleString()}
                   </span>
-                )}
+                </div>
+              </div>
+              
+              {/* ช่องเงินทอน */}
+              <div className={`p-2.5 rounded-2xl border-2 shadow-sm ${
+                paymentMethod === 'cash' && change > 0
+                  ? 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-300'
+                  : 'bg-gradient-to-br from-muted/30 to-muted/10 border-muted/30'
+              }`}>
+                <div className="flex justify-between items-center text-base font-semibold">
+                  <span className="text-foreground">เงินทอน:</span>
+                  <span className={`text-xl font-bold ${
+                    paymentMethod === 'cash' && change > 0
+                      ? 'text-orange-600'
+                      : 'text-muted-foreground'
+                  }`}>
+                    ฿{paymentMethod === 'cash' ? change.toLocaleString() : '0'}
+                  </span>
+                </div>
               </div>
             </div>
+            
+            {/* ข้อมูลสมาชิก */}
+            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-2.5 rounded-2xl border-2 border-primary/20 shadow-sm">
             {selectedMember && (
               <div className="mt-1.5 text-xs">
                 <div className="font-medium text-foreground">{selectedMember.name} ({selectedMember.phone})</div>
