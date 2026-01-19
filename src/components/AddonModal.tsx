@@ -81,7 +81,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                       <Button
                         key={addon.id}
                         variant={isAddonSelected(addon) ? "default" : "outline"}
-                        className={`h-auto text-center justify-center p-1.5 text-xs ${
+                        className={`h-auto min-h-[52px] text-center justify-center p-1.5 text-xs ${
                           isAddonSelected(addon) 
                             ? 'bg-coffee-600 hover:bg-coffee-700 text-white' 
                             : 'hover:bg-coffee-50'
@@ -90,11 +90,13 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                       >
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="truncate w-full text-center">{addon.name}</span>
-                          {Number(addon.price) > 0 && (
-                            <span className={`text-[10px] font-medium ${isAddonSelected(addon) ? 'text-orange-200' : 'text-orange-600'}`}>
-                              +฿{Number(addon.price)}
-                            </span>
-                          )}
+                          <span className={`text-[10px] font-medium h-3 ${
+                            Number(addon.price) > 0 
+                              ? (isAddonSelected(addon) ? 'text-orange-200' : 'text-orange-600')
+                              : 'invisible'
+                          }`}>
+                            {Number(addon.price) > 0 ? `+฿${Number(addon.price)}` : '-'}
+                          </span>
                         </div>
                       </Button>
                     ))}
