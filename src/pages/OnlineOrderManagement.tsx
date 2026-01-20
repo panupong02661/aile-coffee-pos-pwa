@@ -309,10 +309,10 @@ const OnlineOrderManagement = () => {
       <div className="h-screen bg-cream-50 flex">
         <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
         
-        <div className={`flex-1 transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
           isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
         }`}>
-          <div className="p-4">
+          <div className="p-4 flex-1 overflow-auto">
             <Header 
               onToggleSidebar={handleToggleSidebar}
               categories={[]}
@@ -325,7 +325,7 @@ const OnlineOrderManagement = () => {
               page="other"
             />
             
-            <div className="container mx-auto p-6">
+            <div className="max-w-full px-2 md:px-6 pb-6">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
                 <p className="mt-4 text-gray-600">กำลังโหลดข้อมูลออเดอร์...</p>
@@ -341,10 +341,10 @@ const OnlineOrderManagement = () => {
     <div className="h-screen bg-cream-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
       
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
       }`}>
-        <div className="p-4">
+        <div className="p-4 flex-1 overflow-auto">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             categories={[]}
@@ -357,7 +357,7 @@ const OnlineOrderManagement = () => {
             page="other"
           />
           
-          <div className="container mx-auto p-6">
+          <div className="max-w-full px-2 md:px-6 pb-6">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
