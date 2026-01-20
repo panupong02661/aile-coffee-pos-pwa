@@ -519,7 +519,7 @@ const POS = () => {
       }`}>
         {/* Fixed Header - pt-safe for iPad status bar */}
         <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${
-          isMobile ? 'pt-8 p-1' : 'pt-6 py-1 px-1.5'
+          isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'
         }`}>
           <Header
             onToggleSidebar={handleToggleSidebar}
