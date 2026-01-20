@@ -95,10 +95,21 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }: OrderDetailsModalProps)
         bill_discount: orderData.bill_discount,
         bill_discount_type: orderData.bill_discount_type,
         customer_notes: orderData.customer_notes,
-        items: (itemsData || []).map(item => ({
-          ...item,
-          selected_addons: Array.isArray(item.selected_addons) ? item.selected_addons : []
-        }))
+        items: (itemsData || []).map(item => {
+          let addons = item.selected_addons;
+          // Parse if it's a string
+          if (typeof addons === 'string') {
+            try {
+              addons = JSON.parse(addons);
+            } catch (e) {
+              addons = [];
+            }
+          }
+          return {
+            ...item,
+            selected_addons: Array.isArray(addons) ? addons : []
+          };
+        })
       };
 
       setOrderDetails(details);

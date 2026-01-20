@@ -360,16 +360,22 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
                   <div className="text-xs text-gray-500 pl-2">
                     จำนวน: {item.quantity} • ราคาต่อหน่วย: ฿{item.unit_price}
                   </div>
-                  {item.selected_addons && Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
-                    <div className="pl-2">
-                      {item.selected_addons.map((addon: any, addonIndex: number) => (
-                        <div key={addonIndex} className="flex justify-between text-xs text-gray-500">
-                          <div>+ {addon.name}</div>
-                          {addon.price > 0 && <div>฿{addon.price}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {(() => {
+                    let addons = item.selected_addons;
+                    if (typeof addons === 'string') {
+                      try { addons = JSON.parse(addons); } catch { addons = []; }
+                    }
+                    return Array.isArray(addons) && addons.length > 0 ? (
+                      <div className="pl-2">
+                        {addons.map((addon: any, addonIndex: number) => (
+                          <div key={addonIndex} className="flex justify-between text-xs text-gray-500">
+                            <div>+ {addon.name}</div>
+                            {addon.price > 0 && <div>฿{addon.price}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                   {item.item_discount > 0 && (
                     <div className="text-xs text-red-600 pl-2">
                       ส่วนลด: -฿{item.item_discount.toLocaleString()}
