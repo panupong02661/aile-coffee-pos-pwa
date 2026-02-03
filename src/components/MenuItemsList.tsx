@@ -98,24 +98,25 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     const currentItem = localMenuItems[index];
     const prevItem = localMenuItems[index - 1];
     
-    // Swap sort_order values
-    const currentSortOrder = currentItem.sort_order || index;
-    const prevSortOrder = prevItem.sort_order || index - 1;
+    // Swap sort_order values - assign new unique values to prevent conflict
+    const newCurrentSortOrder = (prevItem.sort_order ?? index - 1);
+    const newPrevSortOrder = (currentItem.sort_order ?? index);
     
-    // Optimistic update
+    // Optimistic update - swap positions and update sort_order locally
     const newItems = [...localMenuItems];
-    [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
+    newItems[index] = { ...prevItem, sort_order: newPrevSortOrder };
+    newItems[index - 1] = { ...currentItem, sort_order: newCurrentSortOrder };
     setLocalMenuItems(newItems);
     
     try {
       // Update both items in database - use type assertion since sort_order is newly added
       await Promise.all([
-        supabase.from('menu_items').update({ sort_order: prevSortOrder } as any).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: currentSortOrder } as any).eq('id', prevItem.id)
+        supabase.from('menu_items').update({ sort_order: newCurrentSortOrder } as any).eq('id', currentItem.id),
+        supabase.from('menu_items').update({ sort_order: newPrevSortOrder } as any).eq('id', prevItem.id)
       ]);
       
       toast.success('เลื่อนลำดับสำเร็จ');
-      onStatusChange?.();
+      // Don't call onStatusChange - it will refetch and revert the order
     } catch (error) {
       console.error('Error moving item:', error);
       setLocalMenuItems(menuItems);
@@ -129,24 +130,25 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     const currentItem = localMenuItems[index];
     const nextItem = localMenuItems[index + 1];
     
-    // Swap sort_order values
-    const currentSortOrder = currentItem.sort_order || index;
-    const nextSortOrder = nextItem.sort_order || index + 1;
+    // Swap sort_order values - assign new unique values to prevent conflict
+    const newCurrentSortOrder = (nextItem.sort_order ?? index + 1);
+    const newNextSortOrder = (currentItem.sort_order ?? index);
     
-    // Optimistic update
+    // Optimistic update - swap positions and update sort_order locally
     const newItems = [...localMenuItems];
-    [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+    newItems[index] = { ...nextItem, sort_order: newNextSortOrder };
+    newItems[index + 1] = { ...currentItem, sort_order: newCurrentSortOrder };
     setLocalMenuItems(newItems);
     
     try {
       // Update both items in database - use type assertion since sort_order is newly added
       await Promise.all([
-        supabase.from('menu_items').update({ sort_order: nextSortOrder } as any).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: currentSortOrder } as any).eq('id', nextItem.id)
+        supabase.from('menu_items').update({ sort_order: newCurrentSortOrder } as any).eq('id', currentItem.id),
+        supabase.from('menu_items').update({ sort_order: newNextSortOrder } as any).eq('id', nextItem.id)
       ]);
       
       toast.success('เลื่อนลำดับสำเร็จ');
-      onStatusChange?.();
+      // Don't call onStatusChange - it will refetch and revert the order
     } catch (error) {
       console.error('Error moving item:', error);
       setLocalMenuItems(menuItems);

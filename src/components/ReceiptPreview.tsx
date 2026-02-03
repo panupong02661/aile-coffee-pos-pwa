@@ -136,7 +136,7 @@ const ReceiptPreview = ({
               <img
                 src={shopSettings.logo_url}
                 alt="Logo"
-                className="w-16 h-16 mx-auto object-contain"
+                className="w-24 h-24 mx-auto object-contain"
               />
             </div>
           )}
