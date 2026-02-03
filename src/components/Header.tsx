@@ -115,25 +115,25 @@ const Header = ({
   return (
     <>
       {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
+      <div className="flex items-center justify-between w-full overflow-hidden">
+        <div className="flex items-center flex-shrink min-w-0 overflow-hidden">
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0">
             <Menu className="w-5 h-5" />
           </Button>
 
           {onMemberClick && (
-            <Button variant="outline" size="icon" className="ml-2" onClick={onMemberClick}>
+            <Button variant="outline" size="icon" className="ml-2 flex-shrink-0" onClick={onMemberClick}>
               <User className="w-4 h-4" />
             </Button>
           )}
           
-          <div className="hidden md:flex items-center ml-6">
+          <div className="hidden md:flex items-center ml-6 flex-shrink min-w-0 overflow-hidden">
             {categories.map(category => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
-                className="mr-2"
+                className="mr-2 flex-shrink-0"
                 onClick={() => onCategorySelect(category.id)}
               >
                 {category.name}
@@ -145,55 +145,55 @@ const Header = ({
                 variant="ghost" 
                 size="icon" 
                 onClick={onToggleDebug}
-                className="ml-2"
+                className="ml-2 flex-shrink-0"
               >
                 <Bug className="w-5 h-5" />
               </Button>
             )}
             
             {onSearchOpen && (
-              <Button variant="ghost" size="icon" onClick={onSearchOpen}>
+              <Button variant="ghost" size="icon" onClick={onSearchOpen} className="flex-shrink-0">
                 <Search className="w-5 h-5" />
               </Button>
             )}
             
             {onSettingsOpen && (
-              <Button variant="ghost" size="icon" onClick={onSettingsOpen}>
+              <Button variant="ghost" size="icon" onClick={onSettingsOpen} className="flex-shrink-0">
                 <Settings className="w-5 h-5" />
               </Button>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-end flex-shrink-0 max-w-[180px] md:max-w-[220px] overflow-hidden">
-          {selectedMember && (
-            <div 
-              onClick={() => onMemberInfoClick?.()}
-              className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
-            >
-              <span className="text-xs font-bold text-blue-900 truncate max-w-[60px] md:max-w-[80px]">
-                {selectedMember.name}
+        {/* Member display - fixed width to align with cart */}
+        {selectedMember && (
+          <div 
+            onClick={() => onMemberInfoClick?.()}
+            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow flex-shrink-0 ml-2"
+            style={{ maxWidth: '160px' }}
+          >
+            <span className="text-xs font-bold text-blue-900 truncate" style={{ maxWidth: '50px' }}>
+              {selectedMember.name}
+            </span>
+            <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[9px] px-1 py-0 font-bold shadow-sm flex-shrink-0`}>
+              <span className="flex items-center gap-0.5">
+                {getTierIcon(selectedMember.tier)}
+                {getTierName(selectedMember.tier)}
               </span>
-              <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0 font-bold shadow-sm flex-shrink-0`}>
-                <span className="flex items-center gap-0.5">
-                  {getTierIcon(selectedMember.tier)}
-                  {getTierName(selectedMember.tier)}
-                </span>
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveMember();
-                }}
-                className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-4 h-4 p-0 rounded-full flex-shrink-0"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-        </div>
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveMember();
+              }}
+              className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-4 h-4 p-0 rounded-full flex-shrink-0"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Search Modal */}
