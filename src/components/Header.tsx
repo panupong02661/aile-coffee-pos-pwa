@@ -165,17 +165,17 @@ const Header = ({
           </div>
         </div>
 
-        {/* Member display - fixed width to align with cart */}
+        {/* Member display - height matches category buttons */}
         {selectedMember && (
           <div 
             onClick={() => onMemberInfoClick?.()}
-            className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow flex-shrink-0 ml-2"
-            style={{ maxWidth: '160px' }}
+            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow flex-shrink-0 ml-2"
+            style={{ maxWidth: '180px' }}
           >
-            <span className="text-xs font-bold text-blue-900 truncate" style={{ maxWidth: '50px' }}>
+            <span className="text-sm font-bold text-blue-900 truncate" style={{ maxWidth: '70px' }}>
               {selectedMember.name}
             </span>
-            <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[9px] px-1 py-0 font-bold shadow-sm flex-shrink-0`}>
+            <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0.5 font-bold shadow-sm flex-shrink-0`}>
               <span className="flex items-center gap-0.5">
                 {getTierIcon(selectedMember.tier)}
                 {getTierName(selectedMember.tier)}
@@ -188,9 +188,9 @@ const Header = ({
                 e.stopPropagation();
                 onRemoveMember();
               }}
-              className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-4 h-4 p-0 rounded-full flex-shrink-0"
+              className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 rounded-full flex-shrink-0"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </Button>
           </div>
         )}
