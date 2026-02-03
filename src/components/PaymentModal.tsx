@@ -905,17 +905,18 @@ const PaymentModal = ({
                 <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {banknotes.map((amount, index) => {
                     const colors = [
-                      'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
-                      'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
-                      'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
-                      'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700',
-                      'from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700'
+                      'bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-emerald-300',
+                      'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-300',
+                      'bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-300',
+                      'bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-300',
+                      'bg-pink-100 hover:bg-pink-200 text-pink-700 border-pink-300'
                     ];
                     return (
                       <Button
                         key={amount}
                         onClick={() => handleBanknoteClick(amount)}
-                        className={`h-10 text-sm font-bold bg-gradient-to-br ${colors[index]} text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-xl`}
+                        variant="outline"
+                        className={`h-10 text-sm font-bold ${colors[index]} border-2 shadow-sm hover:shadow-md hover:scale-105 transition-all rounded-xl`}
                       >
                         ฿{amount}
                       </Button>
