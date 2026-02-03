@@ -108,10 +108,10 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     setLocalMenuItems(newItems);
     
     try {
-      // Update both items in database
+      // Update both items in database - use type assertion since sort_order is newly added
       await Promise.all([
-        supabase.from('menu_items').update({ sort_order: prevSortOrder }).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: currentSortOrder }).eq('id', prevItem.id)
+        supabase.from('menu_items').update({ sort_order: prevSortOrder } as any).eq('id', currentItem.id),
+        supabase.from('menu_items').update({ sort_order: currentSortOrder } as any).eq('id', prevItem.id)
       ]);
       
       toast.success('เลื่อนลำดับสำเร็จ');
@@ -139,10 +139,10 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     setLocalMenuItems(newItems);
     
     try {
-      // Update both items in database
+      // Update both items in database - use type assertion since sort_order is newly added
       await Promise.all([
-        supabase.from('menu_items').update({ sort_order: nextSortOrder }).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: currentSortOrder }).eq('id', nextItem.id)
+        supabase.from('menu_items').update({ sort_order: nextSortOrder } as any).eq('id', currentItem.id),
+        supabase.from('menu_items').update({ sort_order: currentSortOrder } as any).eq('id', nextItem.id)
       ]);
       
       toast.success('เลื่อนลำดับสำเร็จ');
