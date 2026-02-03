@@ -281,95 +281,90 @@ const Cart = ({
   return (
     <>
       <Card className="h-full flex flex-col border-coffee-200 overflow-hidden bg-card">
-        <CardHeader className="py-2 px-3 flex-shrink-0">
+        <CardHeader className="py-3 px-4 flex-shrink-0">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-coffee-800 text-sm truncate">
+            <CardTitle className="text-coffee-800 text-base font-bold truncate">
               ตะกร้าสินค้า
             </CardTitle>
-            <span className="text-coffee-600 text-xs whitespace-nowrap ml-1">
-              ({cartItems.length})
+            <span className="text-coffee-600 text-sm font-medium whitespace-nowrap ml-2">
+              ({cartItems.length} รายการ)
             </span>
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col min-h-0 p-2 pt-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-3 pt-0 overflow-hidden">
           {/* Payment Summary Section - Always show */}
-          <div className="border border-coffee-200 rounded-md p-2 mb-2 bg-coffee-50 flex-shrink-0">
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
+          <div className="border border-coffee-200 rounded-lg p-3 mb-3 bg-coffee-50 flex-shrink-0">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
                 <span>ยอดรวมย่อย:</span>
-                <span className="font-medium">฿{subtotal}</span>
+                <span className="font-medium">฿{subtotal.toLocaleString()}</span>
               </div>
 
               {hasItemDiscounts && (
-                <div className="flex justify-between text-xs text-orange-600">
+                <div className="flex justify-between text-sm text-orange-600">
                   <span>ส่วนลดรายการ:</span>
                   <span>-฿{cartItems.reduce((sum, item) => {
                     const basePrice = item.menu_item.price + (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0);
                     const totalBasePrice = basePrice * item.quantity;
                     return sum + (totalBasePrice - item.total_price);
-                  }, 0)}</span>
+                  }, 0).toLocaleString()}</span>
                 </div>
               )}
 
               {billDiscountAmount > 0 && (
-                <div className="flex justify-between text-xs text-red-600">
+                <div className="flex justify-between text-sm text-red-600">
                   <span>ส่วนลดบิล:</span>
-                  <span>-฿{billDiscountAmount}</span>
+                  <span>-฿{billDiscountAmount.toLocaleString()}</span>
                 </div>
               )}
 
-              <Separator className="my-1" />
+              <Separator className="my-2" />
               
-              <div className="flex justify-between font-bold text-sm">
+              <div className="flex justify-between font-bold text-base">
                 <span>ยอดชำระสุทธิ:</span>
-                <span className="text-coffee-600 text-base">฿{total}</span>
+                <span className="text-coffee-600 text-lg">฿{total.toLocaleString()}</span>
               </div>
             </div>
 
-            <div className="space-y-1.5 mt-2">
+            <div className="space-y-2 mt-3">
               <Button 
-                className="w-full bg-coffee-600 hover:bg-coffee-700 h-8 text-sm"
+                className="w-full bg-coffee-600 hover:bg-coffee-700 h-10 text-base font-semibold"
                 onClick={() => setIsPaymentModalOpen(true)}
                 disabled={cartItems.length === 0}
-                size="sm"
               >
-                ชำระ
+                ชำระเงิน
               </Button>
               
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-4 gap-1.5">
                 <Button
                   variant="outline" 
                   onClick={() => setIsDiscountModalOpen(true)}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-7 p-1"
-                  size="sm"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-9 p-1.5"
                 >
-                  <Percent className="w-3.5 h-3.5" />
+                  <Percent className="w-4 h-4" />
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   onClick={() => setIsHoldBillModalOpen(true)}
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-7 p-1"
-                  size="sm"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-9 p-1.5"
                 >
-                  <Clock className="w-3.5 h-3.5" />
+                  <Clock className="w-4 h-4" />
                 </Button>
 
                 <Button 
                   variant="outline" 
                   onClick={() => setIsCodeModalOpen(true)}
-                  className="border-green-300 text-green-700 hover:bg-green-50 h-7 p-1"
-                  size="sm"
+                  className="border-green-300 text-green-700 hover:bg-green-50 h-9 p-1.5"
                 >
-                  <QrCode className="w-3.5 h-3.5" />
+                  <QrCode className="w-4 h-4" />
                 </Button>
 
                 <Button 
                   variant="outline" 
                   onClick={onClearCart}
-                  className="h-7 p-1 text-xs"
-                  size="sm"
+                  className="h-9 p-1.5 text-sm"
                 >
                   เคลียร์
                 </Button>
@@ -379,26 +374,26 @@ const Cart = ({
 
           {/* Cart Items Section - Independent scrollbar */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto overflow-x-hidden space-y-1" style={{ scrollbarWidth: 'thin' }}>
+            <div className="h-full overflow-y-auto overflow-x-hidden space-y-2" style={{ scrollbarWidth: 'thin' }}>
               {cartItems.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-center text-muted-foreground py-10 text-sm">
                   ไม่มีสินค้าในตะกร้า
                 </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.id} className="border border-coffee-100 rounded-lg p-2 space-y-2">
+                  <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm text-coffee-800">
+                        <h4 className="font-semibold text-base text-coffee-800">
                           {item.menu_item.name}
                         </h4>
                         {Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
-                          <div className="text-xs text-coffee-600 mt-1">
+                          <div className="text-sm text-coffee-600 mt-1">
                             {item.selected_addons.map(addon => addon.name).join(', ')}
                           </div>
                         )}
                         {item.item_discount > 0 && (
-                          <div className="text-xs text-orange-600 mt-1">
+                          <div className="text-sm text-orange-600 mt-1">
                             ส่วนลด: {item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
                           </div>
                         )}
@@ -407,9 +402,9 @@ const Cart = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
                     </div>
 
