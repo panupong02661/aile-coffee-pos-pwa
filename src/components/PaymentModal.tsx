@@ -928,7 +928,7 @@ const PaymentModal = ({
                 <div className="flex gap-2">
                   <Button
                     onClick={handleExactPayment}
-                    className="flex-1 h-10 text-sm font-bold bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg hover:scale-105 transition-all rounded-xl"
+                    className="flex-1 h-14 text-lg font-bold bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all rounded-xl"
                   >
                     จ่ายพอดี (฿{total.toLocaleString()})
                   </Button>

@@ -96,21 +96,24 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
     const currentItem = localGroups[index];
     const prevItem = localGroups[index - 1];
     
-    const currentSortOrder = currentItem.sort_order || index;
-    const prevSortOrder = prevItem.sort_order || index - 1;
+    // Swap sort_order values - assign new unique values
+    const newCurrentSortOrder = (prevItem.sort_order ?? index - 1);
+    const newPrevSortOrder = (currentItem.sort_order ?? index);
     
+    // Optimistic update - swap positions and update sort_order locally
     const newItems = [...localGroups];
-    [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
+    newItems[index] = { ...prevItem, sort_order: newPrevSortOrder };
+    newItems[index - 1] = { ...currentItem, sort_order: newCurrentSortOrder };
     setLocalGroups(newItems);
     
     try {
       await Promise.all([
-        supabase.from('addon_groups').update({ sort_order: prevSortOrder }).eq('id', currentItem.id),
-        supabase.from('addon_groups').update({ sort_order: currentSortOrder }).eq('id', prevItem.id)
+        supabase.from('addon_groups').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
+        supabase.from('addon_groups').update({ sort_order: newPrevSortOrder }).eq('id', prevItem.id)
       ]);
       
       toast({ title: 'สำเร็จ', description: 'เลื่อนลำดับสำเร็จ' });
-      onStatusChange?.();
+      // Don't call onStatusChange - it will refetch and revert the order
     } catch (error) {
       console.error('Error moving item:', error);
       setLocalGroups(addonGroups);
@@ -124,21 +127,24 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
     const currentItem = localGroups[index];
     const nextItem = localGroups[index + 1];
     
-    const currentSortOrder = currentItem.sort_order || index;
-    const nextSortOrder = nextItem.sort_order || index + 1;
+    // Swap sort_order values - assign new unique values
+    const newCurrentSortOrder = (nextItem.sort_order ?? index + 1);
+    const newNextSortOrder = (currentItem.sort_order ?? index);
     
+    // Optimistic update - swap positions and update sort_order locally
     const newItems = [...localGroups];
-    [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+    newItems[index] = { ...nextItem, sort_order: newNextSortOrder };
+    newItems[index + 1] = { ...currentItem, sort_order: newCurrentSortOrder };
     setLocalGroups(newItems);
     
     try {
       await Promise.all([
-        supabase.from('addon_groups').update({ sort_order: nextSortOrder }).eq('id', currentItem.id),
-        supabase.from('addon_groups').update({ sort_order: currentSortOrder }).eq('id', nextItem.id)
+        supabase.from('addon_groups').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
+        supabase.from('addon_groups').update({ sort_order: newNextSortOrder }).eq('id', nextItem.id)
       ]);
       
       toast({ title: 'สำเร็จ', description: 'เลื่อนลำดับสำเร็จ' });
-      onStatusChange?.();
+      // Don't call onStatusChange - it will refetch and revert the order
     } catch (error) {
       console.error('Error moving item:', error);
       setLocalGroups(addonGroups);
