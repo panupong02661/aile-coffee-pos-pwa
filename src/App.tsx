@@ -50,6 +50,7 @@ const CouponManagement = lazy(() => import('./pages/CouponManagement'));
 const ReviewManagement = lazy(() => import('./pages/ReviewManagement'));
 const DeliveryManagement = lazy(() => import('./pages/DeliveryManagement'));
 const PWAInstallGuide = lazy(() => import('./pages/PWAInstallGuide'));
+const AppBuildGuide = lazy(() => import('./pages/AppBuildGuide'));
 const WiFiVouchers = lazy(() => import('./pages/WiFiVouchers'));
 const CustomerDisplay = lazy(() => import('./pages/CustomerDisplay'));
 
@@ -110,6 +111,7 @@ function App() {
                   <Route path="/review-management" element={<ReviewManagement />} />
                   <Route path="/delivery-management" element={<DeliveryManagement />} />
                   <Route path="/install" element={<PWAInstallGuide />} />
+                  <Route path="/app-build-guide" element={<AppBuildGuide />} />
                   <Route path="/wifi-vouchers" element={<WiFiVouchers />} />
                   <Route path="/customer-display" element={<CustomerDisplay />} />
                   
