@@ -82,7 +82,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
     '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
     '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging', '/wifi-vouchers',
-    '/customer-display', '/menu-promotions'
+    '/customer-display', '/menu-promotions', '/app-build-guide'
   ];
   
   const menuItems = [
@@ -159,6 +159,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
     { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
     { id: 'wifi-vouchers', label: 'WiFi สำหรับลูกค้า', icon: Wifi, path: '/wifi-vouchers' },
+    { id: 'app-build-guide', label: 'สร้างแอปมือถือ', icon: Smartphone, path: '/app-build-guide' },
   ];
 
   const handleMenuClick = () => {
