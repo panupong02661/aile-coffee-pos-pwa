@@ -180,29 +180,102 @@ const CustomerMobileApp: React.FC = () => {
     };
   }, []);
 
+  // Immediate refetch member data from DB
+  const refetchMemberData = async () => {
+    if (!currentUser?.phone) return;
+    
+    try {
+      console.log('🔄 Refetching member data...');
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (error) {
+        console.error('Refetch error:', error);
+        return;
+      }
+      
+      if (data) {
+        const updatedUser: CustomerProfile = {
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email || '',
+          tier: data.tier,
+          points: data.points,
+          total_spent: data.total_spent,
+          birth_date: data.birth_date,
+          gender: data.gender
+        };
+        
+        console.log('✅ Member data refetched:', { points: data.points, total_spent: data.total_spent });
+        setCurrentUser(updatedUser);
+        localStorage.setItem('customerAuth', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Refetch failed:', error);
+    }
+  };
+
   // Realtime subscription for member updates (points/total_spent)
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    console.log('🔔 Setting up realtime subscription for member:', currentUser.id);
+
     const channel = supabase
-      .channel('members-realtime')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'members', filter: `id=eq.${currentUser.id}` }, (payload) => {
+      .channel(`member-updates-${currentUser.id}`)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'members', 
+        filter: `id=eq.${currentUser.id}` 
+      }, async (payload) => {
         const row: any = payload.new;
         if (!row) return;
-        const updated: any = {
-          ...(currentUser as any),
+        
+        console.log('🔄 Realtime member update received:', {
           points: row.points,
           total_spent: row.total_spent,
-          tier: row.tier ?? (currentUser as any).tier,
+          tier: row.tier
+        });
+        
+        const updated: CustomerProfile = {
+          ...currentUser,
+          points: row.points ?? currentUser.points,
+          total_spent: row.total_spent ?? currentUser.total_spent,
+          tier: row.tier ?? currentUser.tier,
+          name: row.name ?? currentUser.name,
+          phone: row.phone ?? currentUser.phone
         };
+        
         setCurrentUser(updated);
-        try { localStorage.setItem('customerAuth', JSON.stringify(updated)); } catch {}
-        console.log('🔄 Realtime member update received:', row);
+        try { 
+          localStorage.setItem('customerAuth', JSON.stringify(updated)); 
+        } catch (e) {
+          console.warn('Failed to save to localStorage:', e);
+        }
+        
+        toast({
+          title: '✨ ข้อมูลอัปเดต',
+          description: `แต้มสะสม: ${row.points?.toLocaleString() || 0} แต้ม`,
+        });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔔 Realtime subscription status:', status);
+      });
+
+    // Also set up polling fallback every 30 seconds
+    const pollInterval = setInterval(() => {
+      refetchMemberData();
+    }, 30000);
 
     return () => {
+      console.log('🔔 Cleaning up realtime subscription');
       try { supabase.removeChannel(channel); } catch {}
+      clearInterval(pollInterval);
     };
   }, [currentUser?.id]);
 
@@ -844,9 +917,15 @@ const CustomerMobileApp: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.location.reload()}
+            onClick={async () => {
+              await refetchMemberData();
+              toast({
+                title: '✅ รีเฟรชสำเร็จ',
+                description: 'ข้อมูลอัปเดตเรียบร้อยแล้ว',
+              });
+            }}
             className="flex items-center gap-2"
-            title="รีเฟรชหน้าเว็บ"
+            title="รีเฟรชข้อมูล"
           >
             <RefreshCw className="w-4 h-4" />
             รีเฟรช

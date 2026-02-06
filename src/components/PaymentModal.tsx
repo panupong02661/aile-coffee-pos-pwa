@@ -480,7 +480,7 @@ const PaymentModal = ({
         .then(r => r.success && console.log(`[PaymentModal] ✅ Stock reduced`))
         .catch(err => console.warn('[PaymentModal] Stock error:', err));
       
-      // 2. Member points update (fire-and-forget - ไม่บล็อก)
+      // 2. Member points update - MUST await to trigger realtime
       if (selectedMember) {
         (async () => {
           try {
@@ -489,8 +489,19 @@ const PaymentModal = ({
             
             if (method === 'points' && pointsUsed > 0) {
               newPoints = selectedMember.points - pointsUsed;
-              supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id);
-              supabase.from('point_transactions').insert({
+              // ⚡ CRITICAL: await to ensure DB update triggers realtime
+              const { error: updateError } = await supabase
+                .from('members')
+                .update({ points: newPoints, total_spent: newTotalSpent })
+                .eq('id', selectedMember.id);
+              
+              if (updateError) {
+                console.error('[PaymentModal] Member points update failed:', updateError);
+              } else {
+                console.log(`[PaymentModal] ✅ Member points updated in DB: ${newPoints} points`);
+              }
+              
+              await supabase.from('point_transactions').insert({
                 member_id: selectedMember.id,
                 order_id: order.id,
                 points_change: -pointsUsed,
@@ -500,9 +511,20 @@ const PaymentModal = ({
             } else {
               const pointsEarned = Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1));
               newPoints = selectedMember.points + pointsEarned;
-              supabase.from('members').update({ points: newPoints, total_spent: newTotalSpent }).eq('id', selectedMember.id);
+              // ⚡ CRITICAL: await to ensure DB update triggers realtime
+              const { error: updateError } = await supabase
+                .from('members')
+                .update({ points: newPoints, total_spent: newTotalSpent })
+                .eq('id', selectedMember.id);
+              
+              if (updateError) {
+                console.error('[PaymentModal] Member points update failed:', updateError);
+              } else {
+                console.log(`[PaymentModal] ✅ Member points updated in DB: ${newPoints} points`);
+              }
+              
               if (pointsEarned > 0) {
-                supabase.from('point_transactions').insert({
+                await supabase.from('point_transactions').insert({
                   member_id: selectedMember.id,
                   order_id: order.id,
                   points_change: pointsEarned,
@@ -512,10 +534,11 @@ const PaymentModal = ({
               }
             }
             
+            // Notify UI immediately with new values
             if (onMemberUpdate) {
               onMemberUpdate({ ...selectedMember, points: newPoints, total_spent: newTotalSpent });
             }
-            console.log(`[PaymentModal] ✅ Member points updated`);
+            console.log(`[PaymentModal] ✅ Member points update complete: ${newPoints} points, ฿${newTotalSpent} spent`);
           } catch (err) {
             console.warn('[PaymentModal] Points error:', err);
           }
