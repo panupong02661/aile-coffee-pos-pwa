@@ -69,7 +69,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   // Pages that exist and have implementations
   const existingPages = [
     '/', '/dashboard', '/menu', '/members', '/pos', '/reports', '/shop-settings', 
-    '/promotions', '/online-system', '/customer-mobile-app', '/customer-app-management',
+    '/promotions', '/online-system', '/customer-mobile-app', '/customer-app-management', '/kitchen-display',
     '/qr-promptpay', '/inventory', '/printer-settings', '/online-orders', 
     '/security-recommendations', '/advanced-reports', '/sales-reports', '/product-reports',
     '/customer-analytics', '/staff', '/time-attendance', '/permissions', '/branch-management',
@@ -93,6 +93,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
     { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
     { id: 'customer-display', label: 'จอแสดงผลลูกค้า', icon: Table, path: '/customer-display' },
+    { id: 'kitchen-display', label: 'จอแสดงผลในครัว', icon: ChefHat, path: '/kitchen-display' },
     { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
     { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
