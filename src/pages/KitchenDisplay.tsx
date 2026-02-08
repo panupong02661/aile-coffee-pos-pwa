@@ -36,7 +36,6 @@ interface KitchenOrder {
 const KitchenDisplay = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [completedOrders, setCompletedOrders] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -161,19 +160,38 @@ const KitchenDisplay = () => {
     };
   }, [fetchOrders]);
 
-  const markCompleted = (orderId: string) => {
-    setCompletedOrders(prev => {
-      const next = new Set(prev);
-      if (next.has(orderId)) {
-        next.delete(orderId);
-      } else {
-        next.add(orderId);
-      }
-      return next;
-    });
+  const markCompleted = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const newStatus = order.status === 'kitchen_completed' ? 'pending' : 'kitchen_completed';
+
+    // Optimistic update
+    setOrders(prev =>
+      prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
+    );
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId);
+
+    if (error) {
+      // Rollback on failure
+      setOrders(prev =>
+        prev.map(o => o.id === orderId ? { ...o, status: order.status } : o)
+      );
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     toast({
       title: 'อัปเดตสถานะ',
-      description: 'เปลี่ยนสถานะออเดอร์เรียบร้อย',
+      description: newStatus === 'kitchen_completed' ? 'ออเดอร์เสร็จแล้ว' : 'เปลี่ยนกลับเป็นรอทำ',
     });
   };
 
@@ -199,8 +217,8 @@ const KitchenDisplay = () => {
     return [];
   };
 
-  const pendingOrders = orders.filter(o => !completedOrders.has(o.id));
-  const doneOrders = orders.filter(o => completedOrders.has(o.id));
+  const pendingOrders = orders.filter(o => o.status !== 'kitchen_completed');
+  const doneOrders = orders.filter(o => o.status === 'kitchen_completed');
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
