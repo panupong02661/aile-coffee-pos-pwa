@@ -53,6 +53,7 @@ const PWAInstallGuide = lazy(() => import('./pages/PWAInstallGuide'));
 const AppBuildGuide = lazy(() => import('./pages/AppBuildGuide'));
 const WiFiVouchers = lazy(() => import('./pages/WiFiVouchers'));
 const CustomerDisplay = lazy(() => import('./pages/CustomerDisplay'));
+const KitchenDisplay = lazy(() => import('./pages/KitchenDisplay'));
 
 // Additional Dashboard pages
 const SecurityDashboard = lazy(() => import('./pages/SecurityDashboard'));
@@ -114,6 +115,7 @@ function App() {
                   <Route path="/app-build-guide" element={<AppBuildGuide />} />
                   <Route path="/wifi-vouchers" element={<WiFiVouchers />} />
                   <Route path="/customer-display" element={<CustomerDisplay />} />
+                  <Route path="/kitchen-display" element={<KitchenDisplay />} />
                   
                   {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />
