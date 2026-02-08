@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,18 +33,19 @@ interface KitchenOrder {
   items: OrderItemWithIngredients[];
 }
 
+type TabType = 'pending' | 'completed';
+
 const KitchenDisplay = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('pending');
   const skipRefetchRef = useRef(false);
 
   const fetchOrders = useCallback(async () => {
-    // Skip refetch if we just did an optimistic update
     if (skipRefetchRef.current) {
       return;
     }
     try {
-      // Fetch recent orders (today)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -52,7 +53,7 @@ const KitchenDisplay = () => {
         .from('orders')
         .select('id, order_number, created_at, status, order_type, customer_notes')
         .gte('created_at', today.toISOString())
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(50);
 
       if (ordersError) throw ordersError;
@@ -62,7 +63,6 @@ const KitchenDisplay = () => {
         return;
       }
 
-      // Fetch order items
       const orderIds = ordersData.map(o => o.id);
       const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
@@ -71,10 +71,7 @@ const KitchenDisplay = () => {
 
       if (itemsError) throw itemsError;
 
-      // Get unique menu_item_ids
       const menuItemIds = [...new Set((itemsData || []).map(i => i.menu_item_id).filter(Boolean))];
-
-      // Fetch menu_ingredients for those items
       let ingredientsMap: Record<string, { ingredient_name: string; quantity_needed: number; unit: string }[]> = {};
 
       if (menuItemIds.length > 0) {
@@ -108,7 +105,6 @@ const KitchenDisplay = () => {
         }
       }
 
-      // Combine data
       const kitchenOrders: KitchenOrder[] = ordersData.map(order => {
         const orderItems = (itemsData || []).filter(i => i.order_id === order.id);
         const items: OrderItemWithIngredients[] = orderItems.map(item => {
@@ -148,7 +144,6 @@ const KitchenDisplay = () => {
   useEffect(() => {
     fetchOrders();
 
-    // Real-time subscription
     const channel = supabase
       .channel('kitchen-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
@@ -156,7 +151,6 @@ const KitchenDisplay = () => {
       })
       .subscribe();
 
-    // Polling fallback every 15s
     const interval = setInterval(fetchOrders, 15000);
 
     return () => {
@@ -171,10 +165,8 @@ const KitchenDisplay = () => {
 
     const newStatus = order.status === 'kitchen_completed' ? 'pending' : 'kitchen_completed';
 
-    // Prevent real-time/polling from overwriting optimistic update
     skipRefetchRef.current = true;
 
-    // Optimistic update
     setOrders(prev =>
       prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
     );
@@ -186,14 +178,12 @@ const KitchenDisplay = () => {
       .select('id, status')
       .maybeSingle();
 
-    // Re-enable refetch after a short delay to avoid race condition
     setTimeout(() => {
       skipRefetchRef.current = false;
     }, 2000);
 
     if (error || !data) {
       console.error('KDS update failed:', error, 'data:', data);
-      // Rollback on failure
       setOrders(prev =>
         prev.map(o => o.id === orderId ? { ...o, status: order.status } : o)
       );
@@ -234,8 +224,16 @@ const KitchenDisplay = () => {
     return [];
   };
 
-  const pendingOrders = orders.filter(o => o.status !== 'kitchen_completed');
-  const doneOrders = orders.filter(o => o.status === 'kitchen_completed');
+  // Sort pending by created_at ascending (oldest first = queue order)
+  const pendingOrders = orders
+    .filter(o => o.status !== 'kitchen_completed')
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  const doneOrders = orders
+    .filter(o => o.status === 'kitchen_completed')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const displayOrders = activeTab === 'pending' ? pendingOrders : doneOrders;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -249,12 +247,6 @@ const KitchenDisplay = () => {
           <h1 className="text-xl font-bold">จอแสดงผลในครัว (KDS)</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Badge variant="outline" className="text-orange-300 border-orange-500">
-            รอทำ: {pendingOrders.length}
-          </Badge>
-          <Badge variant="outline" className="text-green-300 border-green-500">
-            เสร็จแล้ว: {doneOrders.length}
-          </Badge>
           <Button
             variant="ghost"
             size="sm"
@@ -266,63 +258,65 @@ const KitchenDisplay = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="bg-gray-800/50 border-b border-gray-700 px-4 flex gap-2">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'pending'
+              ? 'border-orange-400 text-orange-400'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          ออเดอร์รอทำ
+          <Badge className="bg-orange-600 text-white text-xs ml-1 px-2 py-0.5 rounded-full">
+            {pendingOrders.length}
+          </Badge>
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'completed'
+              ? 'border-green-400 text-green-400'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          เสร็จแล้ว
+          <Badge className="bg-green-600 text-white text-xs ml-1 px-2 py-0.5 rounded-full">
+            {doneOrders.length}
+          </Badge>
+        </button>
+      </div>
+
       {/* Orders Grid */}
       <div className="p-4">
         {loading && orders.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400" />
           </div>
-        ) : pendingOrders.length === 0 && doneOrders.length === 0 ? (
+        ) : displayOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
             <ChefHat className="w-16 h-16 mb-4 opacity-30" />
-            <p className="text-lg">ไม่มีออเดอร์วันนี้</p>
+            <p className="text-lg">
+              {activeTab === 'pending' ? 'ไม่มีออเดอร์รอทำ' : 'ยังไม่มีออเดอร์ที่เสร็จ'}
+            </p>
           </div>
         ) : (
-          <>
-            {/* Pending Orders */}
-            {pendingOrders.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-orange-400 mb-3 flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  ออเดอร์รอทำ
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {pendingOrders.map(order => (
-                    <KitchenOrderCard
-                      key={order.id}
-                      order={order}
-                      isCompleted={false}
-                      onToggle={() => markCompleted(order.id)}
-                      getTimeSince={getTimeSince}
-                      parseAddons={parseAddons}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Completed Orders */}
-            {doneOrders.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  เสร็จแล้ว
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {doneOrders.map(order => (
-                    <KitchenOrderCard
-                      key={order.id}
-                      order={order}
-                      isCompleted={true}
-                      onToggle={() => markCompleted(order.id)}
-                      getTimeSince={getTimeSince}
-                      parseAddons={parseAddons}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayOrders.map((order, index) => (
+              <KitchenOrderCard
+                key={order.id}
+                order={order}
+                queueNumber={activeTab === 'pending' ? index + 1 : undefined}
+                isCompleted={activeTab === 'completed'}
+                onToggle={() => markCompleted(order.id)}
+                getTimeSince={getTimeSince}
+                parseAddons={parseAddons}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -331,36 +325,51 @@ const KitchenDisplay = () => {
 
 interface KitchenOrderCardProps {
   order: KitchenOrder;
+  queueNumber?: number;
   isCompleted: boolean;
   onToggle: () => void;
   getTimeSince: (dateStr: string) => string;
   parseAddons: (addons: any) => string[];
 }
 
-const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAddons }: KitchenOrderCardProps) => {
+const KitchenOrderCard = ({ order, queueNumber, isCompleted, onToggle, getTimeSince, parseAddons }: KitchenOrderCardProps) => {
   const timeSince = getTimeSince(order.created_at);
-  const isUrgent = !isCompleted && (Date.now() - new Date(order.created_at).getTime()) > 10 * 60 * 1000; // >10 min
+  const isUrgent = !isCompleted && (Date.now() - new Date(order.created_at).getTime()) > 10 * 60 * 1000;
 
   return (
-    <Card className={`border-2 transition-all ${
+    <Card className={`overflow-hidden border-2 transition-all ${
       isCompleted
         ? 'bg-gray-800/50 border-green-700/50 opacity-70'
         : isUrgent
           ? 'bg-gray-800 border-red-500 animate-pulse'
-          : 'bg-gray-800 border-orange-500/50'
+          : 'bg-gray-800 border-gray-600'
     }`}>
-      <CardHeader className="pb-2 pt-3 px-4">
+      {/* Order Header - visually separated */}
+      <div className={`px-4 py-3 border-b-2 ${
+        isCompleted
+          ? 'bg-green-900/40 border-green-700/60'
+          : isUrgent
+            ? 'bg-red-900/40 border-red-600/60'
+            : 'bg-gray-900 border-orange-500/60'
+      }`}>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-bold text-white">
-            #{order.order_number}
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            {queueNumber && (
+              <span className="bg-orange-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                {queueNumber}
+              </span>
+            )}
+            <span className="font-bold text-orange-400 text-sm">
+              #{order.order_number}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             {order.order_type && (
-              <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
+              <Badge variant="secondary" className="text-[10px] bg-gray-700 text-gray-300">
                 {order.order_type}
               </Badge>
             )}
-            <Badge className={`text-xs ${
+            <Badge className={`text-[10px] ${
               isUrgent ? 'bg-red-600' : isCompleted ? 'bg-green-600' : 'bg-orange-600'
             }`}>
               <Clock className="w-3 h-3 mr-1" />
@@ -368,8 +377,10 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
             </Badge>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-3">
+      </div>
+
+      {/* Order Content */}
+      <CardContent className="px-4 py-3">
         {/* Customer Notes */}
         {order.customer_notes && (
           <div className="bg-yellow-900/30 border border-yellow-700/50 rounded px-2 py-1 mb-2">
@@ -381,8 +392,7 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
         <ScrollArea className={order.items.length > 3 ? 'h-64' : ''}>
           <div className="space-y-3">
             {order.items.map(item => (
-              <div key={item.id} className="border-b border-gray-700 pb-2 last:border-0">
-                {/* Menu item name & quantity */}
+              <div key={item.id} className="border-b border-gray-700/50 pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-sm text-white">
                     {item.menu_item_name}
@@ -392,7 +402,6 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
                   </Badge>
                 </div>
 
-                {/* Addons */}
                 {parseAddons(item.selected_addons).length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {parseAddons(item.selected_addons).map((addon, idx) => (
@@ -403,7 +412,6 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
                   </div>
                 )}
 
-                {/* Ingredients */}
                 {item.ingredients.length > 0 && (
                   <div className="mt-1.5 bg-gray-900/50 rounded p-2">
                     <p className="text-[10px] text-gray-400 font-medium mb-1 flex items-center gap-1">
@@ -427,7 +435,7 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
           </div>
         </ScrollArea>
 
-        {/* Complete Button */}
+        {/* Action Button */}
         <Button
           onClick={onToggle}
           className={`w-full mt-3 text-sm font-semibold ${
@@ -438,9 +446,9 @@ const KitchenOrderCard = ({ order, isCompleted, onToggle, getTimeSince, parseAdd
           size="sm"
         >
           {isCompleted ? (
-            <>ยกเลิกเสร็จ</>
+            <>ย้ายกลับรอทำ</>
           ) : (
-            <><CheckCircle2 className="w-4 h-4 mr-1" /> เสร็จแล้ว</>
+            <><CheckCircle2 className="w-4 h-4 mr-1" /> เสร็จสิ้น</>
           )}
         </Button>
       </CardContent>
