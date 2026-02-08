@@ -567,6 +567,7 @@ const POS = () => {
                     onAddToCart={handleMenuItemClick}
                     gridColumns={gridColumns}
                     itemSize={itemSize}
+                    cartItems={cartItems}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
@@ -617,7 +618,7 @@ const POS = () => {
             >
               <ShoppingCart className="w-6 h-6" />
               {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
                   {totalItems}
                 </span>
               )}

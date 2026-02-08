@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -73,57 +75,31 @@ const Cart = ({
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
   const { toast } = useToast();
 
-  // เพิ่ม usePromotions hook
   const { data: promotions = [] } = usePromotions();
-
-  // Track applied bill promotion to avoid duplicate toasts
   const [appliedBillPromotion, setAppliedBillPromotion] = useState<string | null>(null);
 
-  // ใช้ useEffect เพื่อใช้โปรโมชั่นอัตโนมัติเมื่อมีการเปลี่ยนแปลงตะกร้า
   useEffect(() => {
-    console.log('🔄 Cart items or promotions changed');
-    console.log('Cart items count:', cartItems.length);
-    console.log('Promotions count:', promotions.length);
-    
     if (promotions.length > 0 && cartItems.length > 0) {
-      // ตรวจสอบโปรโมชั่นแบบลดรายการ (item type only)
-      // ถ้าโปรโมชั่นเป็นแบบ 'bill' จะไม่ลดรายการ แต่จะลดท้ายบิลแทน
-      cartItems.forEach((item, index) => {
-        console.log(`\n--- Processing item ${index + 1}: ${item.menu_item.name} ---`);
+      cartItems.forEach((item) => {
         const promotionResult = calculatePromotionDiscount(item, promotions, cartItems);
-        console.log('Promotion result for', item.menu_item.name, ':', promotionResult);
-        
-        // ใช้โปรโมชั่นเฉพาะเมื่อเป็นแบบ 'item' และมีส่วนลด
         if (promotionResult.discount > 0 && promotionResult.applyType === 'item') {
           const currentDiscount = item.item_discount || 0;
-          console.log('Current item discount:', currentDiscount);
-          console.log('New promotion discount:', promotionResult.discount);
-          
           if (Math.abs(promotionResult.discount - currentDiscount) > 0.01) {
-            console.log('🎯 Applying item promotion to', item.menu_item.name);
             onUpdateDiscount(item.id, promotionResult.discount, promotionResult.discountType);
             toast({
               title: 'ใช้โปรโมชั่น',
               description: `ใช้โปรโมชั่น "${promotionResult.promotionName}" กับ ${item.menu_item.name}`,
             });
-          } else {
-            console.log('ℹ️ Promotion already applied to', item.menu_item.name);
           }
         } else if (promotionResult.discount === 0 || promotionResult.applyType === 'item') {
-          // ลบส่วนลดถ้าไม่มีสิทธิ์โปรโมชั่น item แล้ว
-          // แต่ไม่ลบถ้าโปรโมชั่นเป็นแบบ bill (จะลดท้ายบิลแทน)
           if (item.item_discount > 0 && promotionResult.applyType !== 'bill') {
-            console.log('🗑️ Removing promotion from', item.menu_item.name);
             onUpdateDiscount(item.id, 0, 'amount');
           }
         }
       });
 
-      // ตรวจสอบโปรโมชั่นแบบลดท้ายบิล (bill type)
       const billPromotion = calculateBillPromotionDiscount(cartItems, promotions);
       if (billPromotion) {
-        console.log('🎯 Bill promotion found:', billPromotion);
-        // ใช้ส่วนลดท้ายบิลถ้ายังไม่ได้ใช้หรือส่วนลดเปลี่ยน
         if (appliedBillPromotion !== billPromotion.promotionName) {
           onUpdateBillDiscount(billPromotion.discount);
           onUpdateBillDiscountType(billPromotion.discountType);
@@ -134,24 +110,20 @@ const Cart = ({
           });
         }
       } else {
-        // ลบส่วนลดท้ายบิลถ้าไม่ครบเงื่อนไขแล้ว
         if (appliedBillPromotion) {
-          console.log('🗑️ Removing bill promotion');
           onUpdateBillDiscount(0);
           setAppliedBillPromotion(null);
         }
       }
     } else {
-      console.log('ℹ️ No promotions or cart items to process');
       if (appliedBillPromotion) {
         setAppliedBillPromotion(null);
       }
     }
   }, [cartItems, promotions, onUpdateDiscount, onUpdateBillDiscount, onUpdateBillDiscountType, toast, appliedBillPromotion]);
 
-  // Send cart data to Customer Display (Display 2) using Supabase Realtime
+  // Sync cart to customer display
   const syncCartToDisplay = useCallback(async (showPayment: boolean = false) => {
-    // คำนวณ subtotal และ total
     const currentSubtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0);
     const currentBillDiscountAmount = billDiscountType === 'percent'
       ? Math.min(currentSubtotal * billDiscount / 100, currentSubtotal)
@@ -160,10 +132,7 @@ const Cart = ({
     
     const displayData = {
       cartItems: cartItems.map(item => {
-        // คำนวณราคาสินค้าหลังหักส่วนลดรายการ
         const addonsTotal = Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0;
-        const basePrice = item.menu_item.price + addonsTotal;
-        
         return {
           id: item.id,
           name: item.menu_item.name,
@@ -175,7 +144,6 @@ const Cart = ({
           })) : [],
           discount: item.item_discount,
           discountType: item.item_discount_type,
-          // ส่ง total_price ที่คำนวณแล้วจาก cart
           totalPrice: item.total_price
         };
       }),
@@ -183,7 +151,7 @@ const Cart = ({
       subtotal: currentSubtotal,
       billDiscount,
       billDiscountType,
-      showPayment, // แสดง QR Code เมื่อกดชำระ
+      showPayment,
       timestamp: Date.now()
     };
     
@@ -196,28 +164,18 @@ const Cart = ({
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
       
-      if (error) {
-        console.error('Cart sync error:', error);
-      } else {
-        console.log('🛒 Cart synced to display:', displayData);
-      }
+      if (error) console.error('Cart sync error:', error);
     } catch (err) {
       console.error('Cart sync failed:', err);
     }
   }, [cartItems, billDiscount, billDiscountType]);
 
-  // Sync cart data when items or discount changes
   useEffect(() => {
     syncCartToDisplay(false);
   }, [syncCartToDisplay]);
 
-  // Sync payment modal state to customer display
   useEffect(() => {
-    if (isPaymentModalOpen) {
-      syncCartToDisplay(true);
-    } else {
-      syncCartToDisplay(false);
-    }
+    syncCartToDisplay(isPaymentModalOpen);
   }, [isPaymentModalOpen, syncCartToDisplay]);
 
   const subtotal = useMemo(() => 
@@ -225,14 +183,14 @@ const Cart = ({
     [cartItems]
   );
   
-  const calculateBillDiscount = useCallback(() => {
+  const calculateBillDiscountFn = useCallback(() => {
     if (billDiscountType === 'percent') {
       return Math.min(subtotal * billDiscount / 100, subtotal);
     }
     return Math.min(billDiscount, subtotal);
   }, [billDiscountType, billDiscount, subtotal]);
 
-  const billDiscountAmount = useMemo(() => calculateBillDiscount(), [calculateBillDiscount]);
+  const billDiscountAmount = useMemo(() => calculateBillDiscountFn(), [calculateBillDiscountFn]);
   const total = useMemo(() => Math.max(0, subtotal - billDiscountAmount), [subtotal, billDiscountAmount]);
 
   const hasItemDiscounts = useMemo(() => 
@@ -240,14 +198,13 @@ const Cart = ({
     [cartItems]
   );
 
+  const totalItemCount = useMemo(() =>
+    cartItems.reduce((sum, item) => sum + item.quantity, 0),
+    [cartItems]
+  );
+
   const handlePayment = useCallback((paymentMethod: PaymentMethod, cashReceived?: number) => {
-    console.log('Payment processed:', { paymentMethod, total, cashReceived });
-    
-    // Mark gift code as used when payment is completed
-    if (onPaymentComplete) {
-      onPaymentComplete();
-    }
-    
+    if (onPaymentComplete) onPaymentComplete();
     onClearCart();
     setIsPaymentModalOpen(false);
     onUpdateBillDiscount(0);
@@ -280,29 +237,35 @@ const Cart = ({
 
   return (
     <>
-      <Card className="h-full flex flex-col border-coffee-200 overflow-hidden bg-card">
-        <CardHeader className="py-3 px-4 flex-shrink-0">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-coffee-800 text-base font-bold truncate">
+      <Card className="h-full flex flex-col overflow-hidden bg-card border-border">
+        {/* Header with icon + badge */}
+        <CardHeader className="py-3 px-4 flex-shrink-0 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <ShoppingCart className="w-5 h-5 text-primary" />
+              {totalItemCount > 0 && (
+                <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                  {totalItemCount}
+                </span>
+              )}
+            </div>
+            <h3 className="text-foreground text-base font-bold truncate font-sans">
               ตะกร้าสินค้า
-            </CardTitle>
-            <span className="text-coffee-600 text-sm font-medium whitespace-nowrap ml-2">
-              ({cartItems.length} รายการ)
-            </span>
+            </h3>
           </div>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col min-h-0 p-3 pt-0 overflow-hidden">
-          {/* Payment Summary Section - Always show */}
-          <div className="border border-coffee-200 rounded-lg p-3 mb-3 bg-coffee-50 flex-shrink-0">
+          {/* Payment Summary */}
+          <div className="border border-border rounded-xl p-3 my-3 bg-muted/50 flex-shrink-0">
             <div className="space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span>ยอดรวมย่อย:</span>
-                <span className="font-medium">฿{subtotal.toLocaleString()}</span>
+                <span className="text-muted-foreground">ยอดรวมย่อย:</span>
+                <span className="font-medium text-foreground">฿{subtotal.toLocaleString()}</span>
               </div>
 
               {hasItemDiscounts && (
-                <div className="flex justify-between text-sm text-orange-600">
+                <div className="flex justify-between text-sm text-destructive">
                   <span>ส่วนลดรายการ:</span>
                   <span>-฿{cartItems.reduce((sum, item) => {
                     const basePrice = item.menu_item.price + (Array.isArray(item.selected_addons) ? item.selected_addons.reduce((s, addon) => s + addon.price, 0) : 0);
@@ -313,7 +276,7 @@ const Cart = ({
               )}
 
               {billDiscountAmount > 0 && (
-                <div className="flex justify-between text-sm text-red-600">
+                <div className="flex justify-between text-sm text-destructive">
                   <span>ส่วนลดบิล:</span>
                   <span>-฿{billDiscountAmount.toLocaleString()}</span>
                 </div>
@@ -322,25 +285,29 @@ const Cart = ({
               <Separator className="my-2" />
               
               <div className="flex justify-between font-bold text-base">
-                <span>ยอดชำระสุทธิ:</span>
-                <span className="text-coffee-600 text-lg">฿{total.toLocaleString()}</span>
+                <span className="text-foreground">ยอดชำระสุทธิ:</span>
+                <span className="text-primary text-lg">฿{total.toLocaleString()}</span>
               </div>
             </div>
 
             <div className="space-y-2 mt-3">
+              {/* Main payment button — bigger with CreditCard icon */}
               <Button 
-                className="w-full bg-coffee-600 hover:bg-coffee-700 h-10 text-base font-semibold"
+                className="w-full h-12 text-base font-bold gap-2 rounded-xl"
                 onClick={() => setIsPaymentModalOpen(true)}
                 disabled={cartItems.length === 0}
               >
+                <CreditCard className="w-5 h-5" />
                 ชำระเงิน
               </Button>
               
+              {/* Action buttons — semantic tokens */}
               <div className="grid grid-cols-4 gap-1.5">
                 <Button
                   variant="outline" 
                   onClick={() => setIsDiscountModalOpen(true)}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50 h-9 p-1.5"
+                  className="h-9 p-1.5 rounded-lg"
+                  title="ส่วนลด"
                 >
                   <Percent className="w-4 h-4" />
                 </Button>
@@ -348,7 +315,8 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={() => setIsHoldBillModalOpen(true)}
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 h-9 p-1.5"
+                  className="h-9 p-1.5 rounded-lg"
+                  title="พักบิล"
                 >
                   <Clock className="w-4 h-4" />
                 </Button>
@@ -356,15 +324,16 @@ const Cart = ({
                 <Button 
                   variant="outline" 
                   onClick={() => setIsCodeModalOpen(true)}
-                  className="border-green-300 text-green-700 hover:bg-green-50 h-9 p-1.5"
+                  className="h-9 p-1.5 rounded-lg"
+                  title="โค้ด"
                 >
                   <QrCode className="w-4 h-4" />
                 </Button>
 
                 <Button 
-                  variant="outline" 
+                  variant="secondary" 
                   onClick={onClearCart}
-                  className="h-9 p-1.5 text-sm"
+                  className="h-9 p-1.5 text-sm rounded-lg"
                 >
                   เคลียร์
                 </Button>
@@ -372,28 +341,28 @@ const Cart = ({
             </div>
           </div>
 
-          {/* Cart Items Section - Independent scrollbar */}
+          {/* Cart Items */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto overflow-x-hidden space-y-2" style={{ scrollbarWidth: 'thin' }}>
+            <div className="h-full overflow-y-auto overflow-x-hidden space-y-1.5" style={{ scrollbarWidth: 'thin' }}>
               {cartItems.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10 text-sm">
                   ไม่มีสินค้าในตะกร้า
                 </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.id} className="border border-coffee-100 rounded-lg p-3 space-y-2">
+                  <div key={item.id} className="border border-border rounded-xl p-3 space-y-2 bg-card">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-base text-coffee-800">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-base text-foreground truncate">
                           {item.menu_item.name}
                         </h4>
                         {Array.isArray(item.selected_addons) && item.selected_addons.length > 0 && (
-                          <div className="text-sm text-coffee-600 mt-1">
+                          <div className="text-sm text-muted-foreground mt-0.5 truncate">
                             {item.selected_addons.map(addon => addon.name).join(', ')}
                           </div>
                         )}
                         {item.item_discount > 0 && (
-                          <div className="text-sm text-orange-600 mt-1">
+                          <div className="text-sm text-destructive mt-0.5">
                             ส่วนลด: {item.item_discount_type === 'percent' ? `${item.item_discount}%` : `฿${item.item_discount}`}
                           </div>
                         )}
@@ -402,30 +371,30 @@ const Cart = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-lg"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                          className="w-7 h-7 p-0"
+                          className="w-7 h-7 p-0 rounded-lg"
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium text-sm">
+                        <span className="w-8 text-center font-medium text-sm text-foreground">
                           {item.quantity}
                         </span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 p-0"
+                          className="w-7 h-7 p-0 rounded-lg"
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
@@ -433,7 +402,10 @@ const Cart = ({
                           variant="outline"
                           size="sm"
                           onClick={() => handleItemDiscountClick(item)}
-                          className={`ml-2 w-7 h-7 p-0 ${item.item_discount > 0 ? 'border-orange-300 text-orange-700 bg-orange-50' : ''}`}
+                          className={cn(
+                            'ml-1 w-7 h-7 p-0 rounded-lg',
+                            item.item_discount > 0 && 'border-primary/50 text-primary bg-primary/5'
+                          )}
                           title={item.item_discount > 0 
                             ? `ส่วนลด ${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
                             : 'ส่วนลด'
@@ -443,7 +415,7 @@ const Cart = ({
                         </Button>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-coffee-600 text-sm">
+                        <div className="font-semibold text-primary text-sm">
                           ฿{item.total_price}
                         </div>
                       </div>

@@ -1,7 +1,8 @@
+
 import { MenuItem, Addon, CartItem } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ImageOff } from 'lucide-react';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -22,7 +23,7 @@ const MenuGrid = ({
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
 
-  // Get cart item IDs and quantities for highlighting
+  // Build cart quantity map
   const cartItemMap = new Map<string, number>();
   cartItems.forEach(cartItem => {
     const menuItemId = cartItem.menu_item.id;
@@ -30,20 +31,12 @@ const MenuGrid = ({
     cartItemMap.set(menuItemId, currentQty + cartItem.quantity);
   });
 
-  // Debug: Log cart data
-  console.log('🎯 MenuGrid received cartItems:', cartItems.length, 'items');
-  console.log('🎯 MenuGrid cartItemMap entries:', JSON.stringify(Array.from(cartItemMap.entries())));
-
   const handleItemClick = (item: MenuItem) => {
     onAddToCart(item);
   };
 
-  // Dynamic grid styling based on column count and mobile
   const getGridStyle = () => {
-    if (isMobile) {
-      return 'grid-cols-3';
-    }
-    
+    if (isMobile) return 'grid-cols-3';
     switch (gridColumns) {
       case 1: return 'grid-cols-1';
       case 2: return 'grid-cols-2';
@@ -63,20 +56,20 @@ const MenuGrid = ({
     if (isMobile) {
       return { small: 'h-36', medium: 'h-40', large: 'h-44' };
     }
-    
     if (gridColumns >= 8) {
       return { small: 'h-24', medium: 'h-28', large: 'h-32' };
     } else if (gridColumns >= 5) {
       return { small: 'h-28', medium: 'h-32', large: 'h-36' };
     }
-    
     return { small: 'h-36', medium: 'h-44', large: 'h-52' };
   };
 
   const sizeClasses = getSizeClasses();
+  const isCompact = gridColumns >= 5;
+  const textSize = isMobile || isCompact ? 'text-xs' : 'text-sm';
 
   return (
-    <div className={`grid ${getGridStyle()} gap-0.5 md:gap-1`}>
+    <div className={cn('grid gap-1.5', getGridStyle())}>
       {menuItems
         .filter(item => item.is_available === true)
         .map((item) => {
@@ -84,48 +77,65 @@ const MenuGrid = ({
           const isInCart = quantityInCart > 0;
           
           return (
-            <Card 
+            <button
               key={item.id}
-              className={`relative cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 h-full ${
-                isMobile ? 'active:scale-95 touch-manipulation' : ''
-              } ${isInCart ? 'border-[3px] border-orange-500 bg-orange-50/70' : 'border border-coffee-300'}`}
+              type="button"
               onClick={() => handleItemClick(item)}
+              className={cn(
+                'group relative rounded-xl text-left transition-all duration-200 overflow-hidden border',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                isMobile && 'active:scale-[0.97] touch-manipulation',
+                !isMobile && 'hover:shadow-lg hover:-translate-y-0.5',
+                isInCart
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                  : 'border-border bg-card hover:border-primary/30'
+              )}
             >
-              <CardContent className={`${isMobile ? 'p-0.5' : 'p-1'} relative`}>
-                <div className={`${sizeClasses[itemSize]} flex flex-col`}>
-                  {item.image && (
+              <div className={cn(sizeClasses[itemSize], 'flex flex-col')}>
+                {/* Image with hover zoom */}
+                {item.image ? (
+                  <div className="relative w-full h-4/5 overflow-hidden rounded-t-xl">
                     <img 
                       src={item.image} 
                       alt={item.name}
-                      className="w-full h-4/5 object-cover rounded-md mb-1"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       loading="lazy"
                     />
-                  )}
-                  <div className="flex-1 flex flex-col justify-between px-1">
-                    <h3 className={`font-medium line-clamp-2 ${
-                      isInCart ? 'text-orange-600' : 'text-coffee-800'
-                    } ${
-                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                    }`}>
-                      {item.name}
-                    </h3>
-                    <p className={`font-semibold ${
-                      isInCart ? 'text-orange-500' : 'text-coffee-600'
-                    } ${
-                      isMobile ? 'text-xs' : gridColumns >= 8 ? 'text-xs' : gridColumns >= 5 ? 'text-xs' : 'text-sm'
-                    }`}>
-                      ฿{item.price}
-                    </p>
+                    {/* Subtle gradient overlay for readability */}
+                    <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/10 to-transparent" />
                   </div>
-                </div>
-                {/* Cart quantity badge - inside CardContent with absolute positioning */}
-                {isInCart && (
-                  <div className="absolute bottom-1 right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-lg z-10">
-                    x{quantityInCart} <Check className="w-3 h-3" />
+                ) : (
+                  <div className="w-full h-4/5 rounded-t-xl bg-muted flex items-center justify-center">
+                    <ImageOff className="w-8 h-8 text-muted-foreground/40" />
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                
+                {/* Info */}
+                <div className="flex-1 flex items-center justify-between px-1.5 py-0.5 min-w-0">
+                  <h3 className={cn(
+                    'font-medium line-clamp-1 leading-tight',
+                    textSize,
+                    isInCart ? 'text-primary' : 'text-card-foreground'
+                  )}>
+                    {item.name}
+                  </h3>
+                  <span className={cn(
+                    'font-semibold shrink-0 ml-1',
+                    textSize,
+                    isInCart ? 'text-primary' : 'text-muted-foreground'
+                  )}>
+                    ฿{item.price}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cart quantity pill badge */}
+              {isInCart && (
+                <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1 shadow-sm">
+                  {quantityInCart}
+                </span>
+              )}
+            </button>
           );
         })}
     </div>
