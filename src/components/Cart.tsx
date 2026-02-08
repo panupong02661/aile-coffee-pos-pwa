@@ -244,7 +244,7 @@ const Cart = ({
             <div className="relative">
               <ShoppingCart className="w-5 h-5 text-primary" />
               {totalItemCount > 0 && (
-                <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pos-badge-pop" key={totalItemCount}>
                   {totalItemCount}
                 </span>
               )}
@@ -350,7 +350,7 @@ const Cart = ({
                 </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.id} className="border border-border rounded-xl p-3 space-y-2 bg-card">
+                  <div key={item.id} className="border border-border rounded-xl p-3 space-y-2 bg-card animate-pos-pop-in">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-base text-foreground truncate">

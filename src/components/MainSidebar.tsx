@@ -3,7 +3,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import UserProfile from './UserProfile';
+import { usePOSSettings } from '@/hooks/usePOSSettings';
 import { 
   BarChart3, 
   Calculator, 
@@ -55,7 +58,9 @@ import {
   AlertTriangle,
   Ticket,
   MessageSquare,
-  Tag
+  Tag,
+  Sparkles,
+  Moon
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -65,6 +70,7 @@ interface MainSidebarProps {
 
 const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const location = useLocation();
+  const { animationsEnabled, darkModeEnabled, setAnimationsEnabled, setDarkModeEnabled } = usePOSSettings();
   
   // Pages that exist and have implementations
   const existingPages = [
@@ -219,6 +225,42 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                     );
                   })}
                 </nav>
+
+                {/* POS Settings Section */}
+                <Separator className="my-3" />
+                <div className="px-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                    ตั้งค่า POS
+                  </h3>
+                  
+                  <div className="space-y-2.5">
+                    {/* Animation Toggle */}
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm text-foreground">แอนิเมชัน</span>
+                      </div>
+                      <Switch 
+                        checked={animationsEnabled}
+                        onCheckedChange={setAnimationsEnabled}
+                        className="data-[state=checked]:bg-amber-500"
+                      />
+                    </div>
+
+                    {/* Dark Mode Toggle */}
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <Moon className="w-4 h-4 text-indigo-500" />
+                        <span className="text-sm text-foreground">โหมดมืด POS</span>
+                      </div>
+                      <Switch 
+                        checked={darkModeEnabled}
+                        onCheckedChange={setDarkModeEnabled}
+                        className="data-[state=checked]:bg-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </ScrollArea>
           </div>

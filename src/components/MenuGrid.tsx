@@ -72,7 +72,7 @@ const MenuGrid = ({
     <div className={cn('grid gap-1.5', getGridStyle())}>
       {menuItems
         .filter(item => item.is_available === true)
-        .map((item) => {
+        .map((item, index) => {
           const quantityInCart = cartItemMap.get(item.id) || 0;
           const isInCart = quantityInCart > 0;
           
@@ -82,7 +82,7 @@ const MenuGrid = ({
               type="button"
               onClick={() => handleItemClick(item)}
               className={cn(
-                'group relative rounded-xl text-left transition-all duration-200 overflow-hidden border',
+                'group relative rounded-xl text-left transition-all duration-200 overflow-hidden border animate-pos-slide-up',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isMobile && 'active:scale-[0.97] touch-manipulation',
                 !isMobile && 'hover:shadow-lg hover:-translate-y-0.5',
@@ -90,6 +90,7 @@ const MenuGrid = ({
                   ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                   : 'border-border bg-card hover:border-primary/30'
               )}
+              style={{ animationDelay: `${index * 30}ms` }}
             >
               <div className={cn(sizeClasses[itemSize], 'flex flex-col')}>
                 {/* Image with hover zoom */}
@@ -131,7 +132,7 @@ const MenuGrid = ({
 
               {/* Cart quantity pill badge */}
               {isInCart && (
-                <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1 shadow-sm">
+                <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1 shadow-sm animate-pos-badge-pop">
                   {quantityInCart}
                 </span>
               )}
