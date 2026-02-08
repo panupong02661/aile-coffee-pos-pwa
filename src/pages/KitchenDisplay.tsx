@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,13 @@ interface KitchenOrder {
 const KitchenDisplay = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const skipRefetchRef = useRef(false);
 
   const fetchOrders = useCallback(async () => {
+    // Skip refetch if we just did an optimistic update
+    if (skipRefetchRef.current) {
+      return;
+    }
     try {
       // Fetch recent orders (today)
       const today = new Date();
@@ -166,29 +171,41 @@ const KitchenDisplay = () => {
 
     const newStatus = order.status === 'kitchen_completed' ? 'pending' : 'kitchen_completed';
 
+    // Prevent real-time/polling from overwriting optimistic update
+    skipRefetchRef.current = true;
+
     // Optimistic update
     setOrders(prev =>
       prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
     );
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .update({ status: newStatus })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .select('id, status')
+      .maybeSingle();
 
-    if (error) {
+    // Re-enable refetch after a short delay to avoid race condition
+    setTimeout(() => {
+      skipRefetchRef.current = false;
+    }, 2000);
+
+    if (error || !data) {
+      console.error('KDS update failed:', error, 'data:', data);
       // Rollback on failure
       setOrders(prev =>
         prev.map(o => o.id === orderId ? { ...o, status: order.status } : o)
       );
       toast({
         title: 'เกิดข้อผิดพลาด',
-        description: 'ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่',
+        description: `ไม่สามารถอัปเดตสถานะได้: ${error?.message || 'ไม่มีข้อมูลส่งกลับ'}`,
         variant: 'destructive',
       });
       return;
     }
 
+    console.log('KDS update success:', data);
     toast({
       title: 'อัปเดตสถานะ',
       description: newStatus === 'kitchen_completed' ? 'ออเดอร์เสร็จแล้ว' : 'เปลี่ยนกลับเป็นรอทำ',
