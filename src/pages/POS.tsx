@@ -13,6 +13,7 @@ import { useCart } from '@/hooks/useCart';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePOSSettings } from '@/hooks/usePOSSettings';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Search, Settings } from 'lucide-react';
@@ -20,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 interface Member {
   id: string;
@@ -49,7 +51,7 @@ const POS = () => {
   
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
-  
+  const { animationsEnabled, darkModeEnabled } = usePOSSettings();
   // Sound and popup settings from database
   const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
     online: { soundEnabled: true, popupEnabled: true, volume: 80 },
@@ -505,7 +507,11 @@ const POS = () => {
 
   return (
     <div 
-      className="fixed inset-0 bg-background flex overflow-hidden" 
+      className={cn(
+        "fixed inset-0 bg-background flex overflow-hidden transition-colors duration-300",
+        darkModeEnabled && 'pos-dark',
+        animationsEnabled && 'pos-animate'
+      )}
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
@@ -618,7 +624,7 @@ const POS = () => {
             >
               <ShoppingCart className="w-6 h-6" />
               {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-pos-badge-pop" key={totalItems}>
                   {totalItems}
                 </span>
               )}
