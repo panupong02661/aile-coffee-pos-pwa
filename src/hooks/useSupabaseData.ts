@@ -255,6 +255,7 @@ export const useSupabaseData = () => {
           name
         )
       `)
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (error) {
