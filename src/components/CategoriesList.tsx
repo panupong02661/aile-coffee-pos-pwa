@@ -78,25 +78,20 @@ const CategoriesList: React.FC<CategoriesListProps> = ({ categories, onEdit, onS
     }
   };
 
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
+  const normalizeAndSwap = async (items: any[], indexA: number, indexB: number) => {
+    const newItems = [...items];
+    const temp = newItems[indexA];
+    newItems[indexA] = newItems[indexB];
+    newItems[indexB] = temp;
     
-    const currentItem = localCategories[index];
-    const prevItem = localCategories[index - 1];
-    
-    const newCurrentSortOrder = index - 1;
-    const newPrevSortOrder = index;
-    
-    const newItems = [...localCategories];
-    newItems[index] = { ...prevItem, sort_order: newPrevSortOrder };
-    newItems[index - 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalCategories(newItems);
+    const updatedItems = newItems.map((item, i) => ({ ...item, sort_order: i }));
+    setLocalCategories(updatedItems);
     
     try {
-      const results = await Promise.all([
-        supabase.from('categories').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
-        supabase.from('categories').update({ sort_order: newPrevSortOrder }).eq('id', prevItem.id)
-      ]);
+      const updates = updatedItems.map((item, i) =>
+        supabase.from('categories').update({ sort_order: i }).eq('id', item.id)
+      );
+      const results = await Promise.all(updates);
       
       const hasError = results.some(r => r.error);
       if (hasError) throw new Error('DB update failed');
@@ -109,35 +104,14 @@ const CategoriesList: React.FC<CategoriesListProps> = ({ categories, onEdit, onS
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    await normalizeAndSwap(localCategories, index, index - 1);
+  };
+
   const handleMoveDown = async (index: number) => {
     if (index === localCategories.length - 1) return;
-    
-    const currentItem = localCategories[index];
-    const nextItem = localCategories[index + 1];
-    
-    const newCurrentSortOrder = index + 1;
-    const newNextSortOrder = index;
-    
-    const newItems = [...localCategories];
-    newItems[index] = { ...nextItem, sort_order: newNextSortOrder };
-    newItems[index + 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalCategories(newItems);
-    
-    try {
-      const results = await Promise.all([
-        supabase.from('categories').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
-        supabase.from('categories').update({ sort_order: newNextSortOrder }).eq('id', nextItem.id)
-      ]);
-      
-      const hasError = results.some(r => r.error);
-      if (hasError) throw new Error('DB update failed');
-      
-      toast.success('เลื่อนลำดับสำเร็จ');
-    } catch (error) {
-      console.error('Error moving item:', error);
-      setLocalCategories(categories);
-      toast.error('เกิดข้อผิดพลาดในการเลื่อนลำดับ');
-    }
+    await normalizeAndSwap(localCategories, index, index + 1);
   };
 
   const handleDelete = async () => {
