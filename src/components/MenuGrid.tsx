@@ -10,6 +10,7 @@ interface MenuGridProps {
   gridColumns?: number;
   itemSize?: 'small' | 'medium' | 'large';
   cartItems?: CartItem[];
+  shopLogoUrl?: string;
 }
 
 const MenuGrid = ({ 
@@ -18,7 +19,8 @@ const MenuGrid = ({
   onAddToCart, 
   gridColumns = 4,
   itemSize = 'medium',
-  cartItems = []
+  cartItems = [],
+  shopLogoUrl
 }: MenuGridProps) => {
   const isMobile = useIsMobile();
 
@@ -106,12 +108,16 @@ const MenuGrid = ({
                   </div>
                 ) : (
                   <div className="w-full h-4/5 rounded-t-xl bg-muted flex items-center justify-center overflow-hidden">
-                    <img
-                      src="/images/shop-logo.png"
-                      alt="Logo"
-                      className="w-full h-full object-cover opacity-20 scale-110"
-                      loading="lazy"
-                    />
+                    {shopLogoUrl ? (
+                      <img
+                        src={shopLogoUrl}
+                        alt="Logo"
+                        className="w-full h-full object-contain opacity-20 scale-110"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted" />
+                    )}
                   </div>
                 )}
                 

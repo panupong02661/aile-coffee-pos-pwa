@@ -52,6 +52,22 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
   const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor } = usePOSSettings();
+  const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
+
+  // Load shop logo from settings
+  useEffect(() => {
+    const loadShopLogo = async () => {
+      try {
+        const { data } = await supabase
+          .from('shop_settings')
+          .select('logo_url')
+          .limit(1)
+          .maybeSingle();
+        if (data?.logo_url) setShopLogoUrl(data.logo_url);
+      } catch (e) { /* ignore */ }
+    };
+    loadShopLogo();
+  }, []);
   // Sound and popup settings from database
   const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
     online: { soundEnabled: true, popupEnabled: true, volume: 80 },
@@ -586,6 +602,7 @@ const POS = () => {
                     gridColumns={gridColumns}
                     itemSize={itemSize}
                     cartItems={cartItems}
+                    shopLogoUrl={shopLogoUrl}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
