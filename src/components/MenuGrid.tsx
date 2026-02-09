@@ -2,7 +2,6 @@
 import { MenuItem, Addon, CartItem } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { ImageOff } from 'lucide-react';
 
 interface MenuGridProps {
   menuItems: MenuItem[];
@@ -106,8 +105,13 @@ const MenuGrid = ({
                     <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-black/10 to-transparent" />
                   </div>
                 ) : (
-                  <div className="w-full h-4/5 rounded-t-xl bg-muted flex items-center justify-center">
-                    <ImageOff className="w-8 h-8 text-muted-foreground/40" />
+                  <div className="w-full h-4/5 rounded-t-xl bg-muted flex items-center justify-center overflow-hidden">
+                    <img
+                      src="/images/shop-logo.png"
+                      alt="Logo"
+                      className="w-full h-full object-cover opacity-20 scale-110"
+                      loading="lazy"
+                    />
                   </div>
                 )}
                 

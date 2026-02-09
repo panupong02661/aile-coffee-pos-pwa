@@ -51,7 +51,7 @@ const POS = () => {
   
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
-  const { animationsEnabled, darkModeEnabled } = usePOSSettings();
+  const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor } = usePOSSettings();
   // Sound and popup settings from database
   const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
     online: { soundEnabled: true, popupEnabled: true, volume: 80 },
@@ -505,13 +505,25 @@ const POS = () => {
 
   console.log('🎯 POS about to render main UI');
 
+  const fontSizeClass = fontSize === 'small' ? 'text-xs' : fontSize === 'large' ? 'text-base' : 'text-sm';
+  const fontWeightClass = fontWeight === 'light' ? 'font-light' : fontWeight === 'bold' ? 'font-bold' : 'font-normal';
+
+  // Dynamic primary color via CSS custom properties
+  const posStyle: React.CSSProperties = primaryColor !== '25' ? {
+    '--primary': `${primaryColor} 60% 35%`,
+    '--ring': `${primaryColor} 60% 35%`,
+  } as React.CSSProperties : {};
+
   return (
     <div 
       className={cn(
         "fixed inset-0 bg-background flex overflow-hidden transition-colors duration-300",
         darkModeEnabled && 'pos-dark',
-        animationsEnabled && 'pos-animate'
+        animationsEnabled && 'pos-animate',
+        fontSizeClass,
+        fontWeightClass
       )}
+      style={posStyle}
       onClick={handleUserInteraction}
       onTouchStart={handleUserInteraction}
     >
