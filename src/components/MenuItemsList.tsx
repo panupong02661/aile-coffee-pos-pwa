@@ -92,27 +92,20 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     }
   };
 
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
+  const normalizeAndSwap = async (items: any[], indexA: number, indexB: number) => {
+    const newItems = [...items];
+    const temp = newItems[indexA];
+    newItems[indexA] = newItems[indexB];
+    newItems[indexB] = temp;
     
-    const currentItem = localMenuItems[index];
-    const prevItem = localMenuItems[index - 1];
-    
-    // Use index-based values to guarantee uniqueness
-    const newCurrentSortOrder = index - 1;
-    const newPrevSortOrder = index;
-    
-    // Optimistic update - swap positions and update sort_order locally
-    const newItems = [...localMenuItems];
-    newItems[index] = { ...prevItem, sort_order: newPrevSortOrder };
-    newItems[index - 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalMenuItems(newItems);
+    const updatedItems = newItems.map((item, i) => ({ ...item, sort_order: i }));
+    setLocalMenuItems(updatedItems);
     
     try {
-      const results = await Promise.all([
-        supabase.from('menu_items').update({ sort_order: newCurrentSortOrder } as any).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: newPrevSortOrder } as any).eq('id', prevItem.id)
-      ]);
+      const updates = updatedItems.map((item, i) =>
+        supabase.from('menu_items').update({ sort_order: i } as any).eq('id', item.id)
+      );
+      const results = await Promise.all(updates);
       
       const hasError = results.some(r => r.error);
       if (hasError) throw new Error('DB update failed');
@@ -125,37 +118,14 @@ const MenuItemsList: React.FC<MenuItemsListProps> = ({ menuItems, categories = [
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    await normalizeAndSwap(localMenuItems, index, index - 1);
+  };
+
   const handleMoveDown = async (index: number) => {
     if (index === localMenuItems.length - 1) return;
-    
-    const currentItem = localMenuItems[index];
-    const nextItem = localMenuItems[index + 1];
-    
-    // Use index-based values to guarantee uniqueness
-    const newCurrentSortOrder = index + 1;
-    const newNextSortOrder = index;
-    
-    // Optimistic update - swap positions and update sort_order locally
-    const newItems = [...localMenuItems];
-    newItems[index] = { ...nextItem, sort_order: newNextSortOrder };
-    newItems[index + 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalMenuItems(newItems);
-    
-    try {
-      const results = await Promise.all([
-        supabase.from('menu_items').update({ sort_order: newCurrentSortOrder } as any).eq('id', currentItem.id),
-        supabase.from('menu_items').update({ sort_order: newNextSortOrder } as any).eq('id', nextItem.id)
-      ]);
-      
-      const hasError = results.some(r => r.error);
-      if (hasError) throw new Error('DB update failed');
-      
-      toast.success('เลื่อนลำดับสำเร็จ');
-    } catch (error) {
-      console.error('Error moving item:', error);
-      setLocalMenuItems(menuItems);
-      toast.error('เกิดข้อผิดพลาดในการเลื่อนลำดับ');
-    }
+    await normalizeAndSwap(localMenuItems, index, index + 1);
   };
 
   const handleDelete = async () => {

@@ -96,25 +96,23 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
     return group?.name || 'ไม่มีกลุ่ม';
   };
 
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
+  const normalizeAndSwap = async (items: any[], indexA: number, indexB: number) => {
+    // Create new array with swapped items
+    const newItems = [...items];
+    const temp = newItems[indexA];
+    newItems[indexA] = newItems[indexB];
+    newItems[indexB] = temp;
     
-    const currentItem = localAddons[index];
-    const prevItem = localAddons[index - 1];
-    
-    const newCurrentSortOrder = index - 1;
-    const newPrevSortOrder = index;
-    
-    const newItems = [...localAddons];
-    newItems[index] = { ...prevItem, sort_order: newPrevSortOrder };
-    newItems[index - 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalAddons(newItems);
+    // Assign sequential sort_order to ALL items to guarantee uniqueness
+    const updatedItems = newItems.map((item, i) => ({ ...item, sort_order: i }));
+    setLocalAddons(updatedItems);
     
     try {
-      const results = await Promise.all([
-        supabase.from('addons').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
-        supabase.from('addons').update({ sort_order: newPrevSortOrder }).eq('id', prevItem.id)
-      ]);
+      // Update all items' sort_order in DB
+      const updates = updatedItems.map((item, i) =>
+        supabase.from('addons').update({ sort_order: i }).eq('id', item.id)
+      );
+      const results = await Promise.all(updates);
       
       const hasError = results.some(r => r.error);
       if (hasError) throw new Error('DB update failed');
@@ -127,35 +125,14 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    await normalizeAndSwap(localAddons, index, index - 1);
+  };
+
   const handleMoveDown = async (index: number) => {
     if (index === localAddons.length - 1) return;
-    
-    const currentItem = localAddons[index];
-    const nextItem = localAddons[index + 1];
-    
-    const newCurrentSortOrder = index + 1;
-    const newNextSortOrder = index;
-    
-    const newItems = [...localAddons];
-    newItems[index] = { ...nextItem, sort_order: newNextSortOrder };
-    newItems[index + 1] = { ...currentItem, sort_order: newCurrentSortOrder };
-    setLocalAddons(newItems);
-    
-    try {
-      const results = await Promise.all([
-        supabase.from('addons').update({ sort_order: newCurrentSortOrder }).eq('id', currentItem.id),
-        supabase.from('addons').update({ sort_order: newNextSortOrder }).eq('id', nextItem.id)
-      ]);
-      
-      const hasError = results.some(r => r.error);
-      if (hasError) throw new Error('DB update failed');
-      
-      toast({ title: 'สำเร็จ', description: 'เลื่อนลำดับสำเร็จ' });
-    } catch (error) {
-      console.error('Error moving item:', error);
-      setLocalAddons(addons);
-      toast({ title: 'เกิดข้อผิดพลาด', description: 'เกิดข้อผิดพลาดในการเลื่อนลำดับ', variant: 'destructive' });
-    }
+    await normalizeAndSwap(localAddons, index, index + 1);
   };
 
   const handleDelete = async () => {
