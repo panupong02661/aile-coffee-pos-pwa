@@ -15,6 +15,7 @@ import { ChefHat, Plus, Trash2, Calculator, TrendingUp } from 'lucide-react';
 const RecipeManagement = () => {
   const { 
     menuItems,
+    categories,
     ingredients,
     menuIngredients,
     getIngredientsForMenuItem,
@@ -26,6 +27,7 @@ const RecipeManagement = () => {
   } = useSupabaseData();
   
   const { toast } = useToast();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [recipeIngredients, setRecipeIngredients] = useState<any[]>([]);
   const [newIngredient, setNewIngredient] = useState({
@@ -177,10 +179,44 @@ const RecipeManagement = () => {
     return (getCurrentRecipeProfit() / editingRecipe.price) * 100;
   };
 
+  const filteredMenuItems = selectedCategory === 'all' 
+    ? menuItems 
+    : menuItems.filter(item => item.category_id === selectedCategory);
+
   return (
     <div className="space-y-6">
+      {/* Category Filter */}
+      <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+        <button
+          onClick={() => setSelectedCategory('all')}
+          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            selectedCategory === 'all'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          ทั้งหมด ({menuItems.length})
+        </button>
+        {categories.filter(c => c.is_active).map(cat => {
+          const count = menuItems.filter(item => item.category_id === cat.id).length;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                selectedCategory === cat.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {cat.name} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {menuItems.map((menuItem) => {
+        {filteredMenuItems.map((menuItem) => {
           const cost = calculateMenuItemCost(menuItem.id);
           const profit = calculateMenuItemProfit(menuItem.id);
           const margin = calculateMenuItemMargin(menuItem.id);

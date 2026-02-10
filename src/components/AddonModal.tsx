@@ -50,8 +50,17 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
 
   if (!menuItem) return null;
 
-  // Group addons by addon group
-  const addonGroups = [...new Set(addons.map(addon => addon.addon_groups?.name).filter(Boolean))];
+  // Group addons by addon group, sorted by sort_order
+  const addonGroupsMap = new Map<string, { name: string; sort_order: number }>();
+  addons.forEach(addon => {
+    const group = addon.addon_groups;
+    if (group?.name && !addonGroupsMap.has(group.name)) {
+      addonGroupsMap.set(group.name, { name: group.name, sort_order: (group as any).sort_order ?? 0 });
+    }
+  });
+  const addonGroups = [...addonGroupsMap.values()]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(g => g.name);
 
   const handleAddonToggle = (addon: DatabaseAddon, groupName: string) => {
     const groupAddons = addons.filter(a => a.addon_groups?.name === groupName);
@@ -100,7 +109,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
               
               return (
-                <div key={groupName} className="space-y-2">
+                <div key={groupName} className="space-y-2 border rounded-lg p-4 bg-muted/30">
                   <h3 className="font-bold text-lg text-coffee-800">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>

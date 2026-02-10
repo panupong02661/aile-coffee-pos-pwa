@@ -616,7 +616,8 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
             name,
             allow_multiple,
             is_required,
-            is_active
+            is_active,
+            sort_order
           )
         `)
         .eq('is_active', true)
