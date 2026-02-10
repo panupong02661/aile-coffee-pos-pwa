@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Package, AlertTriangle, ArrowUp, ArrowDown, Edit } from 'lucide-react';
+import { Plus, Package, AlertTriangle, ArrowUp, ArrowDown, Edit, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const StockManagement = () => {
   const { 
@@ -232,6 +233,20 @@ const StockManagement = () => {
     } catch (error) {
       console.error('Error:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัปเดตข้อมูลได้', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteIngredient = async (ingredient: any) => {
+    try {
+      await supabase.from('menu_ingredients').delete().eq('ingredient_id', ingredient.id);
+      await supabase.from('stock_movements').delete().eq('ingredient_id', ingredient.id);
+      const { error } = await supabase.from('ingredients').delete().eq('id', ingredient.id);
+      if (error) throw error;
+      toast({ title: 'สำเร็จ', description: `ลบวัตถุดิบ "${ingredient.name}" แล้ว` });
+      refetch.ingredients();
+    } catch (error: any) {
+      console.error('Error deleting ingredient:', error);
+      toast({ title: 'ข้อผิดพลาด', description: error?.message || 'ไม่สามารถลบวัตถุดิบได้', variant: 'destructive' });
     }
   };
 
@@ -546,6 +561,27 @@ const StockManagement = () => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>ยืนยันการลบวัตถุดิบ</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              คุณต้องการลบ "{ingredient.name}" หรือไม่? ข้อมูลสูตรอาหารและการเคลื่อนไหวสต็อกที่เกี่ยวข้องจะถูกลบด้วย
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteIngredient(ingredient)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              ลบ
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                   <Badge variant={ingredient.quantity <= ingredient.minimum_stock ? 'destructive' : 'secondary'}>
