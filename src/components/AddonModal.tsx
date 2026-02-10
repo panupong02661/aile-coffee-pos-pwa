@@ -99,9 +99,9 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
           <DialogTitle className="text-xl font-bold">เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-3">
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {addonGroups.map((groupName, groupIndex) => {
               if (!groupName) return null;
               const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
@@ -121,8 +121,8 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               const color = groupColors[groupIndex % groupColors.length];
               
               return (
-                <div key={groupName} className={`space-y-2 border rounded-lg p-4 ${color.border} ${color.bg}`}>
-                  <h3 className="font-bold text-lg text-coffee-800">
+                <div key={groupName} className={`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`}>
+                  <h3 className="font-bold text-base text-coffee-800">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
                   
