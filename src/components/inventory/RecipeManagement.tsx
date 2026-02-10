@@ -32,6 +32,13 @@ const RecipeManagement = () => {
     ingredient_id: '',
     quantity_needed: 0
   });
+  const [useCustomIngredient, setUseCustomIngredient] = useState(false);
+  const [customIngredient, setCustomIngredient] = useState({
+    name: '',
+    quantity_needed: 0,
+    unit: 'g',
+    cost_per_unit: 0
+  });
 
   const handleEditRecipe = async (menuItem: any) => {
     const currentIngredients = getIngredientsForMenuItem(menuItem.id);
@@ -45,6 +52,30 @@ const RecipeManagement = () => {
   };
 
   const handleAddIngredientToRecipe = () => {
+    if (useCustomIngredient) {
+      if (!customIngredient.name || customIngredient.quantity_needed <= 0) {
+        toast({ title: 'ข้อผิดพลาด', description: 'กรุณาระบุชื่อวัตถุดิบและปริมาณ', variant: 'destructive' });
+        return;
+      }
+
+      const customId = `custom-${Date.now()}`;
+      setRecipeIngredients([...recipeIngredients, {
+        id: null,
+        ingredient_id: customId,
+        quantity_needed: customIngredient.quantity_needed,
+        is_custom: true,
+        ingredient: {
+          id: customId,
+          name: customIngredient.name,
+          unit: customIngredient.unit,
+          cost_per_unit: customIngredient.cost_per_unit
+        }
+      }]);
+
+      setCustomIngredient({ name: '', quantity_needed: 0, unit: 'g', cost_per_unit: 0 });
+      return;
+    }
+
     if (!newIngredient.ingredient_id || newIngredient.quantity_needed <= 0) {
       toast({ title: 'ข้อผิดพลาด', description: 'กรุณาเลือกวัตถุดิบและระบุปริมาณ', variant: 'destructive' });
       return;
@@ -53,14 +84,13 @@ const RecipeManagement = () => {
     const ingredient = ingredients.find(i => i.id === newIngredient.ingredient_id);
     if (!ingredient) return;
 
-    // Check if ingredient already exists in recipe
     if (recipeIngredients.some(ri => ri.ingredient_id === newIngredient.ingredient_id)) {
       toast({ title: 'ข้อผิดพลาด', description: 'วัตถุดิบนี้มีในสูตรแล้ว', variant: 'destructive' });
       return;
     }
 
     setRecipeIngredients([...recipeIngredients, {
-      id: null, // New ingredient
+      id: null,
       ingredient_id: newIngredient.ingredient_id,
       quantity_needed: newIngredient.quantity_needed,
       ingredient: ingredient
@@ -91,11 +121,12 @@ const RecipeManagement = () => {
 
       if (deleteError) throw deleteError;
 
-      // Insert new recipe ingredients
-      if (recipeIngredients.length > 0) {
+      // Insert new recipe ingredients (only non-custom ones go to DB)
+      const dbIngredients = recipeIngredients.filter(ri => !ri.is_custom);
+      if (dbIngredients.length > 0) {
         const { error: insertError } = await supabase
           .from('menu_ingredients')
-          .insert(recipeIngredients.map(ri => ({
+          .insert(dbIngredients.map(ri => ({
             menu_item_id: editingRecipe.id,
             ingredient_id: ri.ingredient_id,
             quantity_needed: ri.quantity_needed
@@ -103,6 +134,13 @@ const RecipeManagement = () => {
 
         if (insertError) throw insertError;
       }
+
+      // Update menu item cost_price to include custom ingredients cost
+      const totalCost = getCurrentRecipeCost();
+      await supabase
+        .from('menu_items')
+        .update({ cost_price: totalCost })
+        .eq('id', editingRecipe.id);
 
       toast({ title: 'สำเร็จ', description: 'บันทึกสูตรเมนูแล้ว' });
       setEditingRecipe(null);
@@ -270,50 +308,109 @@ const RecipeManagement = () => {
             {/* Add Ingredient */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">เพิ่มวัตถุดิบในสูตร</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="ingredient-select">วัตถุดิบ</Label>
-                    <Select
-                      value={newIngredient.ingredient_id}
-                      onValueChange={(value) => setNewIngredient({ ...newIngredient, ingredient_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกวัตถุดิบ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ingredients
-                          .filter(ingredient => !recipeIngredients.some(ri => ri.ingredient_id === ingredient.id))
-                          .map((ingredient) => (
-                          <SelectItem key={ingredient.id} value={ingredient.id}>
-                            {ingredient.name} (฿{ingredient.cost_per_unit}/{ingredient.unit})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="quantity-input">ปริมาณที่ใช้</Label>
-                    <Input
-                      id="quantity-input"
-                      type="number"
-                      step="0.1"
-                      value={newIngredient.quantity_needed}
-                      onChange={(e) => setNewIngredient({ ...newIngredient, quantity_needed: Number(e.target.value) })}
-                      placeholder="0"
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">เพิ่มวัตถุดิบในสูตร</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="custom-toggle" className="text-sm cursor-pointer">กำหนดเอง</Label>
+                    <input
+                      id="custom-toggle"
+                      type="checkbox"
+                      checked={useCustomIngredient}
+                      onChange={(e) => setUseCustomIngredient(e.target.checked)}
+                      className="rounded"
                     />
                   </div>
-                  
-                  <div className="flex items-end">
-                    <Button onClick={handleAddIngredientToRecipe} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      เพิ่ม
-                    </Button>
-                  </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                {useCustomIngredient ? (
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                      <Label>ชื่อวัตถุดิบ</Label>
+                      <Input
+                        value={customIngredient.name}
+                        onChange={(e) => setCustomIngredient({ ...customIngredient, name: e.target.value })}
+                        placeholder="เช่น น้ำกาแฟ"
+                      />
+                    </div>
+                    <div>
+                      <Label>ปริมาณ</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={customIngredient.quantity_needed}
+                        onChange={(e) => setCustomIngredient({ ...customIngredient, quantity_needed: Number(e.target.value) })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label>หน่วย</Label>
+                      <Input
+                        value={customIngredient.unit}
+                        onChange={(e) => setCustomIngredient({ ...customIngredient, unit: e.target.value })}
+                        placeholder="เช่น ml, g, ช้อน"
+                      />
+                    </div>
+                    <div>
+                      <Label>ต้นทุน/หน่วย (฿)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={customIngredient.cost_per_unit}
+                        onChange={(e) => setCustomIngredient({ ...customIngredient, cost_per_unit: Number(e.target.value) })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={handleAddIngredientToRecipe} className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        เพิ่ม
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="ingredient-select">วัตถุดิบ</Label>
+                      <Select
+                        value={newIngredient.ingredient_id}
+                        onValueChange={(value) => setNewIngredient({ ...newIngredient, ingredient_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกวัตถุดิบ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ingredients
+                            .filter(ingredient => !recipeIngredients.some(ri => ri.ingredient_id === ingredient.id))
+                            .map((ingredient) => (
+                            <SelectItem key={ingredient.id} value={ingredient.id}>
+                              {ingredient.name} (฿{ingredient.cost_per_unit}/{ingredient.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="quantity-input">ปริมาณที่ใช้</Label>
+                      <Input
+                        id="quantity-input"
+                        type="number"
+                        step="0.1"
+                        value={newIngredient.quantity_needed}
+                        onChange={(e) => setNewIngredient({ ...newIngredient, quantity_needed: Number(e.target.value) })}
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <div className="flex items-end">
+                      <Button onClick={handleAddIngredientToRecipe} className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        เพิ่ม
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -330,7 +427,10 @@ const RecipeManagement = () => {
                     {recipeIngredients.map((ri, index) => (
                       <div key={`${ri.ingredient_id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="font-medium">{ri.ingredient?.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{ri.ingredient?.name}</p>
+                            {ri.is_custom && <Badge variant="outline" className="text-xs">กำหนดเอง</Badge>}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             ต้นทุน: ฿{ri.ingredient?.cost_per_unit || 0}/{ri.ingredient?.unit}
                           </p>
