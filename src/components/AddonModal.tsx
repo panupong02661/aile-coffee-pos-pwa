@@ -102,14 +102,26 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
         <div className="space-y-6">
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {addonGroups.map(groupName => {
+            {addonGroups.map((groupName, groupIndex) => {
               if (!groupName) return null;
               const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
               const allowMultiple = groupAddons[0]?.addon_groups?.allow_multiple || false;
               const isRequired = groupAddons[0]?.addon_groups?.is_required || false;
               
+              const groupColors = [
+                { border: 'border-orange-200', bg: 'bg-orange-50/60' },
+                { border: 'border-blue-200', bg: 'bg-blue-50/60' },
+                { border: 'border-purple-200', bg: 'bg-purple-50/60' },
+                { border: 'border-green-200', bg: 'bg-green-50/60' },
+                { border: 'border-pink-200', bg: 'bg-pink-50/60' },
+                { border: 'border-yellow-200', bg: 'bg-yellow-50/60' },
+                { border: 'border-teal-200', bg: 'bg-teal-50/60' },
+                { border: 'border-indigo-200', bg: 'bg-indigo-50/60' },
+              ];
+              const color = groupColors[groupIndex % groupColors.length];
+              
               return (
-                <div key={groupName} className="space-y-2 border rounded-lg p-4 bg-muted/30">
+                <div key={groupName} className={`space-y-2 border rounded-lg p-4 ${color.border} ${color.bg}`}>
                   <h3 className="font-bold text-lg text-coffee-800">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
