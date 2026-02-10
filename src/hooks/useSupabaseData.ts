@@ -287,7 +287,8 @@ export const useSupabaseData = () => {
           id,
           name,
           is_required,
-          allow_multiple
+          allow_multiple,
+          sort_order
         )
       `)
       .order('sort_order');
