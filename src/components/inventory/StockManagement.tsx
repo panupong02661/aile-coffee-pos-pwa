@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Package, AlertTriangle, ArrowUp, ArrowDown, Edit, Trash2 } from 'lucide-react';
+import { Plus, Package, AlertTriangle, ArrowUp, ArrowDown, Edit, Trash2, Settings, Tag } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+interface IngredientCategory {
+  id: string;
+  name: string;
+  value: string;
+  sort_order: number;
+  is_active: boolean;
+}
 
 const StockManagement = () => {
   const { 
@@ -27,6 +35,11 @@ const StockManagement = () => {
   const [isAddingStock, setIsAddingStock] = useState(false);
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<any>(null);
+  const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [categories, setCategories] = useState<IngredientCategory[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryValue, setNewCategoryValue] = useState('');
+  const [editingCategory, setEditingCategory] = useState<IngredientCategory | null>(null);
   
   // Stock Movement Form
   const [movementForm, setMovementForm] = useState({
@@ -49,15 +62,71 @@ const StockManagement = () => {
     supplier: ''
   });
 
-  const categories = [
-    { value: 'coffee', label: 'กาแฟ' },
-    { value: 'dairy', label: 'นม & ของหวาน' },
-    { value: 'sweetener', label: 'สารให้ความหวาน' },
-    { value: 'syrup', label: 'ไซรัป' },
-    { value: 'bakery', label: 'เบเกอรี่' },
-    { value: 'packaging', label: 'บรรจุภัณฑ์' },
-    { value: 'other', label: 'อื่นๆ' }
-  ];
+  // Fetch categories from DB
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from('ingredient_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order');
+    if (!error && data) {
+      setCategories(data as IngredientCategory[]);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim() || !newCategoryValue.trim()) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกชื่อและค่าหมวดหมู่', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('ingredient_categories').insert([{
+      name: newCategoryName.trim(),
+      value: newCategoryValue.trim().toLowerCase().replace(/\s+/g, '_'),
+      sort_order: categories.length + 1
+    }]);
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message.includes('duplicate') ? 'ค่าหมวดหมู่ซ้ำ' : error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'สำเร็จ', description: 'เพิ่มหมวดหมู่แล้ว' });
+    setNewCategoryName('');
+    setNewCategoryValue('');
+    fetchCategories();
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return;
+    const { error } = await supabase.from('ingredient_categories')
+      .update({ name: editingCategory.name, value: editingCategory.value })
+      .eq('id', editingCategory.id);
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'สำเร็จ', description: 'อัปเดตหมวดหมู่แล้ว' });
+    setEditingCategory(null);
+    fetchCategories();
+  };
+
+  const handleDeleteCategory = async (cat: IngredientCategory) => {
+    // Check if any ingredients use this category
+    const usedCount = ingredients.filter(i => i.category === cat.value).length;
+    if (usedCount > 0) {
+      toast({ title: 'ไม่สามารถลบได้', description: `มีวัตถุดิบ ${usedCount} รายการใช้หมวดหมู่นี้อยู่`, variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('ingredient_categories').delete().eq('id', cat.id);
+    if (error) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'สำเร็จ', description: `ลบหมวดหมู่ "${cat.name}" แล้ว` });
+    fetchCategories();
+  };
 
   const movementTypes = [
     { value: 'purchase', label: 'ซื้อเข้า' },
@@ -433,7 +502,7 @@ const StockManagement = () => {
                   <SelectContent>
                     {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
+                        {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -514,6 +583,100 @@ const StockManagement = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={isManagingCategories} onOpenChange={setIsManagingCategories}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Tag className="h-4 w-4 mr-2" />
+              จัดการหมวดหมู่
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>จัดการหมวดหมู่วัตถุดิบ</DialogTitle>
+              <DialogDescription>เพิ่ม แก้ไข หรือลบหมวดหมู่วัตถุดิบ</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Add new category */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="ชื่อหมวดหมู่ (เช่น เครื่องปรุง)"
+                  value={newCategoryName}
+                  onChange={(e) => {
+                    setNewCategoryName(e.target.value);
+                    setNewCategoryValue(e.target.value.trim().toLowerCase().replace(/\s+/g, '_'));
+                  }}
+                />
+                <Input
+                  placeholder="ค่า (เช่น seasoning)"
+                  value={newCategoryValue}
+                  onChange={(e) => setNewCategoryValue(e.target.value)}
+                  className="w-40"
+                />
+                <Button onClick={handleAddCategory} size="sm">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Category list */}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {categories.map((cat) => (
+                  <div key={cat.id} className="flex items-center gap-2 p-2 border rounded-md">
+                    {editingCategory?.id === cat.id ? (
+                      <>
+                        <Input
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                          className="flex-1"
+                        />
+                        <Input
+                          value={editingCategory.value}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, value: e.target.value })}
+                          className="w-32"
+                        />
+                        <Button size="sm" onClick={handleUpdateCategory}>บันทึก</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCategory(null)}>ยกเลิก</Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 font-medium">{cat.name}</span>
+                        <Badge variant="secondary">{cat.value}</Badge>
+                        <Badge variant="outline">{ingredients.filter(i => i.category === cat.value).length} รายการ</Badge>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingCategory({ ...cat })}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>ยืนยันการลบหมวดหมู่</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                คุณต้องการลบหมวดหมู่ "{cat.name}" หรือไม่?
+                                {ingredients.filter(i => i.category === cat.value).length > 0 && 
+                                  ` (มีวัตถุดิบ ${ingredients.filter(i => i.category === cat.value).length} รายการใช้หมวดหมู่นี้อยู่ ไม่สามารถลบได้)`
+                                }
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteCategory(cat)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                ลบ
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
@@ -525,7 +688,7 @@ const StockManagement = () => {
           </TabsTrigger>
           {categories.map((cat) => (
             <TabsTrigger key={cat.value} value={cat.value}>
-              {cat.label} ({groupedIngredients[cat.value]?.length || 0})
+              {cat.name} ({groupedIngredients[cat.value]?.length || 0})
             </TabsTrigger>
           ))}
         </TabsList>
@@ -585,7 +748,7 @@ const StockManagement = () => {
                     </div>
                   </div>
                   <Badge variant={ingredient.quantity <= ingredient.minimum_stock ? 'destructive' : 'secondary'}>
-                    {categories.find(c => c.value === ingredient.category)?.label || ingredient.category}
+                    {categories.find(c => c.value === ingredient.category)?.name || ingredient.category}
                   </Badge>
                 </CardHeader>
                 <CardContent>
@@ -633,7 +796,7 @@ const StockManagement = () => {
                     {ingredient.name}
                   </CardTitle>
                   <Badge variant="destructive">
-                    {categories.find(c => c.value === ingredient.category)?.label || ingredient.category}
+                    {categories.find(c => c.value === ingredient.category)?.name || ingredient.category}
                   </Badge>
                 </CardHeader>
                 <CardContent>
@@ -669,7 +832,7 @@ const StockManagement = () => {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">{ingredient.name}</CardTitle>
                     <Badge variant={ingredient.quantity <= ingredient.minimum_stock ? 'destructive' : 'secondary'}>
-                      {cat.label}
+                      {cat.name}
                     </Badge>
                   </CardHeader>
                   <CardContent>
@@ -732,7 +895,7 @@ const StockManagement = () => {
                   <SelectContent>
                     {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
+                        {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
