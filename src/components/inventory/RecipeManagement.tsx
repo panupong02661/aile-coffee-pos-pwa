@@ -123,12 +123,35 @@ const RecipeManagement = () => {
 
       if (deleteError) throw deleteError;
 
-      // Insert new recipe ingredients (only non-custom ones go to DB)
-      const dbIngredients = recipeIngredients.filter(ri => !ri.is_custom);
-      if (dbIngredients.length > 0) {
+      // For custom ingredients, create them in the ingredients table first
+      const allIngredients = [...recipeIngredients];
+      for (let i = 0; i < allIngredients.length; i++) {
+        const ri = allIngredients[i];
+        if (ri.is_custom) {
+          const { data: newIng, error: ingError } = await supabase
+            .from('ingredients')
+            .insert({
+              name: ri.ingredient.name,
+              unit: ri.ingredient.unit,
+              cost_per_unit: ri.ingredient.cost_per_unit || 0,
+              quantity: 0,
+              minimum_stock: 0,
+              category: 'อื่นๆ',
+            })
+            .select('id')
+            .single();
+
+          if (ingError) throw ingError;
+          // Replace custom ID with real DB ID
+          allIngredients[i] = { ...ri, ingredient_id: newIng.id, is_custom: false };
+        }
+      }
+
+      // Insert all recipe ingredients to DB
+      if (allIngredients.length > 0) {
         const { error: insertError } = await supabase
           .from('menu_ingredients')
-          .insert(dbIngredients.map(ri => ({
+          .insert(allIngredients.map(ri => ({
             menu_item_id: editingRecipe.id,
             ingredient_id: ri.ingredient_id,
             quantity_needed: ri.quantity_needed
@@ -137,7 +160,7 @@ const RecipeManagement = () => {
         if (insertError) throw insertError;
       }
 
-      // Update menu item cost_price to include custom ingredients cost
+      // Update menu item cost_price
       const totalCost = getCurrentRecipeCost();
       await supabase
         .from('menu_items')
