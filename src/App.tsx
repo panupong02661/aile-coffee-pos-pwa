@@ -33,7 +33,7 @@ const Reports = lazy(() => import('./pages/Reports'));
 const ShopSettings = lazy(() => import('./pages/ShopSettings'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
 const Promotions = lazy(() => import('./pages/Promotions'));
-const OnlineSystem = lazy(() => import('./pages/OnlineSystem'));
+
 const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
 const CustomerAppManagement = lazy(() => import('./pages/CustomerAppManagement'));
 const QRCodePromptPayPage = lazy(() => import('./pages/QRCodePromptPayPage'));
@@ -96,7 +96,7 @@ function App() {
                   <Route path="/business-settings" element={<BusinessSettings />} />
                   <Route path="/promotions" element={<Promotions />} />
                   <Route path="/menu-promotions" element={<MenuPromotions />} />
-                  <Route path="/online-system" element={<OnlineSystem />} />
+                  
                   <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
                   <Route path="/customer-app-management" element={<CustomerAppManagement />} />
                   <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
