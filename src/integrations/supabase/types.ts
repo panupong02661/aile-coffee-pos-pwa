@@ -2787,7 +2787,10 @@ export type Database = {
           show_logo: boolean
           show_order_number: boolean
           show_payment_method: boolean
+          show_shop_address: boolean
           show_shop_info: boolean
+          show_shop_name: boolean
+          show_shop_phone: boolean
           show_tax: boolean | null
           show_tax_id: boolean
           show_total: boolean
@@ -2805,7 +2808,10 @@ export type Database = {
           show_logo?: boolean
           show_order_number?: boolean
           show_payment_method?: boolean
+          show_shop_address?: boolean
           show_shop_info?: boolean
+          show_shop_name?: boolean
+          show_shop_phone?: boolean
           show_tax?: boolean | null
           show_tax_id?: boolean
           show_total?: boolean
@@ -2823,7 +2829,10 @@ export type Database = {
           show_logo?: boolean
           show_order_number?: boolean
           show_payment_method?: boolean
+          show_shop_address?: boolean
           show_shop_info?: boolean
+          show_shop_name?: boolean
+          show_shop_phone?: boolean
           show_tax?: boolean | null
           show_tax_id?: boolean
           show_total?: boolean
