@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 interface ReceiptSettingsForm {
   show_logo: boolean;
   show_shop_info: boolean;
+  show_shop_name: boolean;
+  show_shop_address: boolean;
+  show_shop_phone: boolean;
   show_tax_id: boolean;
   show_date_time: boolean;
   show_order_number: boolean;
@@ -35,6 +38,9 @@ const ReceiptSettings = () => {
   // Watch all switch values
   const showLogo = watch('show_logo');
   const showShopInfo = watch('show_shop_info');
+  const showShopName = watch('show_shop_name');
+  const showShopAddress = watch('show_shop_address');
+  const showShopPhone = watch('show_shop_phone');
   const showTaxId = watch('show_tax_id');
   const showDateTime = watch('show_date_time');
   const showOrderNumber = watch('show_order_number');
@@ -65,6 +71,9 @@ const ReceiptSettings = () => {
       if (data) {
         setValue('show_logo', data.show_logo);
         setValue('show_shop_info', data.show_shop_info);
+        setValue('show_shop_name', (data as any).show_shop_name ?? true);
+        setValue('show_shop_address', (data as any).show_shop_address ?? true);
+        setValue('show_shop_phone', (data as any).show_shop_phone ?? true);
         setValue('show_tax_id', data.show_tax_id);
         setValue('show_date_time', data.show_date_time);
         setValue('show_order_number', data.show_order_number);
@@ -177,11 +186,27 @@ const ReceiptSettings = () => {
           />
 
           <SwitchField
-            name="show_shop_info"
-            label="แสดงข้อมูลร้าน"
-            description="แสดงชื่อร้าน ที่อยู่ และเบอร์โทรศัพท์"
-            checked={showShopInfo}
-            onCheckedChange={(checked) => setValue('show_shop_info', checked)}
+            name="show_shop_name"
+            label="แสดงชื่อร้าน"
+            description="แสดงชื่อร้านในใบเสร็จ"
+            checked={showShopName}
+            onCheckedChange={(checked) => setValue('show_shop_name', checked)}
+          />
+
+          <SwitchField
+            name="show_shop_address"
+            label="แสดงที่อยู่ร้าน"
+            description="แสดงที่อยู่ร้านในใบเสร็จ"
+            checked={showShopAddress}
+            onCheckedChange={(checked) => setValue('show_shop_address', checked)}
+          />
+
+          <SwitchField
+            name="show_shop_phone"
+            label="แสดงเบอร์โทรศัพท์"
+            description="แสดงเบอร์โทรศัพท์ร้านในใบเสร็จ"
+            checked={showShopPhone}
+            onCheckedChange={(checked) => setValue('show_shop_phone', checked)}
           />
 
           <SwitchField
