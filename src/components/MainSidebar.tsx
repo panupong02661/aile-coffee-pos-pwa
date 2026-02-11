@@ -71,7 +71,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   // Pages that exist and have implementations
   const existingPages = [
     '/', '/dashboard', '/menu', '/members', '/pos', '/reports', '/shop-settings', 
-    '/promotions', '/online-system', '/customer-mobile-app', '/customer-app-management', '/kitchen-display',
+    '/promotions', '/customer-mobile-app', '/customer-app-management', '/kitchen-display',
     '/qr-promptpay', '/inventory', '/printer-settings', '/online-orders', 
     '/security-recommendations', '/advanced-reports', '/sales-reports', '/product-reports',
     '/customer-analytics', '/staff', '/time-attendance', '/permissions', '/branch-management',
@@ -147,7 +147,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
     
     // เมนูเดิมที่เหลือ
-    { id: 'online-system', label: 'ระบบออนไลน์', icon: Globe, path: '/online-system' },
+    
     { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
     { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
     { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
