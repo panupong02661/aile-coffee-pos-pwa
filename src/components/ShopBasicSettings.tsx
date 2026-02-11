@@ -234,13 +234,13 @@ const ShopBasicSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Shop Information */}
+      {/* ชื่อร้าน */}
       <Card>
         <CardHeader>
-          <CardTitle>ข้อมูลร้าน</CardTitle>
-          <CardDescription>กรอกข้อมูลพื้นฐานของร้าน</CardDescription>
+          <CardTitle>ชื่อร้าน</CardTitle>
+          <CardDescription>ชื่อร้านที่จะแสดงในใบเสร็จ</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div>
             <Label htmlFor="shop_name">ชื่อร้าน</Label>
             <Input
@@ -249,7 +249,16 @@ const ShopBasicSettings = () => {
               placeholder="ใส่ชื่อร้าน"
             />
           </div>
+        </CardContent>
+      </Card>
 
+      {/* ที่อยู่ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ที่อยู่ร้าน</CardTitle>
+          <CardDescription>ที่อยู่ที่จะแสดงในใบเสร็จ</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div>
             <Label htmlFor="address">ที่อยู่</Label>
             <Textarea
@@ -259,26 +268,42 @@ const ShopBasicSettings = () => {
               rows={3}
             />
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-              <Input
-                id="phone"
-                {...register('phone')}
-                placeholder="02-xxx-xxxx"
-              />
-            </div>
+      {/* เบอร์โทรศัพท์ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>เบอร์โทรศัพท์</CardTitle>
+          <CardDescription>เบอร์โทรศัพท์ที่จะแสดงในใบเสร็จ</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div>
+            <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+            <Input
+              id="phone"
+              {...register('phone')}
+              placeholder="02-xxx-xxxx"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-            <div>
-              <Label htmlFor="email">อีเมล</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="email@example.com"
-              />
-            </div>
+      {/* อีเมลและข้อมูลภาษี */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ข้อมูลอื่นๆ</CardTitle>
+          <CardDescription>อีเมลและเลขประจำตัวผู้เสียภาษี</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="email">อีเมล</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register('email')}
+              placeholder="email@example.com"
+            />
           </div>
 
           <div>
