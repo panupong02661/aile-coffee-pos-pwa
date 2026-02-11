@@ -19,6 +19,9 @@ interface ShopSettings {
 interface ReceiptSettings {
   show_logo: boolean;
   show_shop_info: boolean;
+  show_shop_name: boolean;
+  show_shop_address: boolean;
+  show_shop_phone: boolean;
   show_tax_id: boolean;
   show_date_time: boolean;
   show_order_number: boolean;
@@ -142,16 +145,18 @@ const ReceiptPreview = ({
           )}
 
           {/* Shop Info */}
-          {receiptSettings.show_shop_info && (
+          {(receiptSettings.show_shop_name || receiptSettings.show_shop_address || receiptSettings.show_shop_phone) && (
             <div className="text-center mb-4">
-              <div className="font-bold text-lg">{shopSettings.shop_name}</div>
-              {shopSettings.address && (
+              {receiptSettings.show_shop_name && (
+                <div className="font-bold text-lg">{shopSettings.shop_name}</div>
+              )}
+              {receiptSettings.show_shop_address && shopSettings.address && (
                 <div className="text-xs mt-1">{shopSettings.address}</div>
               )}
-              {shopSettings.phone && (
+              {receiptSettings.show_shop_phone && shopSettings.phone && (
                 <div className="text-xs">โทร: {shopSettings.phone}</div>
               )}
-              {shopSettings.email && (
+              {receiptSettings.show_shop_name && shopSettings.email && (
                 <div className="text-xs">Email: {shopSettings.email}</div>
               )}
             </div>
