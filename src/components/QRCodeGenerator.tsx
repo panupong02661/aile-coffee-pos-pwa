@@ -9,8 +9,17 @@ const QRCodeGenerator = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const { toast } = useToast();
   
-  // Get the current domain for the registration URL
-  const registrationUrl = `${window.location.origin}/customer-mobile-app`;
+  // Use published URL so customers don't hit Lovable preview auth
+  const getPublishedOrigin = () => {
+    const host = window.location.hostname;
+    // If on preview subdomain, convert to published URL
+    if (host.includes('preview--')) {
+      const projectSlug = 'aile-coffee-pos-pwa';
+      return `https://${projectSlug}.lovable.app`;
+    }
+    return window.location.origin;
+  };
+  const registrationUrl = `${getPublishedOrigin()}/customer-mobile-app`;
 
   useEffect(() => {
     // Generate QR code using QR Server API
