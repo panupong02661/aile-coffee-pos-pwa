@@ -10,7 +10,7 @@ const QRCodeGenerator = () => {
   const { toast } = useToast();
   
   // Get the current domain for the registration URL
-  const registrationUrl = `${window.location.origin}/member-registration`;
+  const registrationUrl = `${window.location.origin}/customer-mobile-app`;
 
   useEffect(() => {
     // Generate QR code using QR Server API
