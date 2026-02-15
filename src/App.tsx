@@ -159,7 +159,7 @@ function App() {
                   <Route path="/api-system" element={<TechnologySystem />} />
                   <Route path="/external-integration" element={<TechnologySystem />} />
                   <Route path="/staff-mobile-app" element={<TechnologySystem />} />
-                  <Route path="/customer-mobile-app" element={<TechnologySystem />} />
+                  {/* customer-mobile-app route defined above at line 100 */}
                   <Route path="/data-backup" element={<SecuritySystem />} />
                   <Route path="/auto-backup" element={<SecuritySystem />} />
                   <Route path="/system-logs" element={<SecuritySystem />} />
