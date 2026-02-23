@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, RefreshCw, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ShoppingBag, ShoppingCart, Settings } from 'lucide-react';
 
 import ProfileSection from '@/components/customer/ProfileSection';
 import RewardsSection from '@/components/customer/RewardsSection';
@@ -899,37 +899,59 @@ const CustomerMobileApp: React.FC = () => {
         {/* Header with Back Button and Refresh Button */}
         <div className="p-4 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
           {activeTab !== 'home' ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackToHome}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              กลับหน้าแรก
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToHome}
+                className="flex items-center gap-2 px-1"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                กลับหน้าแรก
+              </Button>
+              {activeTab === 'shop' && (
+                <span className="text-sm font-semibold flex items-center gap-1">
+                  <ShoppingCart className="w-4 h-4" />
+                  สั่งสินค้าออนไลน์
+                </span>
+              )}
+            </div>
           ) : (
             <div className="text-lg font-semibold text-orange-600">
               แอปสมาชิก
             </div>
           )}
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => {
-              await refetchMemberData();
-              toast({
-                title: '✅ รีเฟรชสำเร็จ',
-                description: 'ข้อมูลอัปเดตเรียบร้อยแล้ว',
-              });
-            }}
-            className="flex items-center gap-2"
-            title="รีเฟรชข้อมูล"
-          >
-            <RefreshCw className="w-4 h-4" />
-            รีเฟรช
-          </Button>
+          <div className="flex items-center gap-1">
+            {activeTab === 'shop' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.dispatchEvent(new CustomEvent('openShopDisplaySettings'))}
+                className="flex items-center gap-1"
+                title="ตั้งค่าการแสดงผล"
+              >
+                <Settings className="w-4 h-4" />
+                ตั้งค่า
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await refetchMemberData();
+                toast({
+                  title: '✅ รีเฟรชสำเร็จ',
+                  description: 'ข้อมูลอัปเดตเรียบร้อยแล้ว',
+                });
+              }}
+              className="flex items-center gap-1"
+              title="รีเฟรชข้อมูล"
+            >
+              <RefreshCw className="w-4 h-4" />
+              รีเฟรช
+            </Button>
+          </div>
         </div>
 
         {/* Content Section */}
