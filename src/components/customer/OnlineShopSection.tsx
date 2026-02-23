@@ -105,6 +105,13 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
     localStorage.setItem('online-item-size', itemSize);
   }, [gridColumns, itemSize]);
 
+  // Listen for external open display settings event
+  useEffect(() => {
+    const handler = () => setShowDisplaySettings(true);
+    window.addEventListener('openShopDisplaySettings', handler);
+    return () => window.removeEventListener('openShopDisplaySettings', handler);
+  }, []);
+
   // Enhanced iOS-compatible notification sound for 7 seconds
   const playOrderSuccessNotification = async () => {
     try {
@@ -1363,38 +1370,7 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              สั่งสินค้าออนไลน์
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1"
-                title="รีเฟรชหน้าเว็บ"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button
-                onClick={() => setShowDisplaySettings(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                ตั้งค่า
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
+    <div className="space-y-4">
       <Card>
         <CardContent className="p-4">
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
