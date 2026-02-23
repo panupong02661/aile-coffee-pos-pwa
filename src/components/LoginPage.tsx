@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,16 +11,22 @@ const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     
-    const success = await login(username, password);
-    if (success) {
-      navigate('/');
+    try {
+      const success = await login(username, password);
+      if (!success) {
+        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      }
+      // No navigate needed - ProtectedRoute will automatically show children when user state updates
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
     }
     
     setLoading(false);
@@ -84,6 +89,10 @@ const LoginPage = () => {
                 />
               </div>
             </div>
+
+            {error && (
+              <p className="text-sm text-red-600 text-center bg-red-50 p-2 rounded">{error}</p>
+            )}
 
             <Button
               type="submit"
