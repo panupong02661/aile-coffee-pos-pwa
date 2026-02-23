@@ -51,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Use a more explicit query structure to avoid type issues
       const { data, error } = await supabase
         .from('users')
         .select('id, username, role, password_hash')
@@ -69,13 +68,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Simple password check (in production, use proper password hashing)
-      if (password !== 'admin') {
+      // Check password against password_hash in database
+      if (password !== data.password_hash) {
         showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
 
-      // Create user object with explicit typing
       const userData: AuthUser = {
         id: data.id,
         username: data.username,
