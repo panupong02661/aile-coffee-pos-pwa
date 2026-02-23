@@ -895,7 +895,7 @@ const CustomerMobileApp: React.FC = () => {
 
   return (
     <Shell>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen overflow-x-hidden">
         {/* Header with Back Button and Refresh Button */}
         <div className="p-4 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
           {activeTab !== 'home' ? (
@@ -933,7 +933,7 @@ const CustomerMobileApp: React.FC = () => {
         </div>
 
         {/* Content Section */}
-        <div className="flex-grow overflow-y-auto pb-20">
+        <div className="flex-grow overflow-y-auto overflow-x-hidden pb-20">
           {renderContent()}
         </div>
 
