@@ -3165,33 +3165,6 @@ export type Database = {
         }
         Relationships: []
       }
-      staff_permissions: {
-        Row: {
-          created_at: string
-          id: string
-          is_granted: boolean
-          permission_name: string
-          staff_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_granted?: boolean
-          permission_name: string
-          staff_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_granted?: boolean
-          permission_name?: string
-          staff_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       stock_movements: {
         Row: {
           cost_per_unit: number | null
@@ -3527,11 +3500,58 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          is_granted: boolean
+          permission_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          is_granted?: boolean
+          permission_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          is_granted?: boolean
+          permission_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
           failed_login_attempts: number | null
+          full_name: string | null
           id: string
+          is_active: boolean
           last_login: string | null
           locked_until: string | null
           password_hash: string
@@ -3543,7 +3563,9 @@ export type Database = {
         Insert: {
           created_at?: string
           failed_login_attempts?: number | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean
           last_login?: string | null
           locked_until?: string | null
           password_hash: string
@@ -3555,7 +3577,9 @@ export type Database = {
         Update: {
           created_at?: string
           failed_login_attempts?: number | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean
           last_login?: string | null
           locked_until?: string | null
           password_hash?: string

@@ -1,181 +1,319 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Settings, Edit } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-interface StaffPermission {
+// All permission keys derived from MainSidebar menu items
+const ALL_PERMISSIONS = [
+  { key: 'dashboard', label: 'แดชบอร์ด', group: 'POS และ Dashboard' },
+  { key: 'security-dashboard', label: 'Security Dashboard', group: 'POS และ Dashboard' },
+  { key: 'analytics-dashboard', label: 'Analytics Dashboard', group: 'POS และ Dashboard' },
+  { key: 'financial-dashboard', label: 'Financial Dashboard', group: 'POS และ Dashboard' },
+  { key: 'pos', label: 'POS', group: 'POS และ Dashboard' },
+  { key: 'customer-display', label: 'จอแสดงผลลูกค้า', group: 'POS และ Dashboard' },
+  { key: 'kitchen-display', label: 'จอแสดงผลในครัว', group: 'POS และ Dashboard' },
+  { key: 'online-orders', label: 'ออเดอร์ออนไลน์', group: 'POS และ Dashboard' },
+  { key: 'delivery-integration', label: 'Delivery Integration', group: 'POS และ Dashboard' },
+  { key: 'menu', label: 'จัดการเมนู', group: 'จัดการหลัก' },
+  { key: 'members', label: 'จัดการสมาชิก', group: 'จัดการหลัก' },
+  { key: 'inventory', label: 'จัดการคลังสินค้า', group: 'จัดการหลัก' },
+  { key: 'advanced-reports', label: 'รายงานขั้นสูง', group: 'รายงาน' },
+  { key: 'sales-reports', label: 'รายงานยอดขาย', group: 'รายงาน' },
+  { key: 'product-reports', label: 'รายงานสินค้า', group: 'รายงาน' },
+  { key: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', group: 'รายงาน' },
+  { key: 'staff', label: 'จัดการพนักงาน', group: 'พนักงาน' },
+  { key: 'time-attendance', label: 'บันทึกเวลาทำงาน', group: 'พนักงาน' },
+  { key: 'permissions', label: 'กำหนดสิทธิ์', group: 'พนักงาน' },
+  { key: 'branch-management', label: 'จัดการสาขา', group: 'พนักงาน' },
+  { key: 'accounting', label: 'ระบบบัญชี', group: 'การเงิน' },
+  { key: 'income-expense', label: 'รายรับ-รายจ่าย', group: 'การเงิน' },
+  { key: 'profit-loss', label: 'กำไร-ขาดทุน', group: 'การเงิน' },
+  { key: 'tax-system', label: 'ระบบภาษี', group: 'การเงิน' },
+  { key: 'vat-calculation', label: 'คำนวณภาษีมูลค่าเพิ่ม', group: 'การเงิน' },
+  { key: 'tax-invoice', label: 'ออกใบกำกับภาษี', group: 'การเงิน' },
+  { key: 'credit-system', label: 'ระบบเครดิต', group: 'การเงิน' },
+  { key: 'crm', label: 'ระบบ CRM', group: 'ลูกค้า' },
+  { key: 'customer-data', label: 'ข้อมูลลูกค้า', group: 'ลูกค้า' },
+  { key: 'purchase-history', label: 'ประวัติการซื้อ', group: 'ลูกค้า' },
+  { key: 'marketing', label: 'ระบบการตลาด', group: 'ลูกค้า' },
+  { key: 'sms-marketing', label: 'SMS Marketing', group: 'ลูกค้า' },
+  { key: 'email-marketing', label: 'Email Marketing', group: 'ลูกค้า' },
+  { key: 'table-reservation', label: 'ระบบจองโต๊ะ', group: 'ลูกค้า' },
+  { key: 'digital-payment', label: 'การชำระเงินดิจิทัล', group: 'เทคโนโลยี' },
+  { key: 'qr-promptpay', label: 'QR Code PromptPay', group: 'เทคโนโลยี' },
+  { key: 'credit-card', label: 'บัตรเครดิต', group: 'เทคโนโลยี' },
+  { key: 'api-system', label: 'ระบบ API', group: 'เทคโนโลยี' },
+  { key: 'external-integration', label: 'เชื่อมต่อระบบภายนอก', group: 'เทคโนโลยี' },
+  { key: 'staff-mobile-app', label: 'Mobile App พนักงาน', group: 'เทคโนโลยี' },
+  { key: 'customer-mobile-app', label: 'แอปมือถือลูกค้า', group: 'เทคโนโลยี' },
+  { key: 'security-recommendations', label: 'ระบบความปลอดภัย', group: 'ความปลอดภัย' },
+  { key: 'session-management', label: 'Session Management', group: 'ความปลอดภัย' },
+  { key: 'data-backup-monitor', label: 'Data Backup Monitor', group: 'ความปลอดภัย' },
+  { key: 'auto-backup', label: 'Backup อัตโนมัติ', group: 'ความปลอดภัย' },
+  { key: 'customer-app-management', label: 'จัดการแอปลูกค้า', group: 'อื่นๆ' },
+  { key: 'notifications', label: 'แจ้งเตือน', group: 'อื่นๆ' },
+  { key: 'line-messaging', label: 'LINE Messaging', group: 'อื่นๆ' },
+  { key: 'reports', label: 'รายงาน', group: 'อื่นๆ' },
+  { key: 'promotions', label: 'จัดการโปรโมชั่น', group: 'อื่นๆ' },
+  { key: 'menu-promotions', label: 'โปรโมชั่นตามเมนู', group: 'อื่นๆ' },
+  { key: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', group: 'อื่นๆ' },
+  { key: 'coupon-management', label: 'จัดการคูปอง', group: 'อื่นๆ' },
+  { key: 'review-management', label: 'จัดการรีวิว', group: 'อื่นๆ' },
+  { key: 'delivery-management', label: 'จัดการการจัดส่ง', group: 'อื่นๆ' },
+  { key: 'shop-settings', label: 'ตั้งค่าร้าน', group: 'ตั้งค่า' },
+  { key: 'business-settings', label: 'ตั้งค่าธุรกิจ', group: 'ตั้งค่า' },
+  { key: 'printer-settings', label: 'เครื่องพิมพ์', group: 'ตั้งค่า' },
+  { key: 'wifi-vouchers', label: 'WiFi สำหรับลูกค้า', group: 'ตั้งค่า' },
+  { key: 'app-build-guide', label: 'สร้างแอปมือถือ', group: 'ตั้งค่า' },
+];
+
+interface UserData {
   id: string;
-  staff_id: string;
-  staff_name: string;
+  username: string;
+  full_name: string | null;
   role: string;
-  permissions: {
-    pos: boolean;
-    menu_management: boolean;
-    member_management: boolean;
-    reports: boolean;
-    settings: boolean;
-    staff_management: boolean;
-    financial: boolean;
-    inventory: boolean;
-  };
+  is_active: boolean;
+  created_at: string;
 }
 
-interface PermissionGroup {
-  key: keyof StaffPermission['permissions'];
-  name: string;
-  description: string;
+interface UserPermissionMap {
+  [permissionKey: string]: boolean;
 }
 
 const PermissionManagement = () => {
-  const [staffPermissions, setStaffPermissions] = useState<StaffPermission[]>([]);
-  const [selectedStaff, setSelectedStaff] = useState<StaffPermission | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [userPermissions, setUserPermissions] = useState<Record<string, UserPermissionMap>>({});
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [editPermissions, setEditPermissions] = useState<UserPermissionMap>({});
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'staff' });
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
-  const permissionGroups: PermissionGroup[] = [
-    { key: 'pos', name: 'ระบบ POS', description: 'การขายและรับชำระเงิน' },
-    { key: 'menu_management', name: 'จัดการเมนู', description: 'เพิ่ม แก้ไข ลบเมนูอาหาร' },
-    { key: 'member_management', name: 'จัดการสมาชิก', description: 'จัดการข้อมูลสมาชิกและแต้ม' },
-    { key: 'reports', name: 'รายงาน', description: 'ดูรายงานยอดขายและสถิติ' },
-    { key: 'inventory', name: 'จัดการสต็อก', description: 'จัดการคลังสินค้าและวัตถุดิบ' },
-    { key: 'staff_management', name: 'จัดการพนักงาน', description: 'จัดการข้อมูลพนักงาน' },
-    { key: 'financial', name: 'ระบบการเงิน', description: 'จัดการบัญชีและการเงิน' },
-    { key: 'settings', name: 'ตั้งค่าระบบ', description: 'ตั้งค่าร้านและระบบ' }
-  ];
-
-  useEffect(() => {
-    fetchStaffPermissions();
+  // Group permissions by group name
+  const permissionGroups = useMemo(() => {
+    const groups: Record<string, typeof ALL_PERMISSIONS> = {};
+    ALL_PERMISSIONS.forEach(p => {
+      if (!groups[p.group]) groups[p.group] = [];
+      groups[p.group].push(p);
+    });
+    return groups;
   }, []);
 
-  const fetchStaffPermissions = async () => {
+  // Current user's own permissions (admin has all)
+  const currentUserPermissions = useMemo(() => {
+    if (currentUser?.role === 'admin') {
+      const all: UserPermissionMap = {};
+      ALL_PERMISSIONS.forEach(p => { all[p.key] = true; });
+      return all;
+    }
+    return userPermissions[currentUser?.id || ''] || {};
+  }, [currentUser, userPermissions]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     setLoading(true);
     try {
-      // Mock data for demonstration
-      const mockPermissions: StaffPermission[] = [
-        {
-          id: '1',
-          staff_id: '1',
-          staff_name: 'นางสาวสมใจ ใจดี',
-          role: 'staff',
-          permissions: {
-            pos: true,
-            menu_management: false,
-            member_management: true,
-            reports: false,
-            settings: false,
-            staff_management: false,
-            financial: false,
-            inventory: false
-          }
-        },
-        {
-          id: '2',
-          staff_id: '2',
-          staff_name: 'นายสมชาย รักงาน',
-          role: 'staff',
-          permissions: {
-            pos: true,
-            menu_management: true,
-            member_management: false,
-            reports: false,
-            settings: false,
-            staff_management: false,
-            financial: false,
-            inventory: true
-          }
-        },
-        {
-          id: '3',
-          staff_id: '3',
-          staff_name: 'นางสาวมาลี ขยันทำ',
-          role: 'manager',
-          permissions: {
-            pos: true,
-            menu_management: true,
-            member_management: true,
-            reports: true,
-            settings: true,
-            staff_management: true,
-            financial: true,
-            inventory: true
-          }
-        }
-      ];
+      // Fetch users
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, full_name, role, is_active, created_at')
+        .order('created_at');
 
-      setStaffPermissions(mockPermissions);
+      if (usersError) throw usersError;
+
+      // Fetch all permissions
+      const { data: permsData, error: permsError } = await supabase
+        .from('user_permissions')
+        .select('user_id, permission_key, is_granted');
+
+      if (permsError) throw permsError;
+
+      setUsers((usersData as any[]) || []);
+
+      // Build permission map per user
+      const permMap: Record<string, UserPermissionMap> = {};
+      (permsData as any[])?.forEach((p: any) => {
+        if (!permMap[p.user_id]) permMap[p.user_id] = {};
+        permMap[p.user_id][p.permission_key] = p.is_granted;
+      });
+      setUserPermissions(permMap);
     } catch (error) {
-      console.error('Error fetching staff permissions:', error);
+      console.error('Error fetching data:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลได้', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePermissionChange = (permission: keyof StaffPermission['permissions'], value: boolean) => {
-    if (selectedStaff) {
-      setSelectedStaff(prev => prev ? {
-        ...prev,
-        permissions: {
-          ...prev.permissions,
-          [permission]: value
-        }
-      } : null);
+  const handleCreateUser = async () => {
+    if (!newUser.username || !newUser.password) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอก Username และ Password', variant: 'destructive' });
+      return;
     }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('users').insert({
+        username: newUser.username,
+        password_hash: newUser.password, // In production, hash this
+        full_name: newUser.full_name || newUser.username,
+        role: newUser.role,
+      });
+      if (error) throw error;
+
+      toast({ title: 'สำเร็จ', description: 'สร้างผู้ใช้งานเรียบร้อยแล้ว' });
+      setIsCreateOpen(false);
+      setNewUser({ username: '', password: '', full_name: '', role: 'staff' });
+      fetchData();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({ title: 'ข้อผิดพลาด', description: error.message || 'ไม่สามารถสร้างผู้ใช้ได้', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('ต้องการลบผู้ใช้นี้หรือไม่?')) return;
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', userId);
+      if (error) throw error;
+      toast({ title: 'สำเร็จ', description: 'ลบผู้ใช้งานแล้ว' });
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบผู้ใช้ได้', variant: 'destructive' });
+    }
+  };
+
+  const openEditPermissions = (user: UserData) => {
+    setSelectedUser(user);
+    const perms: UserPermissionMap = {};
+    ALL_PERMISSIONS.forEach(p => {
+      perms[p.key] = userPermissions[user.id]?.[p.key] || false;
+    });
+    setEditPermissions(perms);
+    setIsEditOpen(true);
+  };
+
+  const handleTogglePermission = (key: string, value: boolean) => {
+    setEditPermissions(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleToggleGroup = (groupName: string, value: boolean) => {
+    const groupPerms = permissionGroups[groupName];
+    if (!groupPerms) return;
+    setEditPermissions(prev => {
+      const updated = { ...prev };
+      groupPerms.forEach(p => {
+        // Only allow toggling if current user has this permission
+        if (currentUserPermissions[p.key]) {
+          updated[p.key] = value;
+        }
+      });
+      return updated;
+    });
+  };
+
+  const handleSelectAll = (value: boolean) => {
+    setEditPermissions(prev => {
+      const updated = { ...prev };
+      ALL_PERMISSIONS.forEach(p => {
+        if (currentUserPermissions[p.key]) {
+          updated[p.key] = value;
+        }
+      });
+      return updated;
+    });
   };
 
   const handleSavePermissions = async () => {
-    if (!selectedStaff) return;
-
+    if (!selectedUser) return;
+    setSaving(true);
     try {
-      // Update in state (in real app, would update in database)
-      setStaffPermissions(prev => 
-        prev.map(staff => 
-          staff.id === selectedStaff.id ? selectedStaff : staff
-        )
-      );
+      // Delete existing permissions for this user
+      await supabase.from('user_permissions').delete().eq('user_id', selectedUser.id);
 
-      setIsEditDialogOpen(false);
-      setSelectedStaff(null);
-      toast({
-        title: 'สำเร็จ',
-        description: 'อัพเดทสิทธิ์การเข้าถึงเรียบร้อยแล้ว'
-      });
+      // Insert new permissions
+      const rows = ALL_PERMISSIONS
+        .filter(p => editPermissions[p.key])
+        .map(p => ({
+          user_id: selectedUser.id,
+          permission_key: p.key,
+          is_granted: true,
+          granted_by: currentUser?.id || null,
+        }));
+
+      if (rows.length > 0) {
+        const { error } = await supabase.from('user_permissions').insert(rows);
+        if (error) throw error;
+      }
+
+      toast({ title: 'สำเร็จ', description: 'บันทึกสิทธิ์เรียบร้อยแล้ว' });
+      setIsEditOpen(false);
+      fetchData();
     } catch (error) {
-      console.error('Error updating permissions:', error);
-      toast({
-        title: 'ข้อผิดพลาด',
-        description: 'ไม่สามารถอัพเดทสิทธิ์ได้',
-        variant: 'destructive'
-      });
+      console.error('Error saving permissions:', error);
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถบันทึกสิทธิ์ได้', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const openEditDialog = (staff: StaffPermission) => {
-    setSelectedStaff({ ...staff });
-    setIsEditDialogOpen(true);
+  const countPermissions = (userId: string) => {
+    const perms = userPermissions[userId];
+    if (!perms) return 0;
+    return Object.values(perms).filter(Boolean).length;
   };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'admin':
-        return <Badge className="bg-red-100 text-red-800">Admin</Badge>;
-      case 'manager':
-        return <Badge className="bg-blue-100 text-blue-800">Manager</Badge>;
-      default:
-        return <Badge variant="secondary">Staff</Badge>;
+      case 'admin': return <Badge className="bg-red-500/10 text-red-700 border-red-200">Admin</Badge>;
+      case 'manager': return <Badge className="bg-blue-500/10 text-blue-700 border-blue-200">Manager</Badge>;
+      default: return <Badge className="bg-muted text-muted-foreground">Staff</Badge>;
     }
   };
 
-  const countActivePermissions = (permissions: StaffPermission['permissions']) => {
-    return Object.values(permissions).filter(Boolean).length;
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'ผู้ดูแลระบบ';
+      case 'manager': return 'เจ้าของร้าน';
+      case 'staff': return 'พนักงาน';
+      default: return role;
+    }
   };
+
+  const canManageUser = (targetUser: UserData) => {
+    if (currentUser?.role === 'admin') return targetUser.role !== 'admin';
+    if (currentUser?.role === 'manager') return targetUser.role === 'staff';
+    return false;
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -191,115 +329,258 @@ const PermissionManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with create button */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="w-5 h-5 mr-2" />
-            จัดการสิทธิ์การเข้าถึง
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <CardTitle className="flex items-center text-xl">
+              <Shield className="w-5 h-5 mr-2" />
+              กำหนดสิทธิ์ผู้ใช้งาน
+            </CardTitle>
+            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+              <Button onClick={() => setIsCreateOpen(true)} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                เพิ่มผู้ใช้งาน
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>พนักงาน</TableHead>
-                <TableHead>บทบาท</TableHead>
-                <TableHead>สิทธิ์ที่ได้รับ</TableHead>
-                <TableHead>POS</TableHead>
-                <TableHead>เมนู</TableHead>
-                <TableHead>สมาชิก</TableHead>
-                <TableHead>รายงาน</TableHead>
-                <TableHead>จัดการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staffPermissions.map((staff) => (
-                <TableRow key={staff.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2" />
-                      {staff.staff_name}
-                    </div>
-                  </TableCell>
-                  <TableCell>{getRoleBadge(staff.role)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {countActivePermissions(staff.permissions)}/8 สิทธิ์
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {staff.permissions.pos ? 
-                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
-                      <Badge variant="outline">✗</Badge>
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {staff.permissions.menu_management ? 
-                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
-                      <Badge variant="outline">✗</Badge>
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {staff.permissions.member_management ? 
-                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
-                      <Badge variant="outline">✗</Badge>
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {staff.permissions.reports ? 
-                      <Badge className="bg-green-100 text-green-800">✓</Badge> : 
-                      <Badge variant="outline">✗</Badge>
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openEditDialog(staff)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหาผู้ใช้งาน..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Users table */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ผู้ใช้งาน</TableHead>
+                  <TableHead>บทบาท</TableHead>
+                  <TableHead>สิทธิ์</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map(u => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{u.full_name || u.username}</p>
+                          <p className="text-xs text-muted-foreground">@{u.username}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getRoleBadge(u.role)}
+                        <p className="text-xs text-muted-foreground">{getRoleLabel(u.role)}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {u.role === 'admin' ? (
+                        <Badge variant="outline" className="text-green-700">ทั้งหมด ({ALL_PERMISSIONS.length})</Badge>
+                      ) : (
+                        <Badge variant="outline">{countPermissions(u.id)}/{ALL_PERMISSIONS.length} สิทธิ์</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {u.is_active ? (
+                        <Badge className="bg-green-500/10 text-green-700 border-green-200">ใช้งาน</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">ปิดใช้งาน</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canManageUser(u) && (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => openEditPermissions(u)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteUser(u.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        {u.role === 'admin' && (
+                          <span className="text-xs text-muted-foreground px-2">ผู้ดูแลระบบ</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      ไม่พบผู้ใช้งาน
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      {/* Create User Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>แก้ไขสิทธิ์การเข้าถึง - {selectedStaff?.staff_name}</DialogTitle>
+            <DialogTitle>เพิ่มผู้ใช้งานใหม่</DialogTitle>
           </DialogHeader>
-          
-          {selectedStaff && (
-            <div className="space-y-6">
-              <div className="grid gap-4">
-                {permissionGroups.map((group) => (
-                  <div key={group.key} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="space-y-1">
-                      <Label className="text-base font-medium">{group.name}</Label>
-                      <p className="text-sm text-muted-foreground">{group.description}</p>
-                    </div>
-                    <Switch
-                      checked={selectedStaff.permissions[group.key]}
-                      onCheckedChange={(checked) => handlePermissionChange(group.key, checked)}
-                    />
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button onClick={handleSavePermissions}>
-                  บันทึกการเปลี่ยนแปลง
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>ชื่อเต็ม</Label>
+              <Input
+                placeholder="ชื่อ-นามสกุล"
+                value={newUser.full_name}
+                onChange={e => setNewUser(prev => ({ ...prev, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Username *</Label>
+              <Input
+                placeholder="ชื่อผู้ใช้สำหรับเข้าสู่ระบบ"
+                value={newUser.username}
+                onChange={e => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Password *</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="รหัสผ่าน"
+                  value={newUser.password}
+                  onChange={e => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
-          )}
+            <div className="space-y-2">
+              <Label>บทบาท</Label>
+              <Select value={newUser.role} onValueChange={v => setNewUser(prev => ({ ...prev, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentUser?.role === 'admin' && (
+                    <SelectItem value="manager">Manager (เจ้าของร้าน)</SelectItem>
+                  )}
+                  <SelectItem value="staff">Staff (พนักงาน)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>ยกเลิก</Button>
+              <Button onClick={handleCreateUser} disabled={saving}>
+                {saving ? 'กำลังสร้าง...' : 'สร้างผู้ใช้งาน'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              กำหนดสิทธิ์ - {selectedUser?.full_name || selectedUser?.username}
+              {selectedUser && getRoleBadge(selectedUser.role)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {/* Quick actions */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+              <span className="text-sm font-medium">
+                สิทธิ์ที่เลือก: {Object.values(editPermissions).filter(Boolean).length}/{ALL_PERMISSIONS.length}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleSelectAll(true)}>
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  เลือกทั้งหมด
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleSelectAll(false)}>
+                  <XCircle className="w-3 h-3 mr-1" />
+                  ยกเลิกทั้งหมด
+                </Button>
+              </div>
+            </div>
+
+            {/* Permission groups */}
+            <ScrollArea className="h-[50vh]">
+              <div className="space-y-4 pr-4">
+                {Object.entries(permissionGroups).map(([groupName, perms]) => {
+                  const grantedCount = perms.filter(p => editPermissions[p.key]).length;
+                  const availableCount = perms.filter(p => currentUserPermissions[p.key]).length;
+
+                  return (
+                    <div key={groupName} className="border rounded-lg overflow-hidden">
+                      <div
+                        className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer"
+                        onClick={() => handleToggleGroup(groupName, grantedCount < availableCount)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{groupName}</span>
+                          <Badge variant="outline" className="text-xs">{grantedCount}/{perms.length}</Badge>
+                        </div>
+                        <Switch
+                          checked={grantedCount === availableCount && availableCount > 0}
+                          onCheckedChange={checked => handleToggleGroup(groupName, checked)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="divide-y">
+                        {perms.map(p => {
+                          const canGrant = currentUserPermissions[p.key];
+                          return (
+                            <div key={p.key} className={`flex items-center justify-between px-4 py-2.5 ${!canGrant ? 'opacity-40' : ''}`}>
+                              <span className="text-sm">{p.label}</span>
+                              <Switch
+                                checked={editPermissions[p.key] || false}
+                                onCheckedChange={v => handleTogglePermission(p.key, v)}
+                                disabled={!canGrant}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+
+            <Separator />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>ยกเลิก</Button>
+              <Button onClick={handleSavePermissions} disabled={saving}>
+                {saving ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
