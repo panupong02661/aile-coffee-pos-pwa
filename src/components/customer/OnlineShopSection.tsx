@@ -1435,54 +1435,67 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
             gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` 
           }}
         >
-          {filteredMenuItems.map(item => (
-            <Card 
-              key={item.id} 
-              className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-orange-300" 
-              onClick={() => handleAddToCart(item)}
-            >
-              <CardContent className="p-3">
-                <div className="space-y-3">
-                  {/* Image Section */}
-                  <div className="w-full aspect-square overflow-hidden rounded-lg bg-gray-100">
-                    {item.image_url ? (
-                      <img 
-                        src={item.image_url} 
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-4xl">🍽️</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Text Section */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 min-h-[2.5rem]">
-                      {item.name}
-                    </h3>
+          {filteredMenuItems.map(item => {
+            // Size-dependent classes
+            const imageHeight = itemSize === 'small' ? 'h-20' : itemSize === 'large' ? 'h-44' : 'h-32';
+            const padding = itemSize === 'small' ? 'p-2' : 'p-3';
+            const titleSize = itemSize === 'small' ? 'text-xs' : 'text-sm';
+            const priceSize = itemSize === 'small' ? 'text-sm' : 'text-lg';
+            const iconSize = itemSize === 'small' ? 'w-6 h-6' : 'w-8 h-8';
+            const plusSize = itemSize === 'small' ? 'w-3 h-3' : 'w-4 h-4';
+            const emojiSize = itemSize === 'small' ? 'text-2xl' : itemSize === 'large' ? 'text-5xl' : 'text-4xl';
+            const spacing = itemSize === 'small' ? 'space-y-1' : itemSize === 'large' ? 'space-y-4' : 'space-y-3';
+            const descLines = itemSize === 'large' ? 'line-clamp-3' : 'line-clamp-2';
+
+            return (
+              <Card 
+                key={item.id} 
+                className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-orange-300" 
+                onClick={() => handleAddToCart(item)}
+              >
+                <CardContent className={padding}>
+                  <div className={spacing}>
+                    {/* Image Section */}
+                    <div className={`w-full ${imageHeight} overflow-hidden rounded-lg bg-gray-100`}>
+                      {item.image_url ? (
+                        <img 
+                          src={item.image_url} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className={emojiSize}>🍽️</span>
+                        </div>
+                      )}
+                    </div>
                     
-                    {item.description && (
-                      <p className="text-xs text-gray-600 line-clamp-2 min-h-[2rem]">
-                        {item.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between pt-1">
-                      <p className="text-lg font-bold text-orange-600">
-                        ฿{item.price.toLocaleString()}
-                      </p>
-                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                        <Plus className="w-4 h-4 text-white" />
+                    {/* Text Section */}
+                    <div className={itemSize === 'small' ? 'space-y-0.5' : 'space-y-2'}>
+                      <h3 className={`font-semibold text-gray-900 ${titleSize} leading-tight line-clamp-2`}>
+                        {item.name}
+                      </h3>
+                      
+                      {item.description && itemSize !== 'small' && (
+                        <p className={`text-xs text-gray-600 ${descLines}`}>
+                          {item.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between pt-1">
+                        <p className={`${priceSize} font-bold text-orange-600`}>
+                          ฿{item.price.toLocaleString()}
+                        </p>
+                        <div className={`${iconSize} bg-orange-500 rounded-full flex items-center justify-center`}>
+                          <Plus className={`${plusSize} text-white`} />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
