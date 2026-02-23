@@ -1,0 +1,1 @@
+UPDATE public.users SET password_hash = 'admin' WHERE username = 'admin';
