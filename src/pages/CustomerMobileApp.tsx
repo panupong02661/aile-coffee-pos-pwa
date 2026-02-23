@@ -897,32 +897,36 @@ const CustomerMobileApp: React.FC = () => {
     <Shell>
       <div className="flex flex-col h-screen overflow-x-hidden">
         {/* Header with Back Button and Refresh Button */}
-        <div className="p-4 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
-          {activeTab !== 'home' ? (
-            <div className="flex items-center gap-2">
+        <div className="p-4 border-b bg-white sticky top-0 z-10 flex items-center relative">
+          {/* Left: Back button */}
+          <div className="flex-shrink-0">
+            {activeTab !== 'home' ? (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 px-1"
+                className="flex items-center gap-1 px-1"
               >
                 <ArrowLeft className="w-4 h-4" />
                 กลับหน้าแรก
               </Button>
-              {activeTab === 'shop' && (
-                <span className="text-sm font-semibold flex items-center gap-1">
-                  <ShoppingCart className="w-4 h-4" />
-                  สั่งสินค้าออนไลน์
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="text-lg font-semibold text-orange-600">
-              แอปสมาชิก
+            ) : (
+              <div className="text-lg font-semibold text-orange-600">
+                แอปสมาชิก
+              </div>
+            )}
+          </div>
+
+          {/* Center: Title */}
+          {activeTab === 'shop' && (
+            <div className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold flex items-center gap-1 whitespace-nowrap">
+              <ShoppingCart className="w-4 h-4" />
+              สั่งสินค้าออนไลน์
             </div>
           )}
-          
-          <div className="flex items-center gap-1">
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1 ml-auto flex-shrink-0">
             {activeTab === 'shop' && (
               <Button
                 variant="ghost"
