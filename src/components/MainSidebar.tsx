@@ -207,12 +207,12 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                         key={item.id}
                         to={item.path}
                         onClick={handleMenuClick}
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm touch-manipulation ${
                           isActive
                             ? 'bg-coffee-600 text-white'
                             : hasPage 
-                              ? 'text-coffee-700 hover:bg-coffee-50'
-                              : 'text-black hover:bg-coffee-50'
+                              ? 'text-coffee-700 hover:bg-coffee-50 active:bg-coffee-100'
+                              : 'text-black hover:bg-coffee-50 active:bg-coffee-100'
                         }`}
                       >
                         <Icon className="w-4 h-4" />

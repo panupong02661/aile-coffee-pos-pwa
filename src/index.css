@@ -92,6 +92,11 @@
     @apply border-border;
   }
 
+  /* Eliminate 300ms tap delay on all interactive elements */
+  a, button, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+  }
+
   html {
     height: -webkit-fill-available;
     overflow-x: hidden;
