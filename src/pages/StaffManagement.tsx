@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import MainSidebar from '@/components/MainSidebar';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,8 @@ import PermissionManagement from '@/components/staff/PermissionManagement';
 
 const StaffManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const isPermissionsPage = location.pathname === '/permissions';
 
   const handleToggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -43,29 +46,34 @@ const StaffManagement = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">จัดการพนักงาน</CardTitle>
-                <CardDescription>ระบบจัดการพนักงาน บันทึกเวลาทำงาน และกำหนดสิทธิ์</CardDescription>
+                <CardTitle className="text-2xl text-coffee-800">
+                  {isPermissionsPage ? 'กำหนดสิทธิ์ผู้ใช้งาน' : 'จัดการพนักงาน'}
+                </CardTitle>
+                <CardDescription>
+                  {isPermissionsPage 
+                    ? 'สร้างผู้ใช้งาน กำหนดบทบาท และจัดการสิทธิ์การเข้าถึงระบบ' 
+                    : 'ระบบจัดการพนักงาน บันทึกเวลาทำงาน'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="staff-list" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="staff-list">รายชื่อพนักงาน</TabsTrigger>
-                    <TabsTrigger value="time-attendance">บันทึกเวลาทำงาน</TabsTrigger>
-                    <TabsTrigger value="permissions">กำหนดสิทธิ์</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="staff-list" className="mt-6">
-                    <StaffList />
-                  </TabsContent>
-                  
-                  <TabsContent value="time-attendance" className="mt-6">
-                    <TimeAttendance />
-                  </TabsContent>
-                  
-                  <TabsContent value="permissions" className="mt-6">
-                    <PermissionManagement />
-                  </TabsContent>
-                </Tabs>
+                {isPermissionsPage ? (
+                  <PermissionManagement />
+                ) : (
+                  <Tabs defaultValue="staff-list" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="staff-list">รายชื่อพนักงาน</TabsTrigger>
+                      <TabsTrigger value="time-attendance">บันทึกเวลาทำงาน</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="staff-list" className="mt-6">
+                      <StaffList />
+                    </TabsContent>
+                    
+                    <TabsContent value="time-attendance" className="mt-6">
+                      <TimeAttendance />
+                    </TabsContent>
+                  </Tabs>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -110,7 +110,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     
     { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
     { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
-    { id: 'permissions', label: 'กำหนดสิทธิ์', icon: Shield, path: '/permissions' },
+    { id: 'permissions', label: 'กำหนดสิทธิ์ผู้ใช้งาน', icon: Shield, path: '/permissions' },
     { id: 'branch-management', label: 'จัดการสาขา', icon: MapPin, path: '/branch-management' },
     
     // ระบบการเงิน
