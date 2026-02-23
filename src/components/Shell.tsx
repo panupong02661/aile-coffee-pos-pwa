@@ -7,7 +7,7 @@ interface ShellProps {
 
 export const Shell = ({ children }: ShellProps) => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
       {children}
     </div>
   );
