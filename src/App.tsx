@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,7 @@ function App() {
           <Router>
             <GlobalNotificationProvider>
               <div className="min-h-screen bg-background">
+                <ProtectedRoute>
                 <Suspense fallback={<PageLoadingSkeleton />}>
                   <Routes>
                   <Route path="/" element={<POS />} />
@@ -117,10 +119,8 @@ function App() {
                   <Route path="/customer-display" element={<CustomerDisplay />} />
                   <Route path="/kitchen-display" element={<KitchenDisplay />} />
                   
-                  {/* Mobile Settings Route */}
                   <Route path="/mobile-settings" element={<MobileSettings />} />
                   
-                  {/* Additional Dashboard Routes */}
                   <Route path="/security-dashboard" element={<SecurityDashboard />} />
                   <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
                   <Route path="/financial-dashboard" element={<FinancialDashboard />} />
@@ -131,7 +131,6 @@ function App() {
                   <Route path="/customer-behavior-analysis" element={<AnalyticsDashboard />} />
                   <Route path="/inventory-forecasting" element={<AnalyticsDashboard />} />
                   
-                  {/* New 5 main system routes */}
                   <Route path="/advanced-reports" element={<AdvancedReports />} />
                   <Route path="/sales-reports" element={<AdvancedReports />} />
                   <Route path="/product-reports" element={<AdvancedReports />} />
@@ -159,7 +158,6 @@ function App() {
                   <Route path="/api-system" element={<TechnologySystem />} />
                   <Route path="/external-integration" element={<TechnologySystem />} />
                   <Route path="/staff-mobile-app" element={<TechnologySystem />} />
-                  {/* customer-mobile-app route defined above at line 100 */}
                   <Route path="/data-backup" element={<SecuritySystem />} />
                   <Route path="/auto-backup" element={<SecuritySystem />} />
                   <Route path="/system-logs" element={<SecuritySystem />} />
@@ -168,6 +166,7 @@ function App() {
                   <Route path="/access-control" element={<SecuritySystem />} />
                   </Routes>
                 </Suspense>
+                </ProtectedRoute>
                 <PWAInstallPrompt />
                 <OfflineIndicator />
                 <Toaster />
