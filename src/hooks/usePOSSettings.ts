@@ -6,6 +6,7 @@ export interface POSSettings {
   fontSize: 'small' | 'medium' | 'large';
   fontWeight: 'light' | 'normal' | 'bold';
   primaryColor: string; // HSL hue value
+  textColor: 'default' | 'bright' | 'warm' | 'cool';
 }
 
 const STORAGE_KEY = 'pos-ui-settings';
@@ -17,6 +18,7 @@ const defaultSettings: POSSettings = {
   fontSize: 'medium',
   fontWeight: 'normal',
   primaryColor: '25', // default coffee hue
+  textColor: 'default',
 };
 
 // Shared mutable snapshot so every hook instance reads the same object
@@ -92,6 +94,10 @@ export function usePOSSettings() {
     updateSettings({ primaryColor: color });
   }, []);
 
+  const setTextColor = useCallback((color: 'default' | 'bright' | 'warm' | 'cool') => {
+    updateSettings({ textColor: color });
+  }, []);
+
   return {
     ...settings,
     setAnimationsEnabled,
@@ -99,5 +105,6 @@ export function usePOSSettings() {
     setFontSize,
     setFontWeight,
     setPrimaryColor,
+    setTextColor,
   };
 }
