@@ -51,7 +51,7 @@ const POS = () => {
   
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
-  const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor } = usePOSSettings();
+  const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
 
   // Load shop logo from settings
@@ -525,10 +525,34 @@ const POS = () => {
   const fontWeightClass = fontWeight === 'light' ? 'font-light' : fontWeight === 'bold' ? 'font-bold' : 'font-normal';
 
   // Dynamic primary color via CSS custom properties
-  const posStyle: React.CSSProperties = primaryColor !== '25' ? {
-    '--primary': `${primaryColor} 60% 35%`,
-    '--ring': `${primaryColor} 60% 35%`,
-  } as React.CSSProperties : {};
+  const posStyle: React.CSSProperties = (() => {
+    const style: Record<string, string> = {};
+    const hue = primaryColor || '25';
+    
+    if (darkModeEnabled) {
+      // Brighter primary for dark backgrounds
+      style['--primary'] = `${hue} 70% 58%`;
+      style['--ring'] = `${hue} 70% 58%`;
+      style['--pos-primary-dark'] = `${hue} 70% 58%`;
+      
+      // Text color preference
+      const textColorMap: Record<string, string> = {
+        default: '220 15% 93%',
+        bright: '0 0% 100%',
+        warm: '35 30% 92%',
+        cool: '210 25% 92%',
+      };
+      const fg = textColorMap[textColor] || textColorMap.default;
+      style['--foreground'] = fg;
+      style['--card-foreground'] = fg;
+      style['--popover-foreground'] = fg;
+    } else if (hue !== '25') {
+      style['--primary'] = `${hue} 60% 35%`;
+      style['--ring'] = `${hue} 60% 35%`;
+    }
+    
+    return style as React.CSSProperties;
+  })();
 
   return (
     <div 
