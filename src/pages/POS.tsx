@@ -536,16 +536,20 @@ const POS = () => {
       style['--pos-primary-dark'] = `${hue} 70% 58%`;
       
       // Text color preference
-      const textColorMap: Record<string, string> = {
-        default: '220 15% 93%',
-        bright: '0 0% 100%',
-        warm: '35 30% 92%',
-        cool: '210 25% 92%',
+      const textColorMap: Record<string, { fg: string; muted: string }> = {
+        default: { fg: '220 15% 93%', muted: '220 10% 72%' },
+        bright: { fg: '0 0% 100%', muted: '0 0% 78%' },
+        warm: { fg: '35 30% 92%', muted: '35 20% 72%' },
+        cool: { fg: '210 25% 92%', muted: '210 15% 72%' },
       };
-      const fg = textColorMap[textColor] || textColorMap.default;
-      style['--foreground'] = fg;
-      style['--card-foreground'] = fg;
-      style['--popover-foreground'] = fg;
+      const colors = textColorMap[textColor] || textColorMap.default;
+      style['--foreground'] = colors.fg;
+      style['--card-foreground'] = colors.fg;
+      style['--popover-foreground'] = colors.fg;
+      style['--secondary-foreground'] = colors.fg;
+      style['--accent-foreground'] = colors.fg;
+      style['--muted-foreground'] = colors.muted;
+      style['--sidebar-foreground'] = colors.fg;
     } else if (hue !== '25') {
       style['--primary'] = `${hue} 60% 35%`;
       style['--ring'] = `${hue} 60% 35%`;
