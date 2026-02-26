@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Stamp, Trash2, Edit, Award, Coffee } from 'lucide-react';
+import { Plus, Stamp, Trash2, Edit, Award, Coffee, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface StampCard {
@@ -34,6 +34,13 @@ interface Milestone {
   is_active: boolean;
 }
 
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category_id: string;
+}
+
 const rewardTypes = [
   { value: 'discount_percent', label: 'ส่วนลด %' },
   { value: 'discount_fixed', label: 'ส่วนลด (บาท)' },
@@ -51,6 +58,8 @@ const StampCardManager = () => {
   const [editingCard, setEditingCard] = useState<StampCard | null>(null);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuSearch, setMenuSearch] = useState('');
 
   // Form state
   const [form, setForm] = useState({
@@ -71,13 +80,22 @@ const StampCardManager = () => {
 
   useEffect(() => {
     fetchStampCards();
+    fetchMenuItems();
   }, []);
+
+  const fetchMenuItems = async () => {
+    const { data } = await supabase
+      .from('menu_items')
+      .select('id, name, price, category_id')
+      .eq('is_available', true)
+      .order('name');
+    if (data) setMenuItems(data);
+  };
 
   const fetchStampCards = async () => {
     const { data: cards } = await supabase.from('stamp_cards').select('*').order('created_at', { ascending: false });
     if (cards) {
       setStampCards(cards);
-      // Fetch milestones for all cards
       const { data: allMilestones } = await supabase.from('stamp_card_milestones').select('*').order('stamp_number');
       if (allMilestones) {
         const grouped: Record<string, Milestone[]> = {};
@@ -124,6 +142,17 @@ const StampCardManager = () => {
 
   const handleAddMilestone = async () => {
     if (!selectedCardId) return;
+
+    // Validate based on reward type
+    if ((milestoneForm.reward_type === 'free_item' || milestoneForm.reward_type === 'free_drink') && !milestoneForm.reward_description) {
+      toast({ title: 'กรุณาเลือกสินค้า', variant: 'destructive' });
+      return;
+    }
+    if (milestoneForm.reward_type === 'custom' && !milestoneForm.reward_description) {
+      toast({ title: 'กรุณากรอกคำอธิบายรางวัล', variant: 'destructive' });
+      return;
+    }
+
     const { error } = await supabase.from('stamp_card_milestones').insert({
       stamp_card_id: selectedCardId,
       stamp_number: milestoneForm.stamp_number,
@@ -137,6 +166,7 @@ const StampCardManager = () => {
       toast({ title: 'เพิ่มรางวัลสำเร็จ' });
       setShowMilestoneDialog(false);
       setMilestoneForm({ stamp_number: 5, reward_type: 'discount_percent', reward_value: 10, reward_description: '' });
+      setMenuSearch('');
       fetchStampCards();
     }
   };
@@ -148,6 +178,105 @@ const StampCardManager = () => {
   };
 
   const getRewardLabel = (type: string) => rewardTypes.find(r => r.value === type)?.label || type;
+
+  const filteredMenuItems = menuItems.filter(item =>
+    item.name.toLowerCase().includes(menuSearch.toLowerCase())
+  );
+
+  const renderMilestoneFormFields = () => {
+    const type = milestoneForm.reward_type;
+
+    if (type === 'discount_percent') {
+      return (
+        <div>
+          <Label>เปอร์เซ็นต์ส่วนลด (%)</Label>
+          <Input type="number" value={milestoneForm.reward_value} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_value: parseFloat(e.target.value) || 0 })} />
+        </div>
+      );
+    }
+
+    if (type === 'discount_fixed') {
+      return (
+        <div>
+          <Label>จำนวนเงินส่วนลด (บาท)</Label>
+          <Input type="number" value={milestoneForm.reward_value} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_value: parseFloat(e.target.value) || 0 })} />
+        </div>
+      );
+    }
+
+    if (type === 'free_item' || type === 'free_drink') {
+      return (
+        <div className="space-y-2">
+          <Label>เลือกสินค้าจากร้าน</Label>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="ค้นหาสินค้า..."
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
+            {filteredMenuItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-3 text-center">ไม่พบสินค้า</p>
+            ) : (
+              filteredMenuItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setMilestoneForm({
+                    ...milestoneForm,
+                    reward_description: item.name,
+                    reward_value: item.price,
+                  })}
+                  className={`w-full flex items-center justify-between p-2.5 text-sm hover:bg-accent/50 transition-colors ${
+                    milestoneForm.reward_description === item.name ? 'bg-primary/10 font-medium' : ''
+                  }`}
+                >
+                  <span>{item.name}</span>
+                  <span className="text-muted-foreground">฿{item.price}</span>
+                </button>
+              ))
+            )}
+          </div>
+          {milestoneForm.reward_description && (
+            <p className="text-sm text-primary">✓ เลือก: {milestoneForm.reward_description}</p>
+          )}
+        </div>
+      );
+    }
+
+    if (type === 'bonus_points') {
+      return (
+        <div>
+          <Label>จำนวนแต้มโบนัส</Label>
+          <Input type="number" value={milestoneForm.reward_value} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_value: parseFloat(e.target.value) || 0 })} />
+        </div>
+      );
+    }
+
+    if (type === 'custom') {
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label>คำอธิบายรางวัล *</Label>
+            <Textarea
+              value={milestoneForm.reward_description}
+              onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_description: e.target.value })}
+              placeholder="เช่น สิทธิ์ใช้ห้อง VIP 1 ชม., อัพเกรดเครื่องดื่มฟรี"
+            />
+          </div>
+          <div>
+            <Label>มูลค่า (บาท) - ไม่บังคับ</Label>
+            <Input type="number" value={milestoneForm.reward_value} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_value: parseFloat(e.target.value) || 0 })} />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   if (loading) return <div className="text-center py-8">กำลังโหลด...</div>;
 
@@ -267,7 +396,9 @@ const StampCardManager = () => {
                       <div key={m.id} className="flex items-center justify-between p-2 bg-amber-50 rounded text-sm">
                         <span>
                           แสตมป์ที่ {m.stamp_number}: <strong>{getRewardLabel(m.reward_type)}</strong>
-                          {m.reward_value > 0 && ` ${m.reward_value}${m.reward_type.includes('percent') ? '%' : ' บาท'}`}
+                          {(m.reward_type === 'discount_percent') && ` ${m.reward_value}%`}
+                          {(m.reward_type === 'discount_fixed') && ` ${m.reward_value} บาท`}
+                          {(m.reward_type === 'bonus_points') && ` +${m.reward_value} แต้ม`}
                           {m.reward_description && ` — ${m.reward_description}`}
                         </span>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteMilestone(m.id)}>
@@ -292,8 +423,11 @@ const StampCardManager = () => {
       )}
 
       {/* Add Milestone Dialog */}
-      <Dialog open={showMilestoneDialog} onOpenChange={setShowMilestoneDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showMilestoneDialog} onOpenChange={(open) => {
+        setShowMilestoneDialog(open);
+        if (!open) setMenuSearch('');
+      }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>เพิ่มรางวัล Milestone</DialogTitle>
           </DialogHeader>
@@ -304,21 +438,17 @@ const StampCardManager = () => {
             </div>
             <div>
               <Label>ประเภทรางวัล</Label>
-              <Select value={milestoneForm.reward_type} onValueChange={(v) => setMilestoneForm({ ...milestoneForm, reward_type: v })}>
+              <Select value={milestoneForm.reward_type} onValueChange={(v) => setMilestoneForm({ ...milestoneForm, reward_type: v, reward_value: 0, reward_description: '' })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {rewardTypes.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>ค่ารางวัล</Label>
-              <Input type="number" value={milestoneForm.reward_value} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_value: parseFloat(e.target.value) || 0 })} />
-            </div>
-            <div>
-              <Label>คำอธิบายรางวัล</Label>
-              <Input value={milestoneForm.reward_description} onChange={(e) => setMilestoneForm({ ...milestoneForm, reward_description: e.target.value })} placeholder="เช่น ชาเขียวฟรี 1 แก้ว" />
-            </div>
+
+            {/* Dynamic fields based on reward type */}
+            {renderMilestoneFormFields()}
+
             <Button onClick={handleAddMilestone} className="w-full bg-coffee-600 hover:bg-coffee-700">เพิ่มรางวัล</Button>
           </div>
         </DialogContent>
