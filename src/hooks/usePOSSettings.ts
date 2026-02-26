@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 
+export type ThemePreset = 'default' | 'neon-dark' | 'cyber' | 'glass';
+
 export interface POSSettings {
   animationsEnabled: boolean;
   darkModeEnabled: boolean;
@@ -7,6 +9,8 @@ export interface POSSettings {
   fontWeight: 'light' | 'normal' | 'bold';
   primaryColor: string; // HSL hue value
   textColor: 'default' | 'bright' | 'warm' | 'cool';
+  themePreset: ThemePreset;
+  glassOpacity: number; // 0.1 – 0.9
 }
 
 const STORAGE_KEY = 'pos-ui-settings';
@@ -19,6 +23,8 @@ const defaultSettings: POSSettings = {
   fontWeight: 'normal',
   primaryColor: '25', // default coffee hue
   textColor: 'default',
+  themePreset: 'default',
+  glassOpacity: 0.7,
 };
 
 // Shared mutable snapshot so every hook instance reads the same object
@@ -46,16 +52,13 @@ function getSnapshot() {
 function updateSettings(partial: Partial<POSSettings>) {
   currentSettings = { ...currentSettings, ...partial };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSettings));
-  // Notify all subscribers in this tab
   listeners.forEach((cb) => cb());
-  // Notify other tabs
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 export function usePOSSettings() {
   const settings = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  // Listen for changes from other tabs or same-tab custom event
   useEffect(() => {
     const reload = () => {
       try {
@@ -98,6 +101,21 @@ export function usePOSSettings() {
     updateSettings({ textColor: color });
   }, []);
 
+  const setThemePreset = useCallback((preset: ThemePreset) => {
+    // When selecting a theme preset, auto-apply related settings
+    const presetConfig: Record<ThemePreset, Partial<POSSettings>> = {
+      'default': { darkModeEnabled: false, primaryColor: '25' },
+      'neon-dark': { darkModeEnabled: true, primaryColor: '150', textColor: 'bright' },
+      'cyber': { darkModeEnabled: true, primaryColor: '210', textColor: 'cool' },
+      'glass': { darkModeEnabled: true, primaryColor: '210' },
+    };
+    updateSettings({ themePreset: preset, ...presetConfig[preset] });
+  }, []);
+
+  const setGlassOpacity = useCallback((opacity: number) => {
+    updateSettings({ glassOpacity: Math.max(0.1, Math.min(0.9, opacity)) });
+  }, []);
+
   return {
     ...settings,
     setAnimationsEnabled,
@@ -106,5 +124,7 @@ export function usePOSSettings() {
     setFontWeight,
     setPrimaryColor,
     setTextColor,
+    setThemePreset,
+    setGlassOpacity,
   };
 }

@@ -1,7 +1,7 @@
-import { usePOSSettings } from '@/hooks/usePOSSettings';
+import { usePOSSettings, ThemePreset } from '@/hooks/usePOSSettings';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import {
   Sparkles,
@@ -11,6 +11,8 @@ import {
   Bold,
   Settings,
   Paintbrush,
+  Layers,
+  GlassWater,
 } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -22,6 +24,13 @@ const COLOR_PRESETS = [
   { label: 'ชมพู', hue: '340', color: 'hsl(340, 55%, 45%)' },
   { label: 'ส้ม', hue: '15', color: 'hsl(15, 65%, 45%)' },
   { label: 'แดง', hue: '0', color: 'hsl(0, 60%, 40%)' },
+];
+
+const THEME_PRESETS: { value: ThemePreset; label: string; preview: string; desc: string }[] = [
+  { value: 'default', label: 'ค่าเริ่มต้น', preview: 'bg-gradient-to-br from-amber-100 to-orange-100', desc: 'สว่าง คลาสสิก' },
+  { value: 'neon-dark', label: 'Neon Dark', preview: 'bg-gradient-to-br from-emerald-900 to-gray-900', desc: 'มืด + เขียวนีออน' },
+  { value: 'cyber', label: 'Cyber', preview: 'bg-gradient-to-br from-blue-900 to-slate-900', desc: 'มืด + ฟ้าไซเบอร์' },
+  { value: 'glass', label: 'Glass', preview: 'bg-gradient-to-br from-slate-600/50 to-slate-800/50', desc: 'โปร่งใส ปรับได้' },
 ];
 
 const FONT_SIZE_OPTIONS = [
@@ -51,12 +60,16 @@ const POSGeneralSettings = () => {
     fontWeight,
     primaryColor,
     textColor,
+    themePreset,
+    glassOpacity,
     setAnimationsEnabled,
     setDarkModeEnabled,
     setFontSize,
     setFontWeight,
     setPrimaryColor,
     setTextColor,
+    setThemePreset,
+    setGlassOpacity,
   } = usePOSSettings();
 
   return (
@@ -67,6 +80,51 @@ const POSGeneralSettings = () => {
       </h3>
 
       <div className="space-y-2">
+        {/* Theme Presets */}
+        <div className="px-3 py-2 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Layers className="w-4 h-4 text-primary" />
+            <span className="text-sm text-foreground">ธีม</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {THEME_PRESETS.map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => setThemePreset(preset.value)}
+                className={cn(
+                  'flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-[10px]',
+                  themePreset === preset.value
+                    ? 'ring-2 ring-primary scale-105'
+                    : 'hover:bg-accent'
+                )}
+              >
+                <div className={cn('w-full h-6 rounded-md border border-border', preset.preview)} />
+                <span className="text-foreground font-medium">{preset.label}</span>
+                <span className="text-muted-foreground leading-tight">{preset.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Glass Opacity Slider (only for glass theme) */}
+        {themePreset === 'glass' && (
+          <div className="px-3 py-2 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 mb-2">
+              <GlassWater className="w-4 h-4 text-primary" />
+              <span className="text-sm text-foreground">ความทึบ</span>
+              <span className="text-xs text-muted-foreground ml-auto">{Math.round(glassOpacity * 100)}%</span>
+            </div>
+            <Slider
+              value={[glassOpacity]}
+              min={0.1}
+              max={0.9}
+              step={0.05}
+              onValueChange={([v]) => setGlassOpacity(v)}
+              className="w-full"
+            />
+          </div>
+        )}
+
         {/* Animation Toggle */}
         <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
           <div className="flex items-center gap-2">
@@ -174,6 +232,7 @@ const POSGeneralSettings = () => {
             ))}
           </div>
         </div>
+
         {/* Text Color (dark mode only) */}
         {darkModeEnabled && (
           <>

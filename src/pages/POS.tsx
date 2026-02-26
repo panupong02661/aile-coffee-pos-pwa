@@ -51,7 +51,7 @@ const POS = () => {
   
   const [selectedCategory, setSelectedCategory] = useState('1');
   const isMobile = useIsMobile();
-  const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor } = usePOSSettings();
+  const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor, themePreset, glassOpacity } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
 
   // Load shop logo from settings
@@ -524,12 +524,12 @@ const POS = () => {
   const fontSizeClass = fontSize === 'small' ? 'text-xs' : fontSize === 'large' ? 'text-base' : 'text-sm';
   const fontWeightClass = fontWeight === 'light' ? 'font-light' : fontWeight === 'bold' ? 'font-bold' : 'font-normal';
 
-  // Dynamic primary color via CSS custom properties
+  // Dynamic primary color + theme via CSS custom properties
   const posStyle: React.CSSProperties = (() => {
     const style: Record<string, string> = {};
     const hue = primaryColor || '25';
     
-    if (darkModeEnabled) {
+    if (darkModeEnabled || themePreset !== 'default') {
       // Brighter primary for dark backgrounds
       style['--primary'] = `${hue} 70% 58%`;
       style['--ring'] = `${hue} 70% 58%`;
@@ -550,6 +550,12 @@ const POS = () => {
       style['--accent-foreground'] = colors.fg;
       style['--muted-foreground'] = colors.muted;
       style['--sidebar-foreground'] = colors.fg;
+
+      // Glass theme opacity + blur
+      if (themePreset === 'glass') {
+        style['--glass-opacity'] = String(glassOpacity);
+        style['--glass-blur'] = '16px';
+      }
     } else if (hue !== '25') {
       style['--primary'] = `${hue} 60% 35%`;
       style['--ring'] = `${hue} 60% 35%`;
@@ -558,11 +564,20 @@ const POS = () => {
     return style as React.CSSProperties;
   })();
 
+  // Determine theme CSS class
+  const themeClass = (() => {
+    if (themePreset === 'neon-dark') return 'pos-neon-dark';
+    if (themePreset === 'cyber') return 'pos-cyber';
+    if (themePreset === 'glass') return 'pos-glass';
+    if (darkModeEnabled) return 'pos-dark';
+    return '';
+  })();
+
   return (
     <div 
       className={cn(
         "fixed inset-0 bg-background flex overflow-hidden transition-colors duration-300",
-        darkModeEnabled && 'pos-dark',
+        themeClass,
         animationsEnabled && 'pos-animate',
         fontSizeClass,
         fontWeightClass
