@@ -126,14 +126,14 @@ const MenuGrid = ({
                   <h3 className={cn(
                     'font-medium line-clamp-1 leading-tight',
                     textSize,
-                    isInCart ? 'text-primary' : 'text-card-foreground'
+                    isInCart ? 'text-primary' : 'text-foreground'
                   )}>
                     {item.name}
                   </h3>
                   <span className={cn(
                     'font-semibold shrink-0 ml-1',
                     textSize,
-                    isInCart ? 'text-primary' : 'text-muted-foreground'
+                    isInCart ? 'text-primary' : 'text-foreground'
                   )}>
                     ฿{item.price}
                   </span>
