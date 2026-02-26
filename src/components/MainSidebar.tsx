@@ -1,20 +1,20 @@
 
-
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
-import { 
-  BarChart3, 
-  Calculator, 
+import {
+  BarChart3,
+  Calculator,
   Clock,
   Table,
   Menu as MenuIcon,
   Users,
   Globe,
-  Cog,
   FileText,
   CreditCard,
   Package,
@@ -24,7 +24,6 @@ import {
   ChefHat,
   Truck,
   UserCog,
-  Brain,
   Settings,
   Gamepad2,
   Percent,
@@ -39,13 +38,11 @@ import {
   PieChart,
   BarChart,
   UserPlus,
-  Briefcase,
   MapPin,
   DollarSign,
   Receipt,
   Calculator as CalculatorIcon,
   Banknote,
-  CreditCard as CardIcon,
   BookOpen,
   Mail,
   Calendar,
@@ -53,12 +50,15 @@ import {
   Wifi,
   Database,
   HardDrive,
-  FileCheck,
-  Lock,
-  AlertTriangle,
   Ticket,
   MessageSquare,
-  Tag
+  Tag,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
+  LucideIcon,
 } from 'lucide-react';
 
 interface MainSidebarProps {
@@ -66,175 +66,298 @@ interface MainSidebarProps {
   onClose: () => void;
 }
 
+interface MenuGroup {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: { id: string; label: string; icon: LucideIcon; path: string }[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    id: 'main',
+    label: 'หลัก',
+    icon: Calculator,
+    items: [
+      { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
+      { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
+    ],
+  },
+  {
+    id: 'store',
+    label: 'ร้านค้า & ออเดอร์',
+    icon: ShoppingCart,
+    items: [
+      { id: 'kitchen-display', label: 'จอครัว (KDS)', icon: ChefHat, path: '/kitchen-display' },
+      { id: 'customer-display', label: 'จอลูกค้า', icon: Table, path: '/customer-display' },
+      { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
+      { id: 'delivery-integration', label: 'Delivery', icon: Truck, path: '/delivery-integration' },
+      { id: 'delivery-management', label: 'จัดการจัดส่ง', icon: Truck, path: '/delivery-management' },
+    ],
+  },
+  {
+    id: 'menu',
+    label: 'เมนู & สินค้า',
+    icon: MenuIcon,
+    items: [
+      { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
+      { id: 'inventory', label: 'คลังสินค้า', icon: Package, path: '/inventory' },
+      { id: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', icon: DollarSign, path: '/cost-analysis' },
+    ],
+  },
+  {
+    id: 'customers',
+    label: 'ลูกค้า & สมาชิก',
+    icon: Users,
+    items: [
+      { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
+      { id: 'customer-mobile-app', label: 'แอปลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
+      { id: 'customer-app-management', label: 'จัดการแอปลูกค้า', icon: UserCog, path: '/customer-app-management' },
+    ],
+  },
+  {
+    id: 'promotions',
+    label: 'โปรโมชั่น & Engagement',
+    icon: Gamepad2,
+    items: [
+      { id: 'engagement', label: 'Engagement', icon: Gamepad2, path: '/engagement' },
+      { id: 'promotions', label: 'จัดการแอปลูกค้า', icon: Percent, path: '/promotions' },
+      { id: 'menu-promotions', label: 'โปรโมชั่นเมนู', icon: Tag, path: '/menu-promotions' },
+      { id: 'coupon-management', label: 'คูปอง', icon: Ticket, path: '/coupon-management' },
+    ],
+  },
+  {
+    id: 'staff',
+    label: 'พนักงาน',
+    icon: UserPlus,
+    items: [
+      { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
+      { id: 'time-attendance', label: 'บันทึกเวลา', icon: Clock, path: '/time-attendance' },
+      { id: 'permissions', label: 'สิทธิ์ผู้ใช้', icon: Shield, path: '/permissions' },
+    ],
+  },
+  {
+    id: 'reports',
+    label: 'รายงาน & วิเคราะห์',
+    icon: BarChart,
+    items: [
+      { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
+      { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: TrendingUp, path: '/advanced-reports' },
+      { id: 'analytics-dashboard', label: 'Analytics', icon: TrendingUp, path: '/analytics-dashboard' },
+      { id: 'customer-analytics', label: 'วิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
+    ],
+  },
+  {
+    id: 'finance',
+    label: 'การเงิน',
+    icon: Banknote,
+    items: [
+      { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
+      { id: 'qr-promptpay', label: 'QR PromptPay', icon: QrCode, path: '/qr-promptpay' },
+      { id: 'credit-system', label: 'ระบบเครดิต', icon: Banknote, path: '/credit-system' },
+    ],
+  },
+  {
+    id: 'communication',
+    label: 'การสื่อสาร',
+    icon: MessageCircle,
+    items: [
+      { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
+      { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
+      { id: 'review-management', label: 'จัดการรีวิว', icon: MessageSquare, path: '/review-management' },
+      { id: 'wifi-vouchers', label: 'WiFi ลูกค้า', icon: Wifi, path: '/wifi-vouchers' },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'ตั้งค่า & ระบบ',
+    icon: Settings,
+    items: [
+      { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
+      { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
+      { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
+      { id: 'security-dashboard', label: 'ความปลอดภัย', icon: Shield, path: '/security-dashboard' },
+      { id: 'security-recommendations', label: 'แนะนำความปลอดภัย', icon: Shield, path: '/security-recommendations' },
+      { id: 'app-build-guide', label: 'สร้างแอปมือถือ', icon: Smartphone, path: '/app-build-guide' },
+    ],
+  },
+];
+
 const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const location = useLocation();
-  
-  // Pages that exist and have implementations
-  const existingPages = [
-    '/', '/dashboard', '/menu', '/members', '/pos', '/reports', '/shop-settings', 
-    '/promotions', '/customer-mobile-app', '/customer-app-management', '/kitchen-display', '/engagement',
-    '/qr-promptpay', '/inventory', '/printer-settings', '/online-orders', 
-    '/security-recommendations', '/advanced-reports', '/sales-reports', '/product-reports',
-    '/customer-analytics', '/staff', '/time-attendance', '/permissions', '/branch-management',
-    '/accounting', '/income-expense', '/profit-loss', '/tax-system', '/vat-calculation',
-    '/tax-invoice', '/credit-system', '/crm', '/customer-data', '/purchase-history',
-    '/marketing', '/sms-marketing', '/email-marketing', '/table-reservation',
-    '/digital-payment', '/credit-card', '/api-system', '/external-integration',
-    '/staff-mobile-app', '/data-backup', '/auto-backup', '/system-logs',
-    '/usage-logs', '/role-access', '/access-control', '/delivery-integration',
-    '/notifications', '/security-dashboard', '/analytics-dashboard', '/financial-dashboard',
-    '/error-tracking', '/session-management', '/data-backup-monitor', '/predictive-analytics',
-    '/customer-behavior-analysis', '/inventory-forecasting', '/line-messaging', '/wifi-vouchers',
-    '/customer-display', '/menu-promotions', '/app-build-guide'
-  ];
-  
-  const menuItems = [
-    // POS และ Dashboard หลัก
-    { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
-    { id: 'security-dashboard', label: 'Security Dashboard', icon: Shield, path: '/security-dashboard' },
-    { id: 'analytics-dashboard', label: 'Analytics Dashboard', icon: TrendingUp, path: '/analytics-dashboard' },
-    { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
-    { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
-    { id: 'customer-display', label: 'จอแสดงผลลูกค้า', icon: Table, path: '/customer-display' },
-    { id: 'kitchen-display', label: 'จอแสดงผลในครัว', icon: ChefHat, path: '/kitchen-display' },
-    { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
-    { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
-    { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
-    { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
-    { id: 'engagement', label: 'ระบบ Engagement', icon: Gamepad2, path: '/engagement' },
-    { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
-    
-    // ระบบจัดการหลัก
-    { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: TrendingUp, path: '/advanced-reports' },
-    { id: 'sales-reports', label: 'รายงานยอดขาย', icon: BarChart, path: '/sales-reports' },
-    { id: 'product-reports', label: 'รายงานสินค้า', icon: PieChart, path: '/product-reports' },
-    { id: 'customer-analytics', label: 'การวิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
-    
-    { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
-    { id: 'time-attendance', label: 'บันทึกเวลาทำงาน', icon: Clock, path: '/time-attendance' },
-    { id: 'permissions', label: 'กำหนดสิทธิ์ผู้ใช้งาน', icon: Shield, path: '/permissions' },
-    { id: 'branch-management', label: 'จัดการสาขา', icon: MapPin, path: '/branch-management' },
-    
-    // ระบบการเงิน
-    { id: 'accounting', label: 'ระบบบัญชี', icon: Briefcase, path: '/accounting' },
-    { id: 'income-expense', label: 'รายรับ-รายจ่าย', icon: DollarSign, path: '/income-expense' },
-    { id: 'profit-loss', label: 'กำไร-ขาดทุน', icon: TrendingUp, path: '/profit-loss' },
-    { id: 'tax-system', label: 'ระบบภาษี', icon: Receipt, path: '/tax-system' },
-    { id: 'vat-calculation', label: 'คำนวณภาษีมูลค่าเพิ่ม', icon: CalculatorIcon, path: '/vat-calculation' },
-    { id: 'tax-invoice', label: 'ออกใบกำกับภาษี', icon: FileText, path: '/tax-invoice' },
-    { id: 'credit-system', label: 'ระบบเครดิต', icon: Banknote, path: '/credit-system' },
-    
-    // ระบบลูกค้า
-    { id: 'crm', label: 'ระบบ CRM', icon: UserCog, path: '/crm' },
-    { id: 'customer-data', label: 'ข้อมูลลูกค้า', icon: Users, path: '/customer-data' },
-    { id: 'purchase-history', label: 'ประวัติการซื้อ', icon: BookOpen, path: '/purchase-history' },
-    { id: 'marketing', label: 'ระบบการตลาด', icon: MessageCircle, path: '/marketing' },
-    { id: 'sms-marketing', label: 'SMS Marketing', icon: PhoneIcon, path: '/sms-marketing' },
-    { id: 'email-marketing', label: 'Email Marketing', icon: Mail, path: '/email-marketing' },
-    { id: 'table-reservation', label: 'ระบบจองโต๊ะ', icon: Calendar, path: '/table-reservation' },
-    
-    // ระบบเทคโนโลยี
-    { id: 'digital-payment', label: 'การชำระเงินดิจิทัล', icon: CardIcon, path: '/digital-payment' },
-    { id: 'qr-promptpay', label: 'QR Code PromptPay', icon: QrCode, path: '/qr-promptpay' },
-    { id: 'credit-card', label: 'บัตรเครดิต', icon: CreditCard, path: '/credit-card' },
-    { id: 'api-system', label: 'ระบบ API', icon: Wifi, path: '/api-system' },
-    { id: 'external-integration', label: 'เชื่อมต่อระบบภายนอก', icon: Globe, path: '/external-integration' },
-    { id: 'staff-mobile-app', label: 'Mobile App พนักงาน', icon: Smartphone, path: '/staff-mobile-app' },
-    { id: 'customer-mobile-app', label: 'แอปมือถือลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
-    
-    // ระบบรักษาความปลอดภัย & ตรวจสอบ
-    { id: 'security-recommendations', label: 'ระบบความปลอดภัยที่แนะนำ', icon: Shield, path: '/security-recommendations' },
-    { id: 'session-management', label: 'Session Management', icon: UserCheck, path: '/session-management' },
-    { id: 'data-backup-monitor', label: 'Data Backup Monitor', icon: HardDrive, path: '/data-backup-monitor' },
-    { id: 'auto-backup', label: 'Backup อัตโนมัติ', icon: Database, path: '/auto-backup' },
-    
-    // เมนูเดิมที่เหลือ
-    
-    { id: 'customer-app-management', label: 'แอปมือถือสำหรับจัดการลูกค้า', icon: UserCog, path: '/customer-app-management' },
-    { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
-    { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
-    { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-    { id: 'promotions', label: 'จัดการแอปลูกค้า', icon: Percent, path: '/promotions' },
-    { id: 'menu-promotions', label: 'โปรโมชั่นตามเมนู/หมวดหมู่', icon: Tag, path: '/menu-promotions' },
-    { id: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', icon: DollarSign, path: '/cost-analysis' },
-    { id: 'coupon-management', label: 'จัดการคูปอง', icon: Ticket, path: '/coupon-management' },
-    { id: 'review-management', label: 'จัดการรีวิว', icon: MessageSquare, path: '/review-management' },
-    { id: 'delivery-management', label: 'จัดการการจัดส่ง', icon: Truck, path: '/delivery-management' },
-    { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
-    { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
-    { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
-    { id: 'wifi-vouchers', label: 'WiFi สำหรับลูกค้า', icon: Wifi, path: '/wifi-vouchers' },
-    { id: 'app-build-guide', label: 'สร้างแอปมือถือ', icon: Smartphone, path: '/app-build-guide' },
-  ];
+  const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    // Auto-open the group that contains the active route
+    const activeGroup = menuGroups.find((g) =>
+      g.items.some((item) => item.path === location.pathname)
+    );
+    return new Set(activeGroup ? [activeGroup.id] : ['main']);
+  });
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   const handleMenuClick = () => {
-    onClose();
+    if (window.innerWidth < 768) onClose();
   };
+
+  const sidebarWidth = collapsed ? 'w-[56px]' : 'w-64';
 
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <Card className="h-full border-coffee-200 rounded-none flex flex-col">
-          <div className="p-4 border-b border-coffee-200 flex-shrink-0">
-            <h2 className="text-lg font-semibold text-coffee-800">Aile Coffee</h2>
+      <div
+        className={cn(
+          'fixed left-0 top-0 h-full z-50 transform transition-all duration-300 ease-in-out',
+          sidebarWidth,
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <div className="h-full bg-card border-r border-border rounded-none flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
+            {!collapsed && (
+              <h2 className="text-lg font-semibold text-foreground truncate">
+                Aile Coffee
+              </h2>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="flex-shrink-0 h-8 w-8"
+              onClick={() => setCollapsed(!collapsed)}
+            >
+              {collapsed ? (
+                <PanelLeft className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </Button>
           </div>
-          
-          {/* User Profile Section */}
-          <div className="flex-shrink-0">
-            <UserProfile />
-          </div>
-          
+
+          {/* User Profile (hide in collapsed) */}
+          {!collapsed && (
+            <div className="flex-shrink-0">
+              <UserProfile />
+            </div>
+          )}
+
+          {/* Menu */}
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
-              <div className="p-2 pb-6">
-                <nav className="space-y-1">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
-                    const hasPage = existingPages.includes(item.path);
-                    
+              <div className={cn('pb-6', collapsed ? 'p-1' : 'p-2')}>
+                <nav className="space-y-0.5">
+                  {menuGroups.map((group) => {
+                    const isGroupOpen = openGroups.has(group.id);
+                    const GroupIcon = group.icon;
+                    const hasActiveItem = group.items.some(
+                      (item) => item.path === location.pathname
+                    );
+
                     return (
-                      <Link
-                        key={item.id}
-                        to={item.path}
-                        onClick={handleMenuClick}
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm touch-manipulation ${
-                          isActive
-                            ? 'bg-coffee-600 text-white'
-                            : hasPage 
-                              ? 'text-coffee-700 hover:bg-coffee-50 active:bg-coffee-100'
-                              : 'text-black hover:bg-coffee-50 active:bg-coffee-100'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </Link>
+                      <div key={group.id}>
+                        {/* Group header */}
+                        <button
+                          onClick={() =>
+                            collapsed ? undefined : toggleGroup(group.id)
+                          }
+                          title={collapsed ? group.label : undefined}
+                          className={cn(
+                            'flex items-center w-full rounded-lg transition-colors text-sm',
+                            collapsed
+                              ? 'justify-center p-2 my-0.5'
+                              : 'justify-between px-3 py-2',
+                            hasActiveItem
+                              ? 'text-primary font-semibold'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <GroupIcon className="w-4 h-4 flex-shrink-0" />
+                            {!collapsed && (
+                              <span className="truncate">{group.label}</span>
+                            )}
+                          </div>
+                          {!collapsed && (
+                            <ChevronDown
+                              className={cn(
+                                'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200',
+                                isGroupOpen && 'rotate-180'
+                              )}
+                            />
+                          )}
+                        </button>
+
+                        {/* Group items */}
+                        {(collapsed || isGroupOpen) && (
+                          <div
+                            className={cn(
+                              collapsed ? '' : 'ml-3 border-l border-border/50 pl-2 mt-0.5 mb-1'
+                            )}
+                          >
+                            {group.items.map((item) => {
+                              const Icon = item.icon;
+                              const isActive =
+                                location.pathname === item.path;
+
+                              if (collapsed) {
+                                // In collapsed mode, show only group icon (already shown above)
+                                return null;
+                              }
+
+                              return (
+                                <Link
+                                  key={item.id}
+                                  to={item.path}
+                                  onClick={handleMenuClick}
+                                  title={item.label}
+                                  className={cn(
+                                    'flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors text-xs',
+                                    isActive
+                                      ? 'bg-primary text-primary-foreground font-medium'
+                                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                                  )}
+                                >
+                                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span className="truncate">{item.label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </nav>
 
-                {/* POS General Settings Section */}
-                <Separator className="my-3" />
-                <POSGeneralSettings />
+                {/* POS General Settings */}
+                {!collapsed && (
+                  <>
+                    <Separator className="my-3" />
+                    <POSGeneralSettings />
+                  </>
+                )}
               </div>
             </ScrollArea>
           </div>
-        </Card>
+        </div>
       </div>
     </>
   );
 };
 
 export default MainSidebar;
-
