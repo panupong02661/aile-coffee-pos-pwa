@@ -8,7 +8,7 @@ export interface POSSettings {
   fontSize: 'small' | 'medium' | 'large';
   fontWeight: 'light' | 'normal' | 'bold';
   primaryColor: string; // HSL hue value
-  textColor: 'default' | 'bright' | 'warm' | 'cool';
+  textColor: string; // full HSL value e.g. '220 15% 93%' or 'default'
   themePreset: ThemePreset;
   glassOpacity: number; // 0.1 – 0.9
 }
@@ -97,7 +97,7 @@ export function usePOSSettings() {
     updateSettings({ primaryColor: color });
   }, []);
 
-  const setTextColor = useCallback((color: 'default' | 'bright' | 'warm' | 'cool') => {
+  const setTextColor = useCallback((color: string) => {
     updateSettings({ textColor: color });
   }, []);
 
