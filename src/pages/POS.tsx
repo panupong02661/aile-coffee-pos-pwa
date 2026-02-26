@@ -535,30 +535,47 @@ const POS = () => {
       style['--ring'] = `${hue} 70% 58%`;
       style['--pos-primary-dark'] = `${hue} 70% 58%`;
       
-      // Text color preference
-      const textColorMap: Record<string, { fg: string; muted: string }> = {
-        default: { fg: '220 15% 93%', muted: '220 10% 72%' },
-        bright: { fg: '0 0% 100%', muted: '0 0% 78%' },
-        warm: { fg: '35 30% 92%', muted: '35 20% 72%' },
-        cool: { fg: '210 25% 92%', muted: '210 15% 72%' },
-      };
-      const colors = textColorMap[textColor] || textColorMap.default;
-      style['--foreground'] = colors.fg;
-      style['--card-foreground'] = colors.fg;
-      style['--popover-foreground'] = colors.fg;
-      style['--secondary-foreground'] = colors.fg;
-      style['--accent-foreground'] = colors.fg;
-      style['--muted-foreground'] = colors.muted;
-      style['--sidebar-foreground'] = colors.fg;
+      // Text color — now stored as raw HSL value or 'default'
+      if (textColor && textColor !== 'default') {
+        const fg = textColor;
+        // Derive a muted version by reducing lightness
+        const parts = fg.split(/\s+/);
+        const muted = parts.length === 3
+          ? `${parts[0]} ${Math.max(parseInt(parts[1]) - 10, 0)}% ${Math.max(parseInt(parts[2]) - 20, 30)}%`
+          : '220 10% 72%';
+        style['--foreground'] = fg;
+        style['--card-foreground'] = fg;
+        style['--popover-foreground'] = fg;
+        style['--secondary-foreground'] = fg;
+        style['--accent-foreground'] = fg;
+        style['--muted-foreground'] = muted;
+        style['--sidebar-foreground'] = fg;
+      }
 
       // Glass theme opacity + blur
       if (themePreset === 'glass') {
         style['--glass-opacity'] = String(glassOpacity);
         style['--glass-blur'] = '16px';
       }
-    } else if (hue !== '25') {
-      style['--primary'] = `${hue} 60% 35%`;
-      style['--ring'] = `${hue} 60% 35%`;
+    } else {
+      if (hue !== '25') {
+        style['--primary'] = `${hue} 60% 35%`;
+        style['--ring'] = `${hue} 60% 35%`;
+      }
+      // Apply text color in light mode too
+      if (textColor && textColor !== 'default') {
+        // For light mode, darken the chosen color
+        const parts = textColor.split(/\s+/);
+        if (parts.length === 3) {
+          const lightness = parseInt(parts[2]);
+          const darkFg = `${parts[0]} ${parts[1]} ${Math.min(lightness, 35)}%`;
+          const darkMuted = `${parts[0]} ${Math.max(parseInt(parts[1]) - 15, 0)}% ${Math.min(lightness + 10, 50)}%`;
+          style['--foreground'] = darkFg;
+          style['--card-foreground'] = darkFg;
+          style['--sidebar-foreground'] = darkFg;
+          style['--muted-foreground'] = darkMuted;
+        }
+      }
     }
     
     return style as React.CSSProperties;

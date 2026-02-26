@@ -46,10 +46,19 @@ const FONT_WEIGHT_OPTIONS = [
 ];
 
 const TEXT_COLOR_OPTIONS = [
-  { value: 'default' as const, label: 'ค่าเริ่มต้น', preview: 'hsl(220, 15%, 93%)' },
-  { value: 'bright' as const, label: 'สว่าง', preview: 'hsl(0, 0%, 100%)' },
-  { value: 'warm' as const, label: 'อุ่น', preview: 'hsl(35, 30%, 90%)' },
-  { value: 'cool' as const, label: 'เย็น', preview: 'hsl(210, 25%, 90%)' },
+  { value: 'default', label: 'อัตโนมัติ', color: '' },
+  { value: '0 0% 100%', label: 'ขาว', color: 'hsl(0, 0%, 100%)' },
+  { value: '0 0% 85%', label: 'เทาอ่อน', color: 'hsl(0, 0%, 85%)' },
+  { value: '45 100% 70%', label: 'เหลือง', color: 'hsl(45, 100%, 70%)' },
+  { value: '35 90% 65%', label: 'ทอง', color: 'hsl(35, 90%, 65%)' },
+  { value: '25 80% 60%', label: 'ส้ม', color: 'hsl(25, 80%, 60%)' },
+  { value: '150 60% 65%', label: 'เขียว', color: 'hsl(150, 60%, 65%)' },
+  { value: '180 50% 70%', label: 'ฟ้าอ่อน', color: 'hsl(180, 50%, 70%)' },
+  { value: '210 60% 75%', label: 'ฟ้า', color: 'hsl(210, 60%, 75%)' },
+  { value: '270 50% 75%', label: 'ม่วง', color: 'hsl(270, 50%, 75%)' },
+  { value: '330 60% 75%', label: 'ชมพู', color: 'hsl(330, 60%, 75%)' },
+  { value: '0 70% 70%', label: 'แดง', color: 'hsl(0, 70%, 70%)' },
+  { value: '60 30% 90%', label: 'ครีม', color: 'hsl(60, 30%, 90%)' },
 ];
 
 const POSGeneralSettings = () => {
@@ -233,40 +242,38 @@ const POSGeneralSettings = () => {
           </div>
         </div>
 
-        {/* Text Color (dark mode only) */}
-        {darkModeEnabled && (
-          <>
-            <Separator className="my-1.5" />
-            <div className="px-3 py-2 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Paintbrush className="w-4 h-4 text-primary" />
-                <span className="text-sm text-foreground">สีตัวอักษร</span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {TEXT_COLOR_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setTextColor(opt.value)}
-                    className={cn(
-                      'flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all text-[10px]',
-                      textColor === opt.value
-                        ? 'ring-2 ring-primary bg-primary/10 scale-105'
-                        : 'hover:bg-accent'
-                    )}
-                  >
-                    <div
-                      className="w-6 h-6 rounded-full border border-border shadow-sm flex items-center justify-center text-xs font-bold"
-                      style={{ backgroundColor: 'hsl(225, 14%, 10%)', color: opt.preview }}
-                    >
-                      A
-                    </div>
-                    <span className="text-muted-foreground">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+        <Separator className="my-1.5" />
+        <div className="px-3 py-2 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Paintbrush className="w-4 h-4 text-primary" />
+            <span className="text-sm text-foreground">สีตัวอักษร</span>
+          </div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {TEXT_COLOR_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setTextColor(opt.value)}
+                className={cn(
+                  'flex flex-col items-center gap-0.5 p-1 rounded-lg transition-all text-[9px]',
+                  textColor === opt.value
+                    ? 'ring-2 ring-primary scale-110'
+                    : 'hover:bg-accent hover:scale-105'
+                )}
+              >
+                <div
+                  className="w-7 h-7 rounded-full border-2 border-border shadow-sm"
+                  style={{
+                    backgroundColor: opt.color || 'transparent',
+                    background: opt.value === 'default'
+                      ? 'linear-gradient(135deg, hsl(0,0%,100%) 50%, hsl(220,15%,15%) 50%)'
+                      : undefined,
+                  }}
+                />
+                <span className="text-muted-foreground leading-tight">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
