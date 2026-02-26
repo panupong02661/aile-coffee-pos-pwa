@@ -20,6 +20,7 @@ import LoginForm from '@/components/customer/LoginForm';
 import ConnectionDiagnostic from '@/components/customer/ConnectionDiagnostic';
 import PromotionsCarousel from '@/components/customer/PromotionsCarousel';
 import RecommendedMenu from '@/components/customer/RecommendedMenu';
+import CustomerEngagement from '@/components/customer/CustomerEngagement';
 import { generateDateSearchVariants, generatePhoneVariants } from '@/utils/dateUtils';
 
 interface CustomerProfile {
@@ -759,6 +760,9 @@ const CustomerMobileApp: React.FC = () => {
               </button>
             </div>
             
+            {/* Engagement Section on Home */}
+            <CustomerEngagement currentUser={currentUser} />
+
           {/* Promotions Section */}
           <PromotionsCarousel customerId={currentUser?.id} />
 
@@ -767,7 +771,6 @@ const CustomerMobileApp: React.FC = () => {
             setSelectedMenuItemId(itemId);
             setActiveTab('shop');
           }} />
-            
             {/* Logout Button */}
             <div className="p-4">
               <Button 
@@ -802,6 +805,8 @@ const CustomerMobileApp: React.FC = () => {
         );
       case 'shop':
         return <ShopSection currentUser={currentUser} setCurrentUser={setCurrentUser} selectedMenuItemId={selectedMenuItemId} onItemAdded={() => setSelectedMenuItemId(null)} />;
+      case 'engagement':
+        return <CustomerEngagement currentUser={currentUser} />;
       case 'history':
         return <HistorySection currentUser={currentUser} />;
       case 'stats':
