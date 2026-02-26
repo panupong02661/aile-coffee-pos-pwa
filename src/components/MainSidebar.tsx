@@ -26,6 +26,7 @@ import {
   UserCog,
   Brain,
   Settings,
+  Gamepad2,
   Percent,
   Shield,
   Store,
@@ -71,7 +72,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   // Pages that exist and have implementations
   const existingPages = [
     '/', '/dashboard', '/menu', '/members', '/pos', '/reports', '/shop-settings', 
-    '/promotions', '/customer-mobile-app', '/customer-app-management', '/kitchen-display',
+    '/promotions', '/customer-mobile-app', '/customer-app-management', '/kitchen-display', '/engagement',
     '/qr-promptpay', '/inventory', '/printer-settings', '/online-orders', 
     '/security-recommendations', '/advanced-reports', '/sales-reports', '/product-reports',
     '/customer-analytics', '/staff', '/time-attendance', '/permissions', '/branch-management',
@@ -100,6 +101,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     { id: 'delivery-integration', label: 'Delivery Integration', icon: Truck, path: '/delivery-integration' },
     { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
     { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
+    { id: 'engagement', label: 'ระบบ Engagement', icon: Gamepad2, path: '/engagement' },
     { id: 'inventory', label: 'จัดการคลังสินค้า', icon: Package, path: '/inventory' },
     
     // ระบบจัดการหลัก
