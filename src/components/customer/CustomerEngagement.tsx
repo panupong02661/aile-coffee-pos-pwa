@@ -34,13 +34,14 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      // Fetch active festival events
+      // Fetch active festival events - use date-only comparison for broader match
+      const today = new Date().toISOString().split('T')[0];
       const { data: eventsData } = await supabase
         .from('festival_events')
         .select('*')
         .eq('is_active', true)
-        .lte('start_date', new Date().toISOString())
-        .gte('end_date', new Date().toISOString())
+        .lte('start_date', today + 'T23:59:59.999Z')
+        .gte('end_date', today + 'T00:00:00.000Z')
         .order('created_at', { ascending: false });
 
       // Fetch prizes for active events
@@ -82,7 +83,6 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
       setStampCards(cardsData || []);
 
       if (cardsData && cardsData.length > 0) {
-        // Fetch customer's stamp card progress
         const { data: customerCards } = await supabase
           .from('customer_stamp_cards')
           .select('*, customer_stamps(*)')
@@ -90,7 +90,6 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
         
         setCustomerStampCards(customerCards || []);
 
-        // Fetch milestones
         const cardIds = cardsData.map(c => c.id);
         const { data: milestonesData } = await supabase
           .from('stamp_card_milestones')
@@ -149,7 +148,6 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
     setClaimingId(event.id);
 
     try {
-      // Filter eligible prizes by tier and quantity
       const eligiblePrizes = eventPrizes.filter(p => {
         const prizeTierLevel = tierOrder[p.min_tier] || 1;
         const userTierLevel = tierOrder[currentUser.tier] || 1;
@@ -163,7 +161,6 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
         return;
       }
 
-      // Weighted random selection
       const totalWeight = eligiblePrizes.reduce((sum: number, p: any) => sum + (p.probability_weight || 1), 0);
       let random = Math.random() * totalWeight;
       let selectedPrize = eligiblePrizes[0];
@@ -172,10 +169,8 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
         if (random <= 0) { selectedPrize = prize; break; }
       }
 
-      // Generate claim code
       const claimCode = `${event.event_type.toUpperCase().slice(0, 3)}-${Date.now().toString(36).toUpperCase()}`;
 
-      // Insert claim
       const { error: claimError } = await supabase
         .from('customer_prize_claims')
         .insert({
@@ -195,7 +190,6 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
         return;
       }
 
-      // Update claimed quantity
       await supabase
         .from('festival_prizes')
         .update({ claimed_quantity: (selectedPrize.claimed_quantity || 0) + 1 })
@@ -238,13 +232,32 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
   const getPrizeLabel = (type: string, value: number) => {
     switch (type) {
       case 'discount_percent': return `ส่วนลด ${value}%`;
-      case 'discount_fixed': return `ส่วนลด ฿${value}`;
+      case 'discount_fixed': return `ส่วนลด ${value} บาท`;
       case 'free_item': return 'แถมสินค้า';
       case 'free_drink': return 'เครื่องดื่มฟรี';
       case 'bonus_points': return `แต้มโบนัส +${value}`;
       case 'coupon': return 'คูปอง';
       case 'no_prize': return 'เสียใจด้วย';
       default: return type;
+    }
+  };
+
+  const getMilestoneLabel = (m: any) => {
+    switch (m.reward_type) {
+      case 'discount_percent':
+        return `ส่วนลด % ${m.reward_value}%`;
+      case 'discount_fixed':
+        return `ส่วนลด (บาท) ${m.reward_value} บาท`;
+      case 'free_item':
+        return m.reward_description || 'แถมสินค้า';
+      case 'free_drink':
+        return m.reward_description || 'แถมเครื่องดื่ม';
+      case 'bonus_points':
+        return `แต้มโบนัส +${m.reward_value}`;
+      case 'custom':
+        return m.reward_description || 'รางวัลพิเศษ';
+      default:
+        return m.reward_description || `${m.reward_type} ${m.reward_value}`;
     }
   };
 
@@ -401,7 +414,7 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
                     })}
                   </div>
 
-                  {/* Milestones info */}
+                  {/* Milestones info - formatted like admin */}
                   {cardMilestones.length > 0 && (
                     <div className="space-y-1">
                       {cardMilestones.map((m: any) => (
@@ -409,7 +422,7 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
                           currentStamps >= m.stamp_number ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
                         }`}>
                           <Award className="w-3 h-3" />
-                          <span>ดวงที่ {m.stamp_number}: {m.reward_description || `${m.reward_type} ${m.reward_value}`}</span>
+                          <span>แสตมป์ที่ {m.stamp_number}: {getMilestoneLabel(m)}</span>
                           {currentStamps >= m.stamp_number && <Badge className="text-[10px] ml-auto">ปลดล็อค!</Badge>}
                         </div>
                       ))}
