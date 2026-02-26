@@ -69,6 +69,7 @@ const CustomerSystem = lazy(() => import('./pages/CustomerSystem'));
 const TechnologySystem = lazy(() => import('./pages/TechnologySystem'));
 const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 const MenuPromotions = lazy(() => import('./pages/MenuPromotions'));
+const EngagementManagement = lazy(() => import('./pages/EngagementManagement'));
 
 function AppContent() {
   usePrefetch();
@@ -164,6 +165,7 @@ function App() {
                   <Route path="/usage-logs" element={<SecuritySystem />} />
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
+                  <Route path="/engagement" element={<EngagementManagement />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>

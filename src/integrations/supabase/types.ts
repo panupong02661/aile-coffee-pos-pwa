@@ -886,6 +886,79 @@ export type Database = {
           },
         ]
       }
+      customer_prize_claims: {
+        Row: {
+          advent_day: number | null
+          claim_code: string | null
+          claimed_at: string
+          created_at: string
+          customer_id: string
+          festival_event_id: string
+          festival_prize_id: string
+          id: string
+          is_used: boolean
+          prize_name: string
+          prize_type: string
+          prize_value: number
+          reward_expires_at: string | null
+          used_at: string | null
+        }
+        Insert: {
+          advent_day?: number | null
+          claim_code?: string | null
+          claimed_at?: string
+          created_at?: string
+          customer_id: string
+          festival_event_id: string
+          festival_prize_id: string
+          id?: string
+          is_used?: boolean
+          prize_name: string
+          prize_type: string
+          prize_value?: number
+          reward_expires_at?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          advent_day?: number | null
+          claim_code?: string | null
+          claimed_at?: string
+          created_at?: string
+          customer_id?: string
+          festival_event_id?: string
+          festival_prize_id?: string
+          id?: string
+          is_used?: boolean
+          prize_name?: string
+          prize_type?: string
+          prize_value?: number
+          reward_expires_at?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_prize_claims_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_prize_claims_festival_event_id_fkey"
+            columns: ["festival_event_id"]
+            isOneToOne: false
+            referencedRelation: "festival_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_prize_claims_festival_prize_id_fkey"
+            columns: ["festival_prize_id"]
+            isOneToOne: false
+            referencedRelation: "festival_prizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_profiles: {
         Row: {
           birth_date: string | null
@@ -1007,6 +1080,89 @@ export type Database = {
             columns: ["reward_id"]
             isOneToOne: false
             referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_stamp_cards: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_stamps: number
+          customer_id: string
+          id: string
+          is_completed: boolean
+          stamp_card_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_stamps?: number
+          customer_id: string
+          id?: string
+          is_completed?: boolean
+          stamp_card_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_stamps?: number
+          customer_id?: string
+          id?: string
+          is_completed?: boolean
+          stamp_card_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_stamp_cards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_stamp_cards_stamp_card_id_fkey"
+            columns: ["stamp_card_id"]
+            isOneToOne: false
+            referencedRelation: "stamp_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_stamps: {
+        Row: {
+          customer_stamp_card_id: string
+          id: string
+          order_amount: number
+          order_id: string | null
+          stamp_number: number
+          stamped_at: string
+        }
+        Insert: {
+          customer_stamp_card_id: string
+          id?: string
+          order_amount?: number
+          order_id?: string | null
+          stamp_number: number
+          stamped_at?: string
+        }
+        Update: {
+          customer_stamp_card_id?: string
+          id?: string
+          order_amount?: number
+          order_id?: string | null
+          stamp_number?: number
+          stamped_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_stamps_customer_stamp_card_id_fkey"
+            columns: ["customer_stamp_card_id"]
+            isOneToOne: false
+            referencedRelation: "customer_stamp_cards"
             referencedColumns: ["id"]
           },
         ]
@@ -1296,6 +1452,51 @@ export type Database = {
         }
         Relationships: []
       }
+      engagement_settings: {
+        Row: {
+          advent_calendar_enabled: boolean
+          created_at: string
+          festival_events_enabled: boolean
+          festival_themes_enabled: boolean
+          gift_box_enabled: boolean
+          id: string
+          loyalty_mode: string
+          push_notifications_enabled: boolean
+          spin_wheel_enabled: boolean
+          stamp_card_enabled: boolean
+          tier_rewards_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          advent_calendar_enabled?: boolean
+          created_at?: string
+          festival_events_enabled?: boolean
+          festival_themes_enabled?: boolean
+          gift_box_enabled?: boolean
+          id?: string
+          loyalty_mode?: string
+          push_notifications_enabled?: boolean
+          spin_wheel_enabled?: boolean
+          stamp_card_enabled?: boolean
+          tier_rewards_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          advent_calendar_enabled?: boolean
+          created_at?: string
+          festival_events_enabled?: boolean
+          festival_themes_enabled?: boolean
+          gift_box_enabled?: boolean
+          id?: string
+          loyalty_mode?: string
+          push_notifications_enabled?: boolean
+          spin_wheel_enabled?: boolean
+          stamp_card_enabled?: boolean
+          tier_rewards_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           created_at: string
@@ -1402,6 +1603,180 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      festival_events: {
+        Row: {
+          advent_total_days: number | null
+          background_image_url: string | null
+          created_at: string
+          description: string | null
+          end_date: string
+          event_type: string
+          gift_box_choices: number | null
+          id: string
+          is_active: boolean
+          max_claims_per_customer: number | null
+          min_tier: string | null
+          name: string
+          start_date: string
+          theme_color: string | null
+          theme_secondary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          advent_total_days?: number | null
+          background_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          end_date: string
+          event_type?: string
+          gift_box_choices?: number | null
+          id?: string
+          is_active?: boolean
+          max_claims_per_customer?: number | null
+          min_tier?: string | null
+          name: string
+          start_date: string
+          theme_color?: string | null
+          theme_secondary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advent_total_days?: number | null
+          background_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          event_type?: string
+          gift_box_choices?: number | null
+          id?: string
+          is_active?: boolean
+          max_claims_per_customer?: number | null
+          min_tier?: string | null
+          name?: string
+          start_date?: string
+          theme_color?: string | null
+          theme_secondary_color?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      festival_prizes: {
+        Row: {
+          advent_day: number | null
+          claimed_quantity: number
+          created_at: string
+          description: string | null
+          festival_event_id: string
+          id: string
+          is_active: boolean
+          min_tier: string | null
+          name: string
+          prize_menu_item_id: string | null
+          prize_type: string
+          prize_value: number
+          probability_weight: number
+          total_quantity: number | null
+          updated_at: string
+        }
+        Insert: {
+          advent_day?: number | null
+          claimed_quantity?: number
+          created_at?: string
+          description?: string | null
+          festival_event_id: string
+          id?: string
+          is_active?: boolean
+          min_tier?: string | null
+          name: string
+          prize_menu_item_id?: string | null
+          prize_type?: string
+          prize_value?: number
+          probability_weight?: number
+          total_quantity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          advent_day?: number | null
+          claimed_quantity?: number
+          created_at?: string
+          description?: string | null
+          festival_event_id?: string
+          id?: string
+          is_active?: boolean
+          min_tier?: string | null
+          name?: string
+          prize_menu_item_id?: string | null
+          prize_type?: string
+          prize_value?: number
+          probability_weight?: number
+          total_quantity?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "festival_prizes_festival_event_id_fkey"
+            columns: ["festival_event_id"]
+            isOneToOne: false
+            referencedRelation: "festival_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "festival_prizes_prize_menu_item_id_fkey"
+            columns: ["prize_menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      festival_themes: {
+        Row: {
+          accent_color: string | null
+          background_gradient: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          icon_set: string | null
+          id: string
+          is_active: boolean
+          name: string
+          primary_color: string
+          secondary_color: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_gradient?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          icon_set?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          primary_color?: string
+          secondary_color?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_gradient?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          icon_set?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          primary_color?: string
+          secondary_color?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       gift_usage_history: {
         Row: {
@@ -3161,6 +3536,105 @@ export type Database = {
           role?: string
           salary?: number
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stamp_card_milestones: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          reward_description: string | null
+          reward_menu_item_id: string | null
+          reward_type: string
+          reward_value: number
+          stamp_card_id: string
+          stamp_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reward_description?: string | null
+          reward_menu_item_id?: string | null
+          reward_type?: string
+          reward_value?: number
+          stamp_card_id: string
+          stamp_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reward_description?: string | null
+          reward_menu_item_id?: string | null
+          reward_type?: string
+          reward_value?: number
+          stamp_card_id?: string
+          stamp_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stamp_card_milestones_reward_menu_item_id_fkey"
+            columns: ["reward_menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stamp_card_milestones_stamp_card_id_fkey"
+            columns: ["stamp_card_id"]
+            isOneToOne: false
+            referencedRelation: "stamp_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stamp_cards: {
+        Row: {
+          allow_multiple_cards: boolean
+          auto_reset_on_complete: boolean
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          min_purchase_per_stamp: number
+          name: string
+          start_date: string | null
+          total_stamps: number
+          updated_at: string
+        }
+        Insert: {
+          allow_multiple_cards?: boolean
+          auto_reset_on_complete?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          min_purchase_per_stamp?: number
+          name: string
+          start_date?: string | null
+          total_stamps?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_multiple_cards?: boolean
+          auto_reset_on_complete?: boolean
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          min_purchase_per_stamp?: number
+          name?: string
+          start_date?: string | null
+          total_stamps?: number
           updated_at?: string
         }
         Relationships: []
