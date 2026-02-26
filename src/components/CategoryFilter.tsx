@@ -61,7 +61,7 @@ const CategoryFilter = ({
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02]'
-                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  : 'bg-muted/80 text-foreground/80 border border-border/50 hover:bg-accent hover:text-accent-foreground',
                 isMobile && headerStyle && 'text-xs px-3 py-1.5'
               )}
             >
