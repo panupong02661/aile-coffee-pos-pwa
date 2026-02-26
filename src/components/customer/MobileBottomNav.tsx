@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShoppingBag, Clock, BarChart3, Target, User } from 'lucide-react';
+import { Home, ShoppingBag, Clock, BarChart3, Target, User, PartyPopper } from 'lucide-react';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -10,9 +10,9 @@ const MobileBottomNav = ({ activeTab, onTabChange }: MobileBottomNavProps) => {
   const menuItems = [
     { id: 'home', label: 'หน้าหลัก', icon: Home },
     { id: 'shop', label: 'สั่งอาหาร', icon: ShoppingBag },
+    { id: 'engagement', label: 'กิจกรรม', icon: PartyPopper },
     { id: 'history', label: 'ประวัติ', icon: Clock },
     { id: 'stats', label: 'สถิติ', icon: BarChart3 },
-    { id: 'goals', label: 'เป้าหมาย', icon: Target },
     { id: 'profile', label: 'โปรไฟล์', icon: User },
   ];
 
