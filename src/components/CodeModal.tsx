@@ -177,6 +177,68 @@ const CodeModal = ({ isOpen, onClose, onApplyCode }: CodeModalProps) => {
         }
       }
 
+      // ถ้าไม่พบในของขวัญ ให้ตรวจสอบใน customer_prize_claims (โค้ดจากวงล้อ/กิจกรรม)
+      if (!foundGift) {
+        console.log('ตรวจสอบใน customer_prize_claims...');
+        const { data: prizeClaims, error: prizeError } = await supabase
+          .from('customer_prize_claims')
+          .select('*')
+          .eq('claim_code', upperCode)
+          .order('created_at', { ascending: false });
+
+        console.log('ผลการค้นหาโค้ดในรางวัลกิจกรรม:', { prizeClaims, error: prizeError });
+
+        if (prizeClaims && prizeClaims.length > 0) {
+          const claim = prizeClaims[0];
+
+          // ตรวจสอบว่าใช้แล้วหรือยัง
+          if (claim.is_used) {
+            toast({ 
+              title: 'โค้ดถูกใช้แล้ว', 
+              description: 'โค้ดรางวัลนี้ถูกใช้งานแล้ว', 
+              variant: 'destructive' 
+            });
+            return;
+          }
+
+          // ตรวจสอบหมดอายุ
+          if (claim.reward_expires_at) {
+            const expiryDate = new Date(claim.reward_expires_at);
+            if (expiryDate < new Date()) {
+              toast({ 
+                title: 'โค้ดหมดอายุ', 
+                description: 'โค้ดรางวัลนี้หมดอายุแล้ว', 
+                variant: 'destructive' 
+              });
+              return;
+            }
+          }
+
+          // Map prize claim to gift format for consistent handling
+          const discountType = claim.prize_type === 'discount_percent' ? 'percentage' : 'fixed';
+          foundGift = {
+            id: claim.id,
+            customer_id: claim.customer_id,
+            gift_type: claim.prize_type === 'free_item' || claim.prize_type === 'free_drink' ? 'free_item' : 'promotion',
+            gift_id: claim.festival_prize_id,
+            gift_name: claim.prize_name,
+            gift_description: `รางวัลจากกิจกรรม`,
+            gift_value: claim.prize_value || 0,
+            expires_at: claim.reward_expires_at,
+            is_used: claim.is_used,
+            used_at: claim.used_at,
+            gift_code: claim.claim_code,
+            message: `รางวัลจากกิจกรรม: ${claim.prize_name}`,
+            created_at: claim.created_at,
+            updated_at: claim.created_at,
+            sent_by: 'festival_event',
+            discount_type: discountType,
+            min_purchase: 0,
+            _source: 'prize_claim', // marker to know where it came from
+          } as any;
+        }
+      }
+
       if (!foundGift) {
         console.log('ไม่พบโค้ดในระบบ');
         toast({ 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { PartyPopper, Stamp, Gift, RotateCcw, Calendar, Award, Loader2 } from 'lucide-react';
+import SpinWheel from './SpinWheel';
 
 interface CustomerEngagementProps {
   currentUser: {
@@ -148,65 +149,97 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
     setClaimingId(event.id);
 
     try {
-      const eligiblePrizes = eventPrizes.filter(p => {
-        const prizeTierLevel = tierOrder[p.min_tier] || 1;
-        const userTierLevel = tierOrder[currentUser.tier] || 1;
-        const hasStock = !p.total_quantity || p.claimed_quantity < p.total_quantity;
-        return userTierLevel >= prizeTierLevel && hasStock;
-      });
-
-      if (eligiblePrizes.length === 0) {
-        toast({ title: 'รางวัลหมดแล้ว', description: 'ไม่มีรางวัลที่พร้อมให้รับ', variant: 'destructive' });
-        setClaimingId(null);
-        return;
-      }
-
-      const totalWeight = eligiblePrizes.reduce((sum: number, p: any) => sum + (p.probability_weight || 1), 0);
-      let random = Math.random() * totalWeight;
-      let selectedPrize = eligiblePrizes[0];
-      for (const prize of eligiblePrizes) {
-        random -= (prize.probability_weight || 1);
-        if (random <= 0) { selectedPrize = prize; break; }
-      }
-
-      const claimCode = `${event.event_type.toUpperCase().slice(0, 3)}-${Date.now().toString(36).toUpperCase()}`;
-
-      const { error: claimError } = await supabase
-        .from('customer_prize_claims')
-        .insert({
-          customer_id: currentUser.id,
-          festival_event_id: event.id,
-          festival_prize_id: selectedPrize.id,
-          prize_name: selectedPrize.name,
-          prize_type: selectedPrize.prize_type,
-          prize_value: selectedPrize.prize_value,
-          claim_code: claimCode,
-          reward_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+      const result = await doClaimPrize(event);
+      if (result) {
+        toast({
+          title: '🎉 ยินดีด้วย!',
+          description: `คุณได้รับ: ${result.selectedPrize.name}! รหัส: ${result.claimCode}`,
         });
-
-      if (claimError) {
-        toast({ title: 'เกิดข้อผิดพลาด', description: claimError.message, variant: 'destructive' });
-        setClaimingId(null);
-        return;
+        await fetchAll();
       }
-
-      await supabase
-        .from('festival_prizes')
-        .update({ claimed_quantity: (selectedPrize.claimed_quantity || 0) + 1 })
-        .eq('id', selectedPrize.id);
-
-      toast({
-        title: '🎉 ยินดีด้วย!',
-        description: `คุณได้รับ: ${selectedPrize.name}! รหัส: ${claimCode}`,
-      });
-
-      await fetchAll();
     } catch (error) {
       console.error('Claim error:', error);
       toast({ title: 'เกิดข้อผิดพลาด', variant: 'destructive' });
     } finally {
       setClaimingId(null);
     }
+  };
+
+  // Shared claim logic used by both button and spin wheel
+  const doClaimPrize = async (event: any): Promise<{ selectedPrize: any; claimCode: string } | null> => {
+    if (!currentUser) return null;
+
+    const eventPrizes = prizes[event.id];
+    if (!eventPrizes || eventPrizes.length === 0) return null;
+
+    const eligiblePrizes = eventPrizes.filter((p: any) => {
+      const prizeTierLevel = tierOrder[p.min_tier] || 1;
+      const userTierLevel = tierOrder[currentUser.tier] || 1;
+      const hasStock = !p.total_quantity || p.claimed_quantity < p.total_quantity;
+      return userTierLevel >= prizeTierLevel && hasStock;
+    });
+
+    if (eligiblePrizes.length === 0) {
+      toast({ title: 'รางวัลหมดแล้ว', description: 'ไม่มีรางวัลที่พร้อมให้รับ', variant: 'destructive' });
+      return null;
+    }
+
+    const totalWeight = eligiblePrizes.reduce((sum: number, p: any) => sum + (p.probability_weight || 1), 0);
+    let random = Math.random() * totalWeight;
+    let selectedPrize = eligiblePrizes[0];
+    for (const prize of eligiblePrizes) {
+      random -= (prize.probability_weight || 1);
+      if (random <= 0) { selectedPrize = prize; break; }
+    }
+
+    const claimCode = `${event.event_type.toUpperCase().slice(0, 3)}-${Date.now().toString(36).toUpperCase()}`;
+
+    const { error: claimError } = await supabase
+      .from('customer_prize_claims')
+      .insert({
+        customer_id: currentUser.id,
+        festival_event_id: event.id,
+        festival_prize_id: selectedPrize.id,
+        prize_name: selectedPrize.name,
+        prize_type: selectedPrize.prize_type,
+        prize_value: selectedPrize.prize_value,
+        claim_code: claimCode,
+        reward_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+      });
+
+    if (claimError) {
+      toast({ title: 'เกิดข้อผิดพลาด', description: claimError.message, variant: 'destructive' });
+      return null;
+    }
+
+    await supabase
+      .from('festival_prizes')
+      .update({ claimed_quantity: (selectedPrize.claimed_quantity || 0) + 1 })
+      .eq('id', selectedPrize.id);
+
+    return { selectedPrize, claimCode };
+  };
+
+  const handleSpinWheel = async (event: any) => {
+    if (!currentUser) return null;
+
+    if (!canParticipate(event)) {
+      toast({ title: 'ระดับสมาชิกไม่ถึง', description: `ต้องเป็นระดับ ${event.min_tier} ขึ้นไป`, variant: 'destructive' });
+      return null;
+    }
+
+    const eventClaims = getClaimsForEvent(event.id);
+    if (eventClaims.length >= (event.max_claims_per_customer || 1)) {
+      toast({ title: 'รับสิทธิ์ครบแล้ว', variant: 'destructive' });
+      return null;
+    }
+
+    const result = await doClaimPrize(event);
+    if (result) {
+      // Refresh data after spin completes (the SpinWheel handles display)
+      setTimeout(() => fetchAll(), 5000);
+    }
+    return result;
   };
 
   const getEventIcon = (type: string) => {
@@ -341,7 +374,22 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
                     </div>
                   )}
 
-                  {canClaim && (
+                  {canClaim && event.event_type === 'spin_wheel' && (
+                    <SpinWheel
+                      prizes={(prizes[event.id] || []).map((p: any) => ({
+                        id: p.id,
+                        name: p.name,
+                        prize_type: p.prize_type,
+                        prize_value: p.prize_value,
+                        probability_weight: p.probability_weight || 1,
+                      }))}
+                      onSpin={() => handleSpinWheel(event)}
+                      disabled={claimingId === event.id}
+                      themeColor={event.theme_color}
+                    />
+                  )}
+
+                  {canClaim && event.event_type !== 'spin_wheel' && (
                     <Button
                       className="w-full"
                       onClick={() => handleClaimPrize(event)}
@@ -353,7 +401,7 @@ const CustomerEngagement = ({ currentUser }: CustomerEngagementProps) => {
                       {claimingId === event.id ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังสุ่ม...</>
                       ) : (
-                        <><Gift className="w-4 h-4 mr-2" /> {event.event_type === 'lucky_envelope' ? 'เปิดอั่งเปา' : event.event_type === 'spin_wheel' ? 'หมุนวงล้อ' : 'รับรางวัล'}</>
+                        <><Gift className="w-4 h-4 mr-2" /> {event.event_type === 'lucky_envelope' ? 'เปิดอั่งเปา' : 'รับรางวัล'}</>
                       )}
                     </Button>
                   )}
