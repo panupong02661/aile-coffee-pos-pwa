@@ -383,7 +383,7 @@ const MenuPromotions = () => {
     <div className="min-h-screen bg-coffee-50 flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'}`}>
+      <div className={`flex-1 transition-all duration-300 ${'md:ml-[56px]'}`}>
         <div className="p-4">
           <Header 
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}

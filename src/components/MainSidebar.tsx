@@ -63,8 +63,6 @@ import {
 interface MainSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  collapsed?: boolean;
-  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 interface MenuGroup {
@@ -184,7 +182,8 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-const MainSidebar = ({ isOpen, onClose, collapsed = false, onCollapsedChange }: MainSidebarProps) => {
+const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
+  const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const activeGroup = menuGroups.find((g) =>
@@ -210,22 +209,28 @@ const MainSidebar = ({ isOpen, onClose, collapsed = false, onCollapsedChange }: 
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* Overlay for mobile */}
-      {isOpen && !collapsed && (
+      {/* Overlay - shown when expanded */}
+      {!collapsed && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 hidden md:block"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+      {!collapsed && isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={onClose}
+          onClick={() => setCollapsed(true)}
         />
       )}
 
-      {/* Sidebar - always visible on desktop (collapsed or expanded) */}
+      {/* Sidebar */}
       <div
         className={cn(
           'fixed left-0 top-0 h-full z-50 transform transition-all duration-300 ease-in-out',
           sidebarWidth,
-          // On mobile: use translate to show/hide
-          // On desktop: always visible (either collapsed or expanded)
+          // On desktop: always visible
           'md:translate-x-0',
+          // On mobile: show/hide via translate
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -240,8 +245,7 @@ const MainSidebar = ({ isOpen, onClose, collapsed = false, onCollapsedChange }: 
             <Button
               variant="ghost"
               size="icon"
-              className="flex-shrink-0 h-8 w-8"
-              onClick={() => onCollapsedChange?.(!collapsed)}
+              onClick={() => setCollapsed(!collapsed)}
             >
               {collapsed ? (
                 <PanelLeft className="w-4 h-4" />

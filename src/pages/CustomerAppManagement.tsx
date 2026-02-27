@@ -27,7 +27,7 @@ const CustomerAppManagement = () => {
         onClose={() => setIsSidebarOpen(false)} 
       />
       
-      <div className="flex-1">
+      <div className="flex-1 md:ml-[56px]">
         <div className="p-4">
           {/* Header with Menu Button */}
           <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow-sm border border-coffee-200">

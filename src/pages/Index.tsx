@@ -46,7 +46,7 @@ const Index = () => {
     return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [isMemberSearchOpen, setIsMemberSearchOpen] = useState(false);
@@ -180,12 +180,7 @@ const Index = () => {
   }
 
   const handleToggleSidebar = () => {
-    if (isMobile) {
-      setIsSidebarOpen(!isSidebarOpen);
-    } else {
-      // On desktop: toggle between collapsed and expanded
-      setIsSidebarCollapsed(!isSidebarCollapsed);
-    }
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const handleCloseSidebar = () => {
@@ -424,17 +419,13 @@ const Index = () => {
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
-        collapsed={isSidebarCollapsed}
-        onCollapsedChange={setIsSidebarCollapsed}
       />
       
       <div 
         className={`flex-1 grid overflow-hidden transition-all duration-300 ease-in-out ${
           isMobile 
             ? 'ml-0' 
-            : isSidebarCollapsed 
-              ? 'md:ml-[56px]' 
-              : 'md:ml-64'
+            : 'md:ml-[56px]'
         }`}
         style={{ 
           gridTemplateRows: 'auto 1fr',

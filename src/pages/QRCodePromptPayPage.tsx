@@ -225,7 +225,7 @@ const QRCodePromptPayPage = () => {
       />
       
       <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         <div className="flex-shrink-0 bg-cream-50 p-4 pb-0">
           <Header 

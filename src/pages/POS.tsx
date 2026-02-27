@@ -609,7 +609,7 @@ const POS = () => {
       />
       
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         {/* Fixed Header - pt-safe for iPad status bar */}
         <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${

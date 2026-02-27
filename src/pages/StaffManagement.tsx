@@ -29,7 +29,7 @@ const StaffManagement = () => {
         onClose={handleCloseSidebar} 
       />
       
-      <div className="flex-1">
+      <div className="flex-1 md:ml-[56px]">
         <div className="p-4">
           <Header 
             onToggleSidebar={handleToggleSidebar}
