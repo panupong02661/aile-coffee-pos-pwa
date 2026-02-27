@@ -314,7 +314,7 @@ const DeliveryIntegration = () => {
         />
         
         <div className={`flex-1 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+          'md:ml-[56px]'
         }`}>
           <div className="p-4">
             <Header 
@@ -353,7 +353,7 @@ const DeliveryIntegration = () => {
       />
       
       <div className={`flex-1 transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         <div className="p-4">
           <Header 

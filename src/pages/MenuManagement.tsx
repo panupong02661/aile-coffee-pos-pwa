@@ -160,7 +160,7 @@ const MenuManagement = () => {
       />
       
       <div className={`flex-1 p-4 transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         <div className="max-w-7xl mx-auto">
           <Header 

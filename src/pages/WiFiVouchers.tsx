@@ -950,7 +950,7 @@ const WiFiVouchers = () => {
       />
       
       <div className={`flex-1 overflow-y-auto transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">

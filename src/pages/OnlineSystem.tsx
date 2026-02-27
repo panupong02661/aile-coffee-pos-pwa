@@ -95,7 +95,7 @@ const OnlineSystem = () => {
       />
       
       <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-        isSidebarOpen && !isMobile ? 'ml-0 md:ml-64' : 'ml-0'
+        'md:ml-[56px]'
       }`}>
         {/* Header */}
         <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
