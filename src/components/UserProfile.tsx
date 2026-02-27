@@ -9,55 +9,53 @@ const UserProfile = () => {
 
   if (!user) return null;
 
-  const getLevelBadgeColor = (role: string) => {
+  const getRoleStyle = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800 border-red-200';
-      case 'manager': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'staff': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'admin': return 'bg-destructive/10 text-destructive';
+      case 'manager': return 'bg-primary/10 text-primary';
+      case 'staff': return 'bg-accent text-accent-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
-  const getLevelDisplayName = (role: string) => {
+  const getRoleName = (role: string) => {
     switch (role) {
-      case 'admin': return 'ผู้ดูแลระบบ';
+      case 'admin': return 'แอดมิน';
       case 'manager': return 'ผู้จัดการ';
       case 'staff': return 'พนักงาน';
-      default: return 'ผู้ใช้งาน';
+      default: return 'ผู้ใช้';
     }
   };
 
   return (
-    <div className="p-4 border-b border-coffee-200 bg-coffee-50">
-      <div className="flex items-center space-x-3 mb-3">
-        <Avatar className="w-12 h-12 border-2 border-coffee-300">
+    <div className="px-3 py-2.5 border-b border-border/50">
+      <div className="flex items-center gap-2.5">
+        <Avatar className="w-8 h-8 ring-2 ring-primary/20">
           <AvatarImage src={user.avatar_url} alt={user.full_name || user.username} />
-          <AvatarFallback className="bg-coffee-600 text-white">
-            <User className="w-6 h-6" />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+            <User className="w-3.5 h-3.5" />
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-coffee-800 truncate">
-            {user.full_name || user.username}
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-foreground truncate leading-tight">
+              {user.full_name || user.username}
+            </p>
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none ${getRoleStyle(user.role)}`}>
+              {getRoleName(user.role)}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+            @{user.username}
           </p>
-          <p className="text-xs text-coffee-600">@{user.username}</p>
         </div>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <span 
-          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLevelBadgeColor(user.role)}`}
-        >
-          {getLevelDisplayName(user.role)}
-        </span>
-        
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={logout}
-          className="text-coffee-600 hover:text-coffee-800 hover:bg-coffee-100"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5" />
         </Button>
       </div>
     </div>
