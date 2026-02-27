@@ -245,6 +245,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
             <Button
               variant="ghost"
               size="icon"
+              className="flex-shrink-0 h-8 w-8"
               onClick={() => setCollapsed(!collapsed)}
             >
               {collapsed ? (
@@ -278,12 +279,11 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                       <div key={group.id}>
                         {/* Group header */}
                         {collapsed ? (
-                          /* In collapsed mode: group icon links to first item */
+                          /* In collapsed mode: clicking icon expands the sidebar */
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Link
-                                to={group.items[0].path}
-                                onClick={handleMenuClick}
+                              <button
+                                onClick={() => setCollapsed(false)}
                                 className={cn(
                                   'flex items-center justify-center w-full rounded-lg transition-colors text-sm p-2 my-0.5',
                                   hasActiveItem
@@ -292,7 +292,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                                 )}
                               >
                                 <GroupIcon className="w-4 h-4 flex-shrink-0" />
-                              </Link>
+                              </button>
                             </TooltipTrigger>
                             <TooltipContent side="right" sideOffset={8}>
                               <p>{group.label}</p>
