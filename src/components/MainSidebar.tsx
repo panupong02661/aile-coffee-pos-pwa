@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
@@ -54,8 +55,6 @@ import {
   MessageSquare,
   Tag,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   PanelLeftClose,
   PanelLeft,
   LucideIcon,
@@ -64,6 +63,8 @@ import {
 interface MainSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 interface MenuGroup {
@@ -183,11 +184,9 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
+const MainSidebar = ({ isOpen, onClose, collapsed = false, onCollapsedChange }: MainSidebarProps) => {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    // Auto-open the group that contains the active route
     const activeGroup = menuGroups.find((g) =>
       g.items.some((item) => item.path === location.pathname)
     );
@@ -210,20 +209,23 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const sidebarWidth = collapsed ? 'w-[56px]' : 'w-64';
 
   return (
-    <>
+    <TooltipProvider delayDuration={200}>
       {/* Overlay for mobile */}
-      {isOpen && (
+      {isOpen && !collapsed && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - always visible on desktop (collapsed or expanded) */}
       <div
         className={cn(
           'fixed left-0 top-0 h-full z-50 transform transition-all duration-300 ease-in-out',
           sidebarWidth,
+          // On mobile: use translate to show/hide
+          // On desktop: always visible (either collapsed or expanded)
+          'md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -239,7 +241,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
               variant="ghost"
               size="icon"
               className="flex-shrink-0 h-8 w-8"
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => onCollapsedChange?.(!collapsed)}
             >
               {collapsed ? (
                 <PanelLeft className="w-4 h-4" />
@@ -271,53 +273,56 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
                     return (
                       <div key={group.id}>
                         {/* Group header */}
-                        <button
-                          onClick={() =>
-                            collapsed ? undefined : toggleGroup(group.id)
-                          }
-                          title={collapsed ? group.label : undefined}
-                          className={cn(
-                            'flex items-center w-full rounded-lg transition-colors text-sm',
-                            collapsed
-                              ? 'justify-center p-2 my-0.5'
-                              : 'justify-between px-3 py-2',
-                            hasActiveItem
-                              ? 'text-primary font-semibold'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                          )}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <GroupIcon className="w-4 h-4 flex-shrink-0" />
-                            {!collapsed && (
-                              <span className="truncate">{group.label}</span>
+                        {collapsed ? (
+                          /* In collapsed mode: group icon links to first item */
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                to={group.items[0].path}
+                                onClick={handleMenuClick}
+                                className={cn(
+                                  'flex items-center justify-center w-full rounded-lg transition-colors text-sm p-2 my-0.5',
+                                  hasActiveItem
+                                    ? 'bg-primary text-primary-foreground font-semibold'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                                )}
+                              >
+                                <GroupIcon className="w-4 h-4 flex-shrink-0" />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" sideOffset={8}>
+                              <p>{group.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <button
+                            onClick={() => toggleGroup(group.id)}
+                            className={cn(
+                              'flex items-center w-full rounded-lg transition-colors text-sm justify-between px-3 py-2',
+                              hasActiveItem
+                                ? 'text-primary font-semibold'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                             )}
-                          </div>
-                          {!collapsed && (
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <GroupIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{group.label}</span>
+                            </div>
                             <ChevronDown
                               className={cn(
                                 'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200',
                                 isGroupOpen && 'rotate-180'
                               )}
                             />
-                          )}
-                        </button>
+                          </button>
+                        )}
 
-                        {/* Group items */}
-                        {(collapsed || isGroupOpen) && (
-                          <div
-                            className={cn(
-                              collapsed ? '' : 'ml-3 border-l border-border/50 pl-2 mt-0.5 mb-1'
-                            )}
-                          >
+                        {/* Group items - only in expanded mode */}
+                        {!collapsed && isGroupOpen && (
+                          <div className="ml-3 border-l border-border/50 pl-2 mt-0.5 mb-1">
                             {group.items.map((item) => {
                               const Icon = item.icon;
-                              const isActive =
-                                location.pathname === item.path;
-
-                              if (collapsed) {
-                                // In collapsed mode, show only group icon (already shown above)
-                                return null;
-                              }
+                              const isActive = location.pathname === item.path;
 
                               return (
                                 <Link
@@ -356,7 +361,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           </div>
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 };
 
