@@ -453,7 +453,7 @@ const KDSSettingsModal = ({ isOpen, onClose, settings, onUpdate, categories, men
           ))}
         </div>
 
-        <ScrollArea className="flex-1 pr-2">
+        <ScrollArea className="flex-1 min-h-0 pr-2" style={{ maxHeight: 'calc(80vh - 140px)', WebkitOverflowScrolling: 'touch' }}>
           {settingsTab === 'display' && (
             <div className="space-y-6 py-2">
               {/* Queue Number Toggle */}
