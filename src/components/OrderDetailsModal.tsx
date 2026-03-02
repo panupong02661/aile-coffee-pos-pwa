@@ -33,6 +33,7 @@ interface OrderDetails {
   bill_discount?: number;
   bill_discount_type?: string;
   customer_notes?: string;
+  order_type?: string;
   items: OrderItem[];
 }
 
@@ -95,6 +96,7 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }: OrderDetailsModalProps)
         bill_discount: orderData.bill_discount,
         bill_discount_type: orderData.bill_discount_type,
         customer_notes: orderData.customer_notes,
+        order_type: (orderData as any).order_type,
         items: (itemsData || []).map(item => {
           let addons = item.selected_addons;
           // Parse if it's a string
@@ -159,6 +161,24 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }: OrderDetailsModalProps)
       case 'mobile_banking': return 'โมบายแบงก์กิ้ง';
       case 'points': return 'แต้ม';
       default: return method;
+    }
+  };
+
+  const getOrderTypeText = (type: string) => {
+    switch (type) {
+      case 'dine_in': return 'ทานที่ร้าน';
+      case 'takeaway': return 'สั่งกลับบ้าน';
+      case 'delivery': return 'จัดส่ง';
+      default: return type || 'ทานที่ร้าน';
+    }
+  };
+
+  const getOrderTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case 'dine_in': return 'bg-blue-100 text-blue-800';
+      case 'takeaway': return 'bg-orange-100 text-orange-800';
+      case 'delivery': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -235,6 +255,16 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId }: OrderDetailsModalProps)
                       <span className="text-sm text-muted-foreground">สถานะ:</span>
                       <Badge className={getStatusBadgeColor(orderDetails.payment_status || 'completed')}>
                         {getStatusText(orderDetails.payment_status || 'completed')}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">ประเภทการจัดส่ง:</span>
+                      <Badge className={getOrderTypeBadgeColor(orderDetails.order_type || 'dine_in')}>
+                        {getOrderTypeText(orderDetails.order_type || 'dine_in')}
                       </Badge>
                     </div>
                   </div>
