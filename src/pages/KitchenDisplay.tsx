@@ -453,7 +453,7 @@ const KDSSettingsModal = ({ isOpen, onClose, settings, onUpdate, categories, men
           ))}
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 pr-2" style={{ maxHeight: 'calc(80vh - 140px)', WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 min-h-0 pr-2 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 140px)', WebkitOverflowScrolling: 'touch', overflowY: 'auto', touchAction: 'pan-y' }}>
           {settingsTab === 'display' && (
             <div className="space-y-6 py-2">
               {/* Queue Number Toggle */}
@@ -563,7 +563,7 @@ const KDSSettingsModal = ({ isOpen, onClose, settings, onUpdate, categories, men
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
