@@ -653,6 +653,11 @@ const PaymentModal = ({
       // ✅ ปิด modal หลังจาก DB เสร็จ
       const cashAmount = paymentMethod === 'cash' ? parseFloat(cashReceived || '0') : undefined;
       onPayment(paymentMethod, cashAmount);
+      
+      // รีเซ็ตค่าเริ่มต้นหลังชำระเงินสำเร็จ
+      setPaymentMethod('cash');
+      setOrderType('dine_in');
+      
       onClose();
 
       // แสดง toast สำเร็จ
