@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { cn } from '@/lib/utils';
 import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import {
   BarChart3,
   Calculator,
@@ -185,8 +186,20 @@ const menuGroups: MenuGroup[] = [
 const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
+  const { hasPermission } = useUserPermissions();
+
+  // Filter menu groups based on user permissions
+  const filteredMenuGroups = useMemo(() => {
+    return menuGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => hasPermission(item.id)),
+      }))
+      .filter(group => group.items.length > 0);
+  }, [hasPermission]);
+
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const activeGroup = menuGroups.find((g) =>
+    const activeGroup = filteredMenuGroups.find((g) =>
       g.items.some((item) => item.path === location.pathname)
     );
     return new Set(activeGroup ? [activeGroup.id] : ['main']);
@@ -268,7 +281,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
             <ScrollArea className="h-full">
               <div className={cn('pb-6', collapsed ? 'p-1' : 'p-2')}>
                 <nav className="space-y-0.5">
-                  {menuGroups.map((group) => {
+                  {filteredMenuGroups.map((group) => {
                     const isGroupOpen = openGroups.has(group.id);
                     const GroupIcon = group.icon;
                     const hasActiveItem = group.items.some(
