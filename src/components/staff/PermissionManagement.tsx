@@ -15,6 +15,7 @@ import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XC
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import BranchDatabaseManagement from './BranchDatabaseManagement';
 
 // All permission keys derived from MainSidebar menu items
 const ALL_PERMISSIONS = [
@@ -432,6 +433,11 @@ const PermissionManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Branch & Database Management */}
+      {(currentUser?.role === 'admin') && (
+        <BranchDatabaseManagement />
+      )}
 
       {/* Create User Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -3432,6 +3432,51 @@ export type Database = {
         }
         Relationships: []
       }
+      shops: {
+        Row: {
+          address: string | null
+          branch_code: string | null
+          branch_name: string | null
+          created_at: string
+          database_mode: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          shop_name: string
+          supabase_project_key: string | null
+          supabase_project_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          branch_code?: string | null
+          branch_name?: string | null
+          created_at?: string
+          database_mode?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          shop_name: string
+          supabase_project_key?: string | null
+          supabase_project_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          branch_code?: string | null
+          branch_name?: string | null
+          created_at?: string
+          database_mode?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          shop_name?: string
+          supabase_project_key?: string | null
+          supabase_project_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sms_logs: {
         Row: {
           created_at: string | null
@@ -4012,6 +4057,48 @@ export type Database = {
           },
           {
             foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_shop_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          is_primary: boolean
+          shop_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          is_primary?: boolean
+          shop_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          is_primary?: boolean
+          shop_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_shop_assignments_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_shop_assignments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
