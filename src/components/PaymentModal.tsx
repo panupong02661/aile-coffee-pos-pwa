@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
@@ -73,6 +74,7 @@ const PaymentModal = ({
     online: { soundEnabled: boolean; popupEnabled: boolean; volume: number };
   } | null>(null);
   const { toast } = useToast();
+  const { shopId } = useCurrentShop();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
   const banknotes = [20, 50, 100, 500, 1000];
@@ -406,7 +408,7 @@ const PaymentModal = ({
       const orderNumber = generateUniqueOrderNumber();
       
       // Prepare order data
-      const orderData = {
+      const orderData: any = {
         order_number: String(orderNumber),
         member_id: selectedMember?.id || null,
         total_amount: Number(actualTotal),
@@ -414,7 +416,8 @@ const PaymentModal = ({
         payment_method: String(method),
         bill_discount: Number(billDiscount) || 0,
         bill_discount_type: String(billDiscountType) || 'amount',
-        order_type: String(orderType)
+        order_type: String(orderType),
+        shop_id: shopId || null,
       };
 
       console.log(`[PaymentModal] Order data:`, orderData);

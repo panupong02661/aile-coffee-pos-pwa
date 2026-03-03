@@ -4,6 +4,7 @@ import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './hooks/useAuth';
+import { ShopProvider } from './hooks/useCurrentShop';
 import { usePrefetch } from './hooks/usePrefetch';
 import GlobalNotificationProvider from './components/providers/GlobalNotificationProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -82,6 +83,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AppContent />
         <AuthProvider>
+          <ShopProvider>
           <Router>
             <GlobalNotificationProvider>
               <div className="min-h-screen bg-background">
@@ -176,6 +178,7 @@ function App() {
               </div>
             </GlobalNotificationProvider>
           </Router>
+          </ShopProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

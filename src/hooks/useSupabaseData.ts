@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 export interface DatabaseCategory {
   id: string;
@@ -203,6 +204,7 @@ export const useSupabaseData = () => {
   const [menuIngredients, setMenuIngredients] = useState<DatabaseMenuIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { shopId } = useCurrentShop();
 
   const fetchShopSettings = async () => {
     const { data, error } = await supabase
@@ -233,10 +235,16 @@ export const useSupabaseData = () => {
   };
 
   const fetchCategories = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('categories')
       .select('*')
       .order('sort_order');
+    
+    if (shopId) {
+      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดหมวดหมู่ได้', variant: 'destructive' });
@@ -246,7 +254,7 @@ export const useSupabaseData = () => {
   };
 
   const fetchMenuItems = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('menu_items')
       .select(`
         *,
@@ -257,6 +265,12 @@ export const useSupabaseData = () => {
       `)
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
+    
+    if (shopId) {
+      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดเมนูได้', variant: 'destructive' });
@@ -325,10 +339,16 @@ export const useSupabaseData = () => {
   };
 
   const fetchMembers = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('members')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    if (shopId) {
+      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลสมาชิกได้', variant: 'destructive' });
@@ -384,21 +404,26 @@ export const useSupabaseData = () => {
 
   const fetchIngredients = async () => {
     console.log('[useSupabaseData] Fetching ingredients...');
-    const { data, error } = await supabase
+    let query = supabase
       .from('ingredients')
       .select('*')
       .order('sort_order');
+    
+    if (shopId) {
+      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+    }
+
+    const { data, error } = await query;
     
     console.log('[useSupabaseData] Ingredients response:', { data, error });
     
     if (error) {
       console.error('[useSupabaseData] Ingredients error:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดวัตถุดิบได้', variant: 'destructive' });
-      setIngredients([]); // Set empty array on error
+      setIngredients([]);
       return;
     }
     
-    // Map fields for compatibility
     const mappedData = (data || []).map(item => ({
       ...item,
       current_quantity: item.quantity,
@@ -556,7 +581,7 @@ export const useSupabaseData = () => {
     };
 
     loadData();
-  }, []);
+  }, [shopId]);
 
   return {
     categories,
