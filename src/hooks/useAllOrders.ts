@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 interface Order {
   id: string;
@@ -20,15 +21,22 @@ export const useAllOrders = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { shopId } = useCurrentShop();
 
   const fetchOrders = useCallback(async () => {
     try {
       console.log('📦 Fetching all orders...');
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (shopId) {
+        query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching orders:', error);

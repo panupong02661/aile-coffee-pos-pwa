@@ -1,11 +1,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Store } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 const UserProfile = () => {
   const { user, logout } = useAuth();
+  const { currentShop } = useCurrentShop();
 
   if (!user) return null;
 
@@ -48,6 +50,12 @@ const UserProfile = () => {
           <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
             @{user.username}
           </p>
+          {currentShop && (
+            <p className="text-[10px] text-primary/70 truncate leading-tight mt-0.5 flex items-center gap-0.5">
+              <Store className="w-2.5 h-2.5" />
+              {currentShop.branch_name || currentShop.shop_name}
+            </p>
+          )}
         </div>
         <Button
           variant="ghost"

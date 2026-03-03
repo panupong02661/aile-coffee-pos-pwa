@@ -56,6 +56,7 @@ export type Database = {
           is_active: boolean
           is_required: boolean
           name: string
+          shop_id: string | null
           sort_order: number
           updated_at: string
         }
@@ -67,6 +68,7 @@ export type Database = {
           is_active?: boolean
           is_required?: boolean
           name: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -78,10 +80,19 @@ export type Database = {
           is_active?: boolean
           is_required?: boolean
           name?: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "addon_groups_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       addons: {
         Row: {
@@ -91,6 +102,7 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          shop_id: string | null
           sort_order: number
           updated_at: string
         }
@@ -101,6 +113,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -111,6 +124,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -120,6 +134,13 @@ export type Database = {
             columns: ["addon_group_id"]
             isOneToOne: false
             referencedRelation: "addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addons_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
           {
@@ -398,6 +419,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          shop_id: string | null
           sort_order: number
           updated_at: string
         }
@@ -407,6 +429,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -416,10 +439,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       category_addon_groups: {
         Row: {
@@ -536,6 +568,7 @@ export type Database = {
           max_discount: number | null
           min_purchase: number | null
           name: string
+          shop_id: string | null
           start_date: string
           usage_limit: number | null
           used_count: number | null
@@ -552,6 +585,7 @@ export type Database = {
           max_discount?: number | null
           min_purchase?: number | null
           name: string
+          shop_id?: string | null
           start_date: string
           usage_limit?: number | null
           used_count?: number | null
@@ -568,11 +602,20 @@ export type Database = {
           max_discount?: number | null
           min_purchase?: number | null
           name?: string
+          shop_id?: string | null
           start_date?: string
           usage_limit?: number | null
           used_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coupons_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_customers: {
         Row: {
@@ -1570,6 +1613,7 @@ export type Database = {
           expense_date: string
           id: string
           receipt_url: string | null
+          shop_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1581,6 +1625,7 @@ export type Database = {
           expense_date?: string
           id?: string
           receipt_url?: string | null
+          shop_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1592,6 +1637,7 @@ export type Database = {
           expense_date?: string
           id?: string
           receipt_url?: string | null
+          shop_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1600,6 +1646,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -1868,6 +1921,7 @@ export type Database = {
           quantity: number
           reorder_point: number | null
           reorder_quantity: number | null
+          shop_id: string | null
           sort_order: number
           supplier: string | null
           supplier_id: string | null
@@ -1888,6 +1942,7 @@ export type Database = {
           quantity?: number
           reorder_point?: number | null
           reorder_quantity?: number | null
+          shop_id?: string | null
           sort_order?: number
           supplier?: string | null
           supplier_id?: string | null
@@ -1908,6 +1963,7 @@ export type Database = {
           quantity?: number
           reorder_point?: number | null
           reorder_quantity?: number | null
+          shop_id?: string | null
           sort_order?: number
           supplier?: string | null
           supplier_id?: string | null
@@ -1915,6 +1971,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ingredients_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ingredients_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -2143,6 +2206,7 @@ export type Database = {
           name: string
           phone: string
           points: number
+          shop_id: string | null
           tier: string
           total_spent: number
           updated_at: string
@@ -2158,6 +2222,7 @@ export type Database = {
           name: string
           phone: string
           points?: number
+          shop_id?: string | null
           tier?: string
           total_spent?: number
           updated_at?: string
@@ -2173,11 +2238,20 @@ export type Database = {
           name?: string
           phone?: string
           points?: number
+          shop_id?: string | null
           tier?: string
           total_spent?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "members_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membership_settings: {
         Row: {
@@ -2315,6 +2389,7 @@ export type Database = {
           is_available: boolean
           name: string
           price: number
+          shop_id: string | null
           sort_order: number | null
           updated_at: string
         }
@@ -2328,6 +2403,7 @@ export type Database = {
           is_available?: boolean
           name: string
           price: number
+          shop_id?: string | null
           sort_order?: number | null
           updated_at?: string
         }
@@ -2341,6 +2417,7 @@ export type Database = {
           is_available?: boolean
           name?: string
           price?: number
+          shop_id?: string | null
           sort_order?: number | null
           updated_at?: string
         }
@@ -2357,6 +2434,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -2711,6 +2795,7 @@ export type Database = {
           payment_method: string
           pickup_time: string | null
           receipt_image_url: string | null
+          shop_id: string | null
           status: string | null
           total_amount: number
           updated_at: string
@@ -2732,6 +2817,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          shop_id?: string | null
           status?: string | null
           total_amount?: number
           updated_at?: string
@@ -2753,6 +2839,7 @@ export type Database = {
           payment_method?: string
           pickup_time?: string | null
           receipt_image_url?: string | null
+          shop_id?: string | null
           status?: string | null
           total_amount?: number
           updated_at?: string
@@ -2766,6 +2853,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
           {
@@ -2994,6 +3088,7 @@ export type Database = {
           is_active: boolean
           min_purchase: number | null
           name: string
+          shop_id: string | null
           start_date: string
           target_group: string
           type: string
@@ -3011,6 +3106,7 @@ export type Database = {
           is_active?: boolean
           min_purchase?: number | null
           name: string
+          shop_id?: string | null
           start_date: string
           target_group?: string
           type: string
@@ -3028,6 +3124,7 @@ export type Database = {
           is_active?: boolean
           min_purchase?: number | null
           name?: string
+          shop_id?: string | null
           start_date?: string
           target_group?: string
           type?: string
@@ -3035,7 +3132,15 @@ export type Database = {
           usage_limit?: number | null
           used_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "promotions_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_order_items: {
         Row: {
@@ -4311,6 +4416,7 @@ export type Database = {
           unit: string
         }[]
       }
+      get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
       hash_password: { Args: { password: string }; Returns: Json }
       restore_stock_for_cancelled_order: {
         Args: { order_id_param: string }
