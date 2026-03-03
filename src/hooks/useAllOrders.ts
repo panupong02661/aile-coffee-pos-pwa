@@ -33,7 +33,7 @@ export const useAllOrders = () => {
         .order('created_at', { ascending: false });
 
       if (shopId) {
-        query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+        query = query.eq('shop_id', shopId);
       }
 
       const { data, error } = await query;

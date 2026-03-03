@@ -241,7 +241,7 @@ export const useSupabaseData = () => {
       .order('sort_order');
     
     if (shopId) {
-      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+      query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
@@ -267,7 +267,7 @@ export const useSupabaseData = () => {
       .order('created_at', { ascending: false });
     
     if (shopId) {
-      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+      query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
@@ -280,10 +280,16 @@ export const useSupabaseData = () => {
   };
 
   const fetchAddonGroups = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('addon_groups')
       .select('*')
       .order('sort_order');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดกลุ่ม Add-on ได้', variant: 'destructive' });
@@ -293,7 +299,7 @@ export const useSupabaseData = () => {
   };
 
   const fetchAddons = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('addons')
       .select(`
         *,
@@ -306,6 +312,12 @@ export const useSupabaseData = () => {
         )
       `)
       .order('sort_order');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลด Add-on ได้', variant: 'destructive' });
@@ -345,7 +357,7 @@ export const useSupabaseData = () => {
       .order('created_at', { ascending: false });
     
     if (shopId) {
-      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+      query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
@@ -410,7 +422,7 @@ export const useSupabaseData = () => {
       .order('sort_order');
     
     if (shopId) {
-      query = query.or(`shop_id.eq.${shopId},shop_id.is.null`);
+      query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
