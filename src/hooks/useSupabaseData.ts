@@ -395,11 +395,17 @@ export const useSupabaseData = () => {
   };
 
   const fetchPointTransactions = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('point_transactions')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติแต้มได้', variant: 'destructive' });
