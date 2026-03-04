@@ -207,11 +207,15 @@ export const useSupabaseData = () => {
   const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchShopSettings = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('shop_settings')
-      .select('*')
-      .limit(1)
-      .single();
+      .select('*');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+    
+    const { data, error } = await query.limit(1).single();
     
     if (error && error.code !== 'PGRST116') {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าร้านได้', variant: 'destructive' });
