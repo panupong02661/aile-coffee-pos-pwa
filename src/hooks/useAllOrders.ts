@@ -21,7 +21,7 @@ export const useAllOrders = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const { shopId } = useCurrentShop();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchOrders = useCallback(async () => {
     try {
