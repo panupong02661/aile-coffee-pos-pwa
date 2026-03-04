@@ -134,6 +134,8 @@ export const useAllOrders = () => {
   }, []);
 
   useEffect(() => {
+    if (shopLoading) return;
+    
     fetchOrders();
     setupRealtimeSubscription();
 

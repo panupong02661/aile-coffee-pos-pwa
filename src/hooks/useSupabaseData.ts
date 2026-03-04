@@ -571,6 +571,9 @@ export const useSupabaseData = () => {
   };
 
   useEffect(() => {
+    // Wait until shop is loaded before fetching data
+    if (shopLoading) return;
+    
     const loadData = async () => {
       setLoading(true);
       await Promise.all([
@@ -593,7 +596,7 @@ export const useSupabaseData = () => {
     };
 
     loadData();
-  }, [shopId]);
+  }, [shopId, shopLoading]);
 
   return {
     categories,
