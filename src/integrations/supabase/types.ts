@@ -359,6 +359,7 @@ export type Database = {
           original_payment_method: string
           original_total_amount: number
           reason: string | null
+          shop_id: string | null
           stock_restored: boolean
         }
         Insert: {
@@ -373,6 +374,7 @@ export type Database = {
           original_payment_method?: string
           original_total_amount?: number
           reason?: string | null
+          shop_id?: string | null
           stock_restored?: boolean
         }
         Update: {
@@ -387,9 +389,18 @@ export type Database = {
           original_payment_method?: string
           original_total_amount?: number
           reason?: string | null
+          shop_id?: string | null
           stock_restored?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cancelled_orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cart_display_sync: {
         Row: {
@@ -1580,6 +1591,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          shop_id: string | null
           sort_order: number
           updated_at: string
         }
@@ -1589,6 +1601,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -1598,10 +1611,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
@@ -2518,6 +2540,7 @@ export type Database = {
           online_orders: Json | null
           pos_orders: Json | null
           selected_sound_id: string | null
+          shop_id: string | null
           sound_enabled: boolean | null
           sound_popup: Json | null
           updated_at: string | null
@@ -2532,6 +2555,7 @@ export type Database = {
           online_orders?: Json | null
           pos_orders?: Json | null
           selected_sound_id?: string | null
+          shop_id?: string | null
           sound_enabled?: boolean | null
           sound_popup?: Json | null
           updated_at?: string | null
@@ -2546,12 +2570,21 @@ export type Database = {
           online_orders?: Json | null
           pos_orders?: Json | null
           selected_sound_id?: string | null
+          shop_id?: string | null
           sound_enabled?: boolean | null
           sound_popup?: Json | null
           updated_at?: string | null
           volume?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_sounds: {
         Row: {
@@ -2624,6 +2657,7 @@ export type Database = {
           order_status: string | null
           payment_method: string | null
           payment_status: string | null
+          shop_id: string | null
           subtotal: number
           total_amount: number
           updated_at: string | null
@@ -2641,6 +2675,7 @@ export type Database = {
           order_status?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shop_id?: string | null
           subtotal: number
           total_amount: number
           updated_at?: string | null
@@ -2658,6 +2693,7 @@ export type Database = {
           order_status?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shop_id?: string | null
           subtotal?: number
           total_amount?: number
           updated_at?: string | null
@@ -2668,6 +2704,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -2879,6 +2922,7 @@ export type Database = {
           member_id: string
           order_id: string | null
           points_change: number
+          shop_id: string | null
           transaction_type: string
         }
         Insert: {
@@ -2888,6 +2932,7 @@ export type Database = {
           member_id: string
           order_id?: string | null
           points_change: number
+          shop_id?: string | null
           transaction_type: string
         }
         Update: {
@@ -2897,6 +2942,7 @@ export type Database = {
           member_id?: string
           order_id?: string | null
           points_change?: number
+          shop_id?: string | null
           transaction_type?: string
         }
         Relationships: [
@@ -2905,6 +2951,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_transactions_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -3261,6 +3314,7 @@ export type Database = {
           created_at: string
           footer_message: string | null
           id: string
+          shop_id: string | null
           show_customer_info: boolean
           show_date_time: boolean
           show_item_details: boolean
@@ -3282,6 +3336,7 @@ export type Database = {
           created_at?: string
           footer_message?: string | null
           id?: string
+          shop_id?: string | null
           show_customer_info?: boolean
           show_date_time?: boolean
           show_item_details?: boolean
@@ -3303,6 +3358,7 @@ export type Database = {
           created_at?: string
           footer_message?: string | null
           id?: string
+          shop_id?: string | null
           show_customer_info?: boolean
           show_date_time?: boolean
           show_item_details?: boolean
@@ -3320,7 +3376,15 @@ export type Database = {
           show_wifi_voucher?: boolean | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "receipt_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -3335,6 +3399,7 @@ export type Database = {
           response: string | null
           response_at: string | null
           response_by: string | null
+          shop_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3349,6 +3414,7 @@ export type Database = {
           response?: string | null
           response_at?: string | null
           response_by?: string | null
+          shop_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3363,6 +3429,7 @@ export type Database = {
           response?: string | null
           response_at?: string | null
           response_by?: string | null
+          shop_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3378,6 +3445,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -3453,6 +3527,7 @@ export type Database = {
           opening_cash: number | null
           shift_end: string | null
           shift_start: string
+          shop_id: string | null
           staff_id: string | null
           status: string | null
           updated_at: string | null
@@ -3467,6 +3542,7 @@ export type Database = {
           opening_cash?: number | null
           shift_end?: string | null
           shift_start: string
+          shop_id?: string | null
           staff_id?: string | null
           status?: string | null
           updated_at?: string | null
@@ -3481,11 +3557,19 @@ export type Database = {
           opening_cash?: number | null
           shift_end?: string | null
           shift_start?: string
+          shop_id?: string | null
           staff_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shifts_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shifts_staff_id_fkey"
             columns: ["staff_id"]
@@ -3503,6 +3587,7 @@ export type Database = {
           id: string
           logo_url: string | null
           phone: string | null
+          shop_id: string | null
           shop_name: string
           tax_id: string | null
           updated_at: string
@@ -3516,6 +3601,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          shop_id?: string | null
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
@@ -3529,13 +3615,22 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          shop_id?: string | null
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
           wifi_footer_text?: string | null
           wifi_header_text?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shop_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shops: {
         Row: {
@@ -3655,6 +3750,7 @@ export type Database = {
           position: string
           role: string
           salary: number
+          shop_id: string | null
           status: string
           updated_at: string
         }
@@ -3670,6 +3766,7 @@ export type Database = {
           position: string
           role?: string
           salary?: number
+          shop_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -3685,10 +3782,19 @@ export type Database = {
           position?: string
           role?: string
           salary?: number
+          shop_id?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "staff_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stamp_card_milestones: {
         Row: {
@@ -3801,6 +3907,7 @@ export type Database = {
           order_id: string | null
           quantity_change: number
           reference_number: string | null
+          shop_id: string | null
         }
         Insert: {
           cost_per_unit?: number | null
@@ -3813,6 +3920,7 @@ export type Database = {
           order_id?: string | null
           quantity_change: number
           reference_number?: string | null
+          shop_id?: string | null
         }
         Update: {
           cost_per_unit?: number | null
@@ -3825,6 +3933,7 @@ export type Database = {
           order_id?: string | null
           quantity_change?: number
           reference_number?: string | null
+          shop_id?: string | null
         }
         Relationships: [
           {
@@ -3832,6 +3941,13 @@ export type Database = {
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -3848,6 +3964,7 @@ export type Database = {
           name: string
           payment_terms: number | null
           phone: string | null
+          shop_id: string | null
           tax_id: string | null
           updated_at: string | null
         }
@@ -3862,6 +3979,7 @@ export type Database = {
           name: string
           payment_terms?: number | null
           phone?: string | null
+          shop_id?: string | null
           tax_id?: string | null
           updated_at?: string | null
         }
@@ -3876,10 +3994,19 @@ export type Database = {
           name?: string
           payment_terms?: number | null
           phone?: string | null
+          shop_id?: string | null
           tax_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_logs: {
         Row: {
@@ -4058,6 +4185,7 @@ export type Database = {
           date: string
           id: string
           notes: string | null
+          shop_id: string | null
           staff_id: string
           status: string
           updated_at: string
@@ -4070,6 +4198,7 @@ export type Database = {
           date: string
           id?: string
           notes?: string | null
+          shop_id?: string | null
           staff_id: string
           status?: string
           updated_at?: string
@@ -4082,12 +4211,20 @@ export type Database = {
           date?: string
           id?: string
           notes?: string | null
+          shop_id?: string | null
           staff_id?: string
           status?: string
           updated_at?: string
           work_hours?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "time_attendance_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "time_attendance_staff_id_fkey"
             columns: ["staff_id"]
