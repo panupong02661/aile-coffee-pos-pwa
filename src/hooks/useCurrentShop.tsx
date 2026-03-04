@@ -54,15 +54,48 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchAllShops = async () => {
     try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('id, shop_name, branch_name, branch_code, database_mode')
-        .eq('is_active', true);
+      // Admin: also check if they have a shop assignment first
+      const { data: assignments } = await supabase
+        .from('user_shop_assignments')
+        .select(`
+          shop_id,
+          is_primary,
+          shops (id, shop_name, branch_name, branch_code, database_mode)
+        `)
+        .eq('user_id', user!.id);
 
-      if (error) throw error;
-      setAllShops(data || []);
-      // Admin default: no shop filter (sees everything)
-      setCurrentShop(null);
+      if (assignments && assignments.length > 0) {
+        const shops: ShopInfo[] = assignments
+          .filter((d: any) => d.shops)
+          .map((d: any) => d.shops as ShopInfo);
+        
+        // Also fetch all shops for admin switching
+        const { data: allShopsData } = await supabase
+          .from('shops')
+          .select('id, shop_name, branch_name, branch_code, database_mode')
+          .eq('is_active', true);
+        
+        setAllShops(allShopsData || shops);
+        
+        const primary = assignments.find((d: any) => d.is_primary);
+        if (primary && primary.shops) {
+          setCurrentShop(primary.shops as ShopInfo);
+        } else {
+          setCurrentShop(shops[0]);
+        }
+      } else {
+        // Admin with no assignment - fetch all shops and use first
+        const { data, error } = await supabase
+          .from('shops')
+          .select('id, shop_name, branch_name, branch_code, database_mode')
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setAllShops(data || []);
+        if (data && data.length > 0) {
+          setCurrentShop(data[0]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching shops:', error);
     } finally {

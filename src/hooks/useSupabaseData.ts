@@ -204,14 +204,18 @@ export const useSupabaseData = () => {
   const [menuIngredients, setMenuIngredients] = useState<DatabaseMenuIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { shopId } = useCurrentShop();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchShopSettings = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('shop_settings')
-      .select('*')
-      .limit(1)
-      .single();
+      .select('*');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+    
+    const { data, error } = await query.limit(1).single();
     
     if (error && error.code !== 'PGRST116') {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าร้านได้', variant: 'destructive' });
@@ -221,11 +225,15 @@ export const useSupabaseData = () => {
   };
 
   const fetchReceiptSettings = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('receipt_settings')
-      .select('*')
-      .limit(1)
-      .single();
+      .select('*');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+    
+    const { data, error } = await query.limit(1).single();
     
     if (error && error.code !== 'PGRST116') {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าใบเสร็จได้', variant: 'destructive' });
@@ -395,11 +403,17 @@ export const useSupabaseData = () => {
   };
 
   const fetchPointTransactions = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('point_transactions')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติแต้มได้', variant: 'destructive' });
@@ -448,7 +462,7 @@ export const useSupabaseData = () => {
   };
 
   const fetchStockMovements = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('stock_movements')
       .select(`
         *,
@@ -460,6 +474,12 @@ export const useSupabaseData = () => {
       `)
       .order('created_at', { ascending: false })
       .limit(100);
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติการเคลื่อนไหวสต็อกได้', variant: 'destructive' });
@@ -571,6 +591,9 @@ export const useSupabaseData = () => {
   };
 
   useEffect(() => {
+    // Wait until shop is loaded before fetching data
+    if (shopLoading) return;
+    
     const loadData = async () => {
       setLoading(true);
       await Promise.all([
@@ -593,7 +616,7 @@ export const useSupabaseData = () => {
     };
 
     loadData();
-  }, [shopId]);
+  }, [shopId, shopLoading]);
 
   return {
     categories,

@@ -21,7 +21,7 @@ export const useAllOrders = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const { shopId } = useCurrentShop();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -60,7 +60,7 @@ export const useAllOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, shopId]);
 
   const refreshOrders = useCallback(() => {
     setLoading(true);
@@ -134,6 +134,8 @@ export const useAllOrders = () => {
   }, []);
 
   useEffect(() => {
+    if (shopLoading) return;
+    
     fetchOrders();
     setupRealtimeSubscription();
 
@@ -159,7 +161,7 @@ export const useAllOrders = () => {
       clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchOrders, setupRealtimeSubscription]);
+  }, [fetchOrders, setupRealtimeSubscription, shopLoading]);
 
   return {
     orders,
