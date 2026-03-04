@@ -161,7 +161,7 @@ export const useAllOrders = () => {
       clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchOrders, setupRealtimeSubscription]);
+  }, [fetchOrders, setupRealtimeSubscription, shopLoading]);
 
   return {
     orders,
