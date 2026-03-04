@@ -60,7 +60,7 @@ export const useAllOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, shopId]);
 
   const refreshOrders = useCallback(() => {
     setLoading(true);
