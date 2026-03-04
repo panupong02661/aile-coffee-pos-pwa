@@ -204,7 +204,7 @@ export const useSupabaseData = () => {
   const [menuIngredients, setMenuIngredients] = useState<DatabaseMenuIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { shopId } = useCurrentShop();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchShopSettings = async () => {
     const { data, error } = await supabase
