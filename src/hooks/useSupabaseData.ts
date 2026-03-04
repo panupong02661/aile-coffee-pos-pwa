@@ -225,11 +225,15 @@ export const useSupabaseData = () => {
   };
 
   const fetchReceiptSettings = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('receipt_settings')
-      .select('*')
-      .limit(1)
-      .single();
+      .select('*');
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+    
+    const { data, error } = await query.limit(1).single();
     
     if (error && error.code !== 'PGRST116') {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าใบเสร็จได้', variant: 'destructive' });
