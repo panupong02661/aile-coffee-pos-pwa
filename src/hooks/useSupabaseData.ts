@@ -454,7 +454,7 @@ export const useSupabaseData = () => {
   };
 
   const fetchStockMovements = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('stock_movements')
       .select(`
         *,
@@ -466,6 +466,12 @@ export const useSupabaseData = () => {
       `)
       .order('created_at', { ascending: false })
       .limit(100);
+    
+    if (shopId) {
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดประวัติการเคลื่อนไหวสต็อกได้', variant: 'destructive' });
