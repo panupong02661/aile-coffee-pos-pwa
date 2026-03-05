@@ -25,13 +25,16 @@ const ShopBasicSettings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   
   const { register, handleSubmit, setValue, watch } = useForm<ShopSettingsForm>();
   const logoUrl = watch('logo_url');
 
   useEffect(() => {
-    fetchShopSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchShopSettings();
+    }
+  }, [shopId, shopLoading]);
 
   useEffect(() => {
     if (logoUrl) {
