@@ -33,6 +33,7 @@ interface ReceiptSettingsForm {
 const ReceiptSettings = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   
   const { register, handleSubmit, setValue, watch } = useForm<ReceiptSettingsForm>();
 
