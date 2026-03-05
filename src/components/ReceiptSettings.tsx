@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 interface ReceiptSettingsForm {
   show_logo: boolean;
@@ -32,6 +33,7 @@ interface ReceiptSettingsForm {
 const ReceiptSettings = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   
   const { register, handleSubmit, setValue, watch } = useForm<ReceiptSettingsForm>();
 
@@ -53,16 +55,20 @@ const ReceiptSettings = () => {
   const showWifiQr = watch('show_wifi_qr');
 
   useEffect(() => {
-    fetchReceiptSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchReceiptSettings();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchReceiptSettings = async () => {
+    if (!shopId) return;
     try {
       const { data, error } = await supabase
         .from('receipt_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -99,12 +105,13 @@ const ReceiptSettings = () => {
   const onSubmit = async (data: ReceiptSettingsForm) => {
     setLoading(true);
     try {
-      // Check if settings exist
+      // Check if settings exist for this shop
       const { data: existing } = await supabase
         .from('receipt_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing
@@ -115,10 +122,10 @@ const ReceiptSettings = () => {
 
         if (error) throw error;
       } else {
-        // Insert new
+        // Insert new with shop_id
         const { error } = await supabase
           .from('receipt_settings')
-          .insert([data]);
+          .insert([{ ...data, shop_id: shopId }]);
 
         if (error) throw error;
       }

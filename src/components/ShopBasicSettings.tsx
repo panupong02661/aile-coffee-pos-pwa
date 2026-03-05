@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Upload, X } from 'lucide-react';
 
 interface ShopSettingsForm {
@@ -24,13 +25,16 @@ const ShopBasicSettings = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   
   const { register, handleSubmit, setValue, watch } = useForm<ShopSettingsForm>();
   const logoUrl = watch('logo_url');
 
   useEffect(() => {
-    fetchShopSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchShopSettings();
+    }
+  }, [shopId, shopLoading]);
 
   useEffect(() => {
     if (logoUrl) {
@@ -39,10 +43,12 @@ const ShopBasicSettings = () => {
   }, [logoUrl]);
 
   const fetchShopSettings = async () => {
+    if (!shopId) return;
     try {
       const { data, error } = await supabase
         .from('shop_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
         .maybeSingle();
 
@@ -116,10 +122,11 @@ const ShopBasicSettings = () => {
         logo_url: logoUrl || null
       };
 
-      // Check if settings exist
+      // Check if settings exist for this shop
       const { data: existing, error: fetchError } = await supabase
         .from('shop_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
         .maybeSingle();
 
@@ -137,10 +144,10 @@ const ShopBasicSettings = () => {
 
         if (error) throw error;
       } else {
-        // Insert new
+        // Insert new with shop_id
         const { error } = await supabase
           .from('shop_settings')
-          .insert([shopData]);
+          .insert([{ ...shopData, shop_id: shopId }]);
 
         if (error) throw error;
       }

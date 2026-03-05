@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 interface CancelledOrder {
   id: string;
@@ -19,14 +20,21 @@ export const useCancelledOrders = () => {
   const [cancelledOrders, setCancelledOrders] = useState<CancelledOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchCancelledOrders = async () => {
+    if (!shopId) {
+      setCancelledOrders([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       
       const { data, error } = await supabase
         .from('cancelled_orders')
         .select('*')
+        .eq('shop_id', shopId)
         .order('cancelled_at', { ascending: false });
 
       if (error) {
@@ -57,8 +65,10 @@ export const useCancelledOrders = () => {
   };
 
   useEffect(() => {
-    fetchCancelledOrders();
-  }, []);
+    if (!shopLoading) {
+      fetchCancelledOrders();
+    }
+  }, [shopId, shopLoading]);
 
   return {
     cancelledOrders,
