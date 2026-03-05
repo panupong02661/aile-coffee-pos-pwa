@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -78,6 +78,16 @@ function AppContent() {
 }
 
 function App() {
+  // Catch unhandled async errors to prevent blank screen
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled rejection:', event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
