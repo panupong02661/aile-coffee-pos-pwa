@@ -43,10 +43,12 @@ const ShopBasicSettings = () => {
   }, [logoUrl]);
 
   const fetchShopSettings = async () => {
+    if (!shopId) return;
     try {
       const { data, error } = await supabase
         .from('shop_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
         .maybeSingle();
 
