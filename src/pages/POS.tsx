@@ -54,20 +54,8 @@ const POS = () => {
   const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor, themePreset, glassOpacity } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
 
-  // Load shop logo from settings
-  useEffect(() => {
-    const loadShopLogo = async () => {
-      try {
-        const { data } = await supabase
-          .from('shop_settings')
-          .select('logo_url')
-          .limit(1)
-          .maybeSingle();
-        if (data?.logo_url) setShopLogoUrl(data.logo_url);
-      } catch (e) { /* ignore */ }
-    };
-    loadShopLogo();
-  }, []);
+  // Load shop logo from settings (uses shopSettings from useSupabaseData which is already filtered)
+  // We don't need a separate query here
   // Sound and popup settings from database
   const [soundPopupSettings, setSoundPopupSettings] = useState<SoundPopupSettings>({
     online: { soundEnabled: true, popupEnabled: true, volume: 80 },
