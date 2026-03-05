@@ -122,10 +122,11 @@ const ShopBasicSettings = () => {
         logo_url: logoUrl || null
       };
 
-      // Check if settings exist
+      // Check if settings exist for this shop
       const { data: existing, error: fetchError } = await supabase
         .from('shop_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
         .maybeSingle();
 
