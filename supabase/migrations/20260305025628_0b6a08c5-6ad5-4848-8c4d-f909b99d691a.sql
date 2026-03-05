@@ -1,0 +1,1 @@
+INSERT INTO public.user_shop_assignments (user_id, shop_id, is_primary) VALUES ('5a176539-8f64-438e-a3d0-6716f2cfa518', 'f365df0c-c026-4a8d-9172-21ab196f584e', true)
