@@ -207,21 +207,25 @@ export const useSupabaseData = () => {
   const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchShopSettings = async () => {
-    let query = supabase
-      .from('shop_settings')
-      .select('*');
-    
-    if (shopId) {
-      query = query.eq('shop_id', shopId);
+    try {
+      let query = supabase
+        .from('shop_settings')
+        .select('*');
+      
+      if (shopId) {
+        query = query.eq('shop_id', shopId);
+      }
+      
+      const { data, error } = await query.limit(1).maybeSingle();
+      
+      if (error) {
+        console.error('Shop settings error:', error);
+        return;
+      }
+      setShopSettings(data);
+    } catch (err) {
+      console.error('fetchShopSettings crashed:', err);
     }
-    
-    const { data, error } = await query.limit(1).single();
-    
-    if (error && error.code !== 'PGRST116') {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดการตั้งค่าร้านได้', variant: 'destructive' });
-      return;
-    }
-    setShopSettings(data);
   };
 
   const fetchReceiptSettings = async () => {
