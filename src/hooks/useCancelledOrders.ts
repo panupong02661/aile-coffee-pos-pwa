@@ -20,14 +20,21 @@ export const useCancelledOrders = () => {
   const [cancelledOrders, setCancelledOrders] = useState<CancelledOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchCancelledOrders = async () => {
+    if (!shopId) {
+      setCancelledOrders([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       
       const { data, error } = await supabase
         .from('cancelled_orders')
         .select('*')
+        .eq('shop_id', shopId)
         .order('cancelled_at', { ascending: false });
 
       if (error) {
