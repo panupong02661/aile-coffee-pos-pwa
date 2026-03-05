@@ -58,7 +58,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   };
 
   handleReload = () => {
-    window.location.reload();
+    // Reset error state first, then reload to prevent persistent blank screen
+    this.setState({ hasError: false, error: undefined, errorCount: 0 }, () => {
+      window.location.reload();
+    });
   };
 
   render() {

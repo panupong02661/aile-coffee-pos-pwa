@@ -604,22 +604,26 @@ export const useSupabaseData = () => {
     
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchCategories(),
-        fetchMenuItems(),
-        fetchAddonGroups(),
-        fetchAddons(),
-        fetchMenuAddonGroups(),
-        fetchCategoryAddonGroups(),
-        fetchShopSettings(),
-        fetchReceiptSettings(),
-        fetchMembers(),
-        fetchMembershipSettings(),
-        fetchPointTransactions(),
-        fetchIngredients(),
-        fetchStockMovements(),
-        fetchMenuIngredients(),
-      ]);
+      try {
+        await Promise.all([
+          fetchCategories(),
+          fetchMenuItems(),
+          fetchAddonGroups(),
+          fetchAddons(),
+          fetchMenuAddonGroups(),
+          fetchCategoryAddonGroups(),
+          fetchShopSettings(),
+          fetchReceiptSettings(),
+          fetchMembers(),
+          fetchMembershipSettings(),
+          fetchPointTransactions(),
+          fetchIngredients(),
+          fetchStockMovements(),
+          fetchMenuIngredients(),
+        ]);
+      } catch (err) {
+        console.error('Error loading data:', err);
+      }
       setLoading(false);
     };
 
