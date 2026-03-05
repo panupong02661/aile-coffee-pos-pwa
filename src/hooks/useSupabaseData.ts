@@ -599,8 +599,27 @@ export const useSupabaseData = () => {
   };
 
   useEffect(() => {
-    // Wait until shop is loaded before fetching data
+    // Wait until shop is loaded and shopId is available before fetching data
     if (shopLoading) return;
+    if (!shopId) {
+      // No shop assigned - clear all data
+      setCategories([]);
+      setMenuItems([]);
+      setAddonGroups([]);
+      setAddons([]);
+      setMenuAddonGroups([]);
+      setCategoryAddonGroups([]);
+      setShopSettings(null);
+      setReceiptSettings(null);
+      setMembers([]);
+      setMembershipSettings([]);
+      setPointTransactions([]);
+      setIngredients([]);
+      setStockMovements([]);
+      setMenuIngredients([]);
+      setLoading(false);
+      return;
+    }
     
     const loadData = async () => {
       setLoading(true);

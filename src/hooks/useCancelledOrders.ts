@@ -65,8 +65,10 @@ export const useCancelledOrders = () => {
   };
 
   useEffect(() => {
-    fetchCancelledOrders();
-  }, []);
+    if (!shopLoading) {
+      fetchCancelledOrders();
+    }
+  }, [shopId, shopLoading]);
 
   return {
     cancelledOrders,

@@ -144,10 +144,10 @@ const ShopBasicSettings = () => {
 
         if (error) throw error;
       } else {
-        // Insert new
+        // Insert new with shop_id
         const { error } = await supabase
           .from('shop_settings')
-          .insert([shopData]);
+          .insert([{ ...shopData, shop_id: shopId }]);
 
         if (error) throw error;
       }

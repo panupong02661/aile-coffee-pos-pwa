@@ -105,12 +105,13 @@ const ReceiptSettings = () => {
   const onSubmit = async (data: ReceiptSettingsForm) => {
     setLoading(true);
     try {
-      // Check if settings exist
+      // Check if settings exist for this shop
       const { data: existing } = await supabase
         .from('receipt_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing
@@ -121,10 +122,10 @@ const ReceiptSettings = () => {
 
         if (error) throw error;
       } else {
-        // Insert new
+        // Insert new with shop_id
         const { error } = await supabase
           .from('receipt_settings')
-          .insert([data]);
+          .insert([{ ...data, shop_id: shopId }]);
 
         if (error) throw error;
       }
