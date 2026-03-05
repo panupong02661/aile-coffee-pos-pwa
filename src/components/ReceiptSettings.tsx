@@ -55,16 +55,20 @@ const ReceiptSettings = () => {
   const showWifiQr = watch('show_wifi_qr');
 
   useEffect(() => {
-    fetchReceiptSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchReceiptSettings();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchReceiptSettings = async () => {
+    if (!shopId) return;
     try {
       const { data, error } = await supabase
         .from('receipt_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
