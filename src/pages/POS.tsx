@@ -199,10 +199,18 @@ const POS = () => {
     categories, 
     menuItems, 
     addons, 
+    shopSettings: supabaseShopSettings,
     loading, 
     getAddonGroupsForMenuItem, 
     getAddonGroupsForCategory 
   } = useSupabaseData();
+
+  // Use shop logo from filtered shop settings
+  useEffect(() => {
+    if (supabaseShopSettings?.logo_url) {
+      setShopLogoUrl(supabaseShopSettings.logo_url);
+    }
+  }, [supabaseShopSettings]);
 
   const { toast } = useToast();
 
