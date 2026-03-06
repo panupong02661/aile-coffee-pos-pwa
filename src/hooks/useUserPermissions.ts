@@ -69,6 +69,7 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/external-integration': 'external-integration',
   '/staff-mobile-app': 'staff-mobile-app',
   '/engagement': 'promotions',
+  '/shop-benchmark': 'shop-benchmark',
 };
 
 export const useUserPermissions = () => {

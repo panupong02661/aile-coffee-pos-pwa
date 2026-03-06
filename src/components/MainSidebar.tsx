@@ -58,6 +58,7 @@ import {
   ChevronDown,
   PanelLeftClose,
   PanelLeft,
+  Eye,
   LucideIcon,
 } from 'lucide-react';
 

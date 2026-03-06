@@ -179,6 +179,7 @@ function App() {
                   <Route path="/role-access" element={<SecuritySystem />} />
                   <Route path="/access-control" element={<SecuritySystem />} />
                   <Route path="/engagement" element={<EngagementManagement />} />
+                  <Route path="/shop-benchmark" element={<ShopBenchmark />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>
