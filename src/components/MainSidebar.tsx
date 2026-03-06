@@ -81,6 +81,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
       { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
+      { id: 'shop-benchmark', label: 'Benchmark ร้านค้า', icon: Eye, path: '/shop-benchmark' },
     ],
   },
   {
