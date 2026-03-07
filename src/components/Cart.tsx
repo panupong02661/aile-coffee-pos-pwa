@@ -254,20 +254,68 @@ const Cart = ({
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden bg-card border-border">
-        {/* Header with icon + badge */}
-        <CardHeader className="py-3 px-4 flex-shrink-0 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <ShoppingCart className="w-5 h-5 text-primary" />
-              {totalItemCount > 0 && (
-                <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pos-badge-pop" key={totalItemCount}>
-                  {totalItemCount}
-                </span>
-              )}
+        {/* Header with icon + badge + table selector */}
+        <CardHeader className="py-2 px-3 flex-shrink-0 border-b border-border">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="relative flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+                {totalItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pos-badge-pop" key={totalItemCount}>
+                    {totalItemCount}
+                  </span>
+                )}
+              </div>
+              <h3 className="text-foreground text-sm font-bold truncate font-sans">
+                {selectedTableNumber ? `โต๊ะ ${selectedTableNumber}` : 'ตะกร้าสินค้า'}
+              </h3>
             </div>
-            <h3 className="text-foreground text-base font-bold truncate font-sans">
-              ตะกร้าสินค้า
-            </h3>
+
+            {/* Table selector */}
+            {tables.length > 0 && onSelectTable && (
+              <Select
+                value={selectedTableId || 'none'}
+                onValueChange={(val) => {
+                  if (val === 'none') {
+                    onSelectTable(null);
+                  } else {
+                    onSelectTable(val);
+                    if (onLoadFromTable) onLoadFromTable(val);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[90px] h-7 text-xs border-primary/30">
+                  <UtensilsCrossed className="w-3 h-3 mr-1 flex-shrink-0" />
+                  <SelectValue placeholder="โต๊ะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">ไม่เลือก</SelectItem>
+                  {tables.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <span className="flex items-center gap-1">
+                        {t.table_number}
+                        {tablesWithOrders.includes(t.id) && (
+                          <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {/* Save to table button */}
+          {selectedTableId && onSaveToTable && cartItems.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSaveToTable}
+              className="w-full h-7 text-xs mt-1.5 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <UtensilsCrossed className="w-3 h-3 mr-1" />
+              บันทึกโต๊ะ {selectedTableNumber}
+            </Button>
+          )}
           </div>
         </CardHeader>
         
