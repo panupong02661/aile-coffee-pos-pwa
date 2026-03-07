@@ -49,6 +49,14 @@ interface CartProps {
     points: number;
     total_spent: number;
   } | null;
+  // Table management
+  tables?: { id: string; table_number: string; capacity: number; status: string }[];
+  selectedTableId?: string | null;
+  onSelectTable?: (tableId: string | null) => void;
+  tablesWithOrders?: string[];
+  onSaveToTable?: () => void;
+  onLoadFromTable?: (tableId: string) => void;
+  selectedTableNumber?: string;
 }
 
 const Cart = ({ 
