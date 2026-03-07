@@ -3,19 +3,32 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed, FileText } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
+import TableBillPreview from './TableBillPreview';
 import { useToast } from '@/hooks/use-toast';
 import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface RoundOrder {
+  id: string;
+  table_id: string;
+  table_number: string;
+  cart_items: CartItem[];
+  bill_discount: number;
+  bill_discount_type: 'percent' | 'amount';
+  round_number: number;
+  created_at: string;
+  status: string;
+}
 
 interface CartProps {
   cartItems: CartItem[];
@@ -57,6 +70,11 @@ interface CartProps {
   onSaveToTable?: () => void;
   onLoadFromTable?: (tableId: string) => void;
   selectedTableNumber?: string;
+  // Round-based ordering
+  tableRounds?: RoundOrder[];
+  onLoadRound?: (roundNumber: number) => void;
+  onDeleteRound?: (roundOrderId: string, tableId: string) => void;
+  onUpdateRoundItem?: (roundOrderId: string, items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
 }
 
 const Cart = ({ 
