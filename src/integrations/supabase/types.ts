@@ -4325,6 +4325,53 @@ export type Database = {
         }
         Relationships: []
       }
+      table_orders: {
+        Row: {
+          bill_discount: number
+          bill_discount_type: string
+          cart_items: Json
+          created_at: string
+          id: string
+          member_id: string | null
+          status: string
+          table_id: string
+          table_number: string
+          updated_at: string
+        }
+        Insert: {
+          bill_discount?: number
+          bill_discount_type?: string
+          cart_items?: Json
+          created_at?: string
+          id?: string
+          member_id?: string | null
+          status?: string
+          table_id: string
+          table_number: string
+          updated_at?: string
+        }
+        Update: {
+          bill_discount?: number
+          bill_discount_type?: string
+          cart_items?: Json
+          created_at?: string
+          id?: string
+          member_id?: string | null
+          status?: string
+          table_id?: string
+          table_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_reservations: {
         Row: {
           created_at: string | null
