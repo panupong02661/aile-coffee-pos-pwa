@@ -757,6 +757,10 @@ const POS = () => {
                 onSaveToTable={handleSaveToTable}
                 onLoadFromTable={handleLoadFromTable}
                 selectedTableNumber={selectedTableNumber}
+                tableRounds={selectedTableId ? getTableRounds(selectedTableId) : []}
+                onLoadRound={handleLoadRoundToCart}
+                onDeleteRound={deleteRound}
+                onUpdateRoundItem={updateRoundItems}
               />
             </div>
           )}
