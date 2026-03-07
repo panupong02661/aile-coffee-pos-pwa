@@ -1,0 +1,1 @@
+ALTER TABLE public.table_orders ADD COLUMN IF NOT EXISTS round_number integer NOT NULL DEFAULT 1;
