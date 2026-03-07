@@ -87,8 +87,8 @@ export const useTableOrders = () => {
     const existing = activeTableOrders.find(o => o.table_id === tableId && o.status === 'active');
 
     if (existing) {
-      // Merge items
-      const mergedItems = [...existing.cart_items, ...cartItems];
+      // Overwrite items (not merge) to prevent duplication
+      const mergedItems = cartItems;
       const { error } = await supabase
         .from('table_orders' as any)
         .update({
