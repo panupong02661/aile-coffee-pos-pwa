@@ -327,17 +327,33 @@ const Cart = ({
               </Select>
             )}
           </div>
-          {/* Save to table button */}
-          {selectedTableId && onSaveToTable && cartItems.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSaveToTable}
-              className="w-full h-7 text-xs mt-1.5 border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <UtensilsCrossed className="w-3 h-3 mr-1" />
-              บันทึกโต๊ะ {selectedTableNumber}
-            </Button>
+          {/* Save to table & Bill preview buttons */}
+          {selectedTableId && (
+            <div className="flex gap-1.5 mt-1.5">
+              {onSaveToTable && cartItems.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSaveToTable}
+                  className="flex-1 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <UtensilsCrossed className="w-3 h-3 mr-1" />
+                  บันทึกโต๊ะ
+                </Button>
+              )}
+              {tableRounds.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBillPreviewOpen(true)}
+                  className="flex-1 h-7 text-xs border-accent/40 text-accent-foreground hover:bg-accent/10"
+                >
+                  <FileText className="w-3 h-3 mr-1" />
+                  ดูบิล ({tableRounds.length} รอบ)
+                </Button>
+              )}
+            </div>
+          )}
           )}
         </CardHeader>
         
