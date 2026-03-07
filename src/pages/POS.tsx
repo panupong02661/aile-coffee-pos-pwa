@@ -526,6 +526,11 @@ const POS = () => {
       } else {
         console.log('ℹ️ ไม่มีโค้ดที่ต้องอัพเดท');
       }
+
+      // Complete table order if a table was selected
+      if (selectedTableId) {
+        await completeTableOrder(selectedTableId);
+      }
     } catch (error) {
       console.error('Error in payment complete:', error);
     }
