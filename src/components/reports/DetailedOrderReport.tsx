@@ -909,22 +909,22 @@ const DetailedOrderReport = () => {
               ไม่พบข้อมูลออเดอร์ในช่วงเวลาที่เลือก
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div>
+              <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>เลขออเดอร์</TableHead>
-                    <TableHead>วันที่</TableHead>
-                    <TableHead>ชำระเงิน</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                    <TableHead>ลูกค้า</TableHead>
-                    <TableHead className="text-right">ต้นทุน</TableHead>
-                    <TableHead className="text-right">ส่วนลด</TableHead>
-                    <TableHead className="text-center">แต้มใช้</TableHead>
-                    <TableHead>โปรโมชั่น</TableHead>
-                    <TableHead className="text-right">ยอดรวม</TableHead>
-                    <TableHead className="text-right">กำไร</TableHead>
+                    <TableHead className="w-[30px] px-1"></TableHead>
+                    <TableHead className="w-[90px] px-1 text-xs">ออเดอร์</TableHead>
+                    <TableHead className="w-[80px] px-1 text-xs">วันที่</TableHead>
+                    <TableHead className="w-[60px] px-1 text-xs">ชำระเงิน</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs">สถานะ</TableHead>
+                    <TableHead className="w-[70px] px-1 text-xs">ลูกค้า</TableHead>
+                    <TableHead className="w-[60px] px-1 text-xs text-right">ต้นทุน</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs text-right">ส่วนลด</TableHead>
+                    <TableHead className="w-[45px] px-1 text-xs text-center">แต้มใช้</TableHead>
+                    <TableHead className="w-[65px] px-1 text-xs">โปรโมชั่น</TableHead>
+                    <TableHead className="w-[65px] px-1 text-xs text-right">ยอดรวม</TableHead>
+                    <TableHead className="w-[65px] px-1 text-xs text-right">กำไร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -935,56 +935,55 @@ const DetailedOrderReport = () => {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => toggleOrderExpand(order.id)}
                       >
-                        <TableCell>
+                        <TableCell className="px-1 py-2">
                           {expandedOrders.has(order.id) ? (
-                            <ChevronDown className="w-4 h-4" />
+                            <ChevronDown className="w-3 h-3" />
                           ) : (
-                            <ChevronRight className="w-4 h-4" />
+                            <ChevronRight className="w-3 h-3" />
                           )}
                         </TableCell>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell className="text-sm">{format(new Date(order.created_at), 'dd/MM/yy HH:mm', { locale: th })}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getPaymentMethodText(order.payment_method)}</Badge>
+                        <TableCell className="px-1 py-2 font-medium text-xs truncate">{order.order_number}</TableCell>
+                        <TableCell className="px-1 py-2 text-xs">{format(new Date(order.created_at), 'dd/MM/yy HH:mm', { locale: th })}</TableCell>
+                        <TableCell className="px-1 py-2">
+                          <Badge variant="outline" className="text-[10px] px-1 py-0">{getPaymentMethodText(order.payment_method)}</Badge>
                         </TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell>
+                        <TableCell className="px-1 py-2">{getStatusBadge(order.status)}</TableCell>
+                        <TableCell className="px-1 py-2">
                           {order.member_info ? (
                             <div>
-                              <div className="font-medium text-sm">{order.member_info.name}</div>
-                              <div className="text-xs text-muted-foreground">{order.member_info.phone}</div>
-                              <Badge className={cn("text-xs mt-1", getTierBadgeColor(order.member_info.tier))}>
+                              <div className="font-medium text-xs truncate">{order.member_info.name}</div>
+                              <Badge className={cn("text-[10px] px-1 py-0 mt-0.5", getTierBadgeColor(order.member_info.tier))}>
                                 {order.member_info.tier}
                               </Badge>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right text-red-600">฿{order.total_cost.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-orange-600">
+                        <TableCell className="px-1 py-2 text-right text-xs text-red-600">฿{order.total_cost.toLocaleString()}</TableCell>
+                        <TableCell className="px-1 py-2 text-right text-xs text-orange-600">
                           {order.bill_discount ? (
                             <span>
                               {order.bill_discount}{order.bill_discount_type === 'percentage' ? '%' : '฿'}
                             </span>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-center text-purple-600">
+                        <TableCell className="px-1 py-2 text-center text-xs text-purple-600">
                           {order.points_redeemed > 0 ? order.points_redeemed.toLocaleString() : '-'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="px-1 py-2">
                           {order.promotion_claims.length > 0 ? (
-                            <div className="space-y-1">
+                            <div className="space-y-0.5">
                               {order.promotion_claims.map((promo, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
+                                <Badge key={idx} variant="secondary" className="text-[10px] px-1 py-0 truncate max-w-full block">
                                   {promo.promo_code || promo.promotion_title}
                                 </Badge>
                               ))}
                             </div>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-right font-bold">฿{order.total_amount.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold text-emerald-600">
+                        <TableCell className="px-1 py-2 text-right text-xs font-bold">฿{order.total_amount.toLocaleString()}</TableCell>
+                        <TableCell className="px-1 py-2 text-right text-xs font-bold text-emerald-600">
                           ฿{order.profit.toLocaleString()}
                         </TableCell>
                       </TableRow>
