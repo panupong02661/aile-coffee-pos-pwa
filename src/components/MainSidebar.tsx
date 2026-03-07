@@ -95,6 +95,10 @@ const menuGroups: MenuGroup[] = [
       { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
       { id: 'delivery-integration', label: 'Delivery', icon: Truck, path: '/delivery-integration' },
       { id: 'delivery-management', label: 'จัดการจัดส่ง', icon: Truck, path: '/delivery-management' },
+      { id: 'delivery-tracking', label: 'ติดตามเดลิเวอรี่', icon: MapPin, path: '/delivery-tracking' },
+      { id: 'queue-management', label: 'ระบบคิว', icon: Users, path: '/queue-management' },
+      { id: 'queue-display', label: 'จอแสดงคิว', icon: Eye, path: '/queue-display' },
+      { id: 'table-management', label: 'จัดการโต๊ะ', icon: Table, path: '/table-management' },
     ],
   },
   {

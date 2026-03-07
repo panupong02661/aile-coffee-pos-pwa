@@ -1506,6 +1506,106 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_tracking: {
+        Row: {
+          actual_delivery_time: string | null
+          actual_pickup_time: string | null
+          actual_prep_end: string | null
+          actual_prep_start: string | null
+          created_at: string
+          customer_feedback: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          customer_rating: number | null
+          delivery_address: string | null
+          delivery_assignment_id: string | null
+          delivery_fee: number | null
+          driver_name: string | null
+          driver_phone: string | null
+          estimated_delivery_time: number | null
+          estimated_prep_time: number | null
+          id: string
+          order_id: string | null
+          shop_id: string | null
+          status: string
+          status_note: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          actual_delivery_time?: string | null
+          actual_pickup_time?: string | null
+          actual_prep_end?: string | null
+          actual_prep_start?: string | null
+          created_at?: string
+          customer_feedback?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_rating?: number | null
+          delivery_address?: string | null
+          delivery_assignment_id?: string | null
+          delivery_fee?: number | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          estimated_delivery_time?: number | null
+          estimated_prep_time?: number | null
+          id?: string
+          order_id?: string | null
+          shop_id?: string | null
+          status?: string
+          status_note?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actual_delivery_time?: string | null
+          actual_pickup_time?: string | null
+          actual_prep_end?: string | null
+          actual_prep_start?: string | null
+          created_at?: string
+          customer_feedback?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_rating?: number | null
+          delivery_address?: string | null
+          delivery_assignment_id?: string | null
+          delivery_fee?: number | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          estimated_delivery_time?: number | null
+          estimated_prep_time?: number | null
+          id?: string
+          order_id?: string | null
+          shop_id?: string | null
+          status?: string
+          status_note?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_tracking_delivery_assignment_id_fkey"
+            columns: ["delivery_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_tracking_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engagement_settings: {
         Row: {
           advent_calendar_enabled: boolean
@@ -3309,6 +3409,82 @@ export type Database = {
           },
         ]
       }
+      queue_tickets: {
+        Row: {
+          called_at: string | null
+          completed_at: string | null
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          order_id: string | null
+          party_size: number | null
+          queue_number: number
+          seated_at: string | null
+          shop_id: string | null
+          status: string
+          table_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          called_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          party_size?: number | null
+          queue_number: number
+          seated_at?: string | null
+          shop_id?: string | null
+          status?: string
+          table_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          called_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          party_size?: number | null
+          queue_number?: number
+          seated_at?: string | null
+          shop_id?: string | null
+          status?: string
+          table_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_queue_table"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_tickets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receipt_settings: {
         Row: {
           created_at: string
@@ -3379,6 +3555,82 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "receipt_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_tables: {
+        Row: {
+          area_id: string | null
+          capacity: number
+          created_at: string
+          current_order_id: string | null
+          current_queue_id: string | null
+          id: string
+          is_active: boolean | null
+          position_x: number | null
+          position_y: number | null
+          shape: string | null
+          shop_id: string | null
+          status: string
+          table_name: string | null
+          table_number: string
+          updated_at: string
+        }
+        Insert: {
+          area_id?: string | null
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          current_queue_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          position_x?: number | null
+          position_y?: number | null
+          shape?: string | null
+          shop_id?: string | null
+          status?: string
+          table_name?: string | null
+          table_number: string
+          updated_at?: string
+        }
+        Update: {
+          area_id?: string | null
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          current_queue_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          position_x?: number | null
+          position_y?: number | null
+          shape?: string | null
+          shop_id?: string | null
+          status?: string
+          table_name?: string | null
+          table_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_tables_current_order_id_fkey"
+            columns: ["current_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_tables_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shops"

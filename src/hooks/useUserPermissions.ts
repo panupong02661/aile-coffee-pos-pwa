@@ -70,6 +70,10 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/staff-mobile-app': 'staff-mobile-app',
   '/engagement': 'promotions',
   '/shop-benchmark': 'shop-benchmark',
+  '/queue-management': 'queue-management',
+  '/queue-display': 'queue-display',
+  '/table-management': 'table-management',
+  '/delivery-tracking': 'delivery-tracking',
 };
 
 export const useUserPermissions = () => {

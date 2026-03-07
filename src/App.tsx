@@ -72,6 +72,10 @@ const SecuritySystem = lazy(() => import('./pages/SecuritySystem'));
 const MenuPromotions = lazy(() => import('./pages/MenuPromotions'));
 const EngagementManagement = lazy(() => import('./pages/EngagementManagement'));
 const ShopBenchmark = lazy(() => import('./pages/ShopBenchmark'));
+const QueueManagement = lazy(() => import('./pages/QueueManagement'));
+const QueueDisplay = lazy(() => import('./pages/QueueDisplay'));
+const TableManagement = lazy(() => import('./pages/TableManagement'));
+const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 
 function AppContent() {
   usePrefetch();
@@ -180,6 +184,10 @@ function App() {
                   <Route path="/access-control" element={<SecuritySystem />} />
                   <Route path="/engagement" element={<EngagementManagement />} />
                   <Route path="/shop-benchmark" element={<ShopBenchmark />} />
+                  <Route path="/queue-management" element={<QueueManagement />} />
+                  <Route path="/queue-display" element={<QueueDisplay />} />
+                  <Route path="/table-management" element={<TableManagement />} />
+                  <Route path="/delivery-tracking" element={<DeliveryTracking />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>
