@@ -585,6 +585,18 @@ const Cart = ({
           }
         }}
       />
+
+      {selectedTableId && selectedTableNumber && (
+        <TableBillPreview
+          isOpen={isBillPreviewOpen}
+          onClose={() => setIsBillPreviewOpen(false)}
+          tableNumber={selectedTableNumber}
+          rounds={tableRounds}
+          onLoadRound={onLoadRound || (() => {})}
+          onDeleteRound={onDeleteRound || (() => {})}
+          onUpdateRoundItem={onUpdateRoundItem || (() => {})}
+        />
+      )}
     </>
   );
 };
