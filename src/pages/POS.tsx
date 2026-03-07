@@ -194,7 +194,40 @@ const POS = () => {
     restoreCart
   } = useCart();
 
-  console.log('🛒 Cart items count:', cartItems.length);
+  const {
+    tables,
+    selectedTableId,
+    setSelectedTableId,
+    saveCartToTable,
+    loadTableOrder,
+    completeTableOrder,
+    tablesWithOrders,
+  } = useTableOrders();
+
+  const selectedTable = tables.find(t => t.id === selectedTableId);
+  const selectedTableNumber = selectedTable?.table_number || '';
+
+  const handleSelectTable = (tableId: string | null) => {
+    setSelectedTableId(tableId);
+  };
+
+  const handleLoadFromTable = (tableId: string) => {
+    const order = loadTableOrder(tableId);
+    if (order && order.cart_items.length > 0) {
+      restoreCart(order.cart_items, order.bill_discount, order.bill_discount_type);
+      toast({ title: `โหลดรายการโต๊ะ ${order.table_number}`, description: `${order.cart_items.length} รายการ` });
+    }
+  };
+
+  const handleSaveToTable = async () => {
+    if (!selectedTableId || !selectedTable) return;
+    const ok = await saveCartToTable(selectedTableId, selectedTable.table_number, cartItems, billDiscount, billDiscountType);
+    if (ok) {
+      toast({ title: `บันทึกรายการโต๊ะ ${selectedTable.table_number} สำเร็จ` });
+      clearCart();
+    }
+  };
+
 
   const { 
     categories, 
