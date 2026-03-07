@@ -10,6 +10,7 @@ import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
 import { useCart } from '@/hooks/useCart';
+import { useTableOrders } from '@/hooks/useTableOrders';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
