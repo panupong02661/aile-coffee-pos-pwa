@@ -108,7 +108,7 @@ const TableManagement = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="pt-16 px-2 md:px-6 pb-6">
         <div className="flex items-center justify-between mb-4 mt-2">

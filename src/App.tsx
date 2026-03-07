@@ -184,6 +184,10 @@ function App() {
                   <Route path="/access-control" element={<SecuritySystem />} />
                   <Route path="/engagement" element={<EngagementManagement />} />
                   <Route path="/shop-benchmark" element={<ShopBenchmark />} />
+                  <Route path="/queue-management" element={<QueueManagement />} />
+                  <Route path="/queue-display" element={<QueueDisplay />} />
+                  <Route path="/table-management" element={<TableManagement />} />
+                  <Route path="/delivery-tracking" element={<DeliveryTracking />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>
