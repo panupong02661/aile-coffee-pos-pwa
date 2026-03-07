@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -63,10 +63,9 @@ const DeliveryTracking = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [filter, setFilter] = useState('active');
-  const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    customer_name: '', customer_phone: '', delivery_address: '', 
+    customer_name: '', customer_phone: '', delivery_address: '',
     driver_name: '', driver_phone: '', total_amount: '', delivery_fee: '0',
     estimated_prep_time: '15', estimated_delivery_time: '30',
   });
@@ -91,13 +90,11 @@ const DeliveryTracking = () => {
   const advanceStatus = async (order: DeliveryOrder) => {
     const next = getNextStatus(order.status);
     if (!next) return;
-    
     const updates: any = { status: next, updated_at: new Date().toISOString() };
     if (next === 'preparing') updates.actual_prep_start = new Date().toISOString();
     if (next === 'ready_for_pickup') updates.actual_prep_end = new Date().toISOString();
     if (next === 'picked_up') updates.actual_pickup_time = new Date().toISOString();
     if (next === 'delivered') updates.actual_delivery_time = new Date().toISOString();
-
     await supabase.from('delivery_tracking').update(updates).eq('id', order.id);
     const info = getStatusInfo(next);
     toast({ title: `อัปเดตสถานะ: ${info.label}` });
@@ -136,149 +133,146 @@ const DeliveryTracking = () => {
     return diff < 60 ? `${diff} นาที` : `${Math.floor(diff / 60)} ชม. ${diff % 60} น.`;
   };
 
-  const activeOrders = orders.filter(o => !['delivered', 'cancelled', 'failed'].includes(o.status));
-  const completedOrders = orders.filter(o => ['delivered', 'cancelled', 'failed'].includes(o.status));
-
   return (
     <div className="min-h-screen bg-background">
       <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <main className="pt-16 px-2 md:px-6 pb-6">
-        <div className="flex items-center justify-between mb-4 mt-2">
-          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" /> ระบบเดลิเวอรี่
-          </h1>
-          <div className="flex gap-2">
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">กำลังดำเนินการ</SelectItem>
-                <SelectItem value="all">ทั้งหมด</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> สร้างออเดอร์</Button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {[
-            { label: 'รอยืนยัน', count: orders.filter(o => o.status === 'pending').length, color: 'text-gray-600' },
-            { label: 'กำลังทำ', count: orders.filter(o => o.status === 'preparing').length, color: 'text-orange-600' },
-            { label: 'กำลังจัดส่ง', count: orders.filter(o => ['picked_up', 'delivering'].includes(o.status)).length, color: 'text-cyan-600' },
-            { label: 'ส่งแล้ว', count: orders.filter(o => o.status === 'delivered').length, color: 'text-green-600' },
-          ].map(s => (
-            <Card key={s.label}><CardContent className="p-3 text-center">
-              <div className={`text-2xl font-bold ${s.color}`}>{s.count}</div>
-              <div className="text-xs text-muted-foreground">{s.label}</div>
-            </CardContent></Card>
-          ))}
-        </div>
-
-        {/* Active Orders */}
-        <div className="space-y-3">
-          {orders.map(order => {
-            const info = getStatusInfo(order.status);
-            const Icon = info.icon;
-            const nextStatus = getNextStatus(order.status);
-            const nextInfo = nextStatus ? getStatusInfo(nextStatus) : null;
-
-            return (
-              <Card key={order.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-full ${info.bg}`}>
-                        <Icon className={`w-5 h-5 ${info.color}`} />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm">{order.customer_name || 'ลูกค้า'}</div>
-                        <Badge variant="outline" className={`text-[10px] ${info.color}`}>{info.label}</Badge>
-                      </div>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <div>฿{order.total_amount.toLocaleString()}</div>
-                      <div>{getTimeDiff(order.created_at)} ที่แล้ว</div>
-                    </div>
-                  </div>
-
-                  {/* Status Timeline */}
-                  <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1">
-                    {statusFlow.slice(0, 7).map((step, i) => {
-                      const isActive = statusFlow.findIndex(s => s.key === order.status) >= i;
-                      const isCurrent = step.key === order.status;
-                      return (
-                        <div key={step.key} className="flex items-center">
-                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                            isCurrent ? `${step.color.replace('text-', 'bg-')} ring-2 ring-offset-1 ring-${step.color.replace('text-', '')}` :
-                            isActive ? 'bg-green-500' : 'bg-gray-200'
-                          }`} />
-                          {i < 6 && <div className={`w-4 h-0.5 ${isActive ? 'bg-green-500' : 'bg-gray-200'}`} />}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Details */}
-                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground mb-3">
-                    {order.customer_phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{order.customer_phone}</div>}
-                    {order.delivery_address && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="truncate">{order.delivery_address}</span></div>}
-                    {order.driver_name && <div className="flex items-center gap-1"><User className="w-3 h-3" />🏍️ {order.driver_name}</div>}
-                    {order.delivery_fee > 0 && <div>ค่าส่ง: ฿{order.delivery_fee}</div>}
-                  </div>
-
-                  {/* Actions */}
-                  {!['delivered', 'cancelled', 'failed'].includes(order.status) && (
-                    <div className="flex gap-2">
-                      {nextInfo && (
-                        <Button size="sm" className="flex-1" onClick={() => advanceStatus(order)}>
-                          <ArrowRight className="w-3 h-3 mr-1" /> {nextInfo.label}
-                        </Button>
-                      )}
-                      <Button size="sm" variant="destructive" onClick={() => cancelOrder(order.id)}>
-                        <XCircle className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {order.status === 'delivered' && order.customer_rating && (
-                    <div className="flex items-center gap-1 mt-2">
-                      {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} className={`w-4 h-4 ${s <= order.customer_rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-          {orders.length === 0 && (
-            <Card><CardContent className="p-8 text-center text-muted-foreground">
-              ยังไม่มีออเดอร์เดลิเวอรี่ — กดปุ่ม "สร้างออเดอร์" เพื่อเริ่มต้น
-            </CardContent></Card>
-          )}
-        </div>
-
-        {/* Create Dialog */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>สร้างออเดอร์เดลิเวอรี่</DialogTitle></DialogHeader>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              <div><Label>ชื่อลูกค้า *</Label><Input value={createForm.customer_name} onChange={e => setCreateForm(p => ({ ...p, customer_name: e.target.value }))} /></div>
-              <div><Label>เบอร์โทรลูกค้า</Label><Input value={createForm.customer_phone} onChange={e => setCreateForm(p => ({ ...p, customer_phone: e.target.value }))} /></div>
-              <div><Label>ที่อยู่จัดส่ง *</Label><Textarea value={createForm.delivery_address} onChange={e => setCreateForm(p => ({ ...p, delivery_address: e.target.value }))} /></div>
-              <div><Label>ยอดรวม (฿)</Label><Input type="number" value={createForm.total_amount} onChange={e => setCreateForm(p => ({ ...p, total_amount: e.target.value }))} /></div>
-              <div><Label>ค่าจัดส่ง (฿)</Label><Input type="number" value={createForm.delivery_fee} onChange={e => setCreateForm(p => ({ ...p, delivery_fee: e.target.value }))} /></div>
-              <div><Label>ชื่อไรเดอร์</Label><Input value={createForm.driver_name} onChange={e => setCreateForm(p => ({ ...p, driver_name: e.target.value }))} /></div>
-              <div><Label>เบอร์ไรเดอร์</Label><Input value={createForm.driver_phone} onChange={e => setCreateForm(p => ({ ...p, driver_phone: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>เวลาเตรียม (นาที)</Label><Input type="number" value={createForm.estimated_prep_time} onChange={e => setCreateForm(p => ({ ...p, estimated_prep_time: e.target.value }))} /></div>
-                <div><Label>เวลาจัดส่ง (นาที)</Label><Input type="number" value={createForm.estimated_delivery_time} onChange={e => setCreateForm(p => ({ ...p, estimated_delivery_time: e.target.value }))} /></div>
-              </div>
-              <Button className="w-full" onClick={createDelivery} disabled={!createForm.customer_name || !createForm.delivery_address}>สร้างออเดอร์</Button>
+      <main className="pt-16 md:ml-[56px] px-3 md:px-6 lg:px-8 pb-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4 mt-4">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">ระบบเดลิเวอรี่</h1>
+            <div className="flex gap-2">
+              <Select value={filter} onValueChange={setFilter}>
+                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">กำลังดำเนิน..</SelectItem>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> สร้างออเดอร์</Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-4 gap-3 md:gap-4 mb-6">
+            {[
+              { label: 'รอยืนยัน', count: orders.filter(o => o.status === 'pending').length, color: 'text-gray-600' },
+              { label: 'กำลังทำ', count: orders.filter(o => o.status === 'preparing').length, color: 'text-orange-600' },
+              { label: 'กำลังจัดส่ง', count: orders.filter(o => ['picked_up', 'delivering'].includes(o.status)).length, color: 'text-cyan-600' },
+              { label: 'ส่งแล้ว', count: orders.filter(o => o.status === 'delivered').length, color: 'text-green-600' },
+            ].map(s => (
+              <Card key={s.label}><CardContent className="p-4 text-center">
+                <div className={`text-2xl md:text-3xl font-bold ${s.color}`}>{s.count}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">{s.label}</div>
+              </CardContent></Card>
+            ))}
+          </div>
+
+          {/* Orders Grid - 2 columns on tablet */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            {orders.map(order => {
+              const info = getStatusInfo(order.status);
+              const Icon = info.icon;
+              const nextStatus = getNextStatus(order.status);
+              const nextInfo = nextStatus ? getStatusInfo(nextStatus) : null;
+
+              return (
+                <Card key={order.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-full ${info.bg}`}>
+                          <Icon className={`w-5 h-5 ${info.color}`} />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm">{order.customer_name || 'ลูกค้า'}</div>
+                          <Badge variant="outline" className={`text-[10px] ${info.color}`}>{info.label}</Badge>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <div className="font-semibold">฿{order.total_amount.toLocaleString()}</div>
+                        <div>{getTimeDiff(order.created_at)} ที่แล้ว</div>
+                      </div>
+                    </div>
+
+                    {/* Status Timeline */}
+                    <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1">
+                      {statusFlow.slice(0, 7).map((step, i) => {
+                        const isActive = statusFlow.findIndex(s => s.key === order.status) >= i;
+                        const isCurrent = step.key === order.status;
+                        return (
+                          <div key={step.key} className="flex items-center">
+                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                              isCurrent ? `${step.color.replace('text-', 'bg-')} ring-2 ring-offset-1` :
+                              isActive ? 'bg-green-500' : 'bg-gray-200'
+                            }`} />
+                            {i < 6 && <div className={`w-4 md:w-6 h-0.5 ${isActive ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Details */}
+                    <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground mb-3">
+                      {order.customer_phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{order.customer_phone}</div>}
+                      {order.delivery_address && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="truncate">{order.delivery_address}</span></div>}
+                      {order.driver_name && <div className="flex items-center gap-1"><User className="w-3 h-3" />🏍️ {order.driver_name}</div>}
+                      {order.delivery_fee > 0 && <div>ค่าส่ง: ฿{order.delivery_fee}</div>}
+                    </div>
+
+                    {/* Actions */}
+                    {!['delivered', 'cancelled', 'failed'].includes(order.status) && (
+                      <div className="flex gap-2">
+                        {nextInfo && (
+                          <Button size="sm" className="flex-1" onClick={() => advanceStatus(order)}>
+                            <ArrowRight className="w-3 h-3 mr-1" /> {nextInfo.label}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="destructive" onClick={() => cancelOrder(order.id)}>
+                          <XCircle className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {order.status === 'delivered' && order.customer_rating && (
+                      <div className="flex items-center gap-1 mt-2">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <Star key={s} className={`w-4 h-4 ${s <= order.customer_rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {orders.length === 0 && (
+              <Card className="col-span-full"><CardContent className="p-8 text-center text-muted-foreground">
+                ยังไม่มีออเดอร์เดลิเวอรี่ — กดปุ่ม "สร้างออเดอร์" เพื่อเริ่มต้น
+              </CardContent></Card>
+            )}
+          </div>
+
+          {/* Create Dialog */}
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle>สร้างออเดอร์เดลิเวอรี่</DialogTitle></DialogHeader>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                <div><Label>ชื่อลูกค้า *</Label><Input value={createForm.customer_name} onChange={e => setCreateForm(p => ({ ...p, customer_name: e.target.value }))} /></div>
+                <div><Label>เบอร์โทรลูกค้า</Label><Input value={createForm.customer_phone} onChange={e => setCreateForm(p => ({ ...p, customer_phone: e.target.value }))} /></div>
+                <div><Label>ที่อยู่จัดส่ง *</Label><Textarea value={createForm.delivery_address} onChange={e => setCreateForm(p => ({ ...p, delivery_address: e.target.value }))} /></div>
+                <div><Label>ยอดรวม (฿)</Label><Input type="number" value={createForm.total_amount} onChange={e => setCreateForm(p => ({ ...p, total_amount: e.target.value }))} /></div>
+                <div><Label>ค่าจัดส่ง (฿)</Label><Input type="number" value={createForm.delivery_fee} onChange={e => setCreateForm(p => ({ ...p, delivery_fee: e.target.value }))} /></div>
+                <div><Label>ชื่อไรเดอร์</Label><Input value={createForm.driver_name} onChange={e => setCreateForm(p => ({ ...p, driver_name: e.target.value }))} /></div>
+                <div><Label>เบอร์ไรเดอร์</Label><Input value={createForm.driver_phone} onChange={e => setCreateForm(p => ({ ...p, driver_phone: e.target.value }))} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>เวลาเตรียม (นาที)</Label><Input type="number" value={createForm.estimated_prep_time} onChange={e => setCreateForm(p => ({ ...p, estimated_prep_time: e.target.value }))} /></div>
+                  <div><Label>เวลาจัดส่ง (นาที)</Label><Input type="number" value={createForm.estimated_delivery_time} onChange={e => setCreateForm(p => ({ ...p, estimated_delivery_time: e.target.value }))} /></div>
+                </div>
+                <Button className="w-full" onClick={createDelivery} disabled={!createForm.customer_name || !createForm.delivery_address}>สร้างออเดอร์</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </main>
     </div>
   );

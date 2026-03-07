@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -110,91 +110,89 @@ const TableManagement = () => {
     <div className="min-h-screen bg-background">
       <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <main className="pt-16 px-2 md:px-6 pb-6">
-        <div className="flex items-center justify-between mb-4 mt-2">
-          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <TableIcon className="w-6 h-6 text-primary" /> จัดการโต๊ะ
-          </h1>
-          <Dialog open={isDialogOpen} onOpenChange={(o) => { setIsDialogOpen(o); if (!o) setEditingTable(null); }}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-1" /> เพิ่มโต๊ะ</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingTable ? 'แก้ไขโต๊ะ' : 'เพิ่มโต๊ะใหม่'}</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div><Label>หมายเลขโต๊ะ</Label><Input value={form.table_number} onChange={e => setForm(p => ({ ...p, table_number: e.target.value }))} placeholder="เช่น T1, A01" /></div>
-                <div><Label>ชื่อโต๊ะ (ไม่บังคับ)</Label><Input value={form.table_name} onChange={e => setForm(p => ({ ...p, table_name: e.target.value }))} placeholder="เช่น ริมหน้าต่าง" /></div>
-                <div><Label>ความจุ (คน)</Label><Input type="number" min="1" value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))} /></div>
-                <div><Label>รูปทรง</Label>
-                  <Select value={form.shape} onValueChange={v => setForm(p => ({ ...p, shape: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="square">สี่เหลี่ยม</SelectItem>
-                      <SelectItem value="round">กลม</SelectItem>
-                      <SelectItem value="rectangle">สี่เหลี่ยมผืนผ้า</SelectItem>
-                    </SelectContent>
-                  </Select>
+      <main className="pt-16 md:ml-[56px] px-3 md:px-6 lg:px-8 pb-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4 mt-4">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">จัดการโต๊ะ</h1>
+            <Dialog open={isDialogOpen} onOpenChange={(o) => { setIsDialogOpen(o); if (!o) setEditingTable(null); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="w-4 h-4 mr-1" /> เพิ่มโต๊ะ</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>{editingTable ? 'แก้ไขโต๊ะ' : 'เพิ่มโต๊ะใหม่'}</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div><Label>หมายเลขโต๊ะ</Label><Input value={form.table_number} onChange={e => setForm(p => ({ ...p, table_number: e.target.value }))} placeholder="เช่น T1, A01" /></div>
+                  <div><Label>ชื่อโต๊ะ (ไม่บังคับ)</Label><Input value={form.table_name} onChange={e => setForm(p => ({ ...p, table_name: e.target.value }))} placeholder="เช่น ริมหน้าต่าง" /></div>
+                  <div><Label>ความจุ (คน)</Label><Input type="number" min="1" value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))} /></div>
+                  <div><Label>รูปทรง</Label>
+                    <Select value={form.shape} onValueChange={v => setForm(p => ({ ...p, shape: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="square">สี่เหลี่ยม</SelectItem>
+                        <SelectItem value="round">กลม</SelectItem>
+                        <SelectItem value="rectangle">สี่เหลี่ยมผืนผ้า</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button className="w-full" onClick={saveTable}>{editingTable ? 'บันทึก' : 'เพิ่มโต๊ะ'}</Button>
                 </div>
-                <Button className="w-full" onClick={saveTable}>{editingTable ? 'บันทึก' : 'เพิ่มโต๊ะ'}</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{stats.total}</div><div className="text-xs text-muted-foreground">ทั้งหมด</div></CardContent></Card>
-          <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-green-600">{stats.available}</div><div className="text-xs text-muted-foreground">ว่าง</div></CardContent></Card>
-          <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-red-600">{stats.occupied}</div><div className="text-xs text-muted-foreground">มีลูกค้า</div></CardContent></Card>
-          <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-yellow-600">{stats.reserved}</div><div className="text-xs text-muted-foreground">จอง</div></CardContent></Card>
-        </div>
+          {/* Stats */}
+          <div className="grid grid-cols-4 gap-3 md:gap-4 mb-6">
+            <Card><CardContent className="p-4 text-center"><div className="text-2xl md:text-3xl font-bold">{stats.total}</div><div className="text-xs md:text-sm text-muted-foreground">ทั้งหมด</div></CardContent></Card>
+            <Card><CardContent className="p-4 text-center"><div className="text-2xl md:text-3xl font-bold text-green-600">{stats.available}</div><div className="text-xs md:text-sm text-muted-foreground">ว่าง</div></CardContent></Card>
+            <Card><CardContent className="p-4 text-center"><div className="text-2xl md:text-3xl font-bold text-red-600">{stats.occupied}</div><div className="text-xs md:text-sm text-muted-foreground">มีลูกค้า</div></CardContent></Card>
+            <Card><CardContent className="p-4 text-center"><div className="text-2xl md:text-3xl font-bold text-yellow-600">{stats.reserved}</div><div className="text-xs md:text-sm text-muted-foreground">จอง</div></CardContent></Card>
+          </div>
 
-        {/* Table Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {tables.map(table => {
-            const config = statusConfig[table.status] || statusConfig.available;
-            return (
-              <Card key={table.id} className="relative group hover:shadow-lg transition-shadow">
-                <CardContent className="p-4 text-center">
-                  <div className={`w-3 h-3 rounded-full ${config.color} absolute top-2 right-2`} />
-                  <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-${table.shape === 'round' ? 'full' : 'lg'} border-2 border-dashed mb-2 ${
-                    table.status === 'available' ? 'border-green-400 bg-green-50' :
-                    table.status === 'occupied' ? 'border-red-400 bg-red-50' :
-                    table.status === 'reserved' ? 'border-yellow-400 bg-yellow-50' :
-                    'border-gray-400 bg-gray-50'
-                  }`}>
-                    <span className="text-lg font-bold">{table.table_number}</span>
-                  </div>
-                  {table.table_name && <p className="text-xs text-muted-foreground truncate">{table.table_name}</p>}
-                  <Badge variant="outline" className="text-[10px] mt-1">{config.label} · {table.capacity}คน</Badge>
+          {/* Table Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+            {tables.map(table => {
+              const config = statusConfig[table.status] || statusConfig.available;
+              return (
+                <Card key={table.id} className="relative group hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4 text-center">
+                    <div className={`w-3 h-3 rounded-full ${config.color} absolute top-2 right-2`} />
+                    <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-${table.shape === 'round' ? 'full' : 'lg'} border-2 border-dashed mb-2 ${
+                      table.status === 'available' ? 'border-green-400 bg-green-50' :
+                      table.status === 'occupied' ? 'border-red-400 bg-red-50' :
+                      table.status === 'reserved' ? 'border-yellow-400 bg-yellow-50' :
+                      'border-muted bg-muted/30'
+                    }`}>
+                      <span className="text-lg font-bold">{table.table_number}</span>
+                    </div>
+                    {table.table_name && <p className="text-xs text-muted-foreground truncate">{table.table_name}</p>}
+                    <Badge variant="outline" className="text-[10px] mt-1">{config.label} · {table.capacity}คน</Badge>
 
-                  {/* Status Actions */}
-                  <div className="mt-2 flex flex-wrap gap-1 justify-center">
-                    {table.status !== 'available' && (
-                      <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'available')}>ว่าง</Button>
-                    )}
-                    {table.status === 'available' && (
-                      <>
-                        <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'occupied')}>มีลูกค้า</Button>
-                        <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'reserved')}>จอง</Button>
-                      </>
-                    )}
-                  </div>
+                    <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                      {table.status !== 'available' && (
+                        <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'available')}>ว่าง</Button>
+                      )}
+                      {table.status === 'available' && (
+                        <>
+                          <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'occupied')}>มีลูกค้า</Button>
+                          <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => updateTableStatus(table.id, 'reserved')}>จอง</Button>
+                        </>
+                      )}
+                    </div>
 
-                  {/* Edit/Delete */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-2 flex gap-1 justify-center">
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEdit(table)}><Edit className="w-3 h-3" /></Button>
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteTable(table.id)}><Trash2 className="w-3 h-3" /></Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-          {tables.length === 0 && (
-            <Card className="col-span-full"><CardContent className="p-8 text-center text-muted-foreground">
-              ยังไม่มีโต๊ะ — กดปุ่ม "เพิ่มโต๊ะ" เพื่อเริ่มตั้งค่า
-            </CardContent></Card>
-          )}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-2 flex gap-1 justify-center">
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEdit(table)}><Edit className="w-3 h-3" /></Button>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteTable(table.id)}><Trash2 className="w-3 h-3" /></Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {tables.length === 0 && (
+              <Card className="col-span-full"><CardContent className="p-8 text-center text-muted-foreground">
+                ยังไม่มีโต๊ะ — กดปุ่ม "เพิ่มโต๊ะ" เพื่อเริ่มตั้งค่า
+              </CardContent></Card>
+            )}
+          </div>
         </div>
       </main>
     </div>
