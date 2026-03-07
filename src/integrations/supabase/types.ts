@@ -4333,6 +4333,7 @@ export type Database = {
           created_at: string
           id: string
           member_id: string | null
+          round_number: number
           status: string
           table_id: string
           table_number: string
@@ -4345,6 +4346,7 @@ export type Database = {
           created_at?: string
           id?: string
           member_id?: string | null
+          round_number?: number
           status?: string
           table_id: string
           table_number: string
@@ -4357,6 +4359,7 @@ export type Database = {
           created_at?: string
           id?: string
           member_id?: string | null
+          round_number?: number
           status?: string
           table_id?: string
           table_number?: string

@@ -202,6 +202,9 @@ const POS = () => {
     loadTableOrder,
     completeTableOrder,
     tablesWithOrders,
+    getTableRounds,
+    updateRoundItems,
+    deleteRound,
   } = useTableOrders();
 
   const selectedTable = tables.find(t => t.id === selectedTableId);
@@ -212,10 +215,23 @@ const POS = () => {
   };
 
   const handleLoadFromTable = (tableId: string) => {
-    const order = loadTableOrder(tableId);
+    // Load ALL items from all rounds into cart
+    const rounds = getTableRounds(tableId);
+    if (rounds.length > 0) {
+      const allItems = rounds.flatMap(r => r.cart_items);
+      if (allItems.length > 0) {
+        restoreCart(allItems, 0, 'amount');
+        toast({ title: `โหลดรายการโต๊ะ ${rounds[0].table_number}`, description: `${allItems.length} รายการ จาก ${rounds.length} รอบ` });
+      }
+    }
+  };
+
+  const handleLoadRoundToCart = (roundNumber: number) => {
+    if (!selectedTableId) return;
+    const order = loadTableOrder(selectedTableId, roundNumber);
     if (order && order.cart_items.length > 0) {
       restoreCart(order.cart_items, order.bill_discount, order.bill_discount_type);
-      toast({ title: `โหลดรายการโต๊ะ ${order.table_number}`, description: `${order.cart_items.length} รายการ` });
+      toast({ title: `โหลดรอบ ${roundNumber}`, description: `${order.cart_items.length} รายการ` });
     }
   };
 
@@ -223,7 +239,8 @@ const POS = () => {
     if (!selectedTableId || !selectedTable) return;
     const ok = await saveCartToTable(selectedTableId, selectedTable.table_number, cartItems, billDiscount, billDiscountType);
     if (ok) {
-      toast({ title: `บันทึกรายการโต๊ะ ${selectedTable.table_number} สำเร็จ` });
+      const rounds = getTableRounds(selectedTableId);
+      toast({ title: `บันทึกรอบ ${rounds.length} โต๊ะ ${selectedTable.table_number} สำเร็จ` });
       clearCart();
     }
   };
@@ -740,6 +757,10 @@ const POS = () => {
                 onSaveToTable={handleSaveToTable}
                 onLoadFromTable={handleLoadFromTable}
                 selectedTableNumber={selectedTableNumber}
+                tableRounds={selectedTableId ? getTableRounds(selectedTableId) : []}
+                onLoadRound={handleLoadRoundToCart}
+                onDeleteRound={deleteRound}
+                onUpdateRoundItem={updateRoundItems}
               />
             </div>
           )}

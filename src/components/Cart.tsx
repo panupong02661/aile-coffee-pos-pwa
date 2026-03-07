@@ -3,19 +3,32 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed, FileText } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
 import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
 import CodeModal from './CodeModal';
+import TableBillPreview from './TableBillPreview';
 import { useToast } from '@/hooks/use-toast';
 import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface RoundOrder {
+  id: string;
+  table_id: string;
+  table_number: string;
+  cart_items: CartItem[];
+  bill_discount: number;
+  bill_discount_type: 'percent' | 'amount';
+  round_number: number;
+  created_at: string;
+  status: string;
+}
 
 interface CartProps {
   cartItems: CartItem[];
@@ -57,6 +70,11 @@ interface CartProps {
   onSaveToTable?: () => void;
   onLoadFromTable?: (tableId: string) => void;
   selectedTableNumber?: string;
+  // Round-based ordering
+  tableRounds?: RoundOrder[];
+  onLoadRound?: (roundNumber: number) => void;
+  onDeleteRound?: (roundOrderId: string, tableId: string) => void;
+  onUpdateRoundItem?: (roundOrderId: string, items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
 }
 
 const Cart = ({ 
@@ -82,10 +100,15 @@ const Cart = ({
   onSaveToTable,
   onLoadFromTable,
   selectedTableNumber,
+  tableRounds = [],
+  onLoadRound,
+  onDeleteRound,
+  onUpdateRoundItem,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
+  const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
@@ -304,17 +327,32 @@ const Cart = ({
               </Select>
             )}
           </div>
-          {/* Save to table button */}
-          {selectedTableId && onSaveToTable && cartItems.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSaveToTable}
-              className="w-full h-7 text-xs mt-1.5 border-primary/40 text-primary hover:bg-primary/10"
-            >
-              <UtensilsCrossed className="w-3 h-3 mr-1" />
-              บันทึกโต๊ะ {selectedTableNumber}
-            </Button>
+          {/* Save to table & Bill preview buttons */}
+          {selectedTableId && (
+            <div className="flex gap-1.5 mt-1.5">
+              {onSaveToTable && cartItems.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSaveToTable}
+                  className="flex-1 h-7 text-xs border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <UtensilsCrossed className="w-3 h-3 mr-1" />
+                  บันทึกโต๊ะ
+                </Button>
+              )}
+              {tableRounds.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBillPreviewOpen(true)}
+                  className="flex-1 h-7 text-xs border-accent/40 text-accent-foreground hover:bg-accent/10"
+                >
+                  <FileText className="w-3 h-3 mr-1" />
+                  ดูบิล ({tableRounds.length} รอบ)
+                </Button>
+              )}
+            </div>
           )}
         </CardHeader>
         
@@ -547,6 +585,18 @@ const Cart = ({
           }
         }}
       />
+
+      {selectedTableId && selectedTableNumber && (
+        <TableBillPreview
+          isOpen={isBillPreviewOpen}
+          onClose={() => setIsBillPreviewOpen(false)}
+          tableNumber={selectedTableNumber}
+          rounds={tableRounds}
+          onLoadRound={onLoadRound || (() => {})}
+          onDeleteRound={onDeleteRound || (() => {})}
+          onUpdateRoundItem={onUpdateRoundItem || (() => {})}
+        />
+      )}
     </>
   );
 };
