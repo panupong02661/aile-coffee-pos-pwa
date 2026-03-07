@@ -913,18 +913,18 @@ const DetailedOrderReport = () => {
               <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[30px] px-1"></TableHead>
-                    <TableHead className="w-[90px] px-1 text-xs">ออเดอร์</TableHead>
-                    <TableHead className="w-[80px] px-1 text-xs">วันที่</TableHead>
-                    <TableHead className="w-[60px] px-1 text-xs">ชำระเงิน</TableHead>
-                    <TableHead className="w-[55px] px-1 text-xs">สถานะ</TableHead>
-                    <TableHead className="w-[70px] px-1 text-xs">ลูกค้า</TableHead>
-                    <TableHead className="w-[60px] px-1 text-xs text-right">ต้นทุน</TableHead>
-                    <TableHead className="w-[55px] px-1 text-xs text-right">ส่วนลด</TableHead>
-                    <TableHead className="w-[45px] px-1 text-xs text-center">แต้มใช้</TableHead>
-                    <TableHead className="w-[65px] px-1 text-xs">โปรโมชั่น</TableHead>
-                    <TableHead className="w-[65px] px-1 text-xs text-right">ยอดรวม</TableHead>
-                    <TableHead className="w-[65px] px-1 text-xs text-right">กำไร</TableHead>
+                    <TableHead className="w-[28px] px-1"></TableHead>
+                    <TableHead className="w-[120px] px-1 text-xs">ออเดอร์</TableHead>
+                    <TableHead className="w-[70px] px-1 text-xs">วันที่</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs">ชำระเงิน</TableHead>
+                    <TableHead className="w-[50px] px-1 text-xs">สถานะ</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs">ลูกค้า</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs text-right">ต้นทุน</TableHead>
+                    <TableHead className="w-[50px] px-1 text-xs text-right">ส่วนลด</TableHead>
+                    <TableHead className="w-[42px] px-1 text-xs text-center">แต้มใช้</TableHead>
+                    <TableHead className="w-[55px] px-1 text-xs">โปรโมชั่น</TableHead>
+                    <TableHead className="w-[58px] px-1 text-xs text-right">ยอดรวม</TableHead>
+                    <TableHead className="w-[58px] px-1 text-xs text-right">กำไร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
