@@ -100,10 +100,15 @@ const Cart = ({
   onSaveToTable,
   onLoadFromTable,
   selectedTableNumber,
+  tableRounds = [],
+  onLoadRound,
+  onDeleteRound,
+  onUpdateRoundItem,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
+  const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
