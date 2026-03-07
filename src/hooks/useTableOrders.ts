@@ -17,6 +17,7 @@ interface TableOrder {
   bill_discount: number;
   bill_discount_type: 'percent' | 'amount';
   status: string;
+  round_number: number;
   created_at: string;
 }
 
@@ -26,7 +27,6 @@ export const useTableOrders = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch available tables
   const fetchTables = useCallback(async () => {
     const { data, error } = await supabase
       .from('restaurant_tables')
@@ -39,19 +39,19 @@ export const useTableOrders = () => {
     }
   }, []);
 
-  // Fetch active table orders
   const fetchActiveOrders = useCallback(async () => {
     const { data, error } = await supabase
       .from('table_orders' as any)
       .select('*')
       .eq('status', 'active')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
 
     if (!error && data) {
       setActiveTableOrders((data as any[]).map(d => ({
         ...d,
         cart_items: Array.isArray(d.cart_items) ? d.cart_items : [],
         bill_discount_type: d.bill_discount_type as 'percent' | 'amount',
+        round_number: d.round_number || 1,
       })));
     }
   }, []);
@@ -73,7 +73,21 @@ export const useTableOrders = () => {
     return () => { supabase.removeChannel(channel); };
   }, [fetchTables, fetchActiveOrders]);
 
-  // Save current cart to a table
+  // Get all rounds for a specific table
+  const getTableRounds = useCallback((tableId: string): TableOrder[] => {
+    return activeTableOrders
+      .filter(o => o.table_id === tableId && o.status === 'active')
+      .sort((a, b) => a.round_number - b.round_number);
+  }, [activeTableOrders]);
+
+  // Get the next round number for a table
+  const getNextRoundNumber = useCallback((tableId: string): number => {
+    const rounds = getTableRounds(tableId);
+    if (rounds.length === 0) return 1;
+    return Math.max(...rounds.map(r => r.round_number)) + 1;
+  }, [getTableRounds]);
+
+  // Save current cart as a NEW round for a table
   const saveCartToTable = useCallback(async (
     tableId: string,
     tableNumber: string,
@@ -83,52 +97,92 @@ export const useTableOrders = () => {
   ) => {
     if (cartItems.length === 0) return false;
 
-    // Check if there's already an active order for this table
-    const existing = activeTableOrders.find(o => o.table_id === tableId && o.status === 'active');
+    const nextRound = getNextRoundNumber(tableId);
 
-    if (existing) {
-      // Overwrite items (not merge) to prevent duplication
-      const mergedItems = cartItems;
-      const { error } = await supabase
-        .from('table_orders' as any)
-        .update({
-          cart_items: mergedItems as any,
-          bill_discount: billDiscount || existing.bill_discount,
-          bill_discount_type: billDiscountType || existing.bill_discount_type,
-        })
-        .eq('id', existing.id);
+    const { error } = await supabase
+      .from('table_orders' as any)
+      .insert({
+        table_id: tableId,
+        table_number: tableNumber,
+        cart_items: cartItems as any,
+        bill_discount: billDiscount,
+        bill_discount_type: billDiscountType,
+        round_number: nextRound,
+      });
 
-      if (error) { console.error('Update table order error:', error); return false; }
-    } else {
-      const { error } = await supabase
-        .from('table_orders' as any)
-        .insert({
-          table_id: tableId,
-          table_number: tableNumber,
-          cart_items: cartItems as any,
-          bill_discount: billDiscount,
-          bill_discount_type: billDiscountType,
-        });
+    if (error) { console.error('Insert table order error:', error); return false; }
 
-      if (error) { console.error('Insert table order error:', error); return false; }
+    // Update table status to occupied
+    await supabase
+      .from('restaurant_tables')
+      .update({ status: 'occupied' })
+      .eq('id', tableId);
 
-      // Update table status to occupied
+    await fetchActiveOrders();
+    return true;
+  }, [getNextRoundNumber, fetchActiveOrders]);
+
+  // Load a specific round's order into cart
+  const loadTableOrder = useCallback((tableId: string, roundNumber?: number): TableOrder | null => {
+    const rounds = getTableRounds(tableId);
+    if (rounds.length === 0) return null;
+    if (roundNumber !== undefined) {
+      return rounds.find(r => r.round_number === roundNumber) || null;
+    }
+    // Return the latest round by default
+    return rounds[rounds.length - 1];
+  }, [getTableRounds]);
+
+  // Get all items combined across all rounds for a table
+  const getAllTableItems = useCallback((tableId: string): CartItem[] => {
+    const rounds = getTableRounds(tableId);
+    return rounds.flatMap(r => r.cart_items);
+  }, [getTableRounds]);
+
+  // Update items in a specific round
+  const updateRoundItems = useCallback(async (
+    roundOrderId: string,
+    cartItems: CartItem[],
+    billDiscount: number,
+    billDiscountType: 'percent' | 'amount'
+  ) => {
+    const { error } = await supabase
+      .from('table_orders' as any)
+      .update({
+        cart_items: cartItems as any,
+        bill_discount: billDiscount,
+        bill_discount_type: billDiscountType,
+      })
+      .eq('id', roundOrderId);
+
+    if (error) console.error('Update round error:', error);
+    await fetchActiveOrders();
+  }, [fetchActiveOrders]);
+
+  // Delete a specific round
+  const deleteRound = useCallback(async (roundOrderId: string, tableId: string) => {
+    const { error } = await supabase
+      .from('table_orders' as any)
+      .update({ status: 'cancelled' })
+      .eq('id', roundOrderId);
+
+    if (error) { console.error('Delete round error:', error); return; }
+
+    // Check if table has any remaining active orders
+    const remaining = activeTableOrders.filter(
+      o => o.table_id === tableId && o.status === 'active' && o.id !== roundOrderId
+    );
+    if (remaining.length === 0) {
       await supabase
         .from('restaurant_tables')
-        .update({ status: 'occupied' })
+        .update({ status: 'available' })
         .eq('id', tableId);
     }
 
     await fetchActiveOrders();
-    return true;
   }, [activeTableOrders, fetchActiveOrders]);
 
-  // Load table order into cart (returns the items)
-  const loadTableOrder = useCallback((tableId: string): TableOrder | null => {
-    return activeTableOrders.find(o => o.table_id === tableId && o.status === 'active') || null;
-  }, [activeTableOrders]);
-
-  // Complete a table order (after payment)
+  // Complete all table orders (after payment)
   const completeTableOrder = useCallback(async (tableId: string) => {
     const { error } = await supabase
       .from('table_orders' as any)
@@ -137,7 +191,6 @@ export const useTableOrders = () => {
       .eq('status', 'active');
 
     if (!error) {
-      // Set table back to available
       await supabase
         .from('restaurant_tables')
         .update({ status: 'available' })
@@ -148,7 +201,7 @@ export const useTableOrders = () => {
     }
   }, [fetchActiveOrders]);
 
-  // Update table order items (e.g. after editing cart)
+  // Update table order items (legacy compat)
   const updateTableOrderItems = useCallback(async (
     tableId: string,
     cartItems: CartItem[],
@@ -168,8 +221,7 @@ export const useTableOrders = () => {
       .eq('id', existing.id);
   }, [activeTableOrders]);
 
-  // Get tables with active orders
-  const tablesWithOrders = activeTableOrders.map(o => o.table_id);
+  const tablesWithOrders = [...new Set(activeTableOrders.filter(o => o.status === 'active').map(o => o.table_id))];
 
   return {
     tables,
@@ -183,5 +235,10 @@ export const useTableOrders = () => {
     tablesWithOrders,
     loading,
     fetchActiveOrders,
+    getTableRounds,
+    getNextRoundNumber,
+    getAllTableItems,
+    updateRoundItems,
+    deleteRound,
   };
 };
