@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -15,6 +15,7 @@ import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CartProps {
   cartItems: CartItem[];
@@ -48,6 +49,14 @@ interface CartProps {
     points: number;
     total_spent: number;
   } | null;
+  // Table management
+  tables?: { id: string; table_number: string; capacity: number; status: string }[];
+  selectedTableId?: string | null;
+  onSelectTable?: (tableId: string | null) => void;
+  tablesWithOrders?: string[];
+  onSaveToTable?: () => void;
+  onLoadFromTable?: (tableId: string) => void;
+  selectedTableNumber?: string;
 }
 
 const Cart = ({ 
@@ -65,7 +74,14 @@ const Cart = ({
   appliedGiftCode,
   onPaymentComplete,
   onMemberUpdate,
-  selectedMember
+  selectedMember,
+  tables = [],
+  selectedTableId,
+  onSelectTable,
+  tablesWithOrders = [],
+  onSaveToTable,
+  onLoadFromTable,
+  selectedTableNumber,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
@@ -238,21 +254,68 @@ const Cart = ({
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden bg-card border-border">
-        {/* Header with icon + badge */}
-        <CardHeader className="py-3 px-4 flex-shrink-0 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <ShoppingCart className="w-5 h-5 text-primary" />
-              {totalItemCount > 0 && (
-                <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pos-badge-pop" key={totalItemCount}>
-                  {totalItemCount}
-                </span>
-              )}
+        {/* Header with icon + badge + table selector */}
+        <CardHeader className="py-2 px-3 flex-shrink-0 border-b border-border">
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="relative flex-shrink-0">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+                {totalItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 animate-pos-badge-pop" key={totalItemCount}>
+                    {totalItemCount}
+                  </span>
+                )}
+              </div>
+              <h3 className="text-foreground text-sm font-bold truncate font-sans">
+                {selectedTableNumber ? `โต๊ะ ${selectedTableNumber}` : 'ตะกร้าสินค้า'}
+              </h3>
             </div>
-            <h3 className="text-foreground text-base font-bold truncate font-sans">
-              ตะกร้าสินค้า
-            </h3>
+
+            {/* Table selector */}
+            {tables.length > 0 && onSelectTable && (
+              <Select
+                value={selectedTableId || 'none'}
+                onValueChange={(val) => {
+                  if (val === 'none') {
+                    onSelectTable(null);
+                  } else {
+                    onSelectTable(val);
+                    if (onLoadFromTable) onLoadFromTable(val);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[90px] h-7 text-xs border-primary/30">
+                  <UtensilsCrossed className="w-3 h-3 mr-1 flex-shrink-0" />
+                  <SelectValue placeholder="โต๊ะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">ไม่เลือก</SelectItem>
+                  {tables.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <span className="flex items-center gap-1">
+                        {t.table_number}
+                        {tablesWithOrders.includes(t.id) && (
+                          <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+          {/* Save to table button */}
+          {selectedTableId && onSaveToTable && cartItems.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSaveToTable}
+              className="w-full h-7 text-xs mt-1.5 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <UtensilsCrossed className="w-3 h-3 mr-1" />
+              บันทึกโต๊ะ {selectedTableNumber}
+            </Button>
+          )}
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col min-h-0 p-3 pt-0 overflow-hidden">

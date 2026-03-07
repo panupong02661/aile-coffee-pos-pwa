@@ -10,6 +10,7 @@ import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
 import { useCart } from '@/hooks/useCart';
+import { useTableOrders } from '@/hooks/useTableOrders';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -193,7 +194,40 @@ const POS = () => {
     restoreCart
   } = useCart();
 
-  console.log('🛒 Cart items count:', cartItems.length);
+  const {
+    tables,
+    selectedTableId,
+    setSelectedTableId,
+    saveCartToTable,
+    loadTableOrder,
+    completeTableOrder,
+    tablesWithOrders,
+  } = useTableOrders();
+
+  const selectedTable = tables.find(t => t.id === selectedTableId);
+  const selectedTableNumber = selectedTable?.table_number || '';
+
+  const handleSelectTable = (tableId: string | null) => {
+    setSelectedTableId(tableId);
+  };
+
+  const handleLoadFromTable = (tableId: string) => {
+    const order = loadTableOrder(tableId);
+    if (order && order.cart_items.length > 0) {
+      restoreCart(order.cart_items, order.bill_discount, order.bill_discount_type);
+      toast({ title: `โหลดรายการโต๊ะ ${order.table_number}`, description: `${order.cart_items.length} รายการ` });
+    }
+  };
+
+  const handleSaveToTable = async () => {
+    if (!selectedTableId || !selectedTable) return;
+    const ok = await saveCartToTable(selectedTableId, selectedTable.table_number, cartItems, billDiscount, billDiscountType);
+    if (ok) {
+      toast({ title: `บันทึกรายการโต๊ะ ${selectedTable.table_number} สำเร็จ` });
+      clearCart();
+    }
+  };
+
 
   const { 
     categories, 
@@ -492,6 +526,11 @@ const POS = () => {
       } else {
         console.log('ℹ️ ไม่มีโค้ดที่ต้องอัพเดท');
       }
+
+      // Complete table order if a table was selected
+      if (selectedTableId) {
+        await completeTableOrder(selectedTableId);
+      }
     } catch (error) {
       console.error('Error in payment complete:', error);
     }
@@ -694,6 +733,13 @@ const POS = () => {
                 appliedGiftCode={appliedGiftCode}
                 onPaymentComplete={handlePaymentComplete}
                 onMemberUpdate={handleMemberUpdate}
+                tables={tables}
+                selectedTableId={selectedTableId}
+                onSelectTable={handleSelectTable}
+                tablesWithOrders={tablesWithOrders}
+                onSaveToTable={handleSaveToTable}
+                onLoadFromTable={handleLoadFromTable}
+                selectedTableNumber={selectedTableNumber}
               />
             </div>
           )}
