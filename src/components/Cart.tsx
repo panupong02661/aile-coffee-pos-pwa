@@ -74,7 +74,14 @@ const Cart = ({
   appliedGiftCode,
   onPaymentComplete,
   onMemberUpdate,
-  selectedMember
+  selectedMember,
+  tables = [],
+  selectedTableId,
+  onSelectTable,
+  tablesWithOrders = [],
+  onSaveToTable,
+  onLoadFromTable,
+  selectedTableNumber,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
