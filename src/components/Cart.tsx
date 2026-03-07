@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -15,6 +15,7 @@ import { usePromotions } from '@/hooks/usePromotions';
 import { calculatePromotionDiscount, calculateBillPromotionDiscount } from '@/utils/promotionUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CartProps {
   cartItems: CartItem[];
