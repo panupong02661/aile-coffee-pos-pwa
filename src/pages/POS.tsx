@@ -728,6 +728,13 @@ const POS = () => {
                 appliedGiftCode={appliedGiftCode}
                 onPaymentComplete={handlePaymentComplete}
                 onMemberUpdate={handleMemberUpdate}
+                tables={tables}
+                selectedTableId={selectedTableId}
+                onSelectTable={handleSelectTable}
+                tablesWithOrders={tablesWithOrders}
+                onSaveToTable={handleSaveToTable}
+                onLoadFromTable={handleLoadFromTable}
+                selectedTableNumber={selectedTableNumber}
               />
             </div>
           )}
