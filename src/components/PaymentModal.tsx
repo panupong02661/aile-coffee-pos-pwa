@@ -683,9 +683,10 @@ const PaymentModal = ({
       onClose();
 
       // แสดง toast สำเร็จ
+      const queueInfo = savedOrder?.queue_number ? ` | คิว #${String(savedOrder.queue_number).padStart(3, '0')}` : '';
       toast({
         title: "✅ ชำระเงินสำเร็จ",
-        description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}`,
+        description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}${queueInfo}`,
       });
 
       if (savedOrder?.wifi_voucher?.id) {
