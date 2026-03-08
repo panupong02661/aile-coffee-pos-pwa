@@ -12,6 +12,7 @@ import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
+import { createQueueFromOrder } from '@/hooks/useQueueSystem';
 import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
