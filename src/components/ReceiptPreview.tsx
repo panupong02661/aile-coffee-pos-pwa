@@ -1,9 +1,10 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
+import QRCode from 'qrcode';
 
 interface ShopSettings {
   shop_name: string;
@@ -32,6 +33,8 @@ interface ReceiptSettings {
   show_customer_info: boolean;
   show_wifi_voucher: boolean;
   show_wifi_qr: boolean;
+  show_queue_number: boolean;
+  show_queue_qr: boolean;
   footer_message?: string;
 }
 
@@ -50,6 +53,7 @@ interface ReceiptPreviewProps {
   memberName?: string;
   memberPhone?: string;
   orderNumber?: string;
+  queueNumber?: number | null;
   wifiVoucher?: WiFiVoucher | null;
   compact?: boolean;
 }
@@ -63,6 +67,7 @@ const ReceiptPreview = ({
   memberName,
   memberPhone,
   orderNumber,
+  queueNumber,
   wifiVoucher: propWifiVoucher,
   compact = false
 }: ReceiptPreviewProps) => {
@@ -180,8 +185,18 @@ const ReceiptPreview = ({
 
           {/* Order Number */}
           {receiptSettings.show_order_number && orderNumber && (
-            <div className="text-xs mb-4">
+            <div className="text-xs mb-2">
               หมายเลขคำสั่งซื้อ: #{orderNumber}
+            </div>
+          )}
+
+          {/* Queue Number */}
+          {(receiptSettings as any).show_queue_number && queueNumber && (
+            <div className="text-center mb-4">
+              <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
+                <div className="text-xs text-gray-500">คิวของคุณ</div>
+                <div className="text-2xl font-black">{String(queueNumber).padStart(3, '0')}</div>
+              </div>
             </div>
           )}
 
@@ -308,6 +323,11 @@ const ReceiptPreview = ({
               )}
             </>
           )}
+
+          {/* Queue QR Code */}
+          {(receiptSettings as any).show_queue_qr && queueNumber && (
+            <QueueQRSection queueNumber={queueNumber} />
+          )}
         </div>
       </CardContent>
     </Card>
@@ -315,3 +335,27 @@ const ReceiptPreview = ({
 };
 
 export default ReceiptPreview;
+
+const QueueQRSection = ({ queueNumber }: { queueNumber: number }) => {
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  
+  useEffect(() => {
+    const url = `${window.location.origin}/queue-tracker?q=${queueNumber}`;
+    QRCode.toDataURL(url, { width: 120, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [queueNumber]);
+
+  if (!qrDataUrl) return null;
+
+  return (
+    <>
+      <Separator className="my-4" />
+      <div className="text-center">
+        <div className="text-xs text-gray-500 mb-2">แสกน QR เพื่อติดตามคิว</div>
+        <img src={qrDataUrl} alt="Queue QR" className="w-24 h-24 mx-auto" />
+        <div className="text-[10px] text-gray-400 mt-1">คิวที่ {String(queueNumber).padStart(3, '0')}</div>
+      </div>
+    </>
+  );
+};

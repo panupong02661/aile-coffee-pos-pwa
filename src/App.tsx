@@ -76,6 +76,7 @@ const QueueManagement = lazy(() => import('./pages/QueueManagement'));
 const QueueDisplay = lazy(() => import('./pages/QueueDisplay'));
 const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
+const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 
 function AppContent() {
   usePrefetch();
@@ -188,6 +189,7 @@ function App() {
                   <Route path="/queue-display" element={<QueueDisplay />} />
                   <Route path="/table-management" element={<TableManagement />} />
                   <Route path="/delivery-tracking" element={<DeliveryTracking />} />
+                  <Route path="/queue-tracker" element={<QueueTracker />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>

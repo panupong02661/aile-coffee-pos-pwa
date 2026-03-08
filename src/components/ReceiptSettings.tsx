@@ -27,6 +27,8 @@ interface ReceiptSettingsForm {
   show_customer_info: boolean;
   show_wifi_voucher: boolean;
   show_wifi_qr: boolean;
+  show_queue_number: boolean;
+  show_queue_qr: boolean;
   footer_message: string;
 }
 
@@ -53,6 +55,8 @@ const ReceiptSettings = () => {
   const showCustomerInfo = watch('show_customer_info');
   const showWifiVoucher = watch('show_wifi_voucher');
   const showWifiQr = watch('show_wifi_qr');
+  const showQueueNumber = watch('show_queue_number');
+  const showQueueQr = watch('show_queue_qr');
 
   useEffect(() => {
     if (!shopLoading && shopId) {
@@ -90,6 +94,8 @@ const ReceiptSettings = () => {
         setValue('show_customer_info', data.show_customer_info);
         setValue('show_wifi_voucher', data.show_wifi_voucher ?? true);
         setValue('show_wifi_qr', data.show_wifi_qr ?? true);
+        setValue('show_queue_number', (data as any).show_queue_number ?? true);
+        setValue('show_queue_qr', (data as any).show_queue_qr ?? true);
         setValue('footer_message', data.footer_message || '');
       }
     } catch (error) {
@@ -294,6 +300,22 @@ const ReceiptSettings = () => {
             description="แสดง QR Code สำหรับเชื่อมต่อ WiFi ในส่วน WiFi Voucher"
             checked={showWifiQr}
             onCheckedChange={(checked) => setValue('show_wifi_qr', checked)}
+          />
+
+          <SwitchField
+            name="show_queue_number"
+            label="แสดงหมายเลขคิว"
+            description="แสดงหมายเลขคิวในใบเสร็จ"
+            checked={showQueueNumber}
+            onCheckedChange={(checked) => setValue('show_queue_number', checked)}
+          />
+
+          <SwitchField
+            name="show_queue_qr"
+            label="แสดง QR Code ติดตามคิว"
+            description="แสดง QR Code ท้ายใบเสร็จให้ลูกค้าสแกนเพื่อดูสถานะคิวแบบเรียลไทม์"
+            checked={showQueueQr}
+            onCheckedChange={(checked) => setValue('show_queue_qr', checked)}
           />
         </CardContent>
       </Card>

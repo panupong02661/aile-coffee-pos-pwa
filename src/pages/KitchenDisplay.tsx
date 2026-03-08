@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { callQueueByOrderId } from '@/hooks/useQueueSystem';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -230,7 +231,18 @@ const KitchenDisplay = () => {
       toast({ title: 'เกิดข้อผิดพลาด', description: `ไม่สามารถอัปเดตสถานะได้: ${error?.message || 'ไม่มีข้อมูลส่งกลับ'}`, variant: 'destructive' });
       return;
     }
-    toast({ title: 'อัปเดตสถานะ', description: newStatus === 'kitchen_completed' ? 'ออเดอร์เสร็จแล้ว' : 'เปลี่ยนกลับเป็นรอทำ' });
+
+    // Auto-call queue when kitchen marks order as completed
+    if (newStatus === 'kitchen_completed') {
+      const queueNum = await callQueueByOrderId(orderId);
+      if (queueNum) {
+        toast({ title: `📢 เรียกคิว #${queueNum}`, description: 'ออเดอร์เสร็จแล้ว - เรียกลูกค้าอัตโนมัติ' });
+      } else {
+        toast({ title: 'อัปเดตสถานะ', description: 'ออเดอร์เสร็จแล้ว' });
+      }
+    } else {
+      toast({ title: 'อัปเดตสถานะ', description: 'เปลี่ยนกลับเป็นรอทำ' });
+    }
   };
 
   const getTimeSince = (dateStr: string) => {

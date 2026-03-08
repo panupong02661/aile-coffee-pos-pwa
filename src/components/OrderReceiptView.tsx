@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Share2, Download, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
 
 interface ShopSettings {
   shop_name: string;
@@ -30,6 +31,8 @@ interface ReceiptSettings {
   show_tax: boolean;
   show_payment_method: boolean;
   show_customer_info: boolean;
+  show_queue_number: boolean;
+  show_queue_qr: boolean;
   footer_message?: string;
 }
 
@@ -52,6 +55,8 @@ interface OrderReceiptViewProps {
   paymentMethod: string;
   memberName?: string;
   memberPhone?: string;
+  queueNumber?: number | null;
+  orderId?: string;
 }
 
 const OrderReceiptView = ({
@@ -62,7 +67,9 @@ const OrderReceiptView = ({
   billDiscount = 0,
   paymentMethod,
   memberName,
-  memberPhone
+  memberPhone,
+  queueNumber,
+  orderId
 }: OrderReceiptViewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
@@ -340,6 +347,16 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
             </div>
           )}
 
+          {/* Queue Number */}
+          {(receiptSettings as any).show_queue_number && queueNumber && (
+            <div className="text-center my-2">
+              <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
+                <div className="text-xs text-gray-500">คิวของคุณ</div>
+                <div className="text-2xl font-black">{String(queueNumber).padStart(3, '0')}</div>
+              </div>
+            </div>
+          )}
+
           {/* Customer Info */}
           {receiptSettings.show_customer_info && (memberName || memberPhone) && (
             <div className="text-xs mb-2">
@@ -434,6 +451,11 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
               {receiptSettings.footer_message}
             </div>
           )}
+
+          {/* Queue QR Code */}
+          {(receiptSettings as any).show_queue_qr && queueNumber && (
+            <OrderQueueQR queueNumber={queueNumber} />
+          )}
         </div>
       </div>
     </div>
@@ -441,3 +463,27 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
 };
 
 export default OrderReceiptView;
+
+const OrderQueueQR = ({ queueNumber }: { queueNumber: number }) => {
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  
+  useEffect(() => {
+    const url = `${window.location.origin}/queue-tracker?q=${queueNumber}`;
+    QRCode.toDataURL(url, { width: 120, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [queueNumber]);
+
+  if (!qrDataUrl) return null;
+
+  return (
+    <>
+      <div className="border-t border-dashed border-gray-400 my-2" />
+      <div className="text-center">
+        <div className="text-xs text-gray-500 mb-1">แสกน QR เพื่อติดตามคิว</div>
+        <img src={qrDataUrl} alt="Queue QR" className="w-20 h-20 mx-auto" />
+        <div className="text-[10px] text-gray-400 mt-1">คิวที่ {String(queueNumber).padStart(3, '0')}</div>
+      </div>
+    </>
+  );
+};

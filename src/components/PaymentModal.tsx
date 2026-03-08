@@ -12,6 +12,7 @@ import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
+import { createQueueFromOrder } from '@/hooks/useQueueSystem';
 import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
@@ -564,6 +565,23 @@ const PaymentModal = ({
       })();
       
       console.log(`[PaymentModal] 🚀 Background tasks started (not waiting)`);
+      
+      // 4. Create queue ticket (fire-and-forget)
+      let queueNumber: number | null = null;
+      try {
+        queueNumber = await createQueueFromOrder(
+          order.id,
+          shopId || null,
+          selectedMember?.name || null,
+          selectedMember?.phone || null
+        );
+        if (queueNumber) {
+          console.log(`[PaymentModal] ✅ Queue ticket #${queueNumber} created`);
+        }
+      } catch (err) {
+        console.warn('[PaymentModal] Queue error:', err);
+      }
+
       console.log('[PaymentModal] Order processing completed successfully');
       
       // Return order data
@@ -573,6 +591,7 @@ const PaymentModal = ({
         member_name: selectedMember?.name || null,
         member_phone: selectedMember?.phone || null,
         wifi_voucher: wifiVoucher,
+        queue_number: queueNumber,
       };
 
     } catch (error) {
@@ -664,9 +683,10 @@ const PaymentModal = ({
       onClose();
 
       // แสดง toast สำเร็จ
+      const queueInfo = savedOrder?.queue_number ? ` | คิว #${String(savedOrder.queue_number).padStart(3, '0')}` : '';
       toast({
         title: "✅ ชำระเงินสำเร็จ",
-        description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}`,
+        description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}${queueInfo}`,
       });
 
       if (savedOrder?.wifi_voucher?.id) {
