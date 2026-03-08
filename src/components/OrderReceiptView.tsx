@@ -463,3 +463,27 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
 };
 
 export default OrderReceiptView;
+
+const OrderQueueQR = ({ queueNumber }: { queueNumber: number }) => {
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  
+  useEffect(() => {
+    const url = `${window.location.origin}/queue-tracker?q=${queueNumber}`;
+    QRCode.toDataURL(url, { width: 120, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [queueNumber]);
+
+  if (!qrDataUrl) return null;
+
+  return (
+    <>
+      <div className="border-t border-dashed border-gray-400 my-2" />
+      <div className="text-center">
+        <div className="text-xs text-gray-500 mb-1">แสกน QR เพื่อติดตามคิว</div>
+        <img src={qrDataUrl} alt="Queue QR" className="w-20 h-20 mx-auto" />
+        <div className="text-[10px] text-gray-400 mt-1">คิวที่ {String(queueNumber).padStart(3, '0')}</div>
+      </div>
+    </>
+  );
+};
