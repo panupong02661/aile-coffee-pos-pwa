@@ -347,6 +347,16 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
             </div>
           )}
 
+          {/* Queue Number */}
+          {(receiptSettings as any).show_queue_number && queueNumber && (
+            <div className="text-center my-2">
+              <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
+                <div className="text-xs text-gray-500">คิวของคุณ</div>
+                <div className="text-2xl font-black">{String(queueNumber).padStart(3, '0')}</div>
+              </div>
+            </div>
+          )}
+
           {/* Customer Info */}
           {receiptSettings.show_customer_info && (memberName || memberPhone) && (
             <div className="text-xs mb-2">
