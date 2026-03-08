@@ -1,9 +1,10 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
+import QRCode from 'qrcode';
 
 interface ShopSettings {
   shop_name: string;
