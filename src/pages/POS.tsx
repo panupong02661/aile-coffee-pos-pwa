@@ -498,7 +498,12 @@ const POS = () => {
     }
   };
 
-  const handleClearCart = () => {
+  const handleClearCart = async () => {
+    // If a table is selected and has orders, also clear from database
+    if (selectedTableId && tablesWithOrders.includes(selectedTableId)) {
+      await completeTableOrder(selectedTableId);
+      toast({ title: 'ล้างรายการโต๊ะสำเร็จ', description: `โต๊ะ ${selectedTableNumber} ถูกล้างเรียบร้อย` });
+    }
     clearCart();
     setAppliedGiftCode(null);
   };
