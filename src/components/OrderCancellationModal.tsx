@@ -86,6 +86,16 @@ const OrderCancellationModal = ({ isOpen, onClose, order, onOrderCancelled }: Or
         }
       }
 
+      // ลบ order items ก่อน (เพราะมี foreign key อ้างอิง orders)
+      const { error: deleteItemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', order.id);
+
+      if (deleteItemsError) {
+        console.error('Error deleting order items:', deleteItemsError);
+      }
+
       // ลบออเดอร์ออกจากตาราง orders
       const { error: deleteError } = await supabase
         .from('orders')
@@ -95,17 +105,6 @@ const OrderCancellationModal = ({ isOpen, onClose, order, onOrderCancelled }: Or
       if (deleteError) {
         console.error('Error deleting order:', deleteError);
         throw deleteError;
-      }
-
-      // ลบ order items ที่เกี่ยวข้อง
-      const { error: deleteItemsError } = await supabase
-        .from('order_items')
-        .delete()
-        .eq('order_id', order.id);
-
-      if (deleteItemsError) {
-        console.error('Error deleting order items:', deleteItemsError);
-        // ไม่ throw error เพราะอาจจะมี cascade delete
       }
 
       toast({
