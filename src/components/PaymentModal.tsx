@@ -565,6 +565,23 @@ const PaymentModal = ({
       })();
       
       console.log(`[PaymentModal] 🚀 Background tasks started (not waiting)`);
+      
+      // 4. Create queue ticket (fire-and-forget)
+      let queueNumber: number | null = null;
+      try {
+        queueNumber = await createQueueFromOrder(
+          order.id,
+          shopId || null,
+          selectedMember?.name || null,
+          selectedMember?.phone || null
+        );
+        if (queueNumber) {
+          console.log(`[PaymentModal] ✅ Queue ticket #${queueNumber} created`);
+        }
+      } catch (err) {
+        console.warn('[PaymentModal] Queue error:', err);
+      }
+
       console.log('[PaymentModal] Order processing completed successfully');
       
       // Return order data
@@ -574,6 +591,7 @@ const PaymentModal = ({
         member_name: selectedMember?.name || null,
         member_phone: selectedMember?.phone || null,
         wifi_voucher: wifiVoucher,
+        queue_number: queueNumber,
       };
 
     } catch (error) {

@@ -189,6 +189,7 @@ function App() {
                   <Route path="/queue-display" element={<QueueDisplay />} />
                   <Route path="/table-management" element={<TableManagement />} />
                   <Route path="/delivery-tracking" element={<DeliveryTracking />} />
+                  <Route path="/queue-tracker" element={<QueueTracker />} />
                   </Routes>
                 </Suspense>
                 </ProtectedRoute>
