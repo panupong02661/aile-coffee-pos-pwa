@@ -451,6 +451,11 @@ ${receiptSettings?.footer_message || 'ขอบคุณที่ใช้บร
               {receiptSettings.footer_message}
             </div>
           )}
+
+          {/* Queue QR Code */}
+          {(receiptSettings as any).show_queue_qr && queueNumber && (
+            <OrderQueueQR queueNumber={queueNumber} />
+          )}
         </div>
       </div>
     </div>
