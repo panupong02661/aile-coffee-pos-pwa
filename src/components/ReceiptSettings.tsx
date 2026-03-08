@@ -55,6 +55,8 @@ const ReceiptSettings = () => {
   const showCustomerInfo = watch('show_customer_info');
   const showWifiVoucher = watch('show_wifi_voucher');
   const showWifiQr = watch('show_wifi_qr');
+  const showQueueNumber = watch('show_queue_number');
+  const showQueueQr = watch('show_queue_qr');
 
   useEffect(() => {
     if (!shopLoading && shopId) {
