@@ -76,6 +76,7 @@ const QueueManagement = lazy(() => import('./pages/QueueManagement'));
 const QueueDisplay = lazy(() => import('./pages/QueueDisplay'));
 const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
+const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 
 function AppContent() {
   usePrefetch();
