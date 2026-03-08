@@ -335,3 +335,27 @@ const ReceiptPreview = ({
 };
 
 export default ReceiptPreview;
+
+const QueueQRSection = ({ queueNumber }: { queueNumber: number }) => {
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  
+  useEffect(() => {
+    const url = `${window.location.origin}/queue-tracker?q=${queueNumber}`;
+    QRCode.toDataURL(url, { width: 120, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(console.error);
+  }, [queueNumber]);
+
+  if (!qrDataUrl) return null;
+
+  return (
+    <>
+      <Separator className="my-4" />
+      <div className="text-center">
+        <div className="text-xs text-gray-500 mb-2">แสกน QR เพื่อติดตามคิว</div>
+        <img src={qrDataUrl} alt="Queue QR" className="w-24 h-24 mx-auto" />
+        <div className="text-[10px] text-gray-400 mt-1">คิวที่ {String(queueNumber).padStart(3, '0')}</div>
+      </div>
+    </>
+  );
+};
