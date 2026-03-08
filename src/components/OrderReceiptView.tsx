@@ -67,7 +67,9 @@ const OrderReceiptView = ({
   billDiscount = 0,
   paymentMethod,
   memberName,
-  memberPhone
+  memberPhone,
+  queueNumber,
+  orderId
 }: OrderReceiptViewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
