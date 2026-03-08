@@ -31,6 +31,8 @@ interface ReceiptSettings {
   show_tax: boolean;
   show_payment_method: boolean;
   show_customer_info: boolean;
+  show_queue_number: boolean;
+  show_queue_qr: boolean;
   footer_message?: string;
 }
 
