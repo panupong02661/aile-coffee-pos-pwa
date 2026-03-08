@@ -55,6 +55,8 @@ interface OrderReceiptViewProps {
   paymentMethod: string;
   memberName?: string;
   memberPhone?: string;
+  queueNumber?: number | null;
+  orderId?: string;
 }
 
 const OrderReceiptView = ({
