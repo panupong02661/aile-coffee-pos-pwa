@@ -323,6 +323,11 @@ const ReceiptPreview = ({
               )}
             </>
           )}
+
+          {/* Queue QR Code */}
+          {(receiptSettings as any).show_queue_qr && queueNumber && (
+            <QueueQRSection queueNumber={queueNumber} />
+          )}
         </div>
       </CardContent>
     </Card>
