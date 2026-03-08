@@ -52,6 +52,7 @@ interface ReceiptPreviewProps {
   memberName?: string;
   memberPhone?: string;
   orderNumber?: string;
+  queueNumber?: number | null;
   wifiVoucher?: WiFiVoucher | null;
   compact?: boolean;
 }
