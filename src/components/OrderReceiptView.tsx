@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Share2, Download, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
 
 interface ShopSettings {
   shop_name: string;
