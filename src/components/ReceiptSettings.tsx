@@ -94,6 +94,8 @@ const ReceiptSettings = () => {
         setValue('show_customer_info', data.show_customer_info);
         setValue('show_wifi_voucher', data.show_wifi_voucher ?? true);
         setValue('show_wifi_qr', data.show_wifi_qr ?? true);
+        setValue('show_queue_number', (data as any).show_queue_number ?? true);
+        setValue('show_queue_qr', (data as any).show_queue_qr ?? true);
         setValue('footer_message', data.footer_message || '');
       }
     } catch (error) {
