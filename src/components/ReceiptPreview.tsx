@@ -184,8 +184,18 @@ const ReceiptPreview = ({
 
           {/* Order Number */}
           {receiptSettings.show_order_number && orderNumber && (
-            <div className="text-xs mb-4">
+            <div className="text-xs mb-2">
               หมายเลขคำสั่งซื้อ: #{orderNumber}
+            </div>
+          )}
+
+          {/* Queue Number */}
+          {(receiptSettings as any).show_queue_number && queueNumber && (
+            <div className="text-center mb-4">
+              <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
+                <div className="text-xs text-gray-500">คิวของคุณ</div>
+                <div className="text-2xl font-black">{String(queueNumber).padStart(3, '0')}</div>
+              </div>
             </div>
           )}
 
