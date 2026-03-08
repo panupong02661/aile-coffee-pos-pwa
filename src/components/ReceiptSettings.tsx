@@ -301,6 +301,22 @@ const ReceiptSettings = () => {
             checked={showWifiQr}
             onCheckedChange={(checked) => setValue('show_wifi_qr', checked)}
           />
+
+          <SwitchField
+            name="show_queue_number"
+            label="แสดงหมายเลขคิว"
+            description="แสดงหมายเลขคิวในใบเสร็จ"
+            checked={showQueueNumber}
+            onCheckedChange={(checked) => setValue('show_queue_number', checked)}
+          />
+
+          <SwitchField
+            name="show_queue_qr"
+            label="แสดง QR Code ติดตามคิว"
+            description="แสดง QR Code ท้ายใบเสร็จให้ลูกค้าสแกนเพื่อดูสถานะคิวแบบเรียลไทม์"
+            checked={showQueueQr}
+            onCheckedChange={(checked) => setValue('show_queue_qr', checked)}
+          />
         </CardContent>
       </Card>
 
