@@ -66,6 +66,7 @@ const ReceiptPreview = ({
   memberName,
   memberPhone,
   orderNumber,
+  queueNumber,
   wifiVoucher: propWifiVoucher,
   compact = false
 }: ReceiptPreviewProps) => {
