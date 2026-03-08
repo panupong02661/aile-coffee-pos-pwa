@@ -27,6 +27,8 @@ interface ReceiptSettingsForm {
   show_customer_info: boolean;
   show_wifi_voucher: boolean;
   show_wifi_qr: boolean;
+  show_queue_number: boolean;
+  show_queue_qr: boolean;
   footer_message: string;
 }
 
