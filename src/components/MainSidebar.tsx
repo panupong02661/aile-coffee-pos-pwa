@@ -260,7 +260,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
             {!collapsed && (
               <h2 className="text-lg font-semibold text-foreground truncate">
-                Aile Coffee
+                {currentShop?.shop_name || 'POS System'}
               </h2>
             )}
             <Button

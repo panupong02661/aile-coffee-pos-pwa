@@ -85,14 +85,16 @@ const OrderReceiptView = ({
       const { data: shopData } = await supabase
         .from('shop_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const { data: receiptData } = await supabase
         .from('receipt_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       setShopSettings(shopData);
       setReceiptSettings(receiptData);

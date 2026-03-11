@@ -47,7 +47,7 @@ const LoginPage = () => {
             <Coffee className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-coffee-800">
-            Aile Coffee POS
+            POS System
           </CardTitle>
           <p className="text-coffee-600 mt-2">เข้าสู่ระบบจุดขาย</p>
         </CardHeader>
