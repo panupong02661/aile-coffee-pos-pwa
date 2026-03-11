@@ -194,6 +194,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const { hasPermission } = useUserPermissions();
+  const { currentShop } = useCurrentShop();
 
   // Filter menu groups based on user permissions
   const filteredMenuGroups = useMemo(() => {
