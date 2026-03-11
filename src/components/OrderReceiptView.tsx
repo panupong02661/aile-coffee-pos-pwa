@@ -76,10 +76,13 @@ const OrderReceiptView = ({
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [copied, setCopied] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchSettings();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchSettings = async () => {
     try {
