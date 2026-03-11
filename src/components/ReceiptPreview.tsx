@@ -75,10 +75,13 @@ const ReceiptPreview = ({
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(propWifiVoucher || null);
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchSettings();
-  }, [totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
+    if (!shopLoading && shopId) {
+      fetchSettings();
+    }
+  }, [shopId, shopLoading, totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
 
   useEffect(() => {
     // Update wifi voucher if prop changes
