@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
 import QRCode from 'qrcode';
