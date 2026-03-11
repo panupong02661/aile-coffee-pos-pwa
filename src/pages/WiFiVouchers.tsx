@@ -97,6 +97,7 @@ const WiFiVouchers = () => {
   const [newTierDurationHours, setNewTierDurationHours] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
     fetchVouchers();
