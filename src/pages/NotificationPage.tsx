@@ -484,7 +484,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
         }
       ],
       footer: {
-        text: '☕ Aile Coffee POS System'
+        text: '☕ POS System'
       },
       timestamp: new Date().toISOString()
     };

@@ -12,7 +12,7 @@ export default function PWAInstallGuide() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="max-w-4xl mx-auto space-y-6 py-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">ติดตั้ง Aile Coffee App</h1>
+          <h1 className="text-3xl font-bold">ติดตั้ง POS App</h1>
           <p className="text-muted-foreground">ใช้งานแบบออฟไลน์ได้ เร็วกว่า สะดวกกว่า</p>
         </div>
 

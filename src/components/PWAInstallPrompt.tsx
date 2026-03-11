@@ -75,7 +75,7 @@ export const PWAInstallPrompt = () => {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">ติดตั้งแอพ Aile Coffee</CardTitle>
+              <CardTitle className="text-lg">ติดตั้งแอพ POS</CardTitle>
             </div>
             <Button
               variant="ghost"
