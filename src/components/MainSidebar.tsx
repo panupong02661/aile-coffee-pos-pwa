@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import {
   BarChart3,
   Calculator,
