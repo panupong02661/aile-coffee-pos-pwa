@@ -672,8 +672,9 @@ const WiFiVouchers = () => {
       const { data: existing } = await supabase
         .from('shop_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
