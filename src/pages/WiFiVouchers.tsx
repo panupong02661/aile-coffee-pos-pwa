@@ -101,11 +101,13 @@ const WiFiVouchers = () => {
   const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchVouchers();
-    fetchShopSettings();
-    fetchResetSchedule();
-    fetchPriceTiers();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchVouchers();
+      fetchShopSettings();
+      fetchResetSchedule();
+      fetchPriceTiers();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchShopSettings = async () => {
     if (!shopId) return;
