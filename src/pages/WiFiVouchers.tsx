@@ -108,11 +108,13 @@ const WiFiVouchers = () => {
   }, []);
 
   const fetchShopSettings = async () => {
+    if (!shopId) return;
     const { data } = await supabase
       .from('shop_settings')
       .select('shop_name, wifi_header_text, wifi_footer_text')
+      .eq('shop_id', shopId)
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (data) {
       if (data.shop_name) {
