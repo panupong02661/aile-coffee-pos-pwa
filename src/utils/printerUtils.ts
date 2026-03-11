@@ -72,7 +72,7 @@ export const savePrinterConfig = (config: PrinterConfig): void => {
 };
 
 // Generate ESC/POS receipt content
-const generateESCPOSReceipt = (order: PrintOrder, config: PrinterConfig): string => {
+const generateESCPOSReceipt = (order: PrintOrder, config: PrinterConfig, shopName?: string): string => {
   const currentDate = new Date(order.created_at).toLocaleString('th-TH');
   const paperWidth = parseInt(config.paper_width);
   const lineLength = paperWidth === 58 ? 32 : 48;
@@ -86,7 +86,7 @@ const generateESCPOSReceipt = (order: PrintOrder, config: PrinterConfig): string
   receipt += ESC_POS_COMMANDS.CENTER;
   receipt += ESC_POS_COMMANDS.BOLD_ON;
   receipt += ESC_POS_COMMANDS.DOUBLE_HEIGHT;
-  receipt += 'Aile Coffee\n';
+  receipt += (shopName || 'POS') + '\n';
   receipt += ESC_POS_COMMANDS.NORMAL_SIZE;
   receipt += ESC_POS_COMMANDS.BOLD_OFF;
   receipt += 'ใบเสร็จรับเงิน\n';
