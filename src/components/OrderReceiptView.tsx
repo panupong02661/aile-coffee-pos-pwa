@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Separator } from '@/components/ui/separator';
 import { Share2, Download, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -75,24 +76,29 @@ const OrderReceiptView = ({
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [copied, setCopied] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchSettings();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchSettings = async () => {
     try {
       const { data: shopData } = await supabase
         .from('shop_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const { data: receiptData } = await supabase
         .from('receipt_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       setShopSettings(shopData);
       setReceiptSettings(receiptData);

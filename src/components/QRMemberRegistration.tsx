@@ -24,7 +24,7 @@ const QRMemberRegistration = () => {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [shopName, setShopName] = useState('ร้านกาแฟแสนดี');
+  const [shopName, setShopName] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,11 +33,20 @@ const QRMemberRegistration = () => {
 
   const fetchShopSettings = async () => {
     try {
-      const { data, error } = await supabase
+      // Try to get shop_id from URL params for public registration page
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlShopId = urlParams.get('shop_id');
+      
+      let query = supabase
         .from('shop_settings')
         .select('shop_name')
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      
+      if (urlShopId) {
+        query = query.eq('shop_id', urlShopId);
+      }
+      
+      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error('Error fetching shop settings:', error);

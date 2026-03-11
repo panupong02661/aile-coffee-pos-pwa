@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
 import QRCode from 'qrcode';
@@ -74,10 +75,13 @@ const ReceiptPreview = ({
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
   const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(propWifiVoucher || null);
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchSettings();
-  }, [totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
+    if (!shopLoading && shopId) {
+      fetchSettings();
+    }
+  }, [shopId, shopLoading, totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
 
   useEffect(() => {
     // Update wifi voucher if prop changes
@@ -88,19 +92,21 @@ const ReceiptPreview = ({
 
   const fetchSettings = async () => {
     try {
-      // Fetch shop settings
+      // Fetch shop settings filtered by shop_id
       const { data: shopData } = await supabase
         .from('shop_settings')
         .select('*')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // Fetch receipt settings
+      // Fetch receipt settings filtered by shop_id
       const { data: receiptData } = await supabase
         .from('receipt_settings')
         .select('*')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       // WiFi voucher จะถูกส่งมาจาก prop เท่านั้น ไม่ fetch ใหม่
       // เพื่อให้แสดง voucher ที่ถูกต้องตาม price tier และสถานะที่ใช้ไปแล้ว

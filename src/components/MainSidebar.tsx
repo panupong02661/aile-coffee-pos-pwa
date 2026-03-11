@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import {
   BarChart3,
   Calculator,
@@ -193,6 +194,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const { hasPermission } = useUserPermissions();
+  const { currentShop } = useCurrentShop();
 
   // Filter menu groups based on user permissions
   const filteredMenuGroups = useMemo(() => {
@@ -258,7 +260,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
             {!collapsed && (
               <h2 className="text-lg font-semibold text-foreground truncate">
-                Aile Coffee
+                {currentShop?.shop_name || 'POS System'}
               </h2>
             )}
             <Button

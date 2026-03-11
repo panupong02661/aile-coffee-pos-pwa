@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useToast } from '@/hooks/use-toast';
 import { Wifi, Plus, Trash2, Download, Upload, Printer, Menu, RotateCcw, Clock } from 'lucide-react';
 import { z } from 'zod';
@@ -97,20 +98,25 @@ const WiFiVouchers = () => {
   const [newTierDurationHours, setNewTierDurationHours] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    fetchVouchers();
-    fetchShopSettings();
-    fetchResetSchedule();
-    fetchPriceTiers();
-  }, []);
+    if (!shopLoading && shopId) {
+      fetchVouchers();
+      fetchShopSettings();
+      fetchResetSchedule();
+      fetchPriceTiers();
+    }
+  }, [shopId, shopLoading]);
 
   const fetchShopSettings = async () => {
+    if (!shopId) return;
     const { data } = await supabase
       .from('shop_settings')
       .select('shop_name, wifi_header_text, wifi_footer_text')
+      .eq('shop_id', shopId)
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (data) {
       if (data.shop_name) {
@@ -666,8 +672,9 @@ const WiFiVouchers = () => {
       const { data: existing } = await supabase
         .from('shop_settings')
         .select('id')
+        .eq('shop_id', shopId!)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { error } = await supabase

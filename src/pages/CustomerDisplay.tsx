@@ -52,15 +52,23 @@ const CustomerDisplay = () => {
           setShopLogo(phoneData.logo_url);
         }
 
-        // Get shop name
-        const { data: shopData } = await supabase
+        // Get shop name - use URL param shop_id or fallback
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlShopId = urlParams.get('shop_id');
+        
+        let shopQuery = supabase
           .from('shop_settings')
           .select('shop_name, logo_url')
-          .limit(1)
-          .single();
+          .limit(1);
+        
+        if (urlShopId) {
+          shopQuery = shopQuery.eq('shop_id', urlShopId);
+        }
+        
+        const { data: shopData } = await shopQuery.maybeSingle();
 
         if (shopData) {
-          setShopName(shopData.shop_name || 'ร้านค้า');
+          setShopName(shopData.shop_name || '');
           if (!phoneData?.logo_url && shopData.logo_url) {
             setShopLogo(shopData.logo_url);
           }

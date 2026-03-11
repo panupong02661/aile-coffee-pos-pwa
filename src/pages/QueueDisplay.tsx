@@ -191,7 +191,7 @@ const QueueDisplay = () => {
         <div className="flex justify-between items-center text-xs text-slate-600 max-w-7xl mx-auto">
           <div className="flex items-center gap-1.5">
             <Utensils className="w-3 h-3" />
-            <span>Aile Coffee POS — Queue System</span>
+            <span>POS — Queue System</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />

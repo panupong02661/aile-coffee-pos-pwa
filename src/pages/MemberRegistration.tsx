@@ -4,7 +4,7 @@ import QRMemberRegistration from '@/components/QRMemberRegistration';
 import { supabase } from '@/integrations/supabase/client';
 
 const MemberRegistration = () => {
-  const [shopName, setShopName] = useState('ร้านกาแฟแสนดี');
+  const [shopName, setShopName] = useState('');
 
   useEffect(() => {
     fetchShopSettings();
@@ -12,11 +12,19 @@ const MemberRegistration = () => {
 
   const fetchShopSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlShopId = urlParams.get('shop_id');
+      
+      let query = supabase
         .from('shop_settings')
         .select('shop_name')
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      
+      if (urlShopId) {
+        query = query.eq('shop_id', urlShopId);
+      }
+      
+      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error('Error fetching shop settings:', error);
