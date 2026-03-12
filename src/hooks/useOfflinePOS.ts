@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { useAuth } from '@/hooks/useAuth';
 
 // Types for offline data
 interface OfflineMenuItem {
@@ -61,6 +63,7 @@ interface OfflineOrder {
   bill_discount_type?: string;
   created_at: string;
   synced: boolean;
+  shop_id: string;
 }
 
 interface OfflineData {
@@ -73,32 +76,39 @@ interface OfflineData {
   orders: OfflineOrder[];
   lastSync: string;
   version: number;
+  shopId: string;
+  userId: string;
 }
 
-const OFFLINE_DATA_KEY = 'pos_offline_data';
-const OFFLINE_ORDERS_KEY = 'pos_offline_orders';
+const OFFLINE_DATA_KEY_BASE = 'pos_offline_data';
+const OFFLINE_ORDERS_KEY_BASE = 'pos_offline_orders';
 const DATA_VERSION = 1;
 
+const buildScopedKey = (baseKey: string, userId: string | null, shopId: string | null) => {
+  return `${baseKey}:${userId || 'guest'}:${shopId || 'no-shop'}`;
+};
+
 // Capacitor Preferences helpers for native app compatibility
-const getStoredData = async (): Promise<OfflineData | null> => {
+const getStoredData = async (key: string): Promise<OfflineData | null> => {
   try {
-    const { value } = await Preferences.get({ key: OFFLINE_DATA_KEY });
+    const { value } = await Preferences.get({ key });
     if (value) {
-      console.log('📱 Loaded offline data from Capacitor Preferences');
+      console.log('📱 Loaded offline data from Capacitor Preferences', key);
       return JSON.parse(value);
     }
+
     // Fallback to localStorage for web
-    const localData = localStorage.getItem(OFFLINE_DATA_KEY);
+    const localData = localStorage.getItem(key);
     if (localData) {
-      console.log('🌐 Loaded offline data from localStorage');
+      console.log('🌐 Loaded offline data from localStorage', key);
       return JSON.parse(localData);
     }
+
     return null;
   } catch (e) {
     console.error('Error reading offline data:', e);
-    // Try localStorage as fallback
     try {
-      const localData = localStorage.getItem(OFFLINE_DATA_KEY);
+      const localData = localStorage.getItem(key);
       return localData ? JSON.parse(localData) : null;
     } catch {
       return null;
@@ -106,37 +116,35 @@ const getStoredData = async (): Promise<OfflineData | null> => {
   }
 };
 
-const setStoredData = async (data: OfflineData): Promise<void> => {
+const setStoredData = async (key: string, data: OfflineData): Promise<void> => {
   try {
     const jsonData = JSON.stringify(data);
-    // Save to both Capacitor Preferences and localStorage for maximum compatibility
-    await Preferences.set({ key: OFFLINE_DATA_KEY, value: jsonData });
-    localStorage.setItem(OFFLINE_DATA_KEY, jsonData);
-    console.log('💾 Saved offline data to storage');
+    await Preferences.set({ key, value: jsonData });
+    localStorage.setItem(key, jsonData);
+    console.log('💾 Saved offline data to storage', key);
   } catch (e) {
     console.error('Error saving offline data:', e);
-    // Try localStorage only as fallback
     try {
-      localStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(data));
+      localStorage.setItem(key, JSON.stringify(data));
     } catch (e2) {
       console.error('Failed to save offline data:', e2);
     }
   }
 };
 
-const getStoredOrders = async (): Promise<OfflineOrder[]> => {
+const getStoredOrders = async (key: string): Promise<OfflineOrder[]> => {
   try {
-    const { value } = await Preferences.get({ key: OFFLINE_ORDERS_KEY });
+    const { value } = await Preferences.get({ key });
     if (value) {
       return JSON.parse(value);
     }
-    // Fallback to localStorage
-    const localData = localStorage.getItem(OFFLINE_ORDERS_KEY);
+
+    const localData = localStorage.getItem(key);
     return localData ? JSON.parse(localData) : [];
   } catch (e) {
     console.error('Error reading offline orders:', e);
     try {
-      const localData = localStorage.getItem(OFFLINE_ORDERS_KEY);
+      const localData = localStorage.getItem(key);
       return localData ? JSON.parse(localData) : [];
     } catch {
       return [];
@@ -144,15 +152,15 @@ const getStoredOrders = async (): Promise<OfflineOrder[]> => {
   }
 };
 
-const setStoredOrders = async (orders: OfflineOrder[]): Promise<void> => {
+const setStoredOrders = async (key: string, orders: OfflineOrder[]): Promise<void> => {
   try {
     const jsonData = JSON.stringify(orders);
-    await Preferences.set({ key: OFFLINE_ORDERS_KEY, value: jsonData });
-    localStorage.setItem(OFFLINE_ORDERS_KEY, jsonData);
+    await Preferences.set({ key, value: jsonData });
+    localStorage.setItem(key, jsonData);
   } catch (e) {
     console.error('Error saving offline orders:', e);
     try {
-      localStorage.setItem(OFFLINE_ORDERS_KEY, JSON.stringify(orders));
+      localStorage.setItem(key, JSON.stringify(orders));
     } catch {
       // Silent fail
     }
