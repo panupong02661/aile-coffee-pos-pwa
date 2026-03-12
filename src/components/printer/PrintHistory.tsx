@@ -39,7 +39,7 @@ const PrintHistory = () => {
   );
 
   const loadHistory = () => {
-    const logs = getPrintHistory();
+    const logs = getPrintHistory({ userId: user?.id, shopId });
     const mapped: PrintHistoryItem[] = (logs || []).map((log: any, index: number) => ({
       id: `${log.orderId || log.orderNumber || index}`,
       document_type: 'ใบเสร็จ',

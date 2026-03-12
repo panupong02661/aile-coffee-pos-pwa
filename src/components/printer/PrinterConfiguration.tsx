@@ -83,12 +83,15 @@ const PrinterConfiguration = () => {
   const onSubmit = async (data: PrinterConfigForm) => {
     setLoading(true);
     try {
-      savePrinterConfig({
-        ip_address: data.ip_address,
-        port: data.port,
-        paper_width: data.paper_width,
-        auto_cut: data.auto_cut
-      });
+      savePrinterConfig(
+        {
+          ip_address: data.ip_address,
+          port: data.port,
+          paper_width: data.paper_width,
+          auto_cut: data.auto_cut,
+        },
+        { userId: user?.id, shopId }
+      );
 
       localStorage.setItem(formStorageKey, JSON.stringify(data));
 

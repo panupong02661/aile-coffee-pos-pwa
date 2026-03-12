@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { buildScopedStorageKey } from '@/utils/storageScope';
+import { buildScopedStorageKey, type StorageScopeOverride } from '@/utils/storageScope';
 
 interface PrinterConfig {
   ip_address: string;
