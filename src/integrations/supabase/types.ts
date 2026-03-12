@@ -23,6 +23,7 @@ export type Database = {
           ip_address: unknown
           resource_id: string | null
           resource_type: string | null
+          shop_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -33,6 +34,7 @@ export type Database = {
           ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
+          shop_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -43,9 +45,18 @@ export type Database = {
           ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
+          shop_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_activity_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       addon_groups: {
         Row: {
@@ -163,6 +174,7 @@ export type Database = {
           is_active: boolean | null
           last_sync: string | null
           name: string
+          shop_id: string | null
           type: string
           updated_at: string | null
         }
@@ -176,6 +188,7 @@ export type Database = {
           is_active?: boolean | null
           last_sync?: string | null
           name: string
+          shop_id?: string | null
           type: string
           updated_at?: string | null
         }
@@ -189,10 +202,19 @@ export type Database = {
           is_active?: boolean | null
           last_sync?: string | null
           name?: string
+          shop_id?: string | null
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_api_integrations_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       areas: {
         Row: {
@@ -201,6 +223,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          shop_id: string | null
           sort_order: number
           updated_at: string
         }
@@ -210,6 +233,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -219,10 +243,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_areas_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bulk_discounts: {
         Row: {
@@ -233,6 +266,7 @@ export type Database = {
           is_active: boolean | null
           menu_item_id: string | null
           min_quantity: number
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -242,6 +276,7 @@ export type Database = {
           is_active?: boolean | null
           menu_item_id?: string | null
           min_quantity: number
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -251,6 +286,7 @@ export type Database = {
           is_active?: boolean | null
           menu_item_id?: string | null
           min_quantity?: number
+          shop_id?: string | null
         }
         Relationships: [
           {
@@ -258,6 +294,13 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bulk_discounts_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -283,6 +326,7 @@ export type Database = {
           mobile: string | null
           phone: string | null
           registered_address: string | null
+          shop_id: string | null
           social_security: string | null
           tax_id: string | null
           timezone: string | null
@@ -310,6 +354,7 @@ export type Database = {
           mobile?: string | null
           phone?: string | null
           registered_address?: string | null
+          shop_id?: string | null
           social_security?: string | null
           tax_id?: string | null
           timezone?: string | null
@@ -337,6 +382,7 @@ export type Database = {
           mobile?: string | null
           phone?: string | null
           registered_address?: string | null
+          shop_id?: string | null
           social_security?: string | null
           tax_id?: string | null
           timezone?: string | null
@@ -344,7 +390,15 @@ export type Database = {
           vat_registration?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_business_settings_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cancelled_orders: {
         Row: {
@@ -407,21 +461,32 @@ export type Database = {
           cart_data: Json
           created_at: string
           id: string
+          shop_id: string | null
           updated_at: string
         }
         Insert: {
           cart_data?: Json
           created_at?: string
           id?: string
+          shop_id?: string | null
           updated_at?: string
         }
         Update: {
           cart_data?: Json
           created_at?: string
           id?: string
+          shop_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_cart_display_sync_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categories: {
         Row: {
@@ -470,18 +535,21 @@ export type Database = {
           category_id: string | null
           created_at: string
           id: string
+          shop_id: string | null
         }
         Insert: {
           addon_group_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
+          shop_id?: string | null
         }
         Update: {
           addon_group_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
+          shop_id?: string | null
         }
         Relationships: [
           {
@@ -512,6 +580,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_category_addon_groups_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       coupon_usage: {
@@ -522,6 +597,7 @@ export type Database = {
           discount_amount: number | null
           id: string
           order_id: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -531,6 +607,7 @@ export type Database = {
           discount_amount?: number | null
           id?: string
           order_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -540,6 +617,7 @@ export type Database = {
           discount_amount?: number | null
           id?: string
           order_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
@@ -562,6 +640,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_coupon_usage_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -637,6 +722,7 @@ export type Database = {
           is_active: boolean | null
           member_id: string | null
           payment_terms: number | null
+          shop_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -647,6 +733,7 @@ export type Database = {
           is_active?: boolean | null
           member_id?: string | null
           payment_terms?: number | null
+          shop_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -657,6 +744,7 @@ export type Database = {
           is_active?: boolean | null
           member_id?: string | null
           payment_terms?: number | null
+          shop_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -665,6 +753,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_credit_customers_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -680,6 +775,7 @@ export type Database = {
           order_id: string | null
           paid_amount: number | null
           paid_date: string | null
+          shop_id: string | null
           status: string | null
           updated_at: string | null
         }
@@ -693,6 +789,7 @@ export type Database = {
           order_id?: string | null
           paid_amount?: number | null
           paid_date?: string | null
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -706,6 +803,7 @@ export type Database = {
           order_id?: string | null
           paid_amount?: number | null
           paid_date?: string | null
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -724,6 +822,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_credit_sales_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_coupons: {
@@ -733,6 +838,7 @@ export type Database = {
           id: string
           is_used: boolean | null
           received_at: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -741,6 +847,7 @@ export type Database = {
           id?: string
           is_used?: boolean | null
           received_at?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -749,6 +856,7 @@ export type Database = {
           id?: string
           is_used?: boolean | null
           received_at?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
@@ -764,6 +872,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_coupons_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -783,6 +898,7 @@ export type Database = {
           is_used: boolean
           message: string | null
           sent_by: string | null
+          shop_id: string | null
           updated_at: string
           used_at: string | null
         }
@@ -800,6 +916,7 @@ export type Database = {
           is_used?: boolean
           message?: string | null
           sent_by?: string | null
+          shop_id?: string | null
           updated_at?: string
           used_at?: string | null
         }
@@ -817,6 +934,7 @@ export type Database = {
           is_used?: boolean
           message?: string | null
           sent_by?: string | null
+          shop_id?: string | null
           updated_at?: string
           used_at?: string | null
         }
@@ -835,6 +953,13 @@ export type Database = {
             referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_gifts_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_mobile_sessions: {
@@ -847,6 +972,7 @@ export type Database = {
           id: string
           last_active: string | null
           session_token: string
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -857,6 +983,7 @@ export type Database = {
           id?: string
           last_active?: string | null
           session_token: string
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -867,6 +994,7 @@ export type Database = {
           id?: string
           last_active?: string | null
           session_token?: string
+          shop_id?: string | null
         }
         Relationships: [
           {
@@ -874,6 +1002,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_mobile_sessions_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -892,6 +1027,7 @@ export type Database = {
           order_status: string | null
           payment_method: string | null
           payment_status: string | null
+          shop_id: string | null
           subtotal: number
           total_amount: number
           updated_at: string | null
@@ -909,6 +1045,7 @@ export type Database = {
           order_status?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shop_id?: string | null
           subtotal?: number
           total_amount?: number
           updated_at?: string | null
@@ -926,6 +1063,7 @@ export type Database = {
           order_status?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shop_id?: string | null
           subtotal?: number
           total_amount?: number
           updated_at?: string | null
@@ -936,6 +1074,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customer_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_orders_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -955,6 +1100,7 @@ export type Database = {
           prize_type: string
           prize_value: number
           reward_expires_at: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -971,6 +1117,7 @@ export type Database = {
           prize_type: string
           prize_value?: number
           reward_expires_at?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -987,6 +1134,7 @@ export type Database = {
           prize_type?: string
           prize_value?: number
           reward_expires_at?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
@@ -1011,6 +1159,13 @@ export type Database = {
             referencedRelation: "festival_prizes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_prize_claims_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_profiles: {
@@ -1023,6 +1178,7 @@ export type Database = {
           phone: string
           points: number | null
           reward_points: number | null
+          shop_id: string | null
           tier: string | null
           total_spent: number | null
           updated_at: string | null
@@ -1037,6 +1193,7 @@ export type Database = {
           phone: string
           points?: number | null
           reward_points?: number | null
+          shop_id?: string | null
           tier?: string | null
           total_spent?: number | null
           updated_at?: string | null
@@ -1051,12 +1208,21 @@ export type Database = {
           phone?: string
           points?: number | null
           reward_points?: number | null
+          shop_id?: string | null
           tier?: string | null
           total_spent?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_customer_profiles_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_promotion_claims: {
         Row: {
@@ -1066,6 +1232,7 @@ export type Database = {
           is_used: boolean | null
           order_id: string | null
           promotion_id: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -1075,6 +1242,7 @@ export type Database = {
           is_used?: boolean | null
           order_id?: string | null
           promotion_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -1084,6 +1252,7 @@ export type Database = {
           is_used?: boolean | null
           order_id?: string | null
           promotion_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
@@ -1092,6 +1261,13 @@ export type Database = {
             columns: ["promotion_id"]
             isOneToOne: false
             referencedRelation: "limited_promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_promotion_claims_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -1103,6 +1279,7 @@ export type Database = {
           is_used: boolean | null
           redeemed_at: string | null
           reward_id: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -1111,6 +1288,7 @@ export type Database = {
           is_used?: boolean | null
           redeemed_at?: string | null
           reward_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -1119,6 +1297,7 @@ export type Database = {
           is_used?: boolean | null
           redeemed_at?: string | null
           reward_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
@@ -1136,6 +1315,13 @@ export type Database = {
             referencedRelation: "rewards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_rewards_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_stamp_cards: {
@@ -1146,6 +1332,7 @@ export type Database = {
           customer_id: string
           id: string
           is_completed: boolean
+          shop_id: string | null
           stamp_card_id: string
           updated_at: string
         }
@@ -1156,6 +1343,7 @@ export type Database = {
           customer_id: string
           id?: string
           is_completed?: boolean
+          shop_id?: string | null
           stamp_card_id: string
           updated_at?: string
         }
@@ -1166,6 +1354,7 @@ export type Database = {
           customer_id?: string
           id?: string
           is_completed?: boolean
+          shop_id?: string | null
           stamp_card_id?: string
           updated_at?: string
         }
@@ -1184,6 +1373,13 @@ export type Database = {
             referencedRelation: "stamp_cards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_stamp_cards_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customer_stamps: {
@@ -1192,6 +1388,7 @@ export type Database = {
           id: string
           order_amount: number
           order_id: string | null
+          shop_id: string | null
           stamp_number: number
           stamped_at: string
         }
@@ -1200,6 +1397,7 @@ export type Database = {
           id?: string
           order_amount?: number
           order_id?: string | null
+          shop_id?: string | null
           stamp_number: number
           stamped_at?: string
         }
@@ -1208,6 +1406,7 @@ export type Database = {
           id?: string
           order_amount?: number
           order_id?: string | null
+          shop_id?: string | null
           stamp_number?: number
           stamped_at?: string
         }
@@ -1217,6 +1416,13 @@ export type Database = {
             columns: ["customer_stamp_card_id"]
             isOneToOne: false
             referencedRelation: "customer_stamp_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_customer_stamps_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -1232,6 +1438,7 @@ export type Database = {
           payment_method: string | null
           points_change: number | null
           reference_number: string | null
+          shop_id: string | null
           transaction_status: string | null
           transaction_type: string
         }
@@ -1245,6 +1452,7 @@ export type Database = {
           payment_method?: string | null
           points_change?: number | null
           reference_number?: string | null
+          shop_id?: string | null
           transaction_status?: string | null
           transaction_type: string
         }
@@ -1258,6 +1466,7 @@ export type Database = {
           payment_method?: string | null
           points_change?: number | null
           reference_number?: string | null
+          shop_id?: string | null
           transaction_status?: string | null
           transaction_type?: string
         }
@@ -1276,6 +1485,13 @@ export type Database = {
             referencedRelation: "customer_orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_customer_transactions_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_assignments: {
@@ -1290,6 +1506,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           pickup_time: string | null
+          shop_id: string | null
           status: string | null
           updated_at: string | null
         }
@@ -1304,6 +1521,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           pickup_time?: string | null
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -1318,6 +1536,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           pickup_time?: string | null
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -1336,6 +1555,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_delivery_assignments_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_drivers: {
@@ -1346,6 +1572,7 @@ export type Database = {
           license_number: string | null
           name: string
           phone: string
+          shop_id: string | null
           status: string | null
           updated_at: string | null
           vehicle_number: string | null
@@ -1358,6 +1585,7 @@ export type Database = {
           license_number?: string | null
           name: string
           phone: string
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
           vehicle_number?: string | null
@@ -1370,12 +1598,21 @@ export type Database = {
           license_number?: string | null
           name?: string
           phone?: string
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
           vehicle_number?: string | null
           vehicle_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_delivery_drivers_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_integrations: {
         Row: {
@@ -1389,6 +1626,7 @@ export type Database = {
           is_enabled: boolean | null
           last_sync_at: string | null
           platform_name: string
+          shop_id: string | null
           updated_at: string
           webhook_url: string | null
         }
@@ -1403,6 +1641,7 @@ export type Database = {
           is_enabled?: boolean | null
           last_sync_at?: string | null
           platform_name: string
+          shop_id?: string | null
           updated_at?: string
           webhook_url?: string | null
         }
@@ -1417,10 +1656,19 @@ export type Database = {
           is_enabled?: boolean | null
           last_sync_at?: string | null
           platform_name?: string
+          shop_id?: string | null
           updated_at?: string
           webhook_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_delivery_integrations_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_orders: {
         Row: {
@@ -1435,6 +1683,7 @@ export type Database = {
           order_status: string | null
           platform_name: string
           platform_order_id: string
+          shop_id: string | null
           synced_at: string | null
           total_amount: number | null
           updated_at: string
@@ -1451,6 +1700,7 @@ export type Database = {
           order_status?: string | null
           platform_name: string
           platform_order_id: string
+          shop_id?: string | null
           synced_at?: string | null
           total_amount?: number | null
           updated_at?: string
@@ -1467,11 +1717,20 @@ export type Database = {
           order_status?: string | null
           platform_name?: string
           platform_order_id?: string
+          shop_id?: string | null
           synced_at?: string | null
           total_amount?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_delivery_orders_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_sync_logs: {
         Row: {
@@ -1480,6 +1739,7 @@ export type Database = {
           id: string
           orders_synced: number | null
           platform_name: string
+          shop_id: string | null
           status: string
           sync_duration_ms: number | null
           sync_type: string
@@ -1490,6 +1750,7 @@ export type Database = {
           id?: string
           orders_synced?: number | null
           platform_name: string
+          shop_id?: string | null
           status: string
           sync_duration_ms?: number | null
           sync_type: string
@@ -1500,11 +1761,20 @@ export type Database = {
           id?: string
           orders_synced?: number | null
           platform_name?: string
+          shop_id?: string | null
           status?: string
           sync_duration_ms?: number | null
           sync_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_delivery_sync_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_tracking: {
         Row: {
@@ -1616,6 +1886,7 @@ export type Database = {
           id: string
           loyalty_mode: string
           push_notifications_enabled: boolean
+          shop_id: string | null
           spin_wheel_enabled: boolean
           stamp_card_enabled: boolean
           tier_rewards_enabled: boolean
@@ -1630,6 +1901,7 @@ export type Database = {
           id?: string
           loyalty_mode?: string
           push_notifications_enabled?: boolean
+          shop_id?: string | null
           spin_wheel_enabled?: boolean
           stamp_card_enabled?: boolean
           tier_rewards_enabled?: boolean
@@ -1644,12 +1916,21 @@ export type Database = {
           id?: string
           loyalty_mode?: string
           push_notifications_enabled?: boolean
+          shop_id?: string | null
           spin_wheel_enabled?: boolean
           stamp_card_enabled?: boolean
           tier_rewards_enabled?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_engagement_settings_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       error_logs: {
         Row: {
@@ -1657,6 +1938,7 @@ export type Database = {
           error_message: string
           error_type: string
           id: string
+          shop_id: string | null
           stack_trace: string | null
           url: string | null
           user_agent: string | null
@@ -1667,6 +1949,7 @@ export type Database = {
           error_message: string
           error_type: string
           id?: string
+          shop_id?: string | null
           stack_trace?: string | null
           url?: string | null
           user_agent?: string | null
@@ -1677,12 +1960,21 @@ export type Database = {
           error_message?: string
           error_type?: string
           id?: string
+          shop_id?: string | null
           stack_trace?: string | null
           url?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_error_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expense_categories: {
         Row: {
@@ -1793,6 +2085,7 @@ export type Database = {
           max_claims_per_customer: number | null
           min_tier: string | null
           name: string
+          shop_id: string | null
           start_date: string
           theme_color: string | null
           theme_secondary_color: string | null
@@ -1811,6 +2104,7 @@ export type Database = {
           max_claims_per_customer?: number | null
           min_tier?: string | null
           name: string
+          shop_id?: string | null
           start_date: string
           theme_color?: string | null
           theme_secondary_color?: string | null
@@ -1829,12 +2123,21 @@ export type Database = {
           max_claims_per_customer?: number | null
           min_tier?: string | null
           name?: string
+          shop_id?: string | null
           start_date?: string
           theme_color?: string | null
           theme_secondary_color?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_festival_events_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       festival_prizes: {
         Row: {
@@ -1851,6 +2154,7 @@ export type Database = {
           prize_type: string
           prize_value: number
           probability_weight: number
+          shop_id: string | null
           total_quantity: number | null
           updated_at: string
         }
@@ -1868,6 +2172,7 @@ export type Database = {
           prize_type?: string
           prize_value?: number
           probability_weight?: number
+          shop_id?: string | null
           total_quantity?: number | null
           updated_at?: string
         }
@@ -1885,6 +2190,7 @@ export type Database = {
           prize_type?: string
           prize_value?: number
           probability_weight?: number
+          shop_id?: string | null
           total_quantity?: number | null
           updated_at?: string
         }
@@ -1903,6 +2209,13 @@ export type Database = {
             referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_festival_prizes_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       festival_themes: {
@@ -1918,6 +2231,7 @@ export type Database = {
           name: string
           primary_color: string
           secondary_color: string
+          shop_id: string | null
           start_date: string | null
           updated_at: string
         }
@@ -1933,6 +2247,7 @@ export type Database = {
           name: string
           primary_color?: string
           secondary_color?: string
+          shop_id?: string | null
           start_date?: string | null
           updated_at?: string
         }
@@ -1948,10 +2263,19 @@ export type Database = {
           name?: string
           primary_color?: string
           secondary_color?: string
+          shop_id?: string | null
           start_date?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_festival_themes_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gift_usage_history: {
         Row: {
@@ -1960,6 +2284,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string | null
+          shop_id: string | null
           used_amount: number | null
           used_at: string
         }
@@ -1969,6 +2294,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          shop_id?: string | null
           used_amount?: number | null
           used_at?: string
         }
@@ -1978,10 +2304,18 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          shop_id?: string | null
           used_amount?: number | null
           used_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_gift_usage_history_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gift_usage_history_customer_gift_id_fkey"
             columns: ["customer_gift_id"]
@@ -2004,6 +2338,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          shop_id: string | null
           sort_order: number
           updated_at: string
           value: string
@@ -2013,6 +2348,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
           value: string
@@ -2022,11 +2358,20 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          shop_id?: string | null
           sort_order?: number
           updated_at?: string
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_ingredient_categories_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ingredients: {
         Row: {
@@ -2117,6 +2462,7 @@ export type Database = {
           is_default: boolean | null
           language_code: string
           language_name: string
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2125,6 +2471,7 @@ export type Database = {
           is_default?: boolean | null
           language_code: string
           language_name: string
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2133,8 +2480,17 @@ export type Database = {
           is_default?: boolean | null
           language_code?: string
           language_name?: string
+          shop_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_language_settings_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       limited_promotions: {
         Row: {
@@ -2149,6 +2505,7 @@ export type Database = {
           max_claims: number
           min_purchase: number | null
           promo_code: string | null
+          shop_id: string | null
           start_date: string
           title: string
           updated_at: string | null
@@ -2165,6 +2522,7 @@ export type Database = {
           max_claims?: number
           min_purchase?: number | null
           promo_code?: string | null
+          shop_id?: string | null
           start_date: string
           title: string
           updated_at?: string | null
@@ -2181,11 +2539,20 @@ export type Database = {
           max_claims?: number
           min_purchase?: number | null
           promo_code?: string | null
+          shop_id?: string | null
           start_date?: string
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_limited_promotions_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       limited_reward_claims: {
         Row: {
@@ -2194,6 +2561,7 @@ export type Database = {
           id: string
           is_used: boolean | null
           limited_reward_id: string | null
+          shop_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -2202,6 +2570,7 @@ export type Database = {
           id?: string
           is_used?: boolean | null
           limited_reward_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -2210,9 +2579,17 @@ export type Database = {
           id?: string
           is_used?: boolean | null
           limited_reward_id?: string | null
+          shop_id?: string | null
           used_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_limited_reward_claims_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "limited_reward_claims_customer_id_fkey"
             columns: ["customer_id"]
@@ -2244,6 +2621,7 @@ export type Database = {
           name: string
           reward_code: string | null
           reward_type: string
+          shop_id: string | null
           start_date: string
           target_month: number | null
           updated_at: string | null
@@ -2262,6 +2640,7 @@ export type Database = {
           name: string
           reward_code?: string | null
           reward_type?: string
+          shop_id?: string | null
           start_date: string
           target_month?: number | null
           updated_at?: string | null
@@ -2280,11 +2659,20 @@ export type Database = {
           name?: string
           reward_code?: string | null
           reward_type?: string
+          shop_id?: string | null
           start_date?: string
           target_month?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_limited_rewards_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lottery: {
         Row: {
@@ -2294,6 +2682,7 @@ export type Database = {
           selected_count: number
           selected_numbers: number[]
           session_name: string | null
+          shop_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2303,6 +2692,7 @@ export type Database = {
           selected_count?: number
           selected_numbers?: number[]
           session_name?: string | null
+          shop_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2312,9 +2702,18 @@ export type Database = {
           selected_count?: number
           selected_numbers?: number[]
           session_name?: string | null
+          shop_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_lottery_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       members: {
         Row: {
@@ -2384,6 +2783,7 @@ export type Database = {
           points_per_baht: number
           points_to_redeem: number
           redeem_value: number
+          shop_id: string | null
           tier: string
           updated_at: string
         }
@@ -2395,6 +2795,7 @@ export type Database = {
           points_per_baht?: number
           points_to_redeem?: number
           redeem_value?: number
+          shop_id?: string | null
           tier: string
           updated_at?: string
         }
@@ -2406,10 +2807,19 @@ export type Database = {
           points_per_baht?: number
           points_to_redeem?: number
           redeem_value?: number
+          shop_id?: string | null
           tier?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_membership_settings_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       menu_addon_groups: {
         Row: {
@@ -2417,18 +2827,21 @@ export type Database = {
           created_at: string
           id: string
           menu_item_id: string | null
+          shop_id: string | null
         }
         Insert: {
           addon_group_id?: string | null
           created_at?: string
           id?: string
           menu_item_id?: string | null
+          shop_id?: string | null
         }
         Update: {
           addon_group_id?: string | null
           created_at?: string
           id?: string
           menu_item_id?: string | null
+          shop_id?: string | null
         }
         Relationships: [
           {
@@ -2443,6 +2856,13 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_menu_addon_groups_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
           {
@@ -2468,6 +2888,7 @@ export type Database = {
           ingredient_id: string | null
           menu_item_id: string | null
           quantity_needed: number
+          shop_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2475,6 +2896,7 @@ export type Database = {
           ingredient_id?: string | null
           menu_item_id?: string | null
           quantity_needed?: number
+          shop_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2482,8 +2904,16 @@ export type Database = {
           ingredient_id?: string | null
           menu_item_id?: string | null
           quantity_needed?: number
+          shop_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_menu_ingredients_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_ingredients_ingredient_id_fkey"
             columns: ["ingredient_id"]
@@ -2572,18 +3002,29 @@ export type Database = {
           created_at: string
           event_key: string
           id: string
+          shop_id: string | null
         }
         Insert: {
           created_at?: string
           event_key: string
           id?: string
+          shop_id?: string | null
         }
         Update: {
           created_at?: string
           event_key?: string
           id?: string
+          shop_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_outbox_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_schedules: {
         Row: {
@@ -2597,6 +3038,7 @@ export type Database = {
           monthly_time: string
           platform: string
           report_types: string[]
+          shop_id: string | null
           updated_at: string
           webhook_url: string
         }
@@ -2611,6 +3053,7 @@ export type Database = {
           monthly_time?: string
           platform?: string
           report_types?: string[]
+          shop_id?: string | null
           updated_at?: string
           webhook_url: string
         }
@@ -2625,10 +3068,19 @@ export type Database = {
           monthly_time?: string
           platform?: string
           report_types?: string[]
+          shop_id?: string | null
           updated_at?: string
           webhook_url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_schedules_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {
@@ -2693,6 +3145,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2700,6 +3153,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2707,8 +3161,17 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          shop_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notification_sounds_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       offline_sync_queue: {
         Row: {
@@ -2718,6 +3181,7 @@ export type Database = {
           device_id: string
           id: string
           is_synced: boolean
+          shop_id: string | null
           synced_at: string | null
           table_name: string
         }
@@ -2728,6 +3192,7 @@ export type Database = {
           device_id: string
           id?: string
           is_synced?: boolean
+          shop_id?: string | null
           synced_at?: string | null
           table_name: string
         }
@@ -2738,10 +3203,19 @@ export type Database = {
           device_id?: string
           id?: string
           is_synced?: boolean
+          shop_id?: string | null
           synced_at?: string | null
           table_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_offline_sync_queue_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       online_orders: {
         Row: {
@@ -2824,6 +3298,7 @@ export type Database = {
           order_id: string
           order_item_id: string
           quantity: number
+          shop_id: string | null
           total_price: number
           unit_price: number
         }
@@ -2835,6 +3310,7 @@ export type Database = {
           order_id: string
           order_item_id: string
           quantity?: number
+          shop_id?: string | null
           total_price?: number
           unit_price?: number
         }
@@ -2846,6 +3322,7 @@ export type Database = {
           order_id?: string
           order_item_id?: string
           quantity?: number
+          shop_id?: string | null
           total_price?: number
           unit_price?: number
         }
@@ -2864,6 +3341,13 @@ export type Database = {
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_order_addons_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
         ]
       }
       order_items: {
@@ -2877,6 +3361,7 @@ export type Database = {
           order_id: string
           quantity: number
           selected_addons: Json | null
+          shop_id: string | null
           total_price: number
           unit_price: number
         }
@@ -2890,6 +3375,7 @@ export type Database = {
           order_id: string
           quantity?: number
           selected_addons?: Json | null
+          shop_id?: string | null
           total_price?: number
           unit_price?: number
         }
@@ -2903,10 +3389,18 @@ export type Database = {
           order_id?: string
           quantity?: number
           selected_addons?: Json | null
+          shop_id?: string | null
           total_price?: number
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_order_items_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_menu_item_id_fkey"
             columns: ["menu_item_id"]
@@ -3072,6 +3566,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          shop_id: string | null
           start_time: string
           updated_at: string | null
         }
@@ -3084,6 +3579,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          shop_id?: string | null
           start_time: string
           updated_at?: string | null
         }
@@ -3096,10 +3592,19 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          shop_id?: string | null
           start_time?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_price_schedules_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_reservations: {
         Row: {
@@ -3112,6 +3617,7 @@ export type Database = {
           pickup_time: string | null
           quantity: number
           reservation_date: string
+          shop_id: string | null
           status: string | null
           updated_at: string | null
         }
@@ -3125,6 +3631,7 @@ export type Database = {
           pickup_time?: string | null
           quantity: number
           reservation_date: string
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -3138,10 +3645,18 @@ export type Database = {
           pickup_time?: string | null
           quantity?: number
           reservation_date?: string
+          shop_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_product_reservations_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_reservations_customer_id_fkey"
             columns: ["customer_id"]
@@ -3164,20 +3679,30 @@ export type Database = {
           created_at: string | null
           id: string
           promotion_id: string | null
+          shop_id: string | null
         }
         Insert: {
           category_id?: string | null
           created_at?: string | null
           id?: string
           promotion_id?: string | null
+          shop_id?: string | null
         }
         Update: {
           category_id?: string | null
           created_at?: string | null
           id?: string
           promotion_id?: string | null
+          shop_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_promotion_categories_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "promotion_categories_category_id_fkey"
             columns: ["category_id"]
@@ -3200,20 +3725,30 @@ export type Database = {
           id: string
           menu_item_id: string | null
           promotion_id: string | null
+          shop_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           menu_item_id?: string | null
           promotion_id?: string | null
+          shop_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           menu_item_id?: string | null
           promotion_id?: string | null
+          shop_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_promotion_menu_items_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "promotion_menu_items_menu_item_id_fkey"
             columns: ["menu_item_id"]
@@ -3305,6 +3840,7 @@ export type Database = {
           purchase_order_id: string | null
           quantity_ordered: number
           quantity_received: number | null
+          shop_id: string | null
           total_cost: number
           unit_cost: number
         }
@@ -3317,6 +3853,7 @@ export type Database = {
           purchase_order_id?: string | null
           quantity_ordered: number
           quantity_received?: number | null
+          shop_id?: string | null
           total_cost: number
           unit_cost: number
         }
@@ -3329,10 +3866,18 @@ export type Database = {
           purchase_order_id?: string | null
           quantity_ordered?: number
           quantity_received?: number | null
+          shop_id?: string | null
           total_cost?: number
           unit_cost?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_purchase_order_items_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_order_items_ingredient_id_fkey"
             columns: ["ingredient_id"]
@@ -3359,6 +3904,7 @@ export type Database = {
           notes: string | null
           order_date: string
           order_number: string
+          shop_id: string | null
           status: string | null
           supplier_id: string
           total_amount: number | null
@@ -3373,6 +3919,7 @@ export type Database = {
           notes?: string | null
           order_date: string
           order_number: string
+          shop_id?: string | null
           status?: string | null
           supplier_id: string
           total_amount?: number | null
@@ -3387,12 +3934,20 @@ export type Database = {
           notes?: string | null
           order_date?: string
           order_number?: string
+          shop_id?: string | null
           status?: string | null
           supplier_id?: string
           total_amount?: number | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_purchase_orders_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_created_by_fkey"
             columns: ["created_by"]
@@ -3723,6 +4278,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           points_required: number
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -3732,6 +4288,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           points_required: number
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -3741,8 +4298,17 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           points_required?: number
+          shop_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_rewards_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_logs: {
         Row: {
@@ -3751,6 +4317,7 @@ export type Database = {
           event_type: string
           id: string
           ip_address: unknown
+          shop_id: string | null
           user_agent: string | null
           user_id: string | null
         }
@@ -3760,6 +4327,7 @@ export type Database = {
           event_type: string
           id?: string
           ip_address?: unknown
+          shop_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -3769,10 +4337,19 @@ export type Database = {
           event_type?: string
           id?: string
           ip_address?: unknown
+          shop_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_security_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shifts: {
         Row: {
@@ -3943,6 +4520,7 @@ export type Database = {
           message: string
           recipient_phone: string
           sent_at: string | null
+          shop_id: string | null
           status: string | null
         }
         Insert: {
@@ -3952,6 +4530,7 @@ export type Database = {
           message: string
           recipient_phone: string
           sent_at?: string | null
+          shop_id?: string | null
           status?: string | null
         }
         Update: {
@@ -3961,9 +4540,18 @@ export type Database = {
           message?: string
           recipient_phone?: string
           sent_at?: string | null
+          shop_id?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sms_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sms_settings: {
         Row: {
@@ -3973,6 +4561,7 @@ export type Database = {
           is_active: boolean | null
           provider: string
           sender_name: string | null
+          shop_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3982,6 +4571,7 @@ export type Database = {
           is_active?: boolean | null
           provider: string
           sender_name?: string | null
+          shop_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3991,9 +4581,18 @@ export type Database = {
           is_active?: boolean | null
           provider?: string
           sender_name?: string | null
+          shop_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sms_settings_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staff: {
         Row: {
@@ -4063,6 +4662,7 @@ export type Database = {
           reward_menu_item_id: string | null
           reward_type: string
           reward_value: number
+          shop_id: string | null
           stamp_card_id: string
           stamp_number: number
           updated_at: string
@@ -4075,6 +4675,7 @@ export type Database = {
           reward_menu_item_id?: string | null
           reward_type?: string
           reward_value?: number
+          shop_id?: string | null
           stamp_card_id: string
           stamp_number: number
           updated_at?: string
@@ -4087,11 +4688,19 @@ export type Database = {
           reward_menu_item_id?: string | null
           reward_type?: string
           reward_value?: number
+          shop_id?: string | null
           stamp_card_id?: string
           stamp_number?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stamp_card_milestones_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stamp_card_milestones_reward_menu_item_id_fkey"
             columns: ["reward_menu_item_id"]
@@ -4119,6 +4728,7 @@ export type Database = {
           is_active: boolean
           min_purchase_per_stamp: number
           name: string
+          shop_id: string | null
           start_date: string | null
           total_stamps: number
           updated_at: string
@@ -4133,6 +4743,7 @@ export type Database = {
           is_active?: boolean
           min_purchase_per_stamp?: number
           name: string
+          shop_id?: string | null
           start_date?: string | null
           total_stamps?: number
           updated_at?: string
@@ -4147,11 +4758,20 @@ export type Database = {
           is_active?: boolean
           min_purchase_per_stamp?: number
           name?: string
+          shop_id?: string | null
           start_date?: string | null
           total_stamps?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_stamp_cards_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {
@@ -4273,6 +4893,7 @@ export type Database = {
           id: string
           integration_id: string | null
           records_processed: number | null
+          shop_id: string | null
           status: string | null
           sync_data: Json | null
           sync_type: string
@@ -4283,6 +4904,7 @@ export type Database = {
           id?: string
           integration_id?: string | null
           records_processed?: number | null
+          shop_id?: string | null
           status?: string | null
           sync_data?: Json | null
           sync_type: string
@@ -4293,11 +4915,19 @@ export type Database = {
           id?: string
           integration_id?: string | null
           records_processed?: number | null
+          shop_id?: string | null
           status?: string | null
           sync_data?: Json | null
           sync_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_sync_logs_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sync_logs_integration_id_fkey"
             columns: ["integration_id"]
@@ -4314,6 +4944,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          shop_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -4321,6 +4952,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          shop_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -4328,8 +4960,17 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          shop_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_table_areas_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       table_orders: {
         Row: {
@@ -4340,6 +4981,7 @@ export type Database = {
           id: string
           member_id: string | null
           round_number: number
+          shop_id: string | null
           status: string
           table_id: string
           table_number: string
@@ -4353,6 +4995,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           round_number?: number
+          shop_id?: string | null
           status?: string
           table_id: string
           table_number: string
@@ -4366,12 +5009,20 @@ export type Database = {
           id?: string
           member_id?: string | null
           round_number?: number
+          shop_id?: string | null
           status?: string
           table_id?: string
           table_number?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_table_orders_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "table_orders_table_id_fkey"
             columns: ["table_id"]
@@ -4391,6 +5042,7 @@ export type Database = {
           party_size: number
           reservation_date: string
           reservation_time: string
+          shop_id: string | null
           status: string | null
           table_id: string | null
           updated_at: string | null
@@ -4404,6 +5056,7 @@ export type Database = {
           party_size: number
           reservation_date: string
           reservation_time: string
+          shop_id?: string | null
           status?: string | null
           table_id?: string | null
           updated_at?: string | null
@@ -4417,11 +5070,19 @@ export type Database = {
           party_size?: number
           reservation_date?: string
           reservation_time?: string
+          shop_id?: string | null
           status?: string | null
           table_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_table_reservations_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "table_reservations_table_id_fkey"
             columns: ["table_id"]
@@ -4440,6 +5101,7 @@ export type Database = {
           is_active: boolean | null
           position_x: number | null
           position_y: number | null
+          shop_id: string | null
           status: string | null
           table_number: string
           updated_at: string | null
@@ -4452,6 +5114,7 @@ export type Database = {
           is_active?: boolean | null
           position_x?: number | null
           position_y?: number | null
+          shop_id?: string | null
           status?: string | null
           table_number: string
           updated_at?: string | null
@@ -4464,6 +5127,7 @@ export type Database = {
           is_active?: boolean | null
           position_x?: number | null
           position_y?: number | null
+          shop_id?: string | null
           status?: string | null
           table_number?: string
           updated_at?: string | null
@@ -4474,6 +5138,13 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tables_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
           {
@@ -4547,6 +5218,7 @@ export type Database = {
           created_at: string | null
           id: string
           language_code: string
+          shop_id: string | null
           translation_key: string
           translation_value: string
           updated_at: string | null
@@ -4555,6 +5227,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_code: string
+          shop_id?: string | null
           translation_key: string
           translation_value: string
           updated_at?: string | null
@@ -4563,11 +5236,20 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_code?: string
+          shop_id?: string | null
           translation_key?: string
           translation_value?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_translations_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_permissions: {
         Row: {
@@ -4576,6 +5258,7 @@ export type Database = {
           id: string
           is_granted: boolean
           permission_key: string
+          shop_id: string | null
           updated_at: string
           user_id: string
         }
@@ -4585,6 +5268,7 @@ export type Database = {
           id?: string
           is_granted?: boolean
           permission_key: string
+          shop_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -4594,10 +5278,18 @@ export type Database = {
           id?: string
           is_granted?: boolean
           permission_key?: string
+          shop_id?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_user_permissions_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_permissions_granted_by_fkey"
             columns: ["granted_by"]
@@ -4668,6 +5360,7 @@ export type Database = {
           password_hash: string
           password_salt: string | null
           role: string
+          shop_id: string | null
           updated_at: string
           username: string
         }
@@ -4682,6 +5375,7 @@ export type Database = {
           password_hash: string
           password_salt?: string | null
           role?: string
+          shop_id?: string | null
           updated_at?: string
           username: string
         }
@@ -4696,10 +5390,19 @@ export type Database = {
           password_hash?: string
           password_salt?: string | null
           role?: string
+          shop_id?: string | null
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_users_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wifi_price_tiers: {
         Row: {
@@ -4709,6 +5412,7 @@ export type Database = {
           is_active: boolean
           max_amount: number
           min_amount: number
+          shop_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4718,6 +5422,7 @@ export type Database = {
           is_active?: boolean
           max_amount: number
           min_amount?: number
+          shop_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4727,9 +5432,18 @@ export type Database = {
           is_active?: boolean
           max_amount?: number
           min_amount?: number
+          shop_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_wifi_price_tiers_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wifi_reset_schedule: {
         Row: {
@@ -4739,6 +5453,7 @@ export type Database = {
           last_reset_at: string | null
           reset_days: string[] | null
           reset_time: string
+          shop_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -4748,6 +5463,7 @@ export type Database = {
           last_reset_at?: string | null
           reset_days?: string[] | null
           reset_time?: string
+          shop_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -4757,9 +5473,18 @@ export type Database = {
           last_reset_at?: string | null
           reset_days?: string[] | null
           reset_time?: string
+          shop_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_wifi_reset_schedule_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wifi_vouchers: {
         Row: {
@@ -4770,6 +5495,7 @@ export type Database = {
           order_id: string | null
           password: string
           qr_code_url: string | null
+          shop_id: string | null
           updated_at: string | null
           used_at: string | null
           username: string
@@ -4782,6 +5508,7 @@ export type Database = {
           order_id?: string | null
           password: string
           qr_code_url?: string | null
+          shop_id?: string | null
           updated_at?: string | null
           used_at?: string | null
           username: string
@@ -4794,11 +5521,20 @@ export type Database = {
           order_id?: string | null
           password?: string
           qr_code_url?: string | null
+          shop_id?: string | null
           updated_at?: string | null
           used_at?: string | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_wifi_vouchers_shop_id"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -4826,6 +5562,7 @@ export type Database = {
         Args: { reward_id: string; user_id: string }
         Returns: Json
       }
+      current_shop_id_from_header: { Args: never; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       get_active_promotions: {
         Args: never

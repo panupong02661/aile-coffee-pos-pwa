@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { buildScopedStorageKey } from '@/utils/storageScope';
+import { buildScopedStorageKey, type StorageScopeOverride } from '@/utils/storageScope';
 
 interface PrinterConfig {
   ip_address: string;
@@ -52,8 +52,8 @@ const ESC_POS_COMMANDS = {
 };
 
 // Get printer configuration from localStorage
-const getPrinterConfig = (): PrinterConfig => {
-  const configKey = buildScopedStorageKey('printerConfig');
+const getPrinterConfig = (override?: StorageScopeOverride): PrinterConfig => {
+  const configKey = buildScopedStorageKey('printerConfig', override);
   const config = localStorage.getItem(configKey);
 
   if (config) {
@@ -70,8 +70,8 @@ const getPrinterConfig = (): PrinterConfig => {
 };
 
 // Save printer configuration to localStorage
-export const savePrinterConfig = (config: PrinterConfig): void => {
-  const configKey = buildScopedStorageKey('printerConfig');
+export const savePrinterConfig = (config: PrinterConfig, override?: StorageScopeOverride): void => {
+  const configKey = buildScopedStorageKey('printerConfig', override);
   localStorage.setItem(configKey, JSON.stringify(config));
 };
 
@@ -497,7 +497,10 @@ const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success'
     shopId: activeShopId || null
   };
 
-  const printLogsKey = buildScopedStorageKey('printLogs');
+  const printLogsKey = buildScopedStorageKey('printLogs', {
+    userId: currentUser?.id || null,
+    shopId: activeShopId || null,
+  });
   const existingLogs = JSON.parse(localStorage.getItem(printLogsKey) || '[]');
   existingLogs.unshift(printLog);
 
@@ -509,7 +512,7 @@ const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success'
 };
 
 // Get print history
-export const getPrintHistory = () => {
-  const printLogsKey = buildScopedStorageKey('printLogs');
+export const getPrintHistory = (override?: StorageScopeOverride) => {
+  const printLogsKey = buildScopedStorageKey('printLogs', override);
   return JSON.parse(localStorage.getItem(printLogsKey) || '[]');
 };

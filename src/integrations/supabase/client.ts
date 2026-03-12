@@ -5,7 +5,97 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://mzvzbxflwvksohrmxbsy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16dnpieGZsd3Zrc29ocm14YnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MDU3NTksImV4cCI6MjA2NTI4MTc1OX0.h3nU_8JyrAaDI6NwxvnxTeb3kuiLpSSueuKcDOd33Jo";
 
+const EXCLUDED_TABLES = new Set(['shops']);
+
+const readScope = () => {
+  if (typeof window === 'undefined') {
+    return { userId: null as string | null, shopId: null as string | null };
+  }
+
+  let userId: string | null = null;
+  try {
+    const raw = localStorage.getItem('currentUser');
+    const parsed = raw ? JSON.parse(raw) : null;
+    userId = parsed?.id ?? null;
+  } catch {
+    userId = null;
+  }
+
+  const shopId = localStorage.getItem('active_shop_id');
+  return { userId, shopId };
+};
+
+const injectShopIdIntoBody = (body: BodyInit | null | undefined, shopId: string) => {
+  if (!body || typeof body !== 'string') return body;
+
+  try {
+    const parsed = JSON.parse(body);
+
+    if (Array.isArray(parsed)) {
+      return JSON.stringify(parsed.map((row) => ({ shop_id: row?.shop_id ?? shopId, ...row })));
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      return JSON.stringify({ shop_id: (parsed as Record<string, unknown>).shop_id ?? shopId, ...parsed });
+    }
+
+    return body;
+  } catch {
+    return body;
+  }
+};
+
+const scopedFetch: typeof fetch = async (input, init) => {
+  if (typeof window === 'undefined') {
+    return fetch(input, init);
+  }
+
+  const requestUrl = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+
+  if (!requestUrl.includes('/rest/v1/')) {
+    return fetch(input, init);
+  }
+
+  const url = new URL(requestUrl);
+  const pathAfterRest = url.pathname.split('/rest/v1/')[1] ?? '';
+  const tableName = decodeURIComponent(pathAfterRest.split('/')[0] ?? '').trim();
+
+  const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+  const { userId, shopId } = readScope();
+
+  if (userId) headers.set('x-user-id', userId);
+  if (shopId) headers.set('x-shop-id', shopId);
+
+  let body = init?.body;
+
+  if (shopId && tableName && !EXCLUDED_TABLES.has(tableName)) {
+    if (['GET', 'HEAD', 'PATCH', 'DELETE'].includes(method) && !url.searchParams.has('shop_id')) {
+      url.searchParams.append('shop_id', `eq.${shopId}`);
+    }
+
+    if (['POST', 'PUT'].includes(method)) {
+      body = injectShopIdIntoBody(init?.body, shopId);
+    }
+  }
+
+  return fetch(url.toString(), {
+    ...init,
+    method,
+    headers,
+    body,
+  });
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: {
+    fetch: scopedFetch,
+  },
+});
