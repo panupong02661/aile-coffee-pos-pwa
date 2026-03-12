@@ -36,25 +36,35 @@ const MemberList = () => {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [purchaseHistoryMember, setPurchaseHistoryMember] = useState<{id: string, name: string} | null>(null);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchMembers = async () => {
+    if (shopLoading) return;
+    if (!shopId) {
+      setMembers([]);
+      setFilteredMembers([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('members')
       .select('*')
+      .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลสมาชิกได้', variant: 'destructive' });
+      setLoading(false);
       return;
     }
-    
-    // Cast the data to the correct types
+
     const typedMembers = (data || []).map(member => ({
       ...member,
       tier: member.tier as 'silver' | 'gold' | 'platinum'
     }));
-    
+
     setMembers(typedMembers);
     setFilteredMembers(typedMembers);
     setLoading(false);
