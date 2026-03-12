@@ -49,11 +49,11 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
 
     // Admin sees all data (no shop filter)
     if (user.role === 'admin') {
-      fetchAllShops(user.id);
+      fetchAllShops();
       return;
     }
 
-    fetchUserShops(user.id);
+    fetchUserShops();
   }, [user?.id, user?.role]);
 
   const fetchAllShops = async () => {
