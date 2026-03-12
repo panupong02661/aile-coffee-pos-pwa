@@ -43,14 +43,18 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    setLoading(true);
+    setCurrentShop(null);
+    setAllShops([]);
+
     // Admin sees all data (no shop filter)
     if (user.role === 'admin') {
-      fetchAllShops();
+      fetchAllShops(user.id);
       return;
     }
 
-    fetchUserShops();
-  }, [user]);
+    fetchUserShops(user.id);
+  }, [user?.id, user?.role]);
 
   const fetchAllShops = async () => {
     try {
