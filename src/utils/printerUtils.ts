@@ -52,8 +52,8 @@ const ESC_POS_COMMANDS = {
 };
 
 // Get printer configuration from localStorage
-const getPrinterConfig = (): PrinterConfig => {
-  const configKey = buildScopedStorageKey('printerConfig');
+const getPrinterConfig = (override?: StorageScopeOverride): PrinterConfig => {
+  const configKey = buildScopedStorageKey('printerConfig', override);
   const config = localStorage.getItem(configKey);
 
   if (config) {
@@ -70,8 +70,8 @@ const getPrinterConfig = (): PrinterConfig => {
 };
 
 // Save printer configuration to localStorage
-export const savePrinterConfig = (config: PrinterConfig): void => {
-  const configKey = buildScopedStorageKey('printerConfig');
+export const savePrinterConfig = (config: PrinterConfig, override?: StorageScopeOverride): void => {
+  const configKey = buildScopedStorageKey('printerConfig', override);
   localStorage.setItem(configKey, JSON.stringify(config));
 };
 
