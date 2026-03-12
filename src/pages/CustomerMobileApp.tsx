@@ -47,6 +47,20 @@ interface Reward {
 const CustomerMobileApp: React.FC = () => {
   const { toast } = useToast();
 
+  // Switch PWA manifest to customer version so "Add to Home Screen" opens customer app
+  useEffect(() => {
+    const defaultManifest = document.querySelector('link[rel="manifest"]');
+    const originalHref = defaultManifest?.getAttribute('href');
+    if (defaultManifest) {
+      defaultManifest.setAttribute('href', '/manifest-customer.json');
+    }
+    return () => {
+      if (defaultManifest && originalHref) {
+        defaultManifest.setAttribute('href', originalHref);
+      }
+    };
+  }, []);
+
   const [currentUser, setCurrentUser] = useState<CustomerProfile | null>(null);
   const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);

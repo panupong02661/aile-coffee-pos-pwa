@@ -1,0 +1,43 @@
+{
+  "name": "แอปสมาชิก",
+  "short_name": "แอปสมาชิก",
+  "description": "แอปสมาชิกสำหรับลูกค้า - สะสมแต้ม สั่งอาหาร รับโปรโมชั่น",
+  "start_url": "/customer-mobile-app",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B4513",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "th",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["lifestyle", "food"],
+  "shortcuts": [
+    {
+      "name": "สั่งอาหาร",
+      "short_name": "สั่งอาหาร",
+      "description": "สั่งอาหารออนไลน์",
+      "url": "/customer-mobile-app",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
