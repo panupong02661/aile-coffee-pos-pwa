@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Printer } from 'lucide-react';
 import { savePrinterConfig, testPrinterConnection } from '@/utils/printerUtils';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface PrinterConfigForm {
   printer_name: string;
@@ -27,40 +29,69 @@ interface PrinterConfigForm {
 const PrinterConfiguration = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
-  const { register, handleSubmit, setValue, watch } = useForm<PrinterConfigForm>({
-    defaultValues: {
-      printer_name: 'Ailecoffee',
-      printer_model: 'TSP143IIIU GY',
-      connection_type: 'Ethernet',
-      usb_path: '/dev/usb/lp0',
-      ip_address: '192.168.1.170',
-      port: '9100',
-      paper_width: '80',
-      print_speed: 'ปกติ',
-      auto_cut: true,
-      test_print_enabled: true
-    }
+  const { user } = useAuth();
+  const { shopId, currentShop } = useCurrentShop();
+
+  const formStorageKey = useMemo(
+    () => buildScopedStorageKey('printerFormData', { userId: user?.id, shopId }),
+    [user?.id, shopId]
+  );
+
+  const buildDefaultValues = (): PrinterConfigForm => ({
+    printer_name: currentShop?.branch_name
+      ? `${currentShop.shop_name} (${currentShop.branch_name})`
+      : currentShop?.shop_name || '',
+    printer_model: 'TSP143IIIU GY',
+    connection_type: 'Ethernet',
+    usb_path: '/dev/usb/lp0',
+    ip_address: '192.168.1.170',
+    port: '9100',
+    paper_width: '80',
+    print_speed: 'ปกติ',
+    auto_cut: true,
+    test_print_enabled: true,
   });
+
+  const { register, handleSubmit, setValue, watch, reset } = useForm<PrinterConfigForm>({
+    defaultValues: buildDefaultValues()
+  });
+
+  useEffect(() => {
+    const baseValues = buildDefaultValues();
+    const savedFormData = localStorage.getItem(formStorageKey);
+
+    if (!savedFormData) {
+      reset(baseValues);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(savedFormData);
+      reset({ ...baseValues, ...parsed });
+    } catch {
+      reset(baseValues);
+    }
+  }, [formStorageKey, reset, currentShop?.shop_name, currentShop?.branch_name]);
 
   const connectionType = watch('connection_type');
   const autoCut = watch('auto_cut');
   const testPrintEnabled = watch('test_print_enabled');
+  const printerModel = watch('printer_model');
+  const paperWidth = watch('paper_width');
+  const printSpeed = watch('print_speed');
 
   const onSubmit = async (data: PrinterConfigForm) => {
     setLoading(true);
     try {
-      // Save printer configuration to localStorage
       savePrinterConfig({
         ip_address: data.ip_address,
         port: data.port,
         paper_width: data.paper_width,
         auto_cut: data.auto_cut
       });
-      
-      // Also save all form data for future reference
-      localStorage.setItem('printerFormData', JSON.stringify(data));
-      
+
+      localStorage.setItem(formStorageKey, JSON.stringify(data));
+
       toast({
         title: 'บันทึกสำเร็จ',
         description: `การตั้งค่าเครื่องพิมพ์ ${data.printer_name} (${data.ip_address}:${data.port}) ได้ถูกบันทึกเรียบร้อยแล้ว`
@@ -79,9 +110,8 @@ const PrinterConfiguration = () => {
   const handleTestPrint = async () => {
     setLoading(true);
     try {
-      // Test actual printer connection
       const success = await testPrinterConnection();
-      
+
       if (!success) {
         throw new Error('ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้');
       }
@@ -114,7 +144,7 @@ const PrinterConfiguration = () => {
 
           <div>
             <Label htmlFor="printer_model">รุ่นเครื่องพิมพ์</Label>
-            <Select onValueChange={(value) => setValue('printer_model', value)} defaultValue="STAR TSP-143III">
+            <Select value={printerModel} onValueChange={(value) => setValue('printer_model', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="เลือกรุ่นเครื่องพิมพ์" />
               </SelectTrigger>
@@ -139,7 +169,7 @@ const PrinterConfiguration = () => {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="connection_type">ประเภทการเชื่อมต่อ</Label>
-            <Select onValueChange={(value) => setValue('connection_type', value)} defaultValue="Ethernet">
+            <Select value={connectionType} onValueChange={(value) => setValue('connection_type', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="เลือกประเภทการเชื่อมต่อ" />
               </SelectTrigger>
@@ -195,7 +225,7 @@ const PrinterConfiguration = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="paper_width">ความกว้างกระดาษ (มม.)</Label>
-              <Select onValueChange={(value) => setValue('paper_width', value)} defaultValue="58">
+              <Select value={paperWidth} onValueChange={(value) => setValue('paper_width', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกความกว้างกระดาษ" />
                 </SelectTrigger>
@@ -209,7 +239,7 @@ const PrinterConfiguration = () => {
 
             <div>
               <Label htmlFor="print_speed">ความเร็วการพิมพ์</Label>
-              <Select onValueChange={(value) => setValue('print_speed', value)} defaultValue="ปกติ">
+              <Select value={printSpeed} onValueChange={(value) => setValue('print_speed', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกความเร็วการพิมพ์" />
                 </SelectTrigger>
@@ -227,7 +257,7 @@ const PrinterConfiguration = () => {
               <Label htmlFor="auto_cut" className="text-sm font-medium">
                 ตัดกระดาษอัตโนมัติ
               </Label>
-              <p className="text-xs text-gray-500 mt-1">ตัดกระดาษอัตโนมัติเมื่อพิมพ์เสร็จ</p>
+              <p className="text-xs text-muted-foreground mt-1">ตัดกระดาษอัตโนมัติเมื่อพิมพ์เสร็จ</p>
             </div>
             <Switch
               id="auto_cut"
@@ -241,7 +271,7 @@ const PrinterConfiguration = () => {
               <Label htmlFor="test_print_enabled" className="text-sm font-medium">
                 เปิดใช้งานทดสอบการพิมพ์
               </Label>
-              <p className="text-xs text-gray-500 mt-1">อนุญาตให้ทดสอบการพิมพ์ได้</p>
+              <p className="text-xs text-muted-foreground mt-1">อนุญาตให้ทดสอบการพิมพ์ได้</p>
             </div>
             <Switch
               id="test_print_enabled"
@@ -256,11 +286,11 @@ const PrinterConfiguration = () => {
         <Button type="submit" disabled={loading} className="bg-coffee-600 hover:bg-coffee-700">
           {loading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
         </Button>
-        
+
         {testPrintEnabled && (
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={handleTestPrint}
             disabled={loading}
           >
