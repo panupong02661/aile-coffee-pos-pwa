@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 import { Receipt, Calendar as CalendarIcon } from 'lucide-react';
 import OrderDetailsModal from './OrderDetailsModal';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 interface DailySales {
   date: string;
