@@ -184,6 +184,7 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
           member_id,
           members (name)
         `)
+        .eq('shop_id', shopId)
         .gte('created_at', startOfDay.toISOString())
         .lte('created_at', endOfDay.toISOString())
         .neq('status', 'cancelled')
