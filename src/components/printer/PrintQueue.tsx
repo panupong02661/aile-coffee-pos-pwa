@@ -62,9 +62,9 @@ const PrintQueue = () => {
       case 'pending':
         return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="h-3 w-3" />รอ</Badge>;
       case 'printing':
-        return <Badge className="bg-blue-500 flex items-center gap-1"><Printer className="h-3 w-3" />กำลังพิมพ์</Badge>;
+        return <Badge variant="secondary" className="flex items-center gap-1"><Printer className="h-3 w-3" />กำลังพิมพ์</Badge>;
       case 'completed':
-        return <Badge className="bg-green-500 flex items-center gap-1"><CheckCircle className="h-3 w-3" />เสร็จสิ้น</Badge>;
+        return <Badge variant="default" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />เสร็จสิ้น</Badge>;
       case 'failed':
         return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" />ล้มเหลว</Badge>;
       default:

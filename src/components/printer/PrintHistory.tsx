@@ -91,7 +91,7 @@ const PrintHistory = () => {
   const getStatusBadge = (status: PrintHistoryItem['status']) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-500">สำเร็จ</Badge>;
+        return <Badge variant="default">สำเร็จ</Badge>;
       case 'failed':
         return <Badge variant="destructive">ล้มเหลว</Badge>;
       default:
