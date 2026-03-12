@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 import { Receipt, Calendar as CalendarIcon } from 'lucide-react';
 import OrderDetailsModal from './OrderDetailsModal';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 interface DailySales {
   date: string;
@@ -44,12 +44,25 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
+    if (shopLoading || !shopId) {
+      setDailySales([]);
+      setLoading(false);
+      return;
+    }
+
     fetchMonthlySales();
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, shopId, shopLoading]);
 
   const fetchMonthlySales = async () => {
+    if (!shopId) {
+      setDailySales([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const startOfMonth = new Date(currentYear, currentMonth, 1);
@@ -58,6 +71,7 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, created_at')
+        .eq('shop_id', shopId)
         .gte('created_at', startOfMonth.toISOString())
         .lte('created_at', endOfMonth.toISOString())
         .neq('status', 'cancelled');
@@ -153,9 +167,11 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
   };
 
   const handleDayClick = async (day: number) => {
+    if (!shopId) return;
+
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const salesData = getSalesForDay(day);
-    
+
     if (!salesData || salesData.sales === 0) return;
     
     setSelectedDate(dateStr);
@@ -176,6 +192,7 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
           member_id,
           members (name)
         `)
+        .eq('shop_id', shopId)
         .gte('created_at', startOfDay.toISOString())
         .lte('created_at', endOfDay.toISOString())
         .neq('status', 'cancelled')

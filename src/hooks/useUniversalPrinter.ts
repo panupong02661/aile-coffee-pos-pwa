@@ -1,6 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { buildReceipt, generateTestReceipt, type ReceiptData } from '@/utils/escPosCommands';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 export interface PrinterConfig {
   brand: string;
@@ -32,20 +35,53 @@ interface PrintJob {
 
 export function useUniversalPrinter() {
   const { toast } = useToast();
-  const [config, setConfig] = useState<PrinterConfig | null>(() => {
-    const saved = localStorage.getItem('universal_printer_config');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const { user } = useAuth();
+  const { shopId } = useCurrentShop();
+
+  const configStorageKey = useMemo(
+    () => buildScopedStorageKey('universal_printer_config', { userId: user?.id, shopId }),
+    [user?.id, shopId]
+  );
+
+  const historyStorageKey = useMemo(
+    () => buildScopedStorageKey('printer_history', { userId: user?.id, shopId }),
+    [user?.id, shopId]
+  );
+
+  const [config, setConfig] = useState<PrinterConfig | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [printQueue, setPrintQueue] = useState<PrintJob[]>([]);
   const [currentDevice, setCurrentDevice] = useState<any>(null);
 
+  useEffect(() => {
+    const savedConfig = localStorage.getItem(configStorageKey);
+    setConfig(savedConfig ? JSON.parse(savedConfig) : null);
+
+    const history = JSON.parse(localStorage.getItem(historyStorageKey) || '[]') as Array<{
+      id: string;
+      status: 'pending' | 'printing' | 'success' | 'failed';
+      data: string;
+      error?: string;
+      timestamp: string;
+    }>;
+
+    setPrintQueue(
+      history.map((job) => ({
+        ...job,
+        timestamp: new Date(job.timestamp),
+      }))
+    );
+
+    setIsConnected(false);
+    setCurrentDevice(null);
+  }, [configStorageKey, historyStorageKey]);
+
   // Save config to localStorage
   const saveConfig = useCallback((newConfig: PrinterConfig) => {
     setConfig(newConfig);
-    localStorage.setItem('universal_printer_config', JSON.stringify(newConfig));
-  }, []);
+    localStorage.setItem(configStorageKey, JSON.stringify(newConfig));
+  }, [configStorageKey]);
 
   // Network printing via HTTP
   const printViaNetwork = async (data: string, ipAddress: string, port: number = 9100): Promise<void> => {
@@ -59,7 +95,7 @@ export function useUniversalPrinter() {
 
       for (const endpoint of endpoints) {
         try {
-          const response = await fetch(endpoint, {
+          await fetch(endpoint, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/octet-stream',
@@ -67,7 +103,7 @@ export function useUniversalPrinter() {
             body: data,
             mode: 'no-cors' // Required for cross-origin printer requests
           });
-          
+
           // no-cors mode doesn't allow reading the response, so we assume success
           return;
         } catch (err) {
@@ -193,7 +229,7 @@ export function useUniversalPrinter() {
       }
 
       setIsConnected(true);
-      
+
       toast({
         title: 'เชื่อมต่อสำเร็จ',
         description: `เชื่อมต่อกับเครื่องพิมพ์ ${printerConfig.brand} แล้ว`,
@@ -278,12 +314,12 @@ export function useUniversalPrinter() {
       setPrintQueue(prev => [job, ...prev.slice(0, 49)]); // Keep last 50 jobs
 
       // Save to localStorage
-      const history = JSON.parse(localStorage.getItem('printer_history') || '[]');
+      const history = JSON.parse(localStorage.getItem(historyStorageKey) || '[]');
       history.unshift({
         ...job,
         timestamp: job.timestamp.toISOString()
       });
-      localStorage.setItem('printer_history', JSON.stringify(history.slice(0, 50)));
+      localStorage.setItem(historyStorageKey, JSON.stringify(history.slice(0, 50)));
 
       toast({
         title: 'พิมพ์สำเร็จ',
@@ -312,7 +348,7 @@ export function useUniversalPrinter() {
     } finally {
       setIsPrinting(false);
     }
-  }, [config, toast]);
+  }, [config, historyStorageKey, toast]);
 
   // Test print
   const testPrint = useCallback(async (): Promise<boolean> => {

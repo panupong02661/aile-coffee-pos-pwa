@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface PrinterConfig {
   ip_address: string;
@@ -52,11 +53,13 @@ const ESC_POS_COMMANDS = {
 
 // Get printer configuration from localStorage
 const getPrinterConfig = (): PrinterConfig => {
-  const config = localStorage.getItem('printerConfig');
+  const configKey = buildScopedStorageKey('printerConfig');
+  const config = localStorage.getItem(configKey);
+
   if (config) {
     return JSON.parse(config);
   }
-  
+
   // Default configuration
   return {
     ip_address: '192.168.1.170',
@@ -68,7 +71,8 @@ const getPrinterConfig = (): PrinterConfig => {
 
 // Save printer configuration to localStorage
 export const savePrinterConfig = (config: PrinterConfig): void => {
-  localStorage.setItem('printerConfig', JSON.stringify(config));
+  const configKey = buildScopedStorageKey('printerConfig');
+  localStorage.setItem(configKey, JSON.stringify(config));
 };
 
 // Generate ESC/POS receipt content
@@ -476,6 +480,10 @@ export const printOrderReceipt = async (order: PrintOrder): Promise<boolean> => 
 
 // Log print jobs for history tracking
 const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success' | 'failed' | 'error') => {
+  const currentUserRaw = localStorage.getItem('currentUser');
+  const currentUser = currentUserRaw ? JSON.parse(currentUserRaw) : null;
+  const activeShopId = localStorage.getItem('active_shop_id');
+
   const printLog = {
     orderId: order.id,
     orderNumber: order.order_number,
@@ -483,22 +491,25 @@ const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success'
     printerPort: config.port,
     status,
     timestamp: new Date().toISOString(),
-    totalAmount: order.total_amount
+    totalAmount: order.total_amount,
+    printedBy: currentUser?.username || 'unknown',
+    userId: currentUser?.id || null,
+    shopId: activeShopId || null
   };
-  
-  // Store in localStorage for now (could be moved to database)
-  const existingLogs = JSON.parse(localStorage.getItem('printLogs') || '[]');
+
+  const printLogsKey = buildScopedStorageKey('printLogs');
+  const existingLogs = JSON.parse(localStorage.getItem(printLogsKey) || '[]');
   existingLogs.unshift(printLog);
-  
-  // Keep only last 100 logs
+
   if (existingLogs.length > 100) {
     existingLogs.splice(100);
   }
-  
-  localStorage.setItem('printLogs', JSON.stringify(existingLogs));
+
+  localStorage.setItem(printLogsKey, JSON.stringify(existingLogs));
 };
 
 // Get print history
 export const getPrintHistory = () => {
-  return JSON.parse(localStorage.getItem('printLogs') || '[]');
+  const printLogsKey = buildScopedStorageKey('printLogs');
+  return JSON.parse(localStorage.getItem(printLogsKey) || '[]');
 };
