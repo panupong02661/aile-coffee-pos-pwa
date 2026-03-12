@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Edit, Trash2, Award, Receipt, FileSpreadsheet, FileText, Star } from 'lucide-react';
 import MemberEditForm from '@/components/MemberEditForm';
 import MemberPurchaseHistoryModal from '@/components/MemberPurchaseHistoryModal';
