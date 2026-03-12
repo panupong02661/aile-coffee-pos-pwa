@@ -89,38 +89,48 @@ const MemberList = () => {
   };
 
   const deleteMember = async (id: string) => {
+    if (!shopId) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลสาขา', variant: 'destructive' });
+      return;
+    }
     if (!confirm('คุณต้องการลบสมาชิกนี้หรือไม่?')) return;
-    
+
     const { error } = await supabase
       .from('members')
       .delete()
-      .eq('id', id);
-    
+      .eq('id', id)
+      .eq('shop_id', shopId);
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบสมาชิกได้', variant: 'destructive' });
       return;
     }
-    
+
     toast({ title: 'สำเร็จ', description: 'ลบสมาชิกเรียบร้อยแล้ว' });
     fetchMembers();
   };
 
   const toggleFavorite = async (member: Member) => {
+    if (!shopId) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลสาขา', variant: 'destructive' });
+      return;
+    }
     const newFavoriteStatus = !member.is_favorite;
-    
+
     const { error } = await supabase
       .from('members')
       .update({ is_favorite: newFavoriteStatus })
-      .eq('id', member.id);
-    
+      .eq('id', member.id)
+      .eq('shop_id', shopId);
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัพเดทรายการโปรดได้', variant: 'destructive' });
       return;
     }
-    
-    toast({ 
-      title: 'สำเร็จ', 
-      description: newFavoriteStatus ? 'เพิ่มเป็นรายการโปรดแล้ว' : 'ลบออกจากรายการโปรดแล้ว' 
+
+    toast({
+      title: 'สำเร็จ',
+      description: newFavoriteStatus ? 'เพิ่มเป็นรายการโปรดแล้ว' : 'ลบออกจากรายการโปรดแล้ว'
     });
     fetchMembers();
   };
