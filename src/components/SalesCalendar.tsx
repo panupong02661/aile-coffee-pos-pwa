@@ -167,9 +167,11 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
   };
 
   const handleDayClick = async (day: number) => {
+    if (!shopId) return;
+
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const salesData = getSalesForDay(day);
-    
+
     if (!salesData || salesData.sales === 0) return;
     
     setSelectedDate(dateStr);
