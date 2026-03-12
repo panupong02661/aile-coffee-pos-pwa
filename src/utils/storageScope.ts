@@ -17,14 +17,25 @@ const safeParseUser = (): { id?: string } | null => {
   }
 };
 
+const hasOwn = (target: object | undefined, key: string) =>
+  !!target && Object.prototype.hasOwnProperty.call(target, key);
+
 export const buildScopedStorageKey = (baseKey: string, override?: StorageScopeOverride) => {
   if (typeof window === 'undefined') {
     return `${baseKey}:guest:no-shop`;
   }
 
   const parsedUser = safeParseUser();
-  const userId = override?.userId ?? parsedUser?.id ?? 'guest';
-  const shopId = override?.shopId ?? localStorage.getItem(ACTIVE_SHOP_KEY) ?? 'no-shop';
+  const hasUserOverride = hasOwn(override, 'userId');
+  const hasShopOverride = hasOwn(override, 'shopId');
+
+  const userId = hasUserOverride
+    ? (override?.userId || 'guest')
+    : (parsedUser?.id || 'guest');
+
+  const shopId = hasShopOverride
+    ? (override?.shopId || 'no-shop')
+    : (localStorage.getItem(ACTIVE_SHOP_KEY) || 'no-shop');
 
   return `${baseKey}:${userId}:${shopId}`;
 };
