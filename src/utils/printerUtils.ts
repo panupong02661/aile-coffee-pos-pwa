@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface PrinterConfig {
   ip_address: string;
