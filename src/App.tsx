@@ -103,96 +103,93 @@ function App() {
           <Router>
             <GlobalNotificationProvider>
               <div className="min-h-screen bg-background">
-                <ProtectedRoute>
                 <Suspense fallback={<PageLoadingSkeleton />}>
                   <Routes>
-                  <Route path="/" element={<POS />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/menu" element={<MenuManagement />} />
-                  <Route path="/members" element={<MemberManagement />} />
-                  <Route path="/member-registration" element={<MemberRegistration />} />
-                  <Route path="/pos" element={<POS />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/shop-settings" element={<ShopSettings />} />
-                  <Route path="/business-settings" element={<BusinessSettings />} />
-                  <Route path="/promotions" element={<Promotions />} />
-                  <Route path="/menu-promotions" element={<MenuPromotions />} />
-                  
-                  <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
-                  <Route path="/customer-app-management" element={<CustomerAppManagement />} />
-                  <Route path="/qr-promptpay" element={<QRCodePromptPayPage />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/printer-settings" element={<PrinterSettings />} />
-                  <Route path="/online-orders" element={<OnlineOrderManagement />} />
-                  <Route path="/security-recommendations" element={<SecurityRecommendationsPage />} />
-                  <Route path="/delivery-integration" element={<DeliveryIntegration />} />
-                  <Route path="/notifications" element={<NotificationPage />} />
-                  <Route path="/line-messaging" element={<LineMessaging />} />
-                  <Route path="/cost-analysis" element={<CostAnalysis />} />
-                  <Route path="/coupon-management" element={<CouponManagement />} />
-                  <Route path="/review-management" element={<ReviewManagement />} />
-                  <Route path="/delivery-management" element={<DeliveryManagement />} />
-                  <Route path="/install" element={<PWAInstallGuide />} />
-                  <Route path="/app-build-guide" element={<AppBuildGuide />} />
-                  <Route path="/wifi-vouchers" element={<WiFiVouchers />} />
-                  <Route path="/customer-display" element={<CustomerDisplay />} />
-                  <Route path="/kitchen-display" element={<KitchenDisplay />} />
-                  
-                  <Route path="/mobile-settings" element={<MobileSettings />} />
-                  
-                  <Route path="/security-dashboard" element={<SecurityDashboard />} />
-                  <Route path="/analytics-dashboard" element={<AnalyticsDashboard />} />
-                  <Route path="/financial-dashboard" element={<FinancialDashboard />} />
-                  <Route path="/error-tracking" element={<SecurityDashboard />} />
-                  <Route path="/session-management" element={<SecurityDashboard />} />
-                  <Route path="/data-backup-monitor" element={<SecurityDashboard />} />
-                  <Route path="/predictive-analytics" element={<AnalyticsDashboard />} />
-                  <Route path="/customer-behavior-analysis" element={<AnalyticsDashboard />} />
-                  <Route path="/inventory-forecasting" element={<AnalyticsDashboard />} />
-                  
-                  <Route path="/advanced-reports" element={<AdvancedReports />} />
-                  <Route path="/sales-reports" element={<AdvancedReports />} />
-                  <Route path="/product-reports" element={<AdvancedReports />} />
-                  <Route path="/customer-analytics" element={<AdvancedReports />} />
-                  <Route path="/staff" element={<StaffManagement />} />
-                  <Route path="/time-attendance" element={<StaffManagement />} />
-                  <Route path="/permissions" element={<StaffManagement />} />
-                  <Route path="/branch-management" element={<StaffManagement />} />
-                  <Route path="/accounting" element={<FinancialSystem />} />
-                  <Route path="/income-expense" element={<FinancialSystem />} />
-                  <Route path="/profit-loss" element={<FinancialSystem />} />
-                  <Route path="/tax-system" element={<FinancialSystem />} />
-                  <Route path="/vat-calculation" element={<FinancialSystem />} />
-                  <Route path="/tax-invoice" element={<FinancialSystem />} />
-                  <Route path="/credit-system" element={<FinancialSystem />} />
-                  <Route path="/crm" element={<CustomerSystem />} />
-                  <Route path="/customer-data" element={<CustomerSystem />} />
-                  <Route path="/purchase-history" element={<CustomerSystem />} />
-                  <Route path="/marketing" element={<CustomerSystem />} />
-                  <Route path="/sms-marketing" element={<CustomerSystem />} />
-                  <Route path="/email-marketing" element={<CustomerSystem />} />
-                  <Route path="/table-reservation" element={<CustomerSystem />} />
-                  <Route path="/digital-payment" element={<TechnologySystem />} />
-                  <Route path="/credit-card" element={<TechnologySystem />} />
-                  <Route path="/api-system" element={<TechnologySystem />} />
-                  <Route path="/external-integration" element={<TechnologySystem />} />
-                  <Route path="/staff-mobile-app" element={<TechnologySystem />} />
-                  <Route path="/data-backup" element={<SecuritySystem />} />
-                  <Route path="/auto-backup" element={<SecuritySystem />} />
-                  <Route path="/system-logs" element={<SecuritySystem />} />
-                  <Route path="/usage-logs" element={<SecuritySystem />} />
-                  <Route path="/role-access" element={<SecuritySystem />} />
-                  <Route path="/access-control" element={<SecuritySystem />} />
-                  <Route path="/engagement" element={<EngagementManagement />} />
-                  <Route path="/shop-benchmark" element={<ShopBenchmark />} />
-                  <Route path="/queue-management" element={<QueueManagement />} />
-                  <Route path="/queue-display" element={<QueueDisplay />} />
-                  <Route path="/table-management" element={<TableManagement />} />
-                  <Route path="/delivery-tracking" element={<DeliveryTracking />} />
-                  <Route path="/queue-tracker" element={<QueueTracker />} />
+                    {/* Public routes - no auth required */}
+                    <Route path="/customer-mobile-app" element={<CustomerMobileApp />} />
+                    <Route path="/member-registration" element={<MemberRegistration />} />
+                    <Route path="/customer-display" element={<CustomerDisplay />} />
+                    <Route path="/queue-display" element={<QueueDisplay />} />
+                    <Route path="/queue-tracker" element={<QueueTracker />} />
+                    <Route path="/kitchen-display" element={<KitchenDisplay />} />
+
+                    {/* Protected routes */}
+                    <Route path="/" element={<ProtectedRoute><POS /></ProtectedRoute>} />
+                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    <Route path="/menu" element={<ProtectedRoute><MenuManagement /></ProtectedRoute>} />
+                    <Route path="/members" element={<ProtectedRoute><MemberManagement /></ProtectedRoute>} />
+                    <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
+                    <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                    <Route path="/shop-settings" element={<ProtectedRoute><ShopSettings /></ProtectedRoute>} />
+                    <Route path="/business-settings" element={<ProtectedRoute><BusinessSettings /></ProtectedRoute>} />
+                    <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
+                    <Route path="/menu-promotions" element={<ProtectedRoute><MenuPromotions /></ProtectedRoute>} />
+                    <Route path="/customer-app-management" element={<ProtectedRoute><CustomerAppManagement /></ProtectedRoute>} />
+                    <Route path="/qr-promptpay" element={<ProtectedRoute><QRCodePromptPayPage /></ProtectedRoute>} />
+                    <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+                    <Route path="/printer-settings" element={<ProtectedRoute><PrinterSettings /></ProtectedRoute>} />
+                    <Route path="/online-orders" element={<ProtectedRoute><OnlineOrderManagement /></ProtectedRoute>} />
+                    <Route path="/security-recommendations" element={<ProtectedRoute><SecurityRecommendationsPage /></ProtectedRoute>} />
+                    <Route path="/delivery-integration" element={<ProtectedRoute><DeliveryIntegration /></ProtectedRoute>} />
+                    <Route path="/notifications" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
+                    <Route path="/line-messaging" element={<ProtectedRoute><LineMessaging /></ProtectedRoute>} />
+                    <Route path="/cost-analysis" element={<ProtectedRoute><CostAnalysis /></ProtectedRoute>} />
+                    <Route path="/coupon-management" element={<ProtectedRoute><CouponManagement /></ProtectedRoute>} />
+                    <Route path="/review-management" element={<ProtectedRoute><ReviewManagement /></ProtectedRoute>} />
+                    <Route path="/delivery-management" element={<ProtectedRoute><DeliveryManagement /></ProtectedRoute>} />
+                    <Route path="/install" element={<ProtectedRoute><PWAInstallGuide /></ProtectedRoute>} />
+                    <Route path="/app-build-guide" element={<ProtectedRoute><AppBuildGuide /></ProtectedRoute>} />
+                    <Route path="/wifi-vouchers" element={<ProtectedRoute><WiFiVouchers /></ProtectedRoute>} />
+                    <Route path="/mobile-settings" element={<ProtectedRoute><MobileSettings /></ProtectedRoute>} />
+                    <Route path="/security-dashboard" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
+                    <Route path="/analytics-dashboard" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                    <Route path="/financial-dashboard" element={<ProtectedRoute><FinancialDashboard /></ProtectedRoute>} />
+                    <Route path="/error-tracking" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
+                    <Route path="/session-management" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
+                    <Route path="/data-backup-monitor" element={<ProtectedRoute><SecurityDashboard /></ProtectedRoute>} />
+                    <Route path="/predictive-analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                    <Route path="/customer-behavior-analysis" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                    <Route path="/inventory-forecasting" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+                    <Route path="/advanced-reports" element={<ProtectedRoute><AdvancedReports /></ProtectedRoute>} />
+                    <Route path="/sales-reports" element={<ProtectedRoute><AdvancedReports /></ProtectedRoute>} />
+                    <Route path="/product-reports" element={<ProtectedRoute><AdvancedReports /></ProtectedRoute>} />
+                    <Route path="/customer-analytics" element={<ProtectedRoute><AdvancedReports /></ProtectedRoute>} />
+                    <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+                    <Route path="/time-attendance" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+                    <Route path="/permissions" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+                    <Route path="/branch-management" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+                    <Route path="/accounting" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/income-expense" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/profit-loss" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/tax-system" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/vat-calculation" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/tax-invoice" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/credit-system" element={<ProtectedRoute><FinancialSystem /></ProtectedRoute>} />
+                    <Route path="/crm" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/customer-data" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/purchase-history" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/marketing" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/sms-marketing" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/email-marketing" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/table-reservation" element={<ProtectedRoute><CustomerSystem /></ProtectedRoute>} />
+                    <Route path="/digital-payment" element={<ProtectedRoute><TechnologySystem /></ProtectedRoute>} />
+                    <Route path="/credit-card" element={<ProtectedRoute><TechnologySystem /></ProtectedRoute>} />
+                    <Route path="/api-system" element={<ProtectedRoute><TechnologySystem /></ProtectedRoute>} />
+                    <Route path="/external-integration" element={<ProtectedRoute><TechnologySystem /></ProtectedRoute>} />
+                    <Route path="/staff-mobile-app" element={<ProtectedRoute><TechnologySystem /></ProtectedRoute>} />
+                    <Route path="/data-backup" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/auto-backup" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/system-logs" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/usage-logs" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/role-access" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/access-control" element={<ProtectedRoute><SecuritySystem /></ProtectedRoute>} />
+                    <Route path="/engagement" element={<ProtectedRoute><EngagementManagement /></ProtectedRoute>} />
+                    <Route path="/shop-benchmark" element={<ProtectedRoute><ShopBenchmark /></ProtectedRoute>} />
+                    <Route path="/queue-management" element={<ProtectedRoute><QueueManagement /></ProtectedRoute>} />
+                    <Route path="/table-management" element={<ProtectedRoute><TableManagement /></ProtectedRoute>} />
+                    <Route path="/delivery-tracking" element={<ProtectedRoute><DeliveryTracking /></ProtectedRoute>} />
                   </Routes>
                 </Suspense>
-                </ProtectedRoute>
                 <PWAInstallPrompt />
                 <OfflineIndicator />
                 <Toaster />
