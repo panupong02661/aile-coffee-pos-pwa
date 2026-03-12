@@ -65,6 +65,7 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, created_at')
+        .eq('shop_id', shopId)
         .gte('created_at', startOfMonth.toISOString())
         .lte('created_at', endOfMonth.toISOString())
         .neq('status', 'cancelled');
