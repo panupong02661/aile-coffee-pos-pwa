@@ -184,7 +184,7 @@ const MemberList = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, []);
+  }, [shopId, shopLoading]);
 
   useEffect(() => {
     filterMembers();
