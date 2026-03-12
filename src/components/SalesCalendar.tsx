@@ -57,6 +57,12 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
   }, [currentYear, currentMonth, shopId, shopLoading]);
 
   const fetchMonthlySales = async () => {
+    if (!shopId) {
+      setDailySales([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const startOfMonth = new Date(currentYear, currentMonth, 1);
