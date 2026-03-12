@@ -150,8 +150,20 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
 
   const switchShop = (shopId: string) => {
     const shop = allShops.find(s => s.id === shopId);
-    if (shop) setCurrentShop(shop);
+    if (shop) {
+      setCurrentShop(shop);
+      localStorage.setItem('active_shop_id', shop.id);
+    }
   };
+
+  useEffect(() => {
+    if (!currentShop?.id) {
+      localStorage.removeItem('active_shop_id');
+      return;
+    }
+
+    localStorage.setItem('active_shop_id', currentShop.id);
+  }, [currentShop?.id]);
 
   return (
     <ShopContext.Provider value={{
