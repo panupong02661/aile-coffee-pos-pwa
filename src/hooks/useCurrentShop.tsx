@@ -39,6 +39,7 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     if (!user) {
       setCurrentShop(null);
       setAllShops([]);
+      localStorage.removeItem('active_shop_id');
       setLoading(false);
       return;
     }
