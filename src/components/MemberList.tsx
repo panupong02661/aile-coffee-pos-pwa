@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { Edit, Trash2, Award, Receipt, FileSpreadsheet, FileText, Star } from 'lucide-react';
 import MemberEditForm from '@/components/MemberEditForm';
 import MemberPurchaseHistoryModal from '@/components/MemberPurchaseHistoryModal';
@@ -35,25 +36,35 @@ const MemberList = () => {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [purchaseHistoryMember, setPurchaseHistoryMember] = useState<{id: string, name: string} | null>(null);
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchMembers = async () => {
+    if (shopLoading) return;
+    if (!shopId) {
+      setMembers([]);
+      setFilteredMembers([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('members')
       .select('*')
+      .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลสมาชิกได้', variant: 'destructive' });
+      setLoading(false);
       return;
     }
-    
-    // Cast the data to the correct types
+
     const typedMembers = (data || []).map(member => ({
       ...member,
       tier: member.tier as 'silver' | 'gold' | 'platinum'
     }));
-    
+
     setMembers(typedMembers);
     setFilteredMembers(typedMembers);
     setLoading(false);
@@ -78,38 +89,48 @@ const MemberList = () => {
   };
 
   const deleteMember = async (id: string) => {
+    if (!shopId) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลสาขา', variant: 'destructive' });
+      return;
+    }
     if (!confirm('คุณต้องการลบสมาชิกนี้หรือไม่?')) return;
-    
+
     const { error } = await supabase
       .from('members')
       .delete()
-      .eq('id', id);
-    
+      .eq('id', id)
+      .eq('shop_id', shopId);
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบสมาชิกได้', variant: 'destructive' });
       return;
     }
-    
+
     toast({ title: 'สำเร็จ', description: 'ลบสมาชิกเรียบร้อยแล้ว' });
     fetchMembers();
   };
 
   const toggleFavorite = async (member: Member) => {
+    if (!shopId) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่พบข้อมูลสาขา', variant: 'destructive' });
+      return;
+    }
     const newFavoriteStatus = !member.is_favorite;
-    
+
     const { error } = await supabase
       .from('members')
       .update({ is_favorite: newFavoriteStatus })
-      .eq('id', member.id);
-    
+      .eq('id', member.id)
+      .eq('shop_id', shopId);
+
     if (error) {
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถอัพเดทรายการโปรดได้', variant: 'destructive' });
       return;
     }
-    
-    toast({ 
-      title: 'สำเร็จ', 
-      description: newFavoriteStatus ? 'เพิ่มเป็นรายการโปรดแล้ว' : 'ลบออกจากรายการโปรดแล้ว' 
+
+    toast({
+      title: 'สำเร็จ',
+      description: newFavoriteStatus ? 'เพิ่มเป็นรายการโปรดแล้ว' : 'ลบออกจากรายการโปรดแล้ว'
     });
     fetchMembers();
   };
@@ -163,7 +184,7 @@ const MemberList = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, []);
+  }, [shopId, shopLoading]);
 
   useEffect(() => {
     filterMembers();
