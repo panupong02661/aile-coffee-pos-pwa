@@ -44,10 +44,17 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+  const { shopId, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
+    if (shopLoading || !shopId) {
+      setDailySales([]);
+      setLoading(false);
+      return;
+    }
+
     fetchMonthlySales();
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, shopId, shopLoading]);
 
   const fetchMonthlySales = async () => {
     setLoading(true);
