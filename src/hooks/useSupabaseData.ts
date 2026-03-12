@@ -343,27 +343,43 @@ export const useSupabaseData = () => {
   };
 
   const fetchMenuAddonGroups = async () => {
+    if (!shopId) {
+      setMenuAddonGroups([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('menu_addon_groups')
-      .select('*');
-    
+      .select('id, menu_item_id, addon_group_id, created_at, menu_items!inner(shop_id)')
+      .eq('menu_items.shop_id', shopId);
+
     if (error) {
       console.error('Error fetching menu addon groups:', error);
       return;
     }
-    setMenuAddonGroups(data || []);
+
+    const scopedData = (data || []).map(({ menu_items, ...rest }: any) => rest as MenuAddonGroup);
+    setMenuAddonGroups(scopedData);
   };
 
   const fetchCategoryAddonGroups = async () => {
+    if (!shopId) {
+      setCategoryAddonGroups([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('category_addon_groups')
-      .select('*');
-    
+      .select('id, category_id, addon_group_id, created_at, categories!inner(shop_id)')
+      .eq('categories.shop_id', shopId);
+
     if (error) {
       console.error('Error fetching category addon groups:', error);
       return;
     }
-    setCategoryAddonGroups(data || []);
+
+    const scopedData = (data || []).map(({ categories, ...rest }: any) => rest as CategoryAddonGroup);
+    setCategoryAddonGroups(scopedData);
   };
 
   const fetchMembers = async () => {
