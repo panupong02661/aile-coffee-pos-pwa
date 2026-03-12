@@ -117,7 +117,7 @@ const Header = ({
       {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
       <div className="flex items-center justify-between w-full overflow-hidden">
         <div className="flex items-center flex-shrink min-w-0 overflow-hidden">
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
             <Menu className="w-5 h-5" />
           </Button>
 
