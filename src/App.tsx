@@ -97,9 +97,9 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AppContent />
         <AuthProvider>
           <ShopProvider>
+            <AppContent />
           <Router>
             <GlobalNotificationProvider>
               <div className="min-h-screen bg-background">
