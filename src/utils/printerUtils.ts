@@ -53,11 +53,13 @@ const ESC_POS_COMMANDS = {
 
 // Get printer configuration from localStorage
 const getPrinterConfig = (): PrinterConfig => {
-  const config = localStorage.getItem('printerConfig');
+  const configKey = buildScopedStorageKey('printerConfig');
+  const config = localStorage.getItem(configKey);
+
   if (config) {
     return JSON.parse(config);
   }
-  
+
   // Default configuration
   return {
     ip_address: '192.168.1.170',
@@ -69,7 +71,8 @@ const getPrinterConfig = (): PrinterConfig => {
 
 // Save printer configuration to localStorage
 export const savePrinterConfig = (config: PrinterConfig): void => {
-  localStorage.setItem('printerConfig', JSON.stringify(config));
+  const configKey = buildScopedStorageKey('printerConfig');
+  localStorage.setItem(configKey, JSON.stringify(config));
 };
 
 // Generate ESC/POS receipt content
