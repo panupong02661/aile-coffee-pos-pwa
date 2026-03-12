@@ -24,19 +24,20 @@ export const useAllOrders = () => {
   const { shopId, loading: shopLoading } = useCurrentShop();
 
   const fetchOrders = useCallback(async () => {
+    if (!shopId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log('📦 Fetching all orders...');
-      
-      let query = supabase
+      console.log('📦 Fetching all orders for shop:', shopId);
+
+      const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('shop_id', shopId)
         .order('created_at', { ascending: false });
-
-      if (shopId) {
-        query = query.eq('shop_id', shopId);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching orders:', error);
@@ -48,7 +49,6 @@ export const useAllOrders = () => {
         return;
       }
 
-      console.log('📦 Orders fetched:', data?.length || 0);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -68,13 +68,15 @@ export const useAllOrders = () => {
   }, [fetchOrders]);
 
   const setupRealtimeSubscription = useCallback(() => {
+    if (!shopId) return;
+
     // Clean up existing channel
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
 
-    const channelName = `orders-realtime-${Date.now()}`;
-    console.log('📡 Setting up realtime subscription:', channelName);
+    const channelName = `orders-realtime-${shopId}-${Date.now()}`;
+    const realtimeFilter = `shop_id=eq.${shopId}`;
 
     channelRef.current = supabase
       .channel(channelName)
@@ -83,10 +85,10 @@ export const useAllOrders = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'orders'
+          table: 'orders',
+          filter: realtimeFilter
         },
         (payload) => {
-          console.log('🆕 New order inserted:', payload.new);
           const newOrder = payload.new as Order;
           setOrders(prev => [newOrder, ...prev]);
         }
@@ -96,12 +98,12 @@ export const useAllOrders = () => {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'orders'
+          table: 'orders',
+          filter: realtimeFilter
         },
         (payload) => {
-          console.log('📝 Order updated:', payload.new);
           const updatedOrder = payload.new as Order;
-          setOrders(prev => prev.map(order => 
+          setOrders(prev => prev.map(order =>
             order.id === updatedOrder.id ? updatedOrder : order
           ));
         }
@@ -111,31 +113,31 @@ export const useAllOrders = () => {
         {
           event: 'DELETE',
           schema: 'public',
-          table: 'orders'
+          table: 'orders',
+          filter: realtimeFilter
         },
         (payload) => {
-          console.log('🗑️ Order deleted:', payload.old);
           const deletedOrder = payload.old as { id: string };
           setOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
         }
       )
       .subscribe((status) => {
-        console.log('📡 Orders subscription status:', status);
         if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
-          console.log('🔄 Reconnecting realtime...');
           setTimeout(() => {
             setupRealtimeSubscription();
           }, 2000);
         }
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Orders realtime connected!');
-        }
       });
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     if (shopLoading) return;
-    
+    if (!shopId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
     fetchOrders();
     setupRealtimeSubscription();
 
@@ -147,7 +149,6 @@ export const useAllOrders = () => {
     // Handle visibility change - refetch when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('👀 Tab visible, refreshing orders...');
         fetchOrders();
         setupRealtimeSubscription();
       }
@@ -161,7 +162,7 @@ export const useAllOrders = () => {
       clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchOrders, setupRealtimeSubscription, shopLoading]);
+  }, [fetchOrders, setupRealtimeSubscription, shopLoading, shopId]);
 
   return {
     orders,
