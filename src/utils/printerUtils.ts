@@ -497,7 +497,10 @@ const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success'
     shopId: activeShopId || null
   };
 
-  const printLogsKey = buildScopedStorageKey('printLogs');
+  const printLogsKey = buildScopedStorageKey('printLogs', {
+    userId: currentUser?.id || null,
+    shopId: activeShopId || null,
+  });
   const existingLogs = JSON.parse(localStorage.getItem(printLogsKey) || '[]');
   existingLogs.unshift(printLog);
 
@@ -509,7 +512,7 @@ const logPrintJob = (order: PrintOrder, config: PrinterConfig, status: 'success'
 };
 
 // Get print history
-export const getPrintHistory = () => {
-  const printLogsKey = buildScopedStorageKey('printLogs');
+export const getPrintHistory = (override?: StorageScopeOverride) => {
+  const printLogsKey = buildScopedStorageKey('printLogs', override);
   return JSON.parse(localStorage.getItem(printLogsKey) || '[]');
 };
