@@ -67,6 +67,7 @@ const PaymentModal = ({
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
+  const [receiptTab, setReceiptTab] = useState<'receipt' | 'kitchen' | 'sticker'>('receipt');
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   const [wifiVoucherPreview, setWifiVoucherPreview] = useState<{ id: string; username: string; password: string; qr_code_url: string | null } | null>(null);
