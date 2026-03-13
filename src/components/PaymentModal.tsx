@@ -1035,19 +1035,6 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* QR Code Payment Info - Enhanced design */}
-          {paymentMethod === 'qr' && (
-            <div className="space-y-2">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-300 text-center shadow-sm">
-                <div className="text-base text-blue-700 font-semibold">
-                  แสดง QR Code สำหรับการชำระเงิน
-                </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mt-2">
-                  ฿{total.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* PromptPay QR Code - Show only QR Code */}
           {paymentMethod === 'promptpay' && (
