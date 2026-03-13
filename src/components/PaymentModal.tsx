@@ -1070,28 +1070,52 @@ const PaymentModal = ({
           </div>
         </div>
 
-        {/* Right Column - Receipt Preview */}
-        <div className="hidden lg:block overflow-y-auto max-h-[calc(85vh-80px)] border-l pl-2">
-          <ReceiptPreview 
-            cartItems={cartItems}
-            totalAmount={total}
-            discountAmount={billDiscount}
-            itemDiscountAmount={cartItems.reduce((sum, item) => {
-              if (item.item_discount > 0) {
-                if (item.item_discount_type === 'percent') {
-                  const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
-                  return sum + Math.round(itemTotal * item.item_discount / 100);
-                }
-                return sum + item.item_discount;
-              }
-              return sum;
-            }, 0)}
-            paymentMethod={paymentMethod}
-            memberName={selectedMember?.name}
-            memberPhone={selectedMember?.phone}
-            wifiVoucher={wifiVoucherPreview}
-            compact={true}
-          />
+        {/* Right Column - Receipt Preview with Tabs */}
+        <div className="hidden lg:flex lg:flex-col overflow-hidden max-h-[calc(85vh-80px)] border-l pl-2">
+          {/* Receipt Type Tabs */}
+          <div className="flex gap-1 mb-2 flex-shrink-0">
+            {[
+              { id: 'receipt' as const, label: 'ใบเสร็จ' },
+              { id: 'kitchen' as const, label: 'ครัว' },
+              { id: 'sticker' as const, label: 'สติ๊กเกอร์' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setReceiptTab(tab.id)}
+                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  receiptTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Preview Content */}
+          <div className="overflow-y-auto flex-1">
+            {receiptTab === 'receipt' && (
+              <ReceiptPreview 
+                cartItems={cartItems}
+                totalAmount={total}
+                discountAmount={billDiscount}
+                itemDiscountAmount={itemDiscountTotal}
+                paymentMethod={paymentMethod}
+                memberName={selectedMember?.name}
+                memberPhone={selectedMember?.phone}
+                wifiVoucher={wifiVoucherPreview}
+                compact={true}
+              />
+            )}
+            {receiptTab === 'kitchen' && (
+              <KitchenReceiptPreview cartItems={cartItems} orderType={orderType} />
+            )}
+            {receiptTab === 'sticker' && (
+              <StickerPreview cartItems={cartItems} />
+            )}
+          </div>
         </div>
       </div>
     </DialogContent>
