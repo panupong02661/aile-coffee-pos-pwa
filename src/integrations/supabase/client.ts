@@ -5,7 +5,13 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://mzvzbxflwvksohrmxbsy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16dnpieGZsd3Zrc29ocm14YnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MDU3NTksImV4cCI6MjA2NTI4MTc1OX0.h3nU_8JyrAaDI6NwxvnxTeb3kuiLpSSueuKcDOd33Jo";
 
-const EXCLUDED_TABLES = new Set(['shops']);
+const EXCLUDED_TABLES = new Set([
+  'shops',
+  'users',
+  'user_shop_assignments',
+  'user_permissions',
+  'notification_settings',
+]);
 
 const readScope = () => {
   if (typeof window === 'undefined') {
