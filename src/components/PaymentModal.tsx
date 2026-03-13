@@ -1104,7 +1104,16 @@ const PaymentModal = ({
                 cartItems={cartItems}
                 totalAmount={total}
                 discountAmount={billDiscount}
-                itemDiscountAmount={itemDiscountTotal}
+                itemDiscountAmount={cartItems.reduce((sum, item) => {
+                  if (item.item_discount > 0) {
+                    if (item.item_discount_type === 'percent') {
+                      const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
+                      return sum + Math.round(itemTotal * item.item_discount / 100);
+                    }
+                    return sum + item.item_discount;
+                  }
+                  return sum;
+                }, 0)}
                 paymentMethod={paymentMethod}
                 memberName={selectedMember?.name}
                 memberPhone={selectedMember?.phone}
