@@ -631,7 +631,15 @@ const PaymentModal = ({
       return;
     }
 
-    if (paymentMethod === 'cash') {
+    if (isMultiPay) {
+      const cashPart = parseFloat(multiPayCash || '0');
+      const ppPart = parseFloat(multiPayPromptPay || '0');
+      if (Math.abs(cashPart + ppPart - total) > 0.5) {
+        toast({ title: "คำเตือน", description: "ยอดรวมการชำระผสมไม่ตรงกับยอดที่ต้องชำระ", variant: "destructive" });
+        setIsProcessing(false);
+        return;
+      }
+    } else if (paymentMethod === 'cash') {
       const receivedAmount = parseFloat(cashReceived || '0');
       if (isNaN(receivedAmount) || receivedAmount < total) {
         toast({
