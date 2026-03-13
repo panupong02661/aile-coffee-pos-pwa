@@ -354,11 +354,12 @@ export const useSupabaseData = () => {
 
     const { data, error } = await supabase
       .from('menu_addon_groups')
-      .select('id, menu_item_id, addon_group_id, created_at, menu_items!inner(shop_id)')
+      .select('id, menu_item_id, addon_group_id, created_at, menu_items!menu_addon_groups_menu_item_id_fkey!inner(shop_id)')
       .eq('menu_items.shop_id', shopId);
 
     if (error) {
       console.error('Error fetching menu addon groups:', error);
+      setMenuAddonGroups([]);
       return;
     }
 
@@ -374,11 +375,12 @@ export const useSupabaseData = () => {
 
     const { data, error } = await supabase
       .from('category_addon_groups')
-      .select('id, category_id, addon_group_id, created_at, categories!inner(shop_id)')
+      .select('id, category_id, addon_group_id, created_at, categories!category_addon_groups_category_id_fkey!inner(shop_id)')
       .eq('categories.shop_id', shopId);
 
     if (error) {
       console.error('Error fetching category addon groups:', error);
+      setCategoryAddonGroups([]);
       return;
     }
 
