@@ -898,19 +898,6 @@ const PaymentModal = ({
                   </Label>
                 </div>
                 
-                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
-                  paymentMethod === 'qr' 
-                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md' 
-                    : 'border-border bg-card hover:border-blue-300'
-                }`}>
-                  <RadioGroupItem value="qr" id="qr" className="w-4 h-4" />
-                  <Label htmlFor="qr" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
-                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'qr' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    <span className={paymentMethod === 'qr' ? 'text-blue-700' : 'text-foreground'}>QR Code</span>
-                  </Label>
-                </div>
 
                 {/* Only show points payment option when a customer is selected */}
                 {selectedMember && (
