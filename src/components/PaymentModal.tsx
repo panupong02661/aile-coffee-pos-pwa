@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode } from 'lucide-react';
+import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode, Users, Layers } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
@@ -17,6 +17,8 @@ import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
 import KitchenReceiptPreview from './KitchenReceiptPreview';
 import StickerPreview from './StickerPreview';
+import TaxInvoicePreview from './TaxInvoicePreview';
+import SplitBillModal from './SplitBillModal';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
 // POS order notifications removed - only online orders should trigger notifications
