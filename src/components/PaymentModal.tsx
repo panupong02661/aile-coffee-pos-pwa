@@ -678,7 +678,8 @@ const PaymentModal = ({
     try {
       // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
       console.log('[PaymentModal] 📦 Saving to database...');
-      const savedOrder = await saveOrderToDatabase(paymentMethod);
+      const actualMethod = isMultiPay ? 'cash' as PaymentMethod : paymentMethod;
+      const savedOrder = await saveOrderToDatabase(actualMethod);
       
       const dbTime = Date.now() - startTime;
       console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
