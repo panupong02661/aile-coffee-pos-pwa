@@ -300,17 +300,19 @@ export const useSupabaseData = () => {
       .from('addon_groups')
       .select('*')
       .order('sort_order');
-    
+
     if (shopId) {
       query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
+      setAddonGroups([]);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดกลุ่ม Add-on ได้', variant: 'destructive' });
       return;
     }
+
     setAddonGroups(data || []);
   };
 
@@ -328,17 +330,19 @@ export const useSupabaseData = () => {
         )
       `)
       .order('sort_order');
-    
+
     if (shopId) {
       query = query.eq('shop_id', shopId);
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
+      setAddons([]);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลด Add-on ได้', variant: 'destructive' });
       return;
     }
+
     setAddons(data || []);
   };
 
