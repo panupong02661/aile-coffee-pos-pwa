@@ -15,6 +15,8 @@ import { reduceStockForOrder } from '@/utils/stockUtils';
 import { createQueueFromOrder } from '@/hooks/useQueueSystem';
 import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
+import KitchenReceiptPreview from './KitchenReceiptPreview';
+import StickerPreview from './StickerPreview';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
 // POS order notifications removed - only online orders should trigger notifications
@@ -67,6 +69,7 @@ const PaymentModal = ({
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
+  const [receiptTab, setReceiptTab] = useState<'receipt' | 'kitchen' | 'sticker'>('receipt');
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   const [wifiVoucherPreview, setWifiVoucherPreview] = useState<{ id: string; username: string; password: string; qr_code_url: string | null } | null>(null);
@@ -898,19 +901,6 @@ const PaymentModal = ({
                   </Label>
                 </div>
                 
-                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
-                  paymentMethod === 'qr' 
-                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md' 
-                    : 'border-border bg-card hover:border-blue-300'
-                }`}>
-                  <RadioGroupItem value="qr" id="qr" className="w-4 h-4" />
-                  <Label htmlFor="qr" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
-                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'qr' ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    <span className={paymentMethod === 'qr' ? 'text-blue-700' : 'text-foreground'}>QR Code</span>
-                  </Label>
-                </div>
 
                 {/* Only show points payment option when a customer is selected */}
                 {selectedMember && (
@@ -1048,19 +1038,6 @@ const PaymentModal = ({
             </div>
           )}
 
-          {/* QR Code Payment Info - Enhanced design */}
-          {paymentMethod === 'qr' && (
-            <div className="space-y-2">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-300 text-center shadow-sm">
-                <div className="text-base text-blue-700 font-semibold">
-                  แสดง QR Code สำหรับการชำระเงิน
-                </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mt-2">
-                  ฿{total.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* PromptPay QR Code - Show only QR Code */}
           {paymentMethod === 'promptpay' && (
@@ -1096,28 +1073,61 @@ const PaymentModal = ({
           </div>
         </div>
 
-        {/* Right Column - Receipt Preview */}
-        <div className="hidden lg:block overflow-y-auto max-h-[calc(85vh-80px)] border-l pl-2">
-          <ReceiptPreview 
-            cartItems={cartItems}
-            totalAmount={total}
-            discountAmount={billDiscount}
-            itemDiscountAmount={cartItems.reduce((sum, item) => {
-              if (item.item_discount > 0) {
-                if (item.item_discount_type === 'percent') {
-                  const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
-                  return sum + Math.round(itemTotal * item.item_discount / 100);
-                }
-                return sum + item.item_discount;
-              }
-              return sum;
-            }, 0)}
-            paymentMethod={paymentMethod}
-            memberName={selectedMember?.name}
-            memberPhone={selectedMember?.phone}
-            wifiVoucher={wifiVoucherPreview}
-            compact={true}
-          />
+        {/* Right Column - Receipt Preview with Tabs */}
+        <div className="hidden lg:flex lg:flex-col overflow-hidden max-h-[calc(85vh-80px)] border-l pl-2">
+          {/* Receipt Type Tabs */}
+          <div className="flex gap-1 mb-2 flex-shrink-0">
+            {[
+              { id: 'receipt' as const, label: 'ใบเสร็จ' },
+              { id: 'kitchen' as const, label: 'ครัว' },
+              { id: 'sticker' as const, label: 'สติ๊กเกอร์' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setReceiptTab(tab.id)}
+                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  receiptTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Preview Content */}
+          <div className="overflow-y-auto flex-1">
+            {receiptTab === 'receipt' && (
+              <ReceiptPreview 
+                cartItems={cartItems}
+                totalAmount={total}
+                discountAmount={billDiscount}
+                itemDiscountAmount={cartItems.reduce((sum, item) => {
+                  if (item.item_discount > 0) {
+                    if (item.item_discount_type === 'percent') {
+                      const itemTotal = (item.menu_item.price + (item.selected_addons?.reduce((a, addon) => a + addon.price, 0) || 0)) * item.quantity;
+                      return sum + Math.round(itemTotal * item.item_discount / 100);
+                    }
+                    return sum + item.item_discount;
+                  }
+                  return sum;
+                }, 0)}
+                paymentMethod={paymentMethod}
+                memberName={selectedMember?.name}
+                memberPhone={selectedMember?.phone}
+                wifiVoucher={wifiVoucherPreview}
+                compact={true}
+              />
+            )}
+            {receiptTab === 'kitchen' && (
+              <KitchenReceiptPreview cartItems={cartItems} orderType={orderType} />
+            )}
+            {receiptTab === 'sticker' && (
+              <StickerPreview cartItems={cartItems} />
+            )}
+          </div>
         </div>
       </div>
     </DialogContent>
