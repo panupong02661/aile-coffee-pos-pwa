@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode } from 'lucide-react';
+import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode, Users, Layers } from 'lucide-react';
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
@@ -17,6 +17,8 @@ import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
 import KitchenReceiptPreview from './KitchenReceiptPreview';
 import StickerPreview from './StickerPreview';
+import TaxInvoicePreview from './TaxInvoicePreview';
+import SplitBillModal from './SplitBillModal';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
 // POS order notifications removed - only online orders should trigger notifications
@@ -69,7 +71,12 @@ const PaymentModal = ({
   const [membershipSettings, setMembershipSettings] = useState<any>(null);
   const [currentTierSettings, setCurrentTierSettings] = useState<any>(null);
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in');
-  const [receiptTab, setReceiptTab] = useState<'receipt' | 'kitchen' | 'sticker'>('receipt');
+  const [receiptTab, setReceiptTab] = useState<'receipt' | 'kitchen' | 'sticker' | 'tax'>('receipt');
+  const [isSplitBillOpen, setIsSplitBillOpen] = useState(false);
+  const [splitBillResult, setSplitBillResult] = useState<number[] | null>(null);
+  const [isMultiPay, setIsMultiPay] = useState(false);
+  const [multiPayCash, setMultiPayCash] = useState('');
+  const [multiPayPromptPay, setMultiPayPromptPay] = useState('');
   const [promptPayPhone, setPromptPayPhone] = useState<string>('0969365265'); // Default fallback
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
   const [wifiVoucherPreview, setWifiVoucherPreview] = useState<{ id: string; username: string; password: string; qr_code_url: string | null } | null>(null);
@@ -624,7 +631,15 @@ const PaymentModal = ({
       return;
     }
 
-    if (paymentMethod === 'cash') {
+    if (isMultiPay) {
+      const cashPart = parseFloat(multiPayCash || '0');
+      const ppPart = parseFloat(multiPayPromptPay || '0');
+      if (Math.abs(cashPart + ppPart - total) > 0.5) {
+        toast({ title: "คำเตือน", description: "ยอดรวมการชำระผสมไม่ตรงกับยอดที่ต้องชำระ", variant: "destructive" });
+        setIsProcessing(false);
+        return;
+      }
+    } else if (paymentMethod === 'cash') {
       const receivedAmount = parseFloat(cashReceived || '0');
       if (isNaN(receivedAmount) || receivedAmount < total) {
         toast({
@@ -663,7 +678,8 @@ const PaymentModal = ({
     try {
       // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
       console.log('[PaymentModal] 📦 Saving to database...');
-      const savedOrder = await saveOrderToDatabase(paymentMethod);
+      const actualMethod = isMultiPay ? 'cash' as PaymentMethod : paymentMethod;
+      const savedOrder = await saveOrderToDatabase(actualMethod);
       
       const dbTime = Date.now() - startTime;
       console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
@@ -878,63 +894,167 @@ const PaymentModal = ({
             </div>
           </div>
 
-          {/* Payment Method Selection - Enhanced with colorful cards */}
+          {/* Payment Method Selection */}
           <div>
-            <Label className="text-sm font-semibold mb-1.5 block text-foreground">วิธีการชำระเงิน</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-sm font-semibold text-foreground">วิธีการชำระเงิน</Label>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsSplitBillOpen(true)}
+                className="h-7 text-[10px] gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <Users className="w-3 h-3" />
+                แยกบิล
+              </Button>
+            </div>
+
+            {/* Split bill result */}
+            {splitBillResult && (
+              <div className="mb-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-primary">แยกบิล {splitBillResult.length} คน</span>
+                  <button onClick={() => setSplitBillResult(null)} className="text-[10px] text-destructive hover:underline">ยกเลิก</button>
+                </div>
+                <div className="space-y-0.5">
+                  {splitBillResult.map((amt, i) => (
+                    <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                      <span>คนที่ {i + 1}</span>
+                      <span className="font-medium">฿{amt.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <RadioGroup 
-              value={paymentMethod} 
-              onValueChange={handleMethodChange}
+              value={isMultiPay ? 'multi' : paymentMethod} 
+              onValueChange={(val) => {
+                if (val === 'multi') {
+                  setIsMultiPay(true);
+                  setMultiPayCash('');
+                  setMultiPayPromptPay('');
+                } else {
+                  setIsMultiPay(false);
+                  handleMethodChange(val);
+                }
+              }}
               className="mt-0.5"
             >
               <div className="grid grid-cols-2 gap-2">
                 <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
-                  paymentMethod === 'cash' 
+                  !isMultiPay && paymentMethod === 'cash' 
                     ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-md' 
                     : 'border-border bg-card hover:border-emerald-300'
                 }`}>
                   <RadioGroupItem value="cash" id="cash" className="w-4 h-4" />
                   <Label htmlFor="cash" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
-                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'cash' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                    <div className={`p-1.5 rounded-lg ${!isMultiPay && paymentMethod === 'cash' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                       <DollarSign className="w-4 h-4" />
                     </div>
-                    <span className={paymentMethod === 'cash' ? 'text-emerald-700' : 'text-foreground'}>เงินสด</span>
+                    <span className={!isMultiPay && paymentMethod === 'cash' ? 'text-emerald-700' : 'text-foreground'}>เงินสด</span>
                   </Label>
                 </div>
-                
 
-                {/* Only show points payment option when a customer is selected */}
                 {selectedMember && (
                   <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
-                    paymentMethod === 'points' 
+                    !isMultiPay && paymentMethod === 'points' 
                       ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-md' 
                       : 'border-border bg-card hover:border-purple-300'
                   }`}>
                     <RadioGroupItem value="points" id="points" className="w-4 h-4" />
                     <Label htmlFor="points" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
-                      <div className={`p-1.5 rounded-lg ${paymentMethod === 'points' ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <div className={`p-1.5 rounded-lg ${!isMultiPay && paymentMethod === 'points' ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                         <Gift className="w-4 h-4" />
                       </div>
-                      <span className={paymentMethod === 'points' ? 'text-purple-700' : 'text-foreground'}>แต้มสะสม</span>
+                      <span className={!isMultiPay && paymentMethod === 'points' ? 'text-purple-700' : 'text-foreground'}>แต้มสะสม</span>
                     </Label>
                   </div>
                 )}
 
                 <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
-                  paymentMethod === 'promptpay' 
+                  !isMultiPay && paymentMethod === 'promptpay' 
                     ? 'border-pink-500 bg-gradient-to-br from-pink-50 to-pink-100 shadow-md' 
                     : 'border-border bg-card hover:border-pink-300'
                 }`}>
                   <RadioGroupItem value="promptpay" id="promptpay" className="w-4 h-4" />
                   <Label htmlFor="promptpay" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
-                    <div className={`p-1.5 rounded-lg ${paymentMethod === 'promptpay' ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                    <div className={`p-1.5 rounded-lg ${!isMultiPay && paymentMethod === 'promptpay' ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                       <QrCode className="w-4 h-4" />
                     </div>
-                    <span className={paymentMethod === 'promptpay' ? 'text-pink-700' : 'text-foreground'}>PromptPay</span>
+                    <span className={!isMultiPay && paymentMethod === 'promptpay' ? 'text-pink-700' : 'text-foreground'}>PromptPay</span>
+                  </Label>
+                </div>
+
+                {/* Multi-method payment */}
+                <div className={`flex items-center space-x-2 p-2.5 border-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:scale-105 ${
+                  isMultiPay
+                    ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 to-indigo-100 shadow-md' 
+                    : 'border-border bg-card hover:border-indigo-300'
+                }`}>
+                  <RadioGroupItem value="multi" id="multi" className="w-4 h-4" />
+                  <Label htmlFor="multi" className="flex items-center gap-1.5 cursor-pointer flex-1 text-sm font-semibold">
+                    <div className={`p-1.5 rounded-lg ${isMultiPay ? 'bg-indigo-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <span className={isMultiPay ? 'text-indigo-700' : 'text-foreground'}>ผสม</span>
                   </Label>
                 </div>
               </div>
             </RadioGroup>
           </div>
+
+          {/* Multi-method payment inputs */}
+          {isMultiPay && (
+            <div className="space-y-2 p-2.5 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
+              <p className="text-xs font-semibold text-indigo-700">ชำระหลายวิธี (รวม = ฿{total.toLocaleString()})</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">เงินสด</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={multiPayCash}
+                    onChange={e => {
+                      setMultiPayCash(e.target.value);
+                      const cash = parseFloat(e.target.value) || 0;
+                      setMultiPayPromptPay(Math.max(0, total - cash).toString());
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">PromptPay</Label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={multiPayPromptPay}
+                    onChange={e => {
+                      setMultiPayPromptPay(e.target.value);
+                      const pp = parseFloat(e.target.value) || 0;
+                      setMultiPayCash(Math.max(0, total - pp).toString());
+                    }}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+              {(parseFloat(multiPayCash || '0') + parseFloat(multiPayPromptPay || '0')) !== total && (
+                <p className="text-[10px] text-destructive font-medium">
+                  ยอดรวม ฿{(parseFloat(multiPayCash || '0') + parseFloat(multiPayPromptPay || '0')).toLocaleString()} ≠ ฿{total.toLocaleString()}
+                </p>
+              )}
+              {parseFloat(multiPayPromptPay || '0') > 0 && (
+                <div className="mt-1">
+                  <QRCodePromptPay 
+                    amount={parseFloat(multiPayPromptPay || '0')}
+                    defaultPhoneNumber={promptPayPhone}
+                    shopLogoUrl={shopLogoUrl}
+                    compact={true}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cash Input and Banknotes - Compact */}
           {paymentMethod === 'cash' && (
@@ -1081,12 +1201,13 @@ const PaymentModal = ({
               { id: 'receipt' as const, label: 'ใบเสร็จ' },
               { id: 'kitchen' as const, label: 'ครัว' },
               { id: 'sticker' as const, label: 'สติ๊กเกอร์' },
+              { id: 'tax' as const, label: 'ใบกำกับภาษี' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setReceiptTab(tab.id)}
-                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-1.5 py-1.5 text-[10px] font-semibold rounded-lg transition-all ${
                   receiptTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -1114,7 +1235,7 @@ const PaymentModal = ({
                   }
                   return sum;
                 }, 0)}
-                paymentMethod={paymentMethod}
+                paymentMethod={isMultiPay ? 'cash' : paymentMethod}
                 memberName={selectedMember?.name}
                 memberPhone={selectedMember?.phone}
                 wifiVoucher={wifiVoucherPreview}
@@ -1127,9 +1248,20 @@ const PaymentModal = ({
             {receiptTab === 'sticker' && (
               <StickerPreview cartItems={cartItems} />
             )}
+            {receiptTab === 'tax' && (
+              <TaxInvoicePreview cartItems={cartItems} totalAmount={total} discountAmount={billDiscount} />
+            )}
           </div>
         </div>
       </div>
+
+      {/* Split Bill Modal */}
+      <SplitBillModal
+        isOpen={isSplitBillOpen}
+        onClose={() => setIsSplitBillOpen(false)}
+        total={total}
+        onConfirm={(splits) => setSplitBillResult(splits)}
+      />
     </DialogContent>
     </Dialog>
   );
