@@ -15,6 +15,8 @@ import { reduceStockForOrder } from '@/utils/stockUtils';
 import { createQueueFromOrder } from '@/hooks/useQueueSystem';
 import QRCodePromptPay from './QRCodePromptPay';
 import ReceiptPreview from './ReceiptPreview';
+import KitchenReceiptPreview from './KitchenReceiptPreview';
+import StickerPreview from './StickerPreview';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 
 // POS order notifications removed - only online orders should trigger notifications
