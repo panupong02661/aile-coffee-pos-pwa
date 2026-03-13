@@ -1192,12 +1192,13 @@ const PaymentModal = ({
               { id: 'receipt' as const, label: 'ใบเสร็จ' },
               { id: 'kitchen' as const, label: 'ครัว' },
               { id: 'sticker' as const, label: 'สติ๊กเกอร์' },
+              { id: 'tax' as const, label: 'ใบกำกับภาษี' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setReceiptTab(tab.id)}
-                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-1.5 py-1.5 text-[10px] font-semibold rounded-lg transition-all ${
                   receiptTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -1225,7 +1226,7 @@ const PaymentModal = ({
                   }
                   return sum;
                 }, 0)}
-                paymentMethod={paymentMethod}
+                paymentMethod={isMultiPay ? 'cash' : paymentMethod}
                 memberName={selectedMember?.name}
                 memberPhone={selectedMember?.phone}
                 wifiVoucher={wifiVoucherPreview}
@@ -1238,9 +1239,20 @@ const PaymentModal = ({
             {receiptTab === 'sticker' && (
               <StickerPreview cartItems={cartItems} />
             )}
+            {receiptTab === 'tax' && (
+              <TaxInvoicePreview cartItems={cartItems} totalAmount={total} discountAmount={billDiscount} />
+            )}
           </div>
         </div>
       </div>
+
+      {/* Split Bill Modal */}
+      <SplitBillModal
+        isOpen={isSplitBillOpen}
+        onClose={() => setIsSplitBillOpen(false)}
+        total={total}
+        onConfirm={(splits) => setSplitBillResult(splits)}
+      />
     </DialogContent>
     </Dialog>
   );
