@@ -668,6 +668,72 @@ const Cart = ({
           onUpdateRoundItem={onUpdateRoundItem || (() => {})}
         />
       )}
+
+      {/* Move Table Dialog */}
+      <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>ย้ายโต๊ะ</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">ย้ายลูกค้าและออเดอร์ทั้งหมดไปโต๊ะอื่น</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">จากโต๊ะ</label>
+              <Select value={moveFrom} onValueChange={setMoveFrom}>
+                <SelectTrigger><SelectValue placeholder="เลือกโต๊ะต้นทาง" /></SelectTrigger>
+                <SelectContent>
+                  {occupiedTables.map(t => (
+                    <SelectItem key={t.id} value={t.id}>โต๊ะ {t.table_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">ไปโต๊ะ</label>
+              <Select value={moveTo} onValueChange={setMoveTo}>
+                <SelectTrigger><SelectValue placeholder="เลือกโต๊ะปลายทาง" /></SelectTrigger>
+                <SelectContent>
+                  {availableTables.map(t => (
+                    <SelectItem key={t.id} value={t.id}>โต๊ะ {t.table_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleMoveTables}>ย้ายโต๊ะ</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Table Dialog */}
+      <Dialog open={isMergeDialogOpen} onOpenChange={setIsMergeDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>รวมโต๊ะ</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">ย้ายออเดอร์ทั้งหมดจากโต๊ะต้นทางไปรวมที่โต๊ะปลายทาง</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">จากโต๊ะ</label>
+              <Select value={mergeFrom} onValueChange={setMergeFrom}>
+                <SelectTrigger><SelectValue placeholder="เลือกโต๊ะต้นทาง" /></SelectTrigger>
+                <SelectContent>
+                  {occupiedTables.map(t => (
+                    <SelectItem key={t.id} value={t.id}>โต๊ะ {t.table_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">ไปรวมที่โต๊ะ</label>
+              <Select value={mergeTo} onValueChange={setMergeTo}>
+                <SelectTrigger><SelectValue placeholder="เลือกโต๊ะปลายทาง" /></SelectTrigger>
+                <SelectContent>
+                  {occupiedTables.filter(t => t.id !== mergeFrom).map(t => (
+                    <SelectItem key={t.id} value={t.id}>โต๊ะ {t.table_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleMergeTables}>รวมโต๊ะ</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
