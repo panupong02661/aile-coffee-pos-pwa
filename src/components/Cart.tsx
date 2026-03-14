@@ -283,6 +283,39 @@ const Cart = ({
     }
   }, [selectedItemForDiscount, onUpdateDiscount]);
 
+  const occupiedTables = tables.filter(t => t.status === 'occupied');
+  const availableTables = tables.filter(t => t.status === 'available');
+
+  const handleMergeTables = async () => {
+    if (!mergeFrom || !mergeTo || mergeFrom === mergeTo) {
+      toast({ title: 'กรุณาเลือกโต๊ะที่ต่างกัน', variant: 'destructive' });
+      return;
+    }
+    const targetTable = tables.find(t => t.id === mergeTo);
+    await supabase.from('table_orders' as any).update({ table_id: mergeTo, table_number: targetTable?.table_number || '' }).eq('table_id', mergeFrom).eq('status', 'active');
+    await supabase.from('restaurant_tables').update({ status: 'available' }).eq('id', mergeFrom);
+    await supabase.from('restaurant_tables').update({ status: 'occupied' }).eq('id', mergeTo);
+    toast({ title: 'รวมโต๊ะสำเร็จ' });
+    setIsMergeDialogOpen(false);
+    setMergeFrom('');
+    setMergeTo('');
+  };
+
+  const handleMoveTables = async () => {
+    if (!moveFrom || !moveTo || moveFrom === moveTo) {
+      toast({ title: 'กรุณาเลือกโต๊ะที่ต่างกัน', variant: 'destructive' });
+      return;
+    }
+    const targetTable = tables.find(t => t.id === moveTo);
+    await supabase.from('table_orders' as any).update({ table_id: moveTo, table_number: targetTable?.table_number || '' }).eq('table_id', moveFrom).eq('status', 'active');
+    await supabase.from('restaurant_tables').update({ status: 'available' }).eq('id', moveFrom);
+    await supabase.from('restaurant_tables').update({ status: 'occupied' }).eq('id', moveTo);
+    toast({ title: 'ย้ายโต๊ะสำเร็จ' });
+    setIsMoveDialogOpen(false);
+    setMoveFrom('');
+    setMoveTo('');
+  };
+
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden bg-card border-border">
