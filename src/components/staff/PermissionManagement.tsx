@@ -94,6 +94,10 @@ interface UserPermissionMap {
   [permissionKey: string]: boolean;
 }
 
+interface UserDiscountLimit {
+  [userId: string]: number | null;
+}
+
 const PermissionManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [userPermissions, setUserPermissions] = useState<Record<string, UserPermissionMap>>({});
