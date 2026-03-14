@@ -507,9 +507,9 @@ const Dashboard = () => {
             {/* Best Sellers with Profit */}
             <Card>
               <CardHeader>
-                <CardTitle>สินค้าขายดีจริง</CardTitle>
+                <CardTitle>🏆 Top 10 เมนูขายดี</CardTitle>
                 <CardDescription>
-                  สินค้าที่ขายดีที่สุดจากออเดอร์จริง
+                  เมนูที่ขายดีที่สุดจากออเดอร์จริงในเดือนนี้
                 </CardDescription>
               </CardHeader>
               <CardContent>
