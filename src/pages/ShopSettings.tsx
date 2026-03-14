@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ShopBasicSettings from '@/components/ShopBasicSettings';
 import ReceiptSettings from '@/components/ReceiptSettings';
 import ReceiptPreview from '@/components/ReceiptPreview';
+import VATServiceChargeSettings from '@/components/VATServiceChargeSettings';
 
 const ShopSettings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
