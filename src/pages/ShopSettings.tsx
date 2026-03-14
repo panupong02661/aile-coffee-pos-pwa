@@ -8,6 +8,7 @@ import ShopBasicSettings from '@/components/ShopBasicSettings';
 import ReceiptSettings from '@/components/ReceiptSettings';
 import ReceiptPreview from '@/components/ReceiptPreview';
 import VATServiceChargeSettings from '@/components/VATServiceChargeSettings';
+import BackupRestore from '@/components/BackupRestore';
 
 const ShopSettings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -49,11 +50,12 @@ const ShopSettings = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="shop" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="shop">ข้อมูลร้าน</TabsTrigger>
                     <TabsTrigger value="tax">ภาษี/ค่าบริการ</TabsTrigger>
                     <TabsTrigger value="receipt">ตั้งค่าใบเสร็จ</TabsTrigger>
                     <TabsTrigger value="preview">ตัวอย่างใบเสร็จ</TabsTrigger>
+                    <TabsTrigger value="backup">สำรอง/กู้คืน</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="shop" className="mt-6">
@@ -70,6 +72,10 @@ const ShopSettings = () => {
                   
                   <TabsContent value="preview" className="mt-6">
                     <ReceiptPreview />
+                  </TabsContent>
+
+                  <TabsContent value="backup" className="mt-6">
+                    <BackupRestore />
                   </TabsContent>
                 </Tabs>
               </CardContent>

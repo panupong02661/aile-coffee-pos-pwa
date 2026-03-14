@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StaffList from '@/components/staff/StaffList';
 import TimeAttendance from '@/components/staff/TimeAttendance';
 import PermissionManagement from '@/components/staff/PermissionManagement';
+import StaffActivityLog from '@/components/StaffActivityLog';
 
 const StaffManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -60,9 +61,10 @@ const StaffManagement = () => {
                   <PermissionManagement />
                 ) : (
                   <Tabs defaultValue="staff-list" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="staff-list">รายชื่อพนักงาน</TabsTrigger>
                       <TabsTrigger value="time-attendance">บันทึกเวลาทำงาน</TabsTrigger>
+                      <TabsTrigger value="activity-log">Log การใช้งาน</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="staff-list" className="mt-6">
@@ -71,6 +73,10 @@ const StaffManagement = () => {
                     
                     <TabsContent value="time-attendance" className="mt-6">
                       <TimeAttendance />
+                    </TabsContent>
+
+                    <TabsContent value="activity-log" className="mt-6">
+                      <StaffActivityLog />
                     </TabsContent>
                   </Tabs>
                 )}
