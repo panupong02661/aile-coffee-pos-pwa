@@ -226,6 +226,7 @@ const PermissionManagement = () => {
       perms[p.key] = userPermissions[user.id]?.[p.key] || false;
     });
     setEditPermissions(perms);
+    setEditDiscountLimit(discountLimits[user.id] ?? null);
     setIsEditOpen(true);
   };
 
