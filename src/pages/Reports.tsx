@@ -12,6 +12,7 @@ import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
+import ProfitLossReport from '@/components/reports/ProfitLossReport';
 import { Download, TrendingUp, TrendingDown, DollarSign, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
