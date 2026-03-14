@@ -336,7 +336,7 @@ const Cart = ({
               </h3>
 
               {/* Table merge/move popover */}
-              {tables.length > 0 && occupiedTables.length > 0 && (
+              {tables.length > 0 && (
                 <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
