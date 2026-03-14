@@ -592,6 +592,24 @@ const PermissionManagement = () => {
               </div>
             </ScrollArea>
 
+            {/* Discount Limit */}
+            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+              <Label className="font-medium">จำกัดส่วนลดสูงสุด (%)</Label>
+              <p className="text-xs text-muted-foreground">กำหนดส่วนลดสูงสุดที่พนักงานคนนี้สามารถให้ได้ (เว้นว่างหากไม่จำกัด)</p>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="ไม่จำกัด"
+                value={editDiscountLimit ?? ''}
+                onChange={e => {
+                  const v = e.target.value;
+                  setEditDiscountLimit(v === '' ? null : parseFloat(v));
+                }}
+                className="max-w-[200px]"
+              />
+            </div>
+
             <Separator />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEditOpen(false)}>ยกเลิก</Button>
