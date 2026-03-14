@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StaffList from '@/components/staff/StaffList';
 import TimeAttendance from '@/components/staff/TimeAttendance';
 import PermissionManagement from '@/components/staff/PermissionManagement';
+import StaffActivityLog from '@/components/StaffActivityLog';
 
 const StaffManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
