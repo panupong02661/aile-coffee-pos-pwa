@@ -104,6 +104,8 @@ const PermissionManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [editPermissions, setEditPermissions] = useState<UserPermissionMap>({});
+  const [discountLimits, setDiscountLimits] = useState<UserDiscountLimit>({});
+  const [editDiscountLimit, setEditDiscountLimit] = useState<number | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
