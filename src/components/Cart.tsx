@@ -114,6 +114,13 @@ const Cart = ({
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
+  const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [mergeFrom, setMergeFrom] = useState('');
+  const [mergeTo, setMergeTo] = useState('');
+  const [moveFrom, setMoveFrom] = useState('');
+  const [moveTo, setMoveTo] = useState('');
+  const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: promotions = [] } = usePromotions();
