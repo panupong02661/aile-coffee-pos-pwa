@@ -1,16 +1,18 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
 import AllOrdersList from '@/components/AllOrdersList';
 import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
-import { Download } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, DollarSign, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
