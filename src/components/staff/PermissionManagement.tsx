@@ -94,12 +94,18 @@ interface UserPermissionMap {
   [permissionKey: string]: boolean;
 }
 
+interface UserDiscountLimit {
+  [userId: string]: number | null;
+}
+
 const PermissionManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [userPermissions, setUserPermissions] = useState<Record<string, UserPermissionMap>>({});
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [editPermissions, setEditPermissions] = useState<UserPermissionMap>({});
+  const [discountLimits, setDiscountLimits] = useState<UserDiscountLimit>({});
+  const [editDiscountLimit, setEditDiscountLimit] = useState<number | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -147,19 +153,24 @@ const PermissionManagement = () => {
       // Fetch all permissions
       const { data: permsData, error: permsError } = await supabase
         .from('user_permissions')
-        .select('user_id, permission_key, is_granted');
+        .select('user_id, permission_key, is_granted, max_discount_percent');
 
       if (permsError) throw permsError;
 
       setUsers((usersData as any[]) || []);
 
-      // Build permission map per user
+      // Build permission map per user and discount limits
       const permMap: Record<string, UserPermissionMap> = {};
+      const discountMap: UserDiscountLimit = {};
       (permsData as any[])?.forEach((p: any) => {
         if (!permMap[p.user_id]) permMap[p.user_id] = {};
         permMap[p.user_id][p.permission_key] = p.is_granted;
+        if (p.max_discount_percent != null) {
+          discountMap[p.user_id] = p.max_discount_percent;
+        }
       });
       setUserPermissions(permMap);
+      setDiscountLimits(discountMap);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลได้', variant: 'destructive' });
@@ -215,6 +226,7 @@ const PermissionManagement = () => {
       perms[p.key] = userPermissions[user.id]?.[p.key] || false;
     });
     setEditPermissions(perms);
+    setEditDiscountLimit(discountLimits[user.id] ?? null);
     setIsEditOpen(true);
   };
 
@@ -264,6 +276,7 @@ const PermissionManagement = () => {
           permission_key: p.key,
           is_granted: true,
           granted_by: currentUser?.id || null,
+          max_discount_percent: editDiscountLimit,
         }));
 
       if (rows.length > 0) {
@@ -578,6 +591,24 @@ const PermissionManagement = () => {
                 })}
               </div>
             </ScrollArea>
+
+            {/* Discount Limit */}
+            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+              <Label className="font-medium">จำกัดส่วนลดสูงสุด (%)</Label>
+              <p className="text-xs text-muted-foreground">กำหนดส่วนลดสูงสุดที่พนักงานคนนี้สามารถให้ได้ (เว้นว่างหากไม่จำกัด)</p>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="ไม่จำกัด"
+                value={editDiscountLimit ?? ''}
+                onChange={e => {
+                  const v = e.target.value;
+                  setEditDiscountLimit(v === '' ? null : parseFloat(v));
+                }}
+                className="max-w-[200px]"
+              />
+            </div>
 
             <Separator />
             <div className="flex justify-end gap-2">

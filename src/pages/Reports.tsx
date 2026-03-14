@@ -1,22 +1,26 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
 import AllOrdersList from '@/components/AllOrdersList';
 import SalesChart from '@/components/charts/SalesChart';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
-import { Download } from 'lucide-react';
+import ProfitLossReport from '@/components/reports/ProfitLossReport';
+import { Download, TrendingUp, TrendingDown, DollarSign, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 const Reports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { dailyData, monthlyData, loading, refreshData } = useDashboardStats();
+  const { dailyData, monthlyData, dashboardStats, loading, refreshData } = useDashboardStats();
+  const { ingredients, menuItems, calculateMenuItemCost } = useSupabaseData();
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const { toast } = useToast();
 
@@ -190,11 +194,12 @@ const Reports = () => {
           </div>
 
           <Tabs defaultValue="all-orders" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all-orders">ประวัติบิลทั้งหมด</TabsTrigger>
-              <TabsTrigger value="cancelled-orders">ออเดอร์ที่ยกเลิก</TabsTrigger>
-              <TabsTrigger value="daily-sales">ยอดขายรายวัน</TabsTrigger>
-              <TabsTrigger value="monthly-sales">ยอดขายรายเดือน</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="all-orders">ประวัติบิล</TabsTrigger>
+              <TabsTrigger value="cancelled-orders">ยกเลิก</TabsTrigger>
+              <TabsTrigger value="daily-sales">รายวัน</TabsTrigger>
+              <TabsTrigger value="monthly-sales">รายเดือน</TabsTrigger>
+              <TabsTrigger value="profit-loss">กำไร-ขาดทุน</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all-orders">
@@ -265,6 +270,15 @@ const Reports = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="profit-loss">
+              <ProfitLossReport
+                dashboardStats={dashboardStats}
+                monthlyData={monthlyData}
+                menuItems={menuItems}
+                calculateMenuItemCost={calculateMenuItemCost}
+              />
             </TabsContent>
           </Tabs>
         </div>

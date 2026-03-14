@@ -4132,6 +4132,8 @@ export type Database = {
           current_queue_id: string | null
           id: string
           is_active: boolean | null
+          pos_x: number | null
+          pos_y: number | null
           position_x: number | null
           position_y: number | null
           shape: string | null
@@ -4149,6 +4151,8 @@ export type Database = {
           current_queue_id?: string | null
           id?: string
           is_active?: boolean | null
+          pos_x?: number | null
+          pos_y?: number | null
           position_x?: number | null
           position_y?: number | null
           shape?: string | null
@@ -4166,6 +4170,8 @@ export type Database = {
           current_queue_id?: string | null
           id?: string
           is_active?: boolean | null
+          pos_x?: number | null
+          pos_y?: number | null
           position_x?: number | null
           position_y?: number | null
           shape?: string | null
@@ -4422,10 +4428,15 @@ export type Database = {
           id: string
           logo_url: string | null
           phone: string | null
+          service_charge_enabled: boolean | null
+          service_charge_rate: number | null
           shop_id: string | null
           shop_name: string
           tax_id: string | null
           updated_at: string
+          vat_enabled: boolean | null
+          vat_included: boolean | null
+          vat_rate: number | null
           wifi_footer_text: string | null
           wifi_header_text: string | null
         }
@@ -4436,10 +4447,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          service_charge_enabled?: boolean | null
+          service_charge_rate?: number | null
           shop_id?: string | null
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
+          vat_enabled?: boolean | null
+          vat_included?: boolean | null
+          vat_rate?: number | null
           wifi_footer_text?: string | null
           wifi_header_text?: string | null
         }
@@ -4450,10 +4466,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          service_charge_enabled?: boolean | null
+          service_charge_rate?: number | null
           shop_id?: string | null
           shop_name?: string
           tax_id?: string | null
           updated_at?: string
+          vat_enabled?: boolean | null
+          vat_included?: boolean | null
+          vat_rate?: number | null
           wifi_footer_text?: string | null
           wifi_header_text?: string | null
         }
@@ -5257,6 +5278,7 @@ export type Database = {
           granted_by: string | null
           id: string
           is_granted: boolean
+          max_discount_percent: number | null
           permission_key: string
           shop_id: string | null
           updated_at: string
@@ -5267,6 +5289,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           is_granted?: boolean
+          max_discount_percent?: number | null
           permission_key: string
           shop_id?: string | null
           updated_at?: string
@@ -5277,6 +5300,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           is_granted?: boolean
+          max_discount_percent?: number | null
           permission_key?: string
           shop_id?: string | null
           updated_at?: string

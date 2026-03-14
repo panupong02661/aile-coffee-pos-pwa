@@ -424,7 +424,7 @@ export const useDashboardStats = () => {
           name, quantity: data.quantity, revenue: data.revenue, profit: data.revenue * 0.6
         }))
         .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5);
+        .slice(0, 10);
 
       // Peak hours
       const hourlyOrders = todayOrders?.reduce((acc: any, order) => {
