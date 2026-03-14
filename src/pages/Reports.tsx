@@ -270,6 +270,15 @@ const Reports = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="profit-loss">
+              <ProfitLossReport
+                dashboardStats={dashboardStats}
+                monthlyData={monthlyData}
+                menuItems={menuItems}
+                calculateMenuItemCost={calculateMenuItemCost}
+              />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
