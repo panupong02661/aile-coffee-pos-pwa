@@ -276,6 +276,7 @@ const PermissionManagement = () => {
           permission_key: p.key,
           is_granted: true,
           granted_by: currentUser?.id || null,
+          max_discount_percent: editDiscountLimit,
         }));
 
       if (rows.length > 0) {
