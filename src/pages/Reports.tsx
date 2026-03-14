@@ -18,7 +18,8 @@ import * as XLSX from 'xlsx';
 
 const Reports = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { dailyData, monthlyData, loading, refreshData } = useDashboardStats();
+  const { dailyData, monthlyData, dashboardStats, loading, refreshData } = useDashboardStats();
+  const { ingredients, menuItems, calculateMenuItemCost } = useSupabaseData();
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const { toast } = useToast();
 
