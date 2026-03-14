@@ -153,19 +153,24 @@ const PermissionManagement = () => {
       // Fetch all permissions
       const { data: permsData, error: permsError } = await supabase
         .from('user_permissions')
-        .select('user_id, permission_key, is_granted');
+        .select('user_id, permission_key, is_granted, max_discount_percent');
 
       if (permsError) throw permsError;
 
       setUsers((usersData as any[]) || []);
 
-      // Build permission map per user
+      // Build permission map per user and discount limits
       const permMap: Record<string, UserPermissionMap> = {};
+      const discountMap: UserDiscountLimit = {};
       (permsData as any[])?.forEach((p: any) => {
         if (!permMap[p.user_id]) permMap[p.user_id] = {};
         permMap[p.user_id][p.permission_key] = p.is_granted;
+        if (p.max_discount_percent != null) {
+          discountMap[p.user_id] = p.max_discount_percent;
+        }
       });
       setUserPermissions(permMap);
+      setDiscountLimits(discountMap);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถโหลดข้อมูลได้', variant: 'destructive' });
