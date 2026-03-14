@@ -334,6 +334,35 @@ const Cart = ({
               <h3 className="text-foreground text-sm font-bold truncate font-sans">
                 {selectedTableNumber ? `โต๊ะ ${selectedTableNumber}` : 'ตะกร้าสินค้า'}
               </h3>
+
+              {/* Table merge/move popover */}
+              {tables.length > 0 && occupiedTables.length > 0 && (
+                <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                      <UtensilsCrossed className="w-4 h-4 text-primary" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-40 p-1" align="start">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-xs gap-2"
+                      onClick={() => { setTablePopoverOpen(false); setIsMoveDialogOpen(true); }}
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5" /> ย้ายโต๊ะ
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-xs gap-2"
+                      onClick={() => { setTablePopoverOpen(false); setIsMergeDialogOpen(true); }}
+                    >
+                      <Merge className="w-3.5 h-3.5" /> รวมโต๊ะ
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
 
             {/* Table selector */}
