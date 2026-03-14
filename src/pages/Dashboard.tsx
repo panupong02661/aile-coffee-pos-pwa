@@ -165,28 +165,44 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Trend Indicators (Week/Month) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">แนวโน้มยอดขาย</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">เทียบ 7 วันก่อน:</span>
-                  <span className={`font-medium ${dashboardStats.weekSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardStats.weekSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.weekSalesGrowthRate.toFixed(1)}%
-                  </span>
+          {/* Sales Comparison */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                เปรียบเทียบยอดขาย
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Today vs Yesterday */}
+                <div className="p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">วันนี้ vs เมื่อวาน</p>
+                  <p className="text-xl font-bold">฿{dashboardStats.todaySales.toLocaleString()}</p>
+                  <div className={`flex items-center gap-1 mt-1 text-sm font-medium ${dashboardStats.salesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardStats.salesGrowthRate >= 0 ? '▲' : '▼'} {Math.abs(dashboardStats.salesGrowthRate).toFixed(1)}%
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">เทียบเดือนก่อน:</span>
-                  <span className={`font-medium ${dashboardStats.monthSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardStats.monthSalesGrowthRate >= 0 ? '+' : ''}{dashboardStats.monthSalesGrowthRate.toFixed(1)}%
-                  </span>
+                {/* This week vs Last week */}
+                <div className="p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">7 วันนี้ vs 7 วันก่อน</p>
+                  <p className="text-xl font-bold">
+                    <span className={`flex items-center gap-1 text-sm font-medium ${dashboardStats.weekSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {dashboardStats.weekSalesGrowthRate >= 0 ? '▲' : '▼'} {Math.abs(dashboardStats.weekSalesGrowthRate).toFixed(1)}%
+                    </span>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                {/* This month vs Last month */}
+                <div className="p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground mb-1">เดือนนี้ vs เดือนก่อน</p>
+                  <p className="text-xl font-bold">฿{dashboardStats.monthSales.toLocaleString()}</p>
+                  <div className={`flex items-center gap-1 mt-1 text-sm font-medium ${dashboardStats.monthSalesGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {dashboardStats.monthSalesGrowthRate >= 0 ? '▲' : '▼'} {Math.abs(dashboardStats.monthSalesGrowthRate).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardHeader>
