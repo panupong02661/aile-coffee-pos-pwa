@@ -73,6 +73,10 @@ const ShopSettings = () => {
                   <TabsContent value="preview" className="mt-6">
                     <ReceiptPreview />
                   </TabsContent>
+
+                  <TabsContent value="backup" className="mt-6">
+                    <BackupRestore />
+                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
