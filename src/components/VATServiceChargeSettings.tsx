@@ -12,7 +12,7 @@ import { Receipt, Percent, Save } from 'lucide-react';
 interface TaxSettings {
   vat_enabled: boolean;
   vat_rate: number;
-  vat_included: boolean; // VAT included in price or added on top
+  vat_included: boolean;
   service_charge_enabled: boolean;
   service_charge_rate: number;
 }
@@ -37,19 +37,17 @@ const VATServiceChargeSettings = () => {
   const loadSettings = async () => {
     const { data } = await supabase
       .from('shop_settings')
-      .select('settings')
+      .select('vat_enabled, vat_rate, vat_included, service_charge_enabled, service_charge_rate')
       .eq('shop_id', shopId!)
-      .eq('setting_key', 'tax_settings')
       .maybeSingle();
 
-    if (data?.settings) {
-      const s = data.settings as Record<string, unknown>;
+    if (data) {
       setSettings({
-        vat_enabled: (s.vat_enabled as boolean) ?? false,
-        vat_rate: (s.vat_rate as number) ?? 7,
-        vat_included: (s.vat_included as boolean) ?? true,
-        service_charge_enabled: (s.service_charge_enabled as boolean) ?? false,
-        service_charge_rate: (s.service_charge_rate as number) ?? 10,
+        vat_enabled: data.vat_enabled ?? false,
+        vat_rate: Number(data.vat_rate) || 7,
+        vat_included: data.vat_included ?? true,
+        service_charge_enabled: data.service_charge_enabled ?? false,
+        service_charge_rate: Number(data.service_charge_rate) || 10,
       });
     }
   };
@@ -58,27 +56,18 @@ const VATServiceChargeSettings = () => {
     if (!shopId) return;
     setSaving(true);
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('shop_settings')
-        .select('id')
-        .eq('shop_id', shopId)
-        .eq('setting_key', 'tax_settings')
-        .maybeSingle();
+        .update({
+          vat_enabled: settings.vat_enabled,
+          vat_rate: settings.vat_rate,
+          vat_included: settings.vat_included,
+          service_charge_enabled: settings.service_charge_enabled,
+          service_charge_rate: settings.service_charge_rate,
+        })
+        .eq('shop_id', shopId);
 
-      if (existing) {
-        await supabase
-          .from('shop_settings')
-          .update({ settings: settings as any })
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('shop_settings')
-          .insert({
-            shop_id: shopId,
-            setting_key: 'tax_settings',
-            settings: settings as any,
-          });
-      }
+      if (error) throw error;
       toast({ title: 'บันทึกสำเร็จ', description: 'ตั้งค่าภาษีและค่าบริการเรียบร้อยแล้ว' });
     } catch (error) {
       toast({ title: 'เกิดข้อผิดพลาด', variant: 'destructive' });
@@ -108,7 +97,6 @@ const VATServiceChargeSettings = () => {
 
   return (
     <div className="space-y-6">
-      {/* VAT Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -158,7 +146,6 @@ const VATServiceChargeSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Service Charge */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -192,7 +179,6 @@ const VATServiceChargeSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Preview */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">ตัวอย่างการคำนวณ</CardTitle>
@@ -205,13 +191,13 @@ const VATServiceChargeSettings = () => {
               <span>฿{samplePrice.toFixed(2)}</span>
             </div>
             {settings.service_charge_enabled && (
-              <div className="flex justify-between text-blue-600">
+              <div className="flex justify-between text-primary">
                 <span>ค่าบริการ {settings.service_charge_rate}%</span>
                 <span>฿{serviceAmount.toFixed(2)}</span>
               </div>
             )}
             {settings.vat_enabled && (
-              <div className="flex justify-between text-orange-600">
+              <div className="flex justify-between text-accent-foreground">
                 <span>VAT {settings.vat_rate}% {settings.vat_included ? '(รวมในราคา)' : '(เพิ่ม)'}</span>
                 <span>฿{vatAmount.toFixed(2)}</span>
               </div>
