@@ -193,11 +193,12 @@ const Reports = () => {
           </div>
 
           <Tabs defaultValue="all-orders" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all-orders">ประวัติบิลทั้งหมด</TabsTrigger>
-              <TabsTrigger value="cancelled-orders">ออเดอร์ที่ยกเลิก</TabsTrigger>
-              <TabsTrigger value="daily-sales">ยอดขายรายวัน</TabsTrigger>
-              <TabsTrigger value="monthly-sales">ยอดขายรายเดือน</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="all-orders">ประวัติบิล</TabsTrigger>
+              <TabsTrigger value="cancelled-orders">ยกเลิก</TabsTrigger>
+              <TabsTrigger value="daily-sales">รายวัน</TabsTrigger>
+              <TabsTrigger value="monthly-sales">รายเดือน</TabsTrigger>
+              <TabsTrigger value="profit-loss">กำไร-ขาดทุน</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all-orders">
