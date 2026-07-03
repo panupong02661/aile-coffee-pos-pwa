@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  USB device filter สำหรับ Star Micronics TSP143III / TSP100 series
+  Vendor ID 0x0519 = Star Micronics
+  วางไว้ที่ android/app/src/main/res/xml/device_filter.xml
+-->
+<resources>
+    <!-- Star Micronics — จับทุกรุ่น -->
+    <usb-device vendor-id="1305" />
+</resources>
