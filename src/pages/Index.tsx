@@ -36,14 +36,20 @@ const Index = () => {
   // Initialize order notifications for iPad compatibility
   const { playBellSound, initializeAudio } = useOrderNotifications();
   
-  // โหลดการตั้งค่าจาก localStorage - updated to support up to 10 columns
+  // ตรวจจับ Android (Capacitor native หรือ user agent)
+  const isAndroid = typeof window !== 'undefined' && (
+    (window as any).Capacitor?.getPlatform?.() === 'android' ||
+    /Android/i.test(navigator.userAgent)
+  );
+
+  // โหลดการตั้งค่าจาก localStorage — Android default: 6 คอลัมน์ / ขนาดใหญ่
   const [gridColumns, setGridColumns] = useState(() => {
     const saved = localStorage.getItem('pos-grid-columns');
-    return saved ? parseInt(saved) : (isMobile ? 3 : 4);
+    return saved ? parseInt(saved) : (isAndroid ? 6 : (isMobile ? 3 : 4));
   });
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
     const saved = localStorage.getItem('pos-item-size');
-    return saved ? saved as 'small' | 'medium' | 'large' : (isMobile ? 'small' : 'medium');
+    return saved ? saved as 'small' | 'medium' | 'large' : (isAndroid ? 'large' : (isMobile ? 'small' : 'medium'));
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   
