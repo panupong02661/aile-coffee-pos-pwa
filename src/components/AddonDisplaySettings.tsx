@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { Settings, Palette, Type, Save } from 'lucide-react';
+import { Settings, Palette, Type, Save, LayoutGrid } from 'lucide-react';
+import AddonOption, { ADDON_STYLES, ADDON_STYLE_STORAGE_KEY, getSavedAddonStyleId } from './AddonOption';
 
 interface AddonDisplayConfig {
   fontSize: string;
