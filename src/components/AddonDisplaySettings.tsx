@@ -64,6 +64,59 @@ const AddonDisplaySettings = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Style Picker */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
+            <LayoutGrid className="w-4 h-4" />
+            เลือกรูปแบบ Add-on (8 แบบ)
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {ADDON_STYLES.map((s) => {
+              const active = styleId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStyleId(s.id)}
+                  className={`text-left p-3 rounded-lg border-2 transition-all ${
+                    active
+                      ? 'border-coffee-600 bg-coffee-50 ring-2 ring-coffee-300'
+                      : 'border-gray-200 hover:border-coffee-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-coffee-800">แบบ {s.id}</span>
+                    {active && <span className="text-[10px] px-2 py-0.5 bg-coffee-600 text-white rounded-full">กำลังใช้</span>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    <AddonOption
+                      name="หวาน 50%"
+                      price={0}
+                      selected={false}
+                      onClick={() => setStyleId(s.id)}
+                      styleId={s.id}
+                      config={config}
+                    />
+                    <AddonOption
+                      name="ช็อตพิเศษ"
+                      price={15}
+                      selected={true}
+                      onClick={() => setStyleId(s.id)}
+                      styleId={s.id}
+                      config={config}
+                    />
+                  </div>
+                  <div className="text-xs font-semibold text-coffee-700">{s.name}</div>
+                  <div className="text-[11px] text-coffee-500 line-clamp-2">{s.description}</div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-coffee-500">
+            * เลือกรูปแบบที่ต้องการแล้วกด "บันทึกการตั้งค่า" ด้านล่าง เพื่อใช้กับหน้าเลือกเมนู
+          </p>
+        </div>
+
         {/* Typography Settings */}
         <div className="space-y-4">
           <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
