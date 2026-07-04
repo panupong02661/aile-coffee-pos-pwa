@@ -763,8 +763,8 @@ const PaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-3">
-        <DialogHeader className="pb-1">
+      <DialogContent className="max-w-4xl max-h-[95vh] h-[95vh] overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-3 flex flex-col">
+        <DialogHeader className="pb-1 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <div className="p-2 bg-gradient-to-br from-primary to-primary/70 rounded-xl shadow-md">
               <CreditCard className="w-5 h-5 text-primary-foreground" />
@@ -773,9 +773,9 @@ const PaymentModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-3 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-3 overflow-hidden flex-1 min-h-0">
           {/* Left Column - Payment Form */}
-          <div className="space-y-2 overflow-y-auto max-h-[calc(85vh-80px)] pr-1">
+          <div className="space-y-2 overflow-y-auto h-full pr-1">
             {/* Order Summary - Enhanced with gradient */}
             {/* ยอดชำระ, เงินทอน และจำนวนเงินที่รับ แยกกัน 3 ช่อง */}
             <div className={`grid gap-2 mb-2 ${paymentMethod === 'cash' ? 'grid-cols-3' : 'grid-cols-2'}`}>
