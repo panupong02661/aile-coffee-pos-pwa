@@ -68,7 +68,7 @@ const AddonDisplaySettings = () => {
         <div className="space-y-4">
           <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
             <LayoutGrid className="w-4 h-4" />
-            เลือกรูปแบบ Add-on (8 แบบ)
+            เลือกรูปแบบ Add-on (21 แบบ)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ADDON_STYLES.map((s) => {
