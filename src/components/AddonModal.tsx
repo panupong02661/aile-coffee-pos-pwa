@@ -41,12 +41,14 @@ interface AddonModalProps {
 const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
   const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
   const [displayConfig, setDisplayConfig] = useState<AddonDisplayConfig>(defaultConfig);
+  const [styleId, setStyleId] = useState<number>(1);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('addonDisplayConfig');
     if (savedConfig) {
       setDisplayConfig(JSON.parse(savedConfig));
     }
+    setStyleId(getSavedAddonStyleId());
   }, [isOpen]);
 
   if (!menuItem) return null;
