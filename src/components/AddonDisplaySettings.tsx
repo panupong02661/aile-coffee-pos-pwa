@@ -33,16 +33,19 @@ const defaultConfig: AddonDisplayConfig = {
 
 const AddonDisplaySettings = () => {
   const [config, setConfig] = useState<AddonDisplayConfig>(defaultConfig);
+  const [styleId, setStyleId] = useState<number>(1);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('addonDisplayConfig');
     if (savedConfig) {
       setConfig(JSON.parse(savedConfig));
     }
+    setStyleId(getSavedAddonStyleId());
   }, []);
 
   const handleSave = () => {
     localStorage.setItem('addonDisplayConfig', JSON.stringify(config));
+    localStorage.setItem(ADDON_STYLE_STORAGE_KEY, styleId.toString());
     toast.success('บันทึกการตั้งค่าเรียบร้อยแล้ว');
   };
 
