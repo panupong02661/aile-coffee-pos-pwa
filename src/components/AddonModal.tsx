@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { MenuItem, Addon } from '@/types';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
+import AddonOption, { getSavedAddonStyleId, ADDON_STYLE_STORAGE_KEY } from './AddonOption';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -40,12 +41,14 @@ interface AddonModalProps {
 const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
   const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
   const [displayConfig, setDisplayConfig] = useState<AddonDisplayConfig>(defaultConfig);
+  const [styleId, setStyleId] = useState<number>(1);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('addonDisplayConfig');
     if (savedConfig) {
       setDisplayConfig(JSON.parse(savedConfig));
     }
+    setStyleId(getSavedAddonStyleId());
   }, [isOpen]);
 
   if (!menuItem) return null;
@@ -128,41 +131,17 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
                   
                   {/* แสดง 3 addon ต่อบรรทัด */}
                   <div className="grid grid-cols-3 gap-1.5">
-                    {groupAddons.map(addon => {
-                      const isSelected = isAddonSelected(addon);
-                      const fontWeightValue = displayConfig.fontWeight === 'normal' ? 400 : displayConfig.fontWeight === 'medium' ? 500 : displayConfig.fontWeight === 'semibold' ? 600 : 700;
-                      
-                      return (
-                        <button
-                          key={addon.id}
-                          className="text-center justify-center p-2 border transition-all hover:opacity-80"
-                          style={{
-                            minHeight: `${displayConfig.minHeight}px`,
-                            fontSize: `${displayConfig.fontSize}px`,
-                            fontWeight: fontWeightValue,
-                            color: isSelected ? displayConfig.selectedTextColor : displayConfig.textColor,
-                            backgroundColor: isSelected ? displayConfig.selectedBackgroundColor : displayConfig.backgroundColor,
-                            borderRadius: `${displayConfig.borderRadius}px`,
-                            borderColor: isSelected ? displayConfig.selectedBackgroundColor : '#e5e7eb',
-                          }}
-                          onClick={() => handleAddonToggle(addon, groupName)}
-                        >
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="truncate w-full text-center">{addon.name}</span>
-                            <span 
-                              className={`h-4 ${Number(addon.price) > 0 ? '' : 'invisible'}`}
-                              style={{
-                                fontSize: `${Math.max(parseInt(displayConfig.fontSize) - 2, 10)}px`,
-                                fontWeight: 600,
-                                color: isSelected ? '#fed7aa' : '#ea580c',
-                              }}
-                            >
-                              {Number(addon.price) > 0 ? `+฿${Number(addon.price)}` : '-'}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {groupAddons.map(addon => (
+                      <AddonOption
+                        key={addon.id}
+                        name={addon.name}
+                        price={Number(addon.price)}
+                        selected={isAddonSelected(addon)}
+                        onClick={() => handleAddonToggle(addon, groupName)}
+                        styleId={styleId}
+                        config={displayConfig}
+                      />
+                    ))}
                   </div>
                 </div>
               );
