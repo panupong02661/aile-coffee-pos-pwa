@@ -1194,7 +1194,7 @@ const PaymentModal = ({
         </div>
 
         {/* Right Column - Receipt Preview with Tabs */}
-        <div className="hidden lg:flex lg:flex-col overflow-hidden max-h-[calc(85vh-80px)] border-l pl-2">
+        <div className="hidden lg:flex lg:flex-col overflow-hidden h-full border-l pl-2">
           {/* Receipt Type Tabs */}
           <div className="flex gap-1 mb-2 flex-shrink-0">
             {[
