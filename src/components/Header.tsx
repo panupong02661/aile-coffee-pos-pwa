@@ -127,7 +127,7 @@ const Header = ({
             </Button>
           )}
           
-          <div className="hidden md:flex items-center ml-6 flex-shrink min-w-0 overflow-hidden">
+          <div className="flex items-center ml-2 md:ml-6 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {categories.map(category => (
               <Button
                 key={category.id}
