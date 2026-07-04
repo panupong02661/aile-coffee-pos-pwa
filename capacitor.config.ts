@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.89c4e9b6c5b7487c8cd23c82705bcd7b',
+  appId: 'app.lovable.aile89c4e9b6c5b7487c8cd23c82705bcd7b',
   appName: 'aile-coffee-pos-pwa',
   webDir: 'dist',
   server: {
