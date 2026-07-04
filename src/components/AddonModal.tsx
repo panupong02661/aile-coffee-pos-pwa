@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { MenuItem, Addon } from '@/types';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
+import AddonOption, { getSavedAddonStyleId, ADDON_STYLE_STORAGE_KEY } from './AddonOption';
 
 interface AddonDisplayConfig {
   fontSize: string;
