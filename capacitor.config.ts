@@ -5,8 +5,13 @@ const config: CapacitorConfig = {
   appId: 'app.lovable.ailecoffeepos',
   appName: 'aile-coffee-pos-pwa',
   webDir: 'dist',
+  // Note: server.url is intentionally omitted for production/native builds.
+  // When present, the Lovable preview badge script can trigger window.open,
+  // which Android launches in Chrome instead of the in-app WebView.
+  // To test hot-reload from Lovable preview, temporarily add:
+  // server: { url: 'https://89c4e9b6-c5b7-487c-8cd2-3c82705bcd7b.lovableproject.com?forceHideBadge=true', cleartext: true },
   server: {
-    url: 'https://89c4e9b6-c5b7-487c-8cd2-3c82705bcd7b.lovableproject.com?forceHideBadge=true',
+    androidScheme: 'https',
     cleartext: true
   },
   plugins: {
