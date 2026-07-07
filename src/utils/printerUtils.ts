@@ -313,11 +313,12 @@ const generateTestReceipt = () => {
 };
 
 // Try different connection methods
+// หมายเหตุ: ไม่ใช้ webPrintFallback (window.open) แล้ว เพราะบน Android WebView (APK)
+// จะเด้งไปเปิด Chrome เป็น about:blank#blocked ทำให้ผู้ใช้กดอะไรไม่ได้
 const tryConnectionMethods = async (data: string, config: PrinterConfig): Promise<boolean> => {
   const methods = [
     () => sendToPrinter(data, config),
     () => pingTest(config.ip_address),
-    () => webPrintFallback(data, config)
   ];
   
   for (const method of methods) {

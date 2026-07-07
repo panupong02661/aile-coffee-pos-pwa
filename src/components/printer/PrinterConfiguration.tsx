@@ -111,6 +111,18 @@ const PrinterConfiguration = () => {
   };
 
   const handleTestPrint = async () => {
+    const currentType = watch('connection_type');
+
+    // USB/Bluetooth ต้องใช้ native plugin — แท็บ Star Printer นี้รองรับเฉพาะ Network (Ethernet/WiFi)
+    if (currentType === 'USB' || currentType === 'Bluetooth') {
+      toast({
+        title: 'ไม่รองรับในแท็บนี้',
+        description: `การพิมพ์ผ่าน ${currentType} ให้ไปใช้แท็บ "เครื่องพิมพ์ทั่วไป" แทน (แท็บนี้รองรับเฉพาะ Ethernet/WiFi)`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const success = await testPrinterConnection();
