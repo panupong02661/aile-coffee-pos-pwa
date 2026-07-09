@@ -136,32 +136,67 @@ const DetailedOrderReport = () => {
     return 'ดึก (21:00-06:00)';
   };
 
+  // Fetch all rows bypassing Supabase's default 1000-row cap
+  const fetchAllPaginated = async <T,>(
+    build: (from: number, to: number) => any,
+    pageSize = 1000
+  ): Promise<T[]> => {
+    const all: T[] = [];
+    let from = 0;
+    // Safety cap to avoid infinite loops
+    for (let i = 0; i < 200; i++) {
+      const { data, error } = await build(from, from + pageSize - 1);
+      if (error) throw error;
+      const rows = (data || []) as T[];
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  };
+
+  // Run `.in()` in chunks so URLs stay within limits, then merge results
+  const fetchInChunks = async <T,>(
+    ids: string[],
+    runner: (chunk: string[]) => Promise<T[]>,
+    chunkSize = 200
+  ): Promise<T[]> => {
+    const out: T[] = [];
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const rows = await runner(chunk);
+      out.push(...rows);
+    }
+    return out;
+  };
+
   const fetchOrders = async () => {
     if (shopLoading || !shopId) return;
     setLoading(true);
     try {
-      // Fetch orders with order_type and order_source
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          order_number,
-          created_at,
-          payment_method,
-          status,
-          total_amount,
-          bill_discount,
-          bill_discount_type,
-          order_type,
-          order_source,
-          member_id
-        `)
-        .eq('shop_id', shopId)
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
+      // Fetch orders with pagination to bypass 1000-row limit
+      const ordersData = await fetchAllPaginated<any>((from, to) =>
+        supabase
+          .from('orders')
+          .select(`
+            id,
+            order_number,
+            created_at,
+            payment_method,
+            status,
+            total_amount,
+            bill_discount,
+            bill_discount_type,
+            order_type,
+            order_source,
+            member_id
+          `)
+          .eq('shop_id', shopId)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      );
 
       if (!ordersData || ordersData.length === 0) {
         setOrders([]);
@@ -169,110 +204,136 @@ const DetailedOrderReport = () => {
         return;
       }
 
-      const orderIds = ordersData.map(o => o.id);
-      const orderNumbers = ordersData.map(o => o.order_number);
-      
-      // Fetch order items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select('*')
-        .in('order_id', orderIds);
+      const orderIds = ordersData.map((o: any) => o.id);
+      const orderNumbers = ordersData.map((o: any) => o.order_number);
 
-      if (itemsError) throw itemsError;
+      // Fetch order items in chunks + paginated
+      const itemsData = await fetchInChunks<any>(orderIds, async (chunk) => {
+        return await fetchAllPaginated<any>((from, to) =>
+          supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', chunk)
+            .range(from, to)
+        );
+      });
 
       // Get unique menu_item_ids for cost, category and ingredients
-      const menuItemIds = [...new Set((itemsData || []).filter(i => i.menu_item_id).map(i => i.menu_item_id))] as string[];
+      const menuItemIds = [...new Set((itemsData || []).filter((i: any) => i.menu_item_id).map((i: any) => i.menu_item_id))] as string[];
       
       // Fetch menu items for cost_price and category
       let menuItemsData: any[] = [];
       if (menuItemIds.length > 0) {
-        const { data } = await supabase
-          .from('menu_items')
-          .select(`
-            id, 
-            cost_price,
-            category_id,
-            categories (
-              id,
-              name
-            )
-          `)
-          .in('id', menuItemIds);
-        menuItemsData = data || [];
+        menuItemsData = await fetchInChunks<any>(menuItemIds, async (chunk) => {
+          const { data, error } = await supabase
+            .from('menu_items')
+            .select(`
+              id, 
+              cost_price,
+              category_id,
+              categories (
+                id,
+                name
+              )
+            `)
+            .in('id', chunk);
+          if (error) throw error;
+          return data || [];
+        });
       }
 
       // Fetch menu ingredients
       let menuIngredientsData: any[] = [];
       if (menuItemIds.length > 0) {
-        const { data } = await supabase
-          .from('menu_ingredients')
-          .select(`
-            menu_item_id,
-            quantity_needed,
-            ingredients (
-              id,
-              name,
-              unit,
-              cost_per_unit
-            )
-          `)
-          .in('menu_item_id', menuItemIds);
-        menuIngredientsData = data || [];
+        menuIngredientsData = await fetchInChunks<any>(menuItemIds, async (chunk) => {
+          const { data, error } = await supabase
+            .from('menu_ingredients')
+            .select(`
+              menu_item_id,
+              quantity_needed,
+              ingredients (
+                id,
+                name,
+                unit,
+                cost_per_unit
+              )
+            `)
+            .in('menu_item_id', chunk);
+          if (error) throw error;
+          return data || [];
+        });
       }
 
       // Fetch member info with tier, total_spent, birth_date
-      const memberIds = ordersData.filter(o => o.member_id).map(o => o.member_id) as string[];
+      const memberIds = [...new Set(ordersData.filter((o: any) => o.member_id).map((o: any) => o.member_id))] as string[];
       let membersData: any[] = [];
       if (memberIds.length > 0) {
-        const { data } = await supabase
-          .from('members')
-          .select('id, name, phone, tier, total_spent, birth_date')
-          .in('id', memberIds);
-        membersData = data || [];
+        membersData = await fetchInChunks<any>(memberIds, async (chunk) => {
+          const { data, error } = await supabase
+            .from('members')
+            .select('id, name, phone, tier, total_spent, birth_date')
+            .in('id', chunk);
+          if (error) throw error;
+          return data || [];
+        });
       }
 
-      // Count order frequency for each member
+      // Count order frequency for each member (paginated)
       let memberOrderCounts: { [key: string]: number } = {};
       if (memberIds.length > 0) {
-        const { data: countData } = await supabase
-          .from('orders')
-          .select('member_id')
-          .in('member_id', memberIds);
-        
-        (countData || []).forEach(o => {
+        const countData = await fetchInChunks<any>(memberIds, async (chunk) => {
+          return await fetchAllPaginated<any>((from, to) =>
+            supabase
+              .from('orders')
+              .select('member_id')
+              .in('member_id', chunk)
+              .range(from, to)
+          );
+        });
+        (countData || []).forEach((o: any) => {
           if (o.member_id) {
             memberOrderCounts[o.member_id] = (memberOrderCounts[o.member_id] || 0) + 1;
           }
         });
       }
 
-      // Fetch point transactions for these orders
+      // Fetch point transactions for these orders (chunked + paginated)
       let pointTransactionsData: any[] = [];
       if (orderNumbers.length > 0) {
-        const { data } = await supabase
-          .from('point_transactions')
-          .select('*')
-          .in('order_id', orderNumbers);
-        pointTransactionsData = data || [];
+        pointTransactionsData = await fetchInChunks<any>(orderNumbers, async (chunk) => {
+          return await fetchAllPaginated<any>((from, to) =>
+            supabase
+              .from('point_transactions')
+              .select('*')
+              .in('order_id', chunk)
+              .range(from, to)
+          );
+        });
       }
 
       // Fetch promotion claims for members who ordered
       let promotionClaimsData: any[] = [];
       if (memberIds.length > 0) {
-        const { data } = await supabase
-          .from('customer_promotion_claims')
-          .select(`
-            customer_id,
-            order_id,
-            limited_promotions (
-              title,
-              promo_code,
-              discount_type,
-              discount_value
-            )
-          `)
-          .in('customer_id', memberIds)
-          .eq('is_used', true);
+        promotionClaimsData = await fetchInChunks<any>(memberIds, async (chunk) => {
+          return await fetchAllPaginated<any>((from, to) =>
+            supabase
+              .from('customer_promotion_claims')
+              .select(`
+                customer_id,
+                order_id,
+                limited_promotions (
+                  title,
+                  promo_code,
+                  discount_type,
+                  discount_value
+                )
+              `)
+              .in('customer_id', chunk)
+              .eq('is_used', true)
+              .range(from, to)
+          );
+        });
+
         promotionClaimsData = data || [];
       }
 
