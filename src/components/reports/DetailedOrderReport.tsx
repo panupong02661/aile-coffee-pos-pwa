@@ -137,6 +137,7 @@ const DetailedOrderReport = () => {
   };
 
   const fetchOrders = async () => {
+    if (shopLoading || !shopId) return;
     setLoading(true);
     try {
       // Fetch orders with order_type and order_source
@@ -155,6 +156,7 @@ const DetailedOrderReport = () => {
           order_source,
           member_id
         `)
+        .eq('shop_id', shopId)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false });
