@@ -745,7 +745,49 @@ const DetailedOrderReport = () => {
                   <SelectItem value="last30days">30 วันที่ผ่านมา</SelectItem>
                   <SelectItem value="thisMonth">เดือนนี้</SelectItem>
                   <SelectItem value="lastMonth">เดือนที่แล้ว</SelectItem>
+                  <SelectItem value="byMonth">เลือกเดือน/ปี</SelectItem>
                   <SelectItem value="custom">กำหนดเอง</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">เดือน</label>
+              <Select
+                value={selectedMonth}
+                onValueChange={(v) => {
+                  setSelectedMonth(v);
+                  applyMonthYear(parseInt(v), parseInt(selectedYear));
+                }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="เลือกเดือน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS_TH.map((m, idx) => (
+                    <SelectItem key={idx} value={String(idx)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">ปี</label>
+              <Select
+                value={selectedYear}
+                onValueChange={(v) => {
+                  setSelectedYear(v);
+                  applyMonthYear(parseInt(selectedMonth), parseInt(v));
+                }}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="เลือกปี" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y + 543}</SelectItem>
+                  ))}
+
                 </SelectContent>
               </Select>
             </div>
