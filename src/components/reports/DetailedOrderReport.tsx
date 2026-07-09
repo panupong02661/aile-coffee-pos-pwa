@@ -96,7 +96,28 @@ const DetailedOrderReport = () => {
     to: endOfDay(new Date()),
   });
   const [quickSelect, setQuickSelect] = useState<string>('last30days');
+  const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth()));
+  const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  const MONTHS_TH = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+
+  const yearOptions = (() => {
+    const current = new Date().getFullYear();
+    const years: number[] = [];
+    for (let y = current; y >= current - 5; y--) years.push(y);
+    return years;
+  })();
+
+  const applyMonthYear = (monthIdx: number, year: number) => {
+    const first = new Date(year, monthIdx, 1);
+    setDateRange({ from: startOfMonth(first), to: endOfMonth(first) });
+    setQuickSelect('byMonth');
+  };
+
 
   const handleQuickSelect = (value: string) => {
     setQuickSelect(value);
