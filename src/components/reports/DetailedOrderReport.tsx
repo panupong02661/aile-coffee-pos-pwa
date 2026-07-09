@@ -88,13 +88,14 @@ interface DetailedOrder {
 
 const DetailedOrderReport = () => {
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<DetailedOrder[]>([]);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: startOfDay(new Date()),
+    from: startOfDay(subDays(new Date(), 29)),
     to: endOfDay(new Date()),
   });
-  const [quickSelect, setQuickSelect] = useState<string>('today');
+  const [quickSelect, setQuickSelect] = useState<string>('last30days');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   const handleQuickSelect = (value: string) => {
