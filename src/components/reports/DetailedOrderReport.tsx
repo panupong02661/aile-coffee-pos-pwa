@@ -396,7 +396,7 @@ const DetailedOrderReport = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [dateRange]);
+  }, [dateRange, shopId, shopLoading]);
 
   const toggleOrderExpand = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
