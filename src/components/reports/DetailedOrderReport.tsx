@@ -333,9 +333,8 @@ const DetailedOrderReport = () => {
               .range(from, to)
           );
         });
-
-        promotionClaimsData = data || [];
       }
+
 
       // Build detailed orders
       const detailedOrders: DetailedOrder[] = ordersData.map(order => {
