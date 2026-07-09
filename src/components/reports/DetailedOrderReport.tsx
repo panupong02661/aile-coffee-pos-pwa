@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1068,9 +1068,9 @@ const DetailedOrderReport = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
-                    <Fragment key={order.id}>
+                  {orders.map((order) => [
                       <TableRow 
+                        key={order.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => toggleOrderExpand(order.id)}
                       >
@@ -1125,10 +1125,8 @@ const DetailedOrderReport = () => {
                         <TableCell className="px-1 py-2 text-right text-xs font-bold text-emerald-600">
                           ฿{order.profit.toLocaleString()}
                         </TableCell>
-                      </TableRow>
-                      
-                      {/* Expanded Items */}
-                      {expandedOrders.has(order.id) && (
+                      </TableRow>,
+                      expandedOrders.has(order.id) && (
                         <TableRow key={`${order.id}-items`}>
                           <TableCell colSpan={12} className="bg-muted/30 p-0">
                             <div className="p-4">
@@ -1197,9 +1195,8 @@ const DetailedOrderReport = () => {
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </Fragment>
-                  ))}
+                      )
+                  ])}
                 </TableBody>
               </Table>
             </div>
