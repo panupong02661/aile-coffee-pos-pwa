@@ -265,7 +265,7 @@ const DetailedOrderReport = () => {
               id, 
               cost_price,
               category_id,
-              categories (
+              categories!fk_menu_items_category_id (
                 id,
                 name
               )
