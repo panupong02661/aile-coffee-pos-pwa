@@ -12,6 +12,7 @@ import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, subMon
 import { th } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 import * as XLSX from 'xlsx';
 
 interface Ingredient {
@@ -87,13 +88,14 @@ interface DetailedOrder {
 
 const DetailedOrderReport = () => {
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<DetailedOrder[]>([]);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: startOfDay(new Date()),
+    from: startOfDay(subDays(new Date(), 29)),
     to: endOfDay(new Date()),
   });
-  const [quickSelect, setQuickSelect] = useState<string>('today');
+  const [quickSelect, setQuickSelect] = useState<string>('last30days');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   const handleQuickSelect = (value: string) => {
@@ -135,6 +137,7 @@ const DetailedOrderReport = () => {
   };
 
   const fetchOrders = async () => {
+    if (shopLoading || !shopId) return;
     setLoading(true);
     try {
       // Fetch orders with order_type and order_source
@@ -153,6 +156,7 @@ const DetailedOrderReport = () => {
           order_source,
           member_id
         `)
+        .eq('shop_id', shopId)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false });
@@ -392,7 +396,7 @@ const DetailedOrderReport = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [dateRange]);
+  }, [dateRange, shopId, shopLoading]);
 
   const toggleOrderExpand = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
