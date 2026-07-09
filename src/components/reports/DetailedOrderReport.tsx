@@ -1069,9 +1069,8 @@ const DetailedOrderReport = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <>
+                    <Fragment key={order.id}>
                       <TableRow 
-                        key={order.id} 
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => toggleOrderExpand(order.id)}
                       >
@@ -1199,7 +1198,7 @@ const DetailedOrderReport = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
