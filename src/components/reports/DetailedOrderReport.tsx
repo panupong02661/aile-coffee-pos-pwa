@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -180,7 +180,7 @@ const DetailedOrderReport = () => {
   const fetchInChunks = async <T,>(
     ids: string[],
     runner: (chunk: string[]) => Promise<T[]>,
-    chunkSize = 200
+    chunkSize = 50
   ): Promise<T[]> => {
     const out: T[] = [];
     for (let i = 0; i < ids.length; i += chunkSize) {
@@ -189,6 +189,19 @@ const DetailedOrderReport = () => {
       out.push(...rows);
     }
     return out;
+  };
+
+  const fetchOptionalInChunks = async <T,>(
+    ids: string[],
+    runner: (chunk: string[]) => Promise<T[]>,
+    label: string
+  ): Promise<T[]> => {
+    try {
+      return await fetchInChunks<T>(ids, runner);
+    } catch (error) {
+      console.warn(`Skipped optional report data: ${label}`, error);
+      return [];
+    }
   };
 
   const fetchOrders = async () => {
@@ -252,7 +265,7 @@ const DetailedOrderReport = () => {
               id, 
               cost_price,
               category_id,
-              categories (
+              categories!fk_menu_items_category_id (
                 id,
                 name
               )
@@ -321,7 +334,7 @@ const DetailedOrderReport = () => {
       // Fetch point transactions for these orders (chunked + paginated)
       let pointTransactionsData: any[] = [];
       if (orderNumbers.length > 0) {
-        pointTransactionsData = await fetchInChunks<any>(orderNumbers, async (chunk) => {
+        pointTransactionsData = await fetchOptionalInChunks<any>(orderNumbers, async (chunk) => {
           return await fetchAllPaginated<any>((from, to) =>
             supabase
               .from('point_transactions')
@@ -329,13 +342,13 @@ const DetailedOrderReport = () => {
               .in('order_id', chunk)
               .range(from, to)
           );
-        });
+        }, 'point_transactions');
       }
 
       // Fetch promotion claims for members who ordered
       let promotionClaimsData: any[] = [];
       if (memberIds.length > 0) {
-        promotionClaimsData = await fetchInChunks<any>(memberIds, async (chunk) => {
+        promotionClaimsData = await fetchOptionalInChunks<any>(memberIds, async (chunk) => {
           return await fetchAllPaginated<any>((from, to) =>
             supabase
               .from('customer_promotion_claims')
@@ -353,7 +366,7 @@ const DetailedOrderReport = () => {
               .eq('is_used', true)
               .range(from, to)
           );
-        });
+        }, 'customer_promotion_claims');
       }
 
 
@@ -1056,9 +1069,8 @@ const DetailedOrderReport = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <>
+                    <Fragment key={order.id}>
                       <TableRow 
-                        key={order.id} 
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => toggleOrderExpand(order.id)}
                       >
@@ -1186,7 +1198,7 @@ const DetailedOrderReport = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
