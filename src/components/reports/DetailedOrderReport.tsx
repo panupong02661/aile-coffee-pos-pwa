@@ -1125,9 +1125,7 @@ const DetailedOrderReport = () => {
                         <TableCell className="px-1 py-2 text-right text-xs font-bold text-emerald-600">
                           ฿{order.profit.toLocaleString()}
                         </TableCell>
-                      </TableRow>
-                      
-                      {/* Expanded Items */}
+                      </TableRow>,
                       expandedOrders.has(order.id) && (
                         <TableRow key={`${order.id}-items`}>
                           <TableCell colSpan={12} className="bg-muted/30 p-0">
