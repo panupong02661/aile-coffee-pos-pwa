@@ -433,6 +433,11 @@ const PaymentModal = ({
         shop_id: shopId || null,
       };
 
+      // บันทึกออเดอร์ย้อนหลัง: ถ้าเลือกวันที่ไว้ ใช้วันที่นั้นแทน (ไม่งั้นใช้ default ของ DB = now())
+      if (backdatedAt) {
+        orderData.created_at = backdatedAt.toISOString();
+      }
+
       console.log(`[PaymentModal] Order data:`, orderData);
 
       // Save order
