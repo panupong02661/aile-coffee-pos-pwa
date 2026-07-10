@@ -79,6 +79,9 @@ interface CartProps {
   onLoadRound?: (roundNumber: number) => void;
   onDeleteRound?: (roundOrderId: string, tableId: string) => void;
   onUpdateRoundItem?: (roundOrderId: string, items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
+  // Backdate order (บันทึกออเดอร์ย้อนหลัง)
+  backdatedAt?: Date | null;
+  onChangeBackdatedAt?: (date: Date | null) => void;
 }
 
 const Cart = ({ 
