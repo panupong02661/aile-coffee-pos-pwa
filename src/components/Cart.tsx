@@ -676,6 +676,7 @@ const Cart = ({
         selectedMember={selectedMember}
         appliedGiftCode={appliedGiftCode}
         onMemberUpdate={onMemberUpdate}
+        backdatedAt={backdatedAt}
       />
 
       <DiscountModal
