@@ -405,7 +405,63 @@ const Cart = ({
                 </SelectContent>
               </Select>
             )}
+
+            {/* Backdate picker (บันทึกวันที่ย้อนหลัง) */}
+            {onChangeBackdatedAt && (
+              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-7 px-2 text-xs gap-1 border-primary/30",
+                      backdatedAt && !isSameDay(backdatedAt, new Date()) && "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/20"
+                    )}
+                    title="เลือกวันที่บันทึกออเดอร์"
+                  >
+                    <CalendarIcon className="w-3 h-3" />
+                    {backdatedAt && !isSameDay(backdatedAt, new Date())
+                      ? format(backdatedAt, 'dd/MM')
+                      : 'วันนี้'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="p-2 border-b flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">วันที่บันทึกออเดอร์</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => {
+                        onChangeBackdatedAt(null);
+                        setIsDatePickerOpen(false);
+                      }}
+                    >
+                      รีเซ็ตเป็นวันนี้
+                    </Button>
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={backdatedAt || new Date()}
+                    onSelect={(date) => {
+                      if (date) {
+                        // ใช้เวลาปัจจุบันของวันนั้น
+                        const now = new Date();
+                        const merged = new Date(date);
+                        merged.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+                        onChangeBackdatedAt(isSameDay(merged, new Date()) ? null : merged);
+                      }
+                      setIsDatePickerOpen(false);
+                    }}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
+
           {/* Save to table & Bill preview buttons */}
           {selectedTableId && (
             <div className="flex gap-1.5 mt-1.5">
