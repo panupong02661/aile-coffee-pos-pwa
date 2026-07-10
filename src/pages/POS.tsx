@@ -775,6 +775,8 @@ const POS = () => {
                 onLoadRound={handleLoadRoundToCart}
                 onDeleteRound={deleteRound}
                 onUpdateRoundItem={updateRoundItems}
+                backdatedAt={backdatedAt}
+                onChangeBackdatedAt={setBackdatedAt}
               />
             </div>
           )}
