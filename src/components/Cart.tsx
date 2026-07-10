@@ -111,8 +111,11 @@ const Cart = ({
   onLoadRound,
   onDeleteRound,
   onUpdateRoundItem,
+  backdatedAt = null,
+  onChangeBackdatedAt,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
