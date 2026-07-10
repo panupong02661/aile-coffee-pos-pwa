@@ -50,6 +50,7 @@ interface PaymentModalProps {
     points: number;
     total_spent: number;
   }) => void;
+  backdatedAt?: Date | null;
 }
 
 const PaymentModal = ({ 
@@ -62,7 +63,8 @@ const PaymentModal = ({
   billDiscountType = 'amount',
   selectedMember = null,
   appliedGiftCode = null,
-  onMemberUpdate
+  onMemberUpdate,
+  backdatedAt = null,
 }: PaymentModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState<string>(total.toString());
@@ -430,6 +432,11 @@ const PaymentModal = ({
         order_type: String(orderType),
         shop_id: shopId || null,
       };
+
+      // บันทึกออเดอร์ย้อนหลัง: ถ้าเลือกวันที่ไว้ ใช้วันที่นั้นแทน (ไม่งั้นใช้ default ของ DB = now())
+      if (backdatedAt) {
+        orderData.created_at = backdatedAt.toISOString();
+      }
 
       console.log(`[PaymentModal] Order data:`, orderData);
 

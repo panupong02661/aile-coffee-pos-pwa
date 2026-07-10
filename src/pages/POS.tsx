@@ -216,6 +216,9 @@ const POS = () => {
   const selectedTable = tables.find(t => t.id === selectedTableId);
   const selectedTableNumber = selectedTable?.table_number || '';
 
+  // Back-dating: null = ใช้วันที่/เวลาปัจจุบัน (จะรีเซ็ตทุกครั้งที่เปิด POS ใหม่)
+  const [backdatedAt, setBackdatedAt] = useState<Date | null>(null);
+
   const handleSelectTable = (tableId: string | null) => {
     setSelectedTableId(tableId);
   };
@@ -772,6 +775,8 @@ const POS = () => {
                 onLoadRound={handleLoadRoundToCart}
                 onDeleteRound={deleteRound}
                 onUpdateRoundItem={updateRoundItems}
+                backdatedAt={backdatedAt}
+                onChangeBackdatedAt={setBackdatedAt}
               />
             </div>
           )}

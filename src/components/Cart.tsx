@@ -3,7 +3,9 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed, FileText, Merge, ArrowRightLeft } from 'lucide-react';
+import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed, FileText, Merge, ArrowRightLeft, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { format, isSameDay } from 'date-fns';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -77,6 +79,9 @@ interface CartProps {
   onLoadRound?: (roundNumber: number) => void;
   onDeleteRound?: (roundOrderId: string, tableId: string) => void;
   onUpdateRoundItem?: (roundOrderId: string, items: CartItem[], discount: number, discountType: 'percent' | 'amount') => void;
+  // Backdate order (บันทึกออเดอร์ย้อนหลัง)
+  backdatedAt?: Date | null;
+  onChangeBackdatedAt?: (date: Date | null) => void;
 }
 
 const Cart = ({ 
@@ -106,8 +111,11 @@ const Cart = ({
   onLoadRound,
   onDeleteRound,
   onUpdateRoundItem,
+  backdatedAt = null,
+  onChangeBackdatedAt,
 }: CartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
   const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
@@ -397,7 +405,63 @@ const Cart = ({
                 </SelectContent>
               </Select>
             )}
+
+            {/* Backdate picker (บันทึกวันที่ย้อนหลัง) */}
+            {onChangeBackdatedAt && (
+              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-7 px-2 text-xs gap-1 border-primary/30",
+                      backdatedAt && !isSameDay(backdatedAt, new Date()) && "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/20"
+                    )}
+                    title="เลือกวันที่บันทึกออเดอร์"
+                  >
+                    <CalendarIcon className="w-3 h-3" />
+                    {backdatedAt && !isSameDay(backdatedAt, new Date())
+                      ? format(backdatedAt, 'dd/MM')
+                      : 'วันนี้'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="p-2 border-b flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">วันที่บันทึกออเดอร์</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => {
+                        onChangeBackdatedAt(null);
+                        setIsDatePickerOpen(false);
+                      }}
+                    >
+                      รีเซ็ตเป็นวันนี้
+                    </Button>
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={backdatedAt || new Date()}
+                    onSelect={(date) => {
+                      if (date) {
+                        // ใช้เวลาปัจจุบันของวันนั้น
+                        const now = new Date();
+                        const merged = new Date(date);
+                        merged.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+                        onChangeBackdatedAt(isSameDay(merged, new Date()) ? null : merged);
+                      }
+                      setIsDatePickerOpen(false);
+                    }}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
+
           {/* Save to table & Bill preview buttons */}
           {selectedTableId && (
             <div className="flex gap-1.5 mt-1.5">
@@ -612,6 +676,7 @@ const Cart = ({
         selectedMember={selectedMember}
         appliedGiftCode={appliedGiftCode}
         onMemberUpdate={onMemberUpdate}
+        backdatedAt={backdatedAt}
       />
 
       <DiscountModal
