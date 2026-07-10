@@ -967,6 +967,11 @@ const DetailedOrderReport = () => {
               <FileSpreadsheet className="w-4 h-4 mr-2" />
               ดาวน์โหลด Excel
             </Button>
+
+            <Button onClick={exportMonthlySummaryToExcel} variant="default" className="bg-blue-600 hover:bg-blue-700">
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              ดาวน์โหลด Excel (สรุปรายวัน)
+            </Button>
           </div>
         </CardContent>
       </Card>
