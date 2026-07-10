@@ -63,7 +63,8 @@ const PaymentModal = ({
   billDiscountType = 'amount',
   selectedMember = null,
   appliedGiftCode = null,
-  onMemberUpdate
+  onMemberUpdate,
+  backdatedAt = null,
 }: PaymentModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cashReceived, setCashReceived] = useState<string>(total.toString());
