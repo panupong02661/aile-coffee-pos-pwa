@@ -50,6 +50,7 @@ interface PaymentModalProps {
     points: number;
     total_spent: number;
   }) => void;
+  backdatedAt?: Date | null;
 }
 
 const PaymentModal = ({ 
