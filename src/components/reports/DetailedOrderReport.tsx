@@ -689,6 +689,109 @@ const DetailedOrderReport = () => {
     }
   };
 
+  const exportMonthlySummaryToExcel = () => {
+    try {
+      // Build list of days between dateRange.from and dateRange.to
+      const days: Date[] = [];
+      const cursor = new Date(dateRange.from);
+      cursor.setHours(0, 0, 0, 0);
+      const endCursor = new Date(dateRange.to);
+      endCursor.setHours(0, 0, 0, 0);
+      while (cursor.getTime() <= endCursor.getTime()) {
+        days.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      // Group orders by day key
+      const grouped = new Map<string, DetailedOrder[]>();
+      orders.forEach(o => {
+        const d = new Date(o.created_at);
+        const key = format(d, 'yyyy-MM-dd');
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key)!.push(o);
+      });
+
+      const isPromptPay = (m: string) => ['promptpay', 'transfer', 'qr'].includes(m);
+      const isCash = (m: string) => m === 'cash';
+
+      const rows = days.map((day) => {
+        const key = format(day, 'yyyy-MM-dd');
+        const dayOrders = grouped.get(key) || [];
+        const cash = dayOrders.filter(o => isCash(o.payment_method)).reduce((s, o) => s + Number(o.total_amount), 0);
+        const promptpay = dayOrders.filter(o => isPromptPay(o.payment_method)).reduce((s, o) => s + Number(o.total_amount), 0);
+        const total = dayOrders.reduce((s, o) => s + Number(o.total_amount), 0);
+        const orderCount = dayOrders.length;
+        const cost = dayOrders.reduce((s, o) => s + Number(o.total_cost), 0);
+        const profit = dayOrders.reduce((s, o) => s + Number(o.profit), 0);
+        const margin = total > 0 ? (profit / total) * 100 : 0;
+        const itemDiscount = dayOrders.reduce((s, o) => s + o.order_items.reduce((ss, i) => ss + Number(i.item_discount || 0), 0), 0);
+        const billDiscount = dayOrders.reduce((s, o) => s + Number(o.bill_discount || 0), 0);
+        const discountTotal = itemDiscount + billDiscount;
+        const net = total - discountTotal;
+
+        return {
+          'วันที่สั่ง': format(day, 'dd/MM/yyyy'),
+          'เงินสด': Math.round(cash * 100) / 100,
+          'PromptPay': Math.round(promptpay * 100) / 100,
+          'รวมเงิน': Math.round(total * 100) / 100,
+          'จำนวนออเดอร์': orderCount,
+          'ต้นทุนสินค้า': Math.round(cost * 100) / 100,
+          'กำไรสินค้า': Math.round(profit * 100) / 100,
+          'กำไรขั้นต้น %': margin > 0 ? margin.toFixed(1) + '%' : '',
+          'ส่วนลดสินค้า': Math.round(discountTotal * 100) / 100,
+          'ยอดสุทธิ': Math.round(net * 100) / 100,
+        };
+      });
+
+      // Totals row
+      const totals = rows.reduce((acc, r) => {
+        acc['เงินสด'] += Number(r['เงินสด']) || 0;
+        acc['PromptPay'] += Number(r['PromptPay']) || 0;
+        acc['รวมเงิน'] += Number(r['รวมเงิน']) || 0;
+        acc['จำนวนออเดอร์'] += Number(r['จำนวนออเดอร์']) || 0;
+        acc['ต้นทุนสินค้า'] += Number(r['ต้นทุนสินค้า']) || 0;
+        acc['กำไรสินค้า'] += Number(r['กำไรสินค้า']) || 0;
+        acc['ส่วนลดสินค้า'] += Number(r['ส่วนลดสินค้า']) || 0;
+        acc['ยอดสุทธิ'] += Number(r['ยอดสุทธิ']) || 0;
+        return acc;
+      }, { 'เงินสด': 0, 'PromptPay': 0, 'รวมเงิน': 0, 'จำนวนออเดอร์': 0, 'ต้นทุนสินค้า': 0, 'กำไรสินค้า': 0, 'ส่วนลดสินค้า': 0, 'ยอดสุทธิ': 0 });
+      const totalMargin = totals['รวมเงิน'] > 0 ? (totals['กำไรสินค้า'] / totals['รวมเงิน']) * 100 : 0;
+
+      rows.push({
+        'วันที่สั่ง': 'รวมทั้งหมด',
+        'เงินสด': Math.round(totals['เงินสด'] * 100) / 100,
+        'PromptPay': Math.round(totals['PromptPay'] * 100) / 100,
+        'รวมเงิน': Math.round(totals['รวมเงิน'] * 100) / 100,
+        'จำนวนออเดอร์': totals['จำนวนออเดอร์'],
+        'ต้นทุนสินค้า': Math.round(totals['ต้นทุนสินค้า'] * 100) / 100,
+        'กำไรสินค้า': Math.round(totals['กำไรสินค้า'] * 100) / 100,
+        'กำไรขั้นต้น %': totalMargin > 0 ? totalMargin.toFixed(1) + '%' : '',
+        'ส่วนลดสินค้า': Math.round(totals['ส่วนลดสินค้า'] * 100) / 100,
+        'ยอดสุทธิ': Math.round(totals['ยอดสุทธิ'] * 100) / 100,
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'สรุปรายวัน');
+      ws['!cols'] = Object.keys(rows[0] || {}).map(k => ({ wch: Math.max(12, k.length + 2) }));
+
+      const filename = `สรุปรายวัน_${format(dateRange.from, 'dd-MM-yyyy')}_ถึง_${format(dateRange.to, 'dd-MM-yyyy')}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      toast({
+        title: 'ส่งออกสำเร็จ',
+        description: `ดาวน์โหลดไฟล์ ${filename} เรียบร้อยแล้ว`,
+      });
+    } catch (error) {
+      console.error('Monthly export error:', error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถส่งออกรายงานได้',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Calculate item sales ranking
   const itemSalesMap = new Map<string, { name: string; qty: number; revenue: number; profit: number }>();
   orders.forEach(order => {
