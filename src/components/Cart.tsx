@@ -6,6 +6,9 @@ import { Separator } from '@/components/ui/separator';
 import { Plus, Minus, Trash2, Percent, Clock, Tag, QrCode, ShoppingCart, CreditCard, UtensilsCrossed, FileText, Merge, ArrowRightLeft, CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
+import { th } from 'date-fns/locale';
+
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
@@ -456,6 +459,11 @@ const Cart = ({
                     disabled={(date) => date > new Date()}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
+                    locale={th}
+                    formatters={{
+                      formatCaption: (date) => `${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`,
+                      formatWeekdayName: (date) => ['อา','จ','อ','พ','พฤ','ศ','ส'][date.getDay()],
+                    }}
                   />
                 </PopoverContent>
               </Popover>
