@@ -282,8 +282,30 @@ export const SalesCalendar = ({ initialMonthOffset = 0 }: SalesCalendarProps) =>
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <div className="space-y-1">
-            {/* Day names header */}
+          <div className="space-y-2">
+            {/* Monthly summary */}
+            {(() => {
+              const totalSales = dailySales.reduce((s, d) => s + d.sales, 0);
+              const totalOrders = dailySales.reduce((s, d) => s + d.orders, 0);
+              const avg = totalOrders > 0 ? totalSales / totalOrders : 0;
+              return (
+                <div className="grid grid-cols-3 gap-2 p-2 rounded-md bg-muted/40 border">
+                  <div className="text-center">
+                    <div className="text-[10px] text-muted-foreground">ยอดขายรวม {monthNames[currentMonth]}</div>
+                    <div className="text-sm font-bold text-primary">฿{totalSales.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                  </div>
+                  <div className="text-center border-x">
+                    <div className="text-[10px] text-muted-foreground">จำนวนบิล</div>
+                    <div className="text-sm font-bold">{totalOrders.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-muted-foreground">เฉลี่ย/บิล</div>
+                    <div className="text-sm font-bold">฿{avg.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="grid grid-cols-7 gap-1">
               {dayNames.map((day) => (
                 <div
