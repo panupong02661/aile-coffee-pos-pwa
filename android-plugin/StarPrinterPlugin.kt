@@ -1,4 +1,4 @@
-package app.lovable.aile.starprinter
+package app.lovable.ailecoffeepos.starprinter
 
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
