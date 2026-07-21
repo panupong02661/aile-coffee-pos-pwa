@@ -1,82 +1,28 @@
-# 🔄 Auto-Sync: Lovable → เครื่อง Windows → Capacitor
+## เป้าหมาย
+ออกแบบหน้าหลัก POS (หน้าเมนูสินค้า) ใหม่ **10 รูปแบบ** ที่แตกต่างกันชัดเจน เพื่อให้ดูก่อน — ยังไม่แตะโค้ด POS จริง
 
-ไม่ต้องรัน `git pull`, `npm run build`, `npx cap sync` เองอีกต่อไป
-เหลืองานที่ทำเองแค่: **เปิด Android Studio → Build APK → ติดตั้งลงแท็บเล็ต**
+## ขั้นตอน
 
----
+1. **แคปภาพหน้า POS ปัจจุบัน** ผ่าน Playwright ที่ `localhost:8080/` เพื่อใช้เป็น visual reference (layout, เมนู, สี, ตะกร้า)
 
-## 🚀 วิธีใช้ (Windows CMD)
+2. **สร้าง 10 design directions** โดยเรียก `design--create_directions` **4 รอบ** (รอบละ 3 ทิศทาง = 12, เลือกใช้ 10 ที่ดีที่สุด และ dedupe) แต่ละทิศทางมี metaphor / energy / layout ที่ต่างกันชัด เช่น:
 
-### ครั้งแรก — ดึงไฟล์สคริปต์ลงเครื่อง
-```cmd
-cd C:\Users\panup\aile-coffee-pos-pwa
-git pull
-```
+   - **D1 – Fullscreen Grid Immersive**: เมนูเต็มจอไร้ header, ภาพใหญ่ edge-to-edge
+   - **D2 – Bento Asymmetric**: กล่องขนาดไม่เท่ากันแบบ bento box
+   - **D3 – Magazine Editorial**: hero item ใหญ่ + grid เล็กด้านข้าง, typography เด่น
+   - **D4 – Dark Café Lounge**: พื้นดำ, gold accent, การ์ดลอย, มู้ดร้านกาแฟหรู
+   - **D5 – Horizontal Scroll Carousel**: เลื่อนแนวนอนเป็นแถวตามหมวด (Netflix-style)
+   - **D6 – Split Screen**: ครึ่งซ้ายภาพเมนูใหญ่ (focus), ครึ่งขวา grid เลือก
+   - **D7 – Minimal Swiss List**: ไม่มีรูป, ใช้ typography + เส้น + spacing (list view หรูๆ)
+   - **D8 – Neo-Brutalist Pop**: สีจัด, ขอบหนา, เงาแข็ง, ปุ่มใหญ่จิ้มง่าย
+   - **D9 – Category Tabs Vertical + Big Cards**: sidebar หมวด + การ์ดใหญ่พร้อม description
+   - **D10 – Glassmorphism Cafe**: ภาพพื้นหลังเบลอ, การ์ดกระจกโปร่ง, สีอบอุ่น
 
-### ใช้งานทุกวัน
-```cmd
-cd C:\Users\panup\aile-coffee-pos-pwa
-scripts\auto-sync.bat
-```
+3. **นำเสนอผ่าน `ask_questions` type=prototype** ให้ผู้ใช้เลือก (แต่เพราะ prototype question จำกัดแค่ 3 ตัวเลือกต่อคำถาม จึงต้อง**ถามหลายคำถาม / หลายรอบ** หรือรวมทุก direction แสดงเป็น preview ให้ดูก่อน แล้วให้ผู้ใช้บอกหมายเลขที่ชอบ)
 
-เปิด CMD หน้าต่างนี้ **ค้างไว้** ทำงานอื่นได้ตามปกติ
+## ข้อจำกัดที่อยากให้ผู้ใช้ทราบก่อน
+- ระบบ prototype picker ของ Lovable แสดงได้สูงสุด **3 ตัวเลือกต่อคำถาม** ผมจะแบ่งเป็น 4 คำถาม (D1–D3, D4–D6, D7–D9, D10) หรือแสดงเป็นชุด แล้วให้บอกเลขที่ชอบ
+- ยังไม่แก้ไฟล์ POS ใดๆ จนกว่าจะเลือกได้แล้ว
 
----
-
-## 🎯 พอเห็นข้อความ "✅ พร้อม Build APK"
-
-1. เปิด **Android Studio** (โปรเจกต์ `android/` เปิดค้างไว้ได้)
-2. เมนู **Build → Build Bundle(s) / APK(s) → Build APK(s)**
-3. รอ 2-5 นาที → กด **locate** ที่ popup มุมขวาล่าง
-4. ลากไฟล์ `app-debug.apk` ลงแท็บเล็ต → ติดตั้งทับ
-
----
-
-## ⚙️ สคริปต์ทำอะไรบ้าง (ทุก 60 วิ)
-
-1. `git fetch` เช็คว่ามี commit ใหม่จาก Lovable ไหม
-2. ถ้ามี:
-   - `git pull`
-   - `npm install` (เฉพาะเมื่อ `package.json` เปลี่ยน — ประหยัดเวลา)
-   - `npm run build`
-   - `npx cap sync android`
-3. เสียง beep + popup แจ้ง "พร้อม Build APK"
-4. ถ้าไม่มี → รอ 60 วิ แล้วเช็คใหม่
-
----
-
-## 🔧 ให้รันเองตอนเปิดคอม (optional)
-
-1. กด `Win + R` → พิมพ์ `shell:startup` → Enter
-2. สร้าง shortcut ของ `C:\Users\panup\aile-coffee-pos-pwa\scripts\auto-sync.bat` วางในโฟลเดอร์นี้
-3. เสร็จ — เปิดคอมเมื่อไหร่ auto-sync รันเอง
-
----
-
-## 🐧 Git Bash / Mac / Linux
-
-```bash
-bash scripts/auto-sync.sh
-```
-
----
-
-## ❓ ปัญหาที่พบบ่อย
-
-| อาการ | แก้ |
-|---|---|
-| `git fetch ล้มเหลว` | เช็คอินเทอร์เน็ต / เปิด GitHub Desktop login ก่อน |
-| `git pull` เจอ conflict | คุณแก้ไฟล์ในเครื่องเอง → commit หรือ `git stash` ก่อน |
-| `build ล้มเหลว` | ดู error ใน CMD → ส่วนใหญ่คือ syntax ผิดใน Lovable ให้แก้ที่ Lovable แล้วรอ sync รอบใหม่ |
-| ไม่ได้ยินเสียง beep | Windows บางเวอร์ชันปิดเสียง PC speaker — ดู popup แทน |
-
----
-
-## 🚫 สิ่งที่ยัง auto ไม่ได้
-
-- **Build + Sign APK** — Android bytecode compile ต้องผ่าน Android Studio หรือ `./gradlew assembleRelease` (ถ้ามี keystore config)
-- **ติดตั้งลงแท็บเล็ต** — ถ้าอยาก auto ตรงนี้ด้วย บอกได้ จะเพิ่ม `adb install -r` เข้าสคริปต์ให้ (ต้องเสียบ USB debug)
-
----
-
-**สรุป: รัน `scripts\auto-sync.bat` ครั้งเดียว ปล่อยทิ้งไว้ → พอ Lovable เสร็จ เครื่องพร้อม Build ให้เอง**
+## หลังผู้ใช้เลือก
+จะสร้างหน้าตัวอย่างจริงในโปรเจกต์ (route ใหม่ เช่น `/pos-preview`) หรือ implement ทับ POS ตามที่ต้องการ
