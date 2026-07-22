@@ -77,6 +77,7 @@ const QueueDisplay = lazy(() => import('./pages/QueueDisplay'));
 const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 const QueueTracker = lazy(() => import('./pages/QueueTracker'));
+const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
 
 function AppContent() {
   usePrefetch();
@@ -188,6 +189,7 @@ function App() {
                     <Route path="/queue-management" element={<ProtectedRoute><QueueManagement /></ProtectedRoute>} />
                     <Route path="/table-management" element={<ProtectedRoute><TableManagement /></ProtectedRoute>} />
                     <Route path="/delivery-tracking" element={<ProtectedRoute><DeliveryTracking /></ProtectedRoute>} />
+                    <Route path="/launcher-preview" element={<ProtectedRoute><LauncherPreview /></ProtectedRoute>} />
                   </Routes>
                 </Suspense>
                 <PWAInstallPrompt />
