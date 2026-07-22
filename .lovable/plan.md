@@ -1,28 +1,41 @@
 ## เป้าหมาย
-ออกแบบหน้าหลัก POS (หน้าเมนูสินค้า) ใหม่ **10 รูปแบบ** ที่แตกต่างกันชัดเจน เพื่อให้ดูก่อน — ยังไม่แตะโค้ด POS จริง
+ออกแบบหน้า **App Launcher** (หน้ารวมเมนูจาก MainSidebar เช่น POS, แดชบอร์ด, จัดการเมนู, รายงาน, ตั้งค่า ฯลฯ มาแสดงกลางหน้าจอเป็นไทล์คลิกได้) **เฉพาะเป็นตัวอย่างดู UI** — ยังไม่แตะ route จริง ไม่เปลี่ยน POS
 
-## ขั้นตอน
+## Route ตัวอย่าง
+เพิ่ม route ใหม่ `/launcher-preview` (เข้าดูได้อย่างเดียว ไม่ผูกกับ Sidebar เดิม) รวม 6 ดีไซน์ในหน้าเดียว เลื่อนดูได้ พร้อมชื่อกำกับแต่ละแบบ
 
-1. **แคปภาพหน้า POS ปัจจุบัน** ผ่าน Playwright ที่ `localhost:8080/` เพื่อใช้เป็น visual reference (layout, เมนู, สี, ตะกร้า)
+## 6 ดีไซน์ที่จะสร้าง
 
-2. **สร้าง 10 design directions** โดยเรียก `design--create_directions` **4 รอบ** (รอบละ 3 ทิศทาง = 12, เลือกใช้ 10 ที่ดีที่สุด และ dedupe) แต่ละทิศทางมี metaphor / energy / layout ที่ต่างกันชัด เช่น:
+| # | ชื่อ | สไตล์ | รายละเอียด |
+|---|------|-------|------------|
+| 1 | **iOS Launchpad** | iOS | ไอคอนกลม สีสด grid 4-6 คอลัมน์ ป้ายชื่อใต้ไอคอน พื้นหลัง blur gradient |
+| 2 | **iOS Folder Groups** | iOS | จัดกลุ่มตาม menuGroups (หลัก / ร้านค้า / เมนู ฯลฯ) แต่ละกลุ่มเป็น "โฟลเดอร์" 2×2 |
+| 3 | **Bento Asymmetric** | Bento | การ์ดขนาดไม่เท่ากัน — POS ใหญ่สุด (2×2), แดชบอร์ด/รายงาน กลาง, ที่เหลือเล็ก มีตัวเลข preview เช่นยอดขายวันนี้ |
+| 4 | **Bento Glass Cards** | Bento | การ์ดกระจก backdrop-blur พื้นหลังไล่สีอบอุ่น (coffee tone) แสดง icon + label + สถิติย่อ |
+| 5 | **Dark Command Center** | Dark Dashboard | พื้นดำ + accent ทอง/น้ำเงิน จัดเป็น sidebar หมวด + grid ใหญ่ตรงกลาง มู้ด control room |
+| 6 | **Minimal Swiss Grid** | Minimal | พื้นครีม เส้นบาง typography Thai + serif ไม่มีสีจัด ไอคอนบางๆ จัดเป็น 5 คอลัมน์เท่ากัน |
 
-   - **D1 – Fullscreen Grid Immersive**: เมนูเต็มจอไร้ header, ภาพใหญ่ edge-to-edge
-   - **D2 – Bento Asymmetric**: กล่องขนาดไม่เท่ากันแบบ bento box
-   - **D3 – Magazine Editorial**: hero item ใหญ่ + grid เล็กด้านข้าง, typography เด่น
-   - **D4 – Dark Café Lounge**: พื้นดำ, gold accent, การ์ดลอย, มู้ดร้านกาแฟหรู
-   - **D5 – Horizontal Scroll Carousel**: เลื่อนแนวนอนเป็นแถวตามหมวด (Netflix-style)
-   - **D6 – Split Screen**: ครึ่งซ้ายภาพเมนูใหญ่ (focus), ครึ่งขวา grid เลือก
-   - **D7 – Minimal Swiss List**: ไม่มีรูป, ใช้ typography + เส้น + spacing (list view หรูๆ)
-   - **D8 – Neo-Brutalist Pop**: สีจัด, ขอบหนา, เงาแข็ง, ปุ่มใหญ่จิ้มง่าย
-   - **D9 – Category Tabs Vertical + Big Cards**: sidebar หมวด + การ์ดใหญ่พร้อม description
-   - **D10 – Glassmorphism Cafe**: ภาพพื้นหลังเบลอ, การ์ดกระจกโปร่ง, สีอบอุ่น
+## ขอบเขต
+- อ่านโครงสร้าง `menuGroups` จาก `src/components/MainSidebar.tsx` ใช้เป็นแหล่งเมนูจริง (ทุกแบบใช้ข้อมูลชุดเดียวกัน)
+- คลิกไทล์แล้ว navigate ไปหน้านั้นจริง (ใช้ react-router `Link`)
+- ทุกดีไซน์ใช้ semantic tokens ใน `index.css`/tailwind — ไม่ hardcode สี
+- Responsive: มือถือ 2 คอลัมน์, tablet 3-4, desktop 5-6
 
-3. **นำเสนอผ่าน `ask_questions` type=prototype** ให้ผู้ใช้เลือก (แต่เพราะ prototype question จำกัดแค่ 3 ตัวเลือกต่อคำถาม จึงต้อง**ถามหลายคำถาม / หลายรอบ** หรือรวมทุก direction แสดงเป็น preview ให้ดูก่อน แล้วให้ผู้ใช้บอกหมายเลขที่ชอบ)
+## ไฟล์ที่จะสร้าง
+- `src/pages/LauncherPreview.tsx` — หน้ารวม 6 ดีไซน์ พร้อม section header แต่ละแบบ
+- `src/components/launcher/LauncherIOS.tsx`
+- `src/components/launcher/LauncherIOSFolder.tsx`
+- `src/components/launcher/LauncherBento.tsx`
+- `src/components/launcher/LauncherBentoGlass.tsx`
+- `src/components/launcher/LauncherDark.tsx`
+- `src/components/launcher/LauncherMinimal.tsx`
+- `src/data/launcherMenu.ts` — สกัด menuGroups มาใช้ซ้ำ (ไม่กระทบ MainSidebar)
 
-## ข้อจำกัดที่อยากให้ผู้ใช้ทราบก่อน
-- ระบบ prototype picker ของ Lovable แสดงได้สูงสุด **3 ตัวเลือกต่อคำถาม** ผมจะแบ่งเป็น 4 คำถาม (D1–D3, D4–D6, D7–D9, D10) หรือแสดงเป็นชุด แล้วให้บอกเลขที่ชอบ
-- ยังไม่แก้ไฟล์ POS ใดๆ จนกว่าจะเลือกได้แล้ว
+## ไฟล์ที่จะแก้
+- `src/App.tsx` — เพิ่ม `<Route path="/launcher-preview" element={<LauncherPreview/>} />` เท่านั้น
 
-## หลังผู้ใช้เลือก
-จะสร้างหน้าตัวอย่างจริงในโปรเจกต์ (route ใหม่ เช่น `/pos-preview`) หรือ implement ทับ POS ตามที่ต้องการ
+## หลังดูตัวอย่าง
+คุณเลือกเบอร์ที่ชอบ → ผมค่อยเอาไปเป็นหน้าหลักจริง (จะให้แทน `/` หรือแยก `/home` ค่อยตัดสินอีกที)
+
+## วิธีเข้าดู
+เปิด URL: `/launcher-preview`
