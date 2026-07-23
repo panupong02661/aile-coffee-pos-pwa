@@ -78,6 +78,8 @@ const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
+const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
+const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
 
 function AppContent() {
   usePrefetch();
