@@ -1,41 +1,63 @@
 ## เป้าหมาย
-ออกแบบหน้า **App Launcher** (หน้ารวมเมนูจาก MainSidebar เช่น POS, แดชบอร์ด, จัดการเมนู, รายงาน, ตั้งค่า ฯลฯ มาแสดงกลางหน้าจอเป็นไทล์คลิกได้) **เฉพาะเป็นตัวอย่างดู UI** — ยังไม่แตะ route จริง ไม่เปลี่ยน POS
+ออกแบบหน้า **Home** (ตามรูปที่ 2) และหน้า **POS** (ตามรูปที่ 1) ใหม่ให้เหมือนต้นแบบ ~100% โดย**แยกไฟล์ preview** ไม่แตะโค้ด POS/Sidebar เดิมที่ใช้งานอยู่
 
-## Route ตัวอย่าง
-เพิ่ม route ใหม่ `/launcher-preview` (เข้าดูได้อย่างเดียว ไม่ผูกกับ Sidebar เดิม) รวม 6 ดีไซน์ในหน้าเดียว เลื่อนดูได้ พร้อมชื่อกำกับแต่ละแบบ
+## Route สำหรับดูตัวอย่าง
+- `/preview-home` → หน้าหลักใหม่ (ตามรูป 2)
+- `/preview-pos` → หน้า POS ใหม่ (ตามรูป 1)
+- ปุ่ม POS ในหน้า `/preview-home` ลิงก์ไป `/preview-pos` เพื่อทดสอบ flow
 
-## 6 ดีไซน์ที่จะสร้าง
+## ไฟล์ที่จะสร้างใหม่ (ไม่ทับของเดิม)
+```
+src/pages/preview/PreviewHome.tsx       # หน้าหลักใหม่
+src/pages/preview/PreviewPOS.tsx        # หน้า POS ใหม่
+src/components/preview/PreviewSidebar.tsx   # sidebar ซ้ายสไตล์ใหม่ (Aile Coffee logo, เมนู pill สีชมพู)
+src/components/preview/PreviewHeader.tsx    # header (สวัสดี / เวลา / กระดิ่ง / avatar)
+src/components/preview/PreviewMenuCard.tsx  # การ์ดเมนูใหญ่พร้อมไอคอน pastel (POS, รายการสั่งซื้อ, ลูกค้า ...)
+src/components/preview/PreviewStatCard.tsx  # การ์ดสถิติล่าง (ยอดขายวันนี้ / ออเดอร์ / ลูกค้าใหม่ / สินค้าใกล้หมด)
+src/components/preview/PreviewPOSGrid.tsx   # กริดสินค้ารูปกลม + ราคา
+src/components/preview/PreviewCart.tsx      # ตะกร้าขวา สไตล์ card ขาว + ปุ่มชมพู "ชำระเงิน"
+src/components/preview/PreviewQuickActions.tsx  # แถบ "การทำงานด่วน" (ยกเลิก/พัก/ค้นหา/คูปอง/พิมพ์)
+```
+ไม่แก้ `src/pages/Index.tsx`, `MainSidebar.tsx`, `Header.tsx`, `Cart.tsx`, `MenuGrid.tsx` เดิม
 
-| # | ชื่อ | สไตล์ | รายละเอียด |
-|---|------|-------|------------|
-| 1 | **iOS Launchpad** | iOS | ไอคอนกลม สีสด grid 4-6 คอลัมน์ ป้ายชื่อใต้ไอคอน พื้นหลัง blur gradient |
-| 2 | **iOS Folder Groups** | iOS | จัดกลุ่มตาม menuGroups (หลัก / ร้านค้า / เมนู ฯลฯ) แต่ละกลุ่มเป็น "โฟลเดอร์" 2×2 |
-| 3 | **Bento Asymmetric** | Bento | การ์ดขนาดไม่เท่ากัน — POS ใหญ่สุด (2×2), แดชบอร์ด/รายงาน กลาง, ที่เหลือเล็ก มีตัวเลข preview เช่นยอดขายวันนี้ |
-| 4 | **Bento Glass Cards** | Bento | การ์ดกระจก backdrop-blur พื้นหลังไล่สีอบอุ่น (coffee tone) แสดง icon + label + สถิติย่อ |
-| 5 | **Dark Command Center** | Dark Dashboard | พื้นดำ + accent ทอง/น้ำเงิน จัดเป็น sidebar หมวด + grid ใหญ่ตรงกลาง มู้ด control room |
-| 6 | **Minimal Swiss Grid** | Minimal | พื้นครีม เส้นบาง typography Thai + serif ไม่มีสีจัด ไอคอนบางๆ จัดเป็น 5 คอลัมน์เท่ากัน |
+## การเชื่อม route
+เพิ่ม 2 routes ใน `src/App.tsx` (แค่บรรทัด `<Route>`) — ไม่แตะ route `/` เดิม
 
-## ขอบเขต
-- อ่านโครงสร้าง `menuGroups` จาก `src/components/MainSidebar.tsx` ใช้เป็นแหล่งเมนูจริง (ทุกแบบใช้ข้อมูลชุดเดียวกัน)
-- คลิกไทล์แล้ว navigate ไปหน้านั้นจริง (ใช้ react-router `Link`)
-- ทุกดีไซน์ใช้ semantic tokens ใน `index.css`/tailwind — ไม่ hardcode สี
-- Responsive: มือถือ 2 คอลัมน์, tablet 3-4, desktop 5-6
+## ดีไซน์สเปคจากรูปต้นแบบ
+**สีหลัก**
+- BG: `#FAF7F2` (ครีมอ่อน)
+- Sidebar: ขาว, active pill สีชมพู `#F8D7DA` + text `#E85A6B`
+- ปุ่ม primary (ชำระเงิน, ทั้งหมด): ชมพูโคเรล `#F27381`
+- ปุ่ม secondary (บันทึกรายการ): ฟ้าอ่อน `#EAF2FF` + text ฟ้า
+- การ์ดสถิติ: pastel gradient (เขียว/ส้ม/ม่วง/แดง)
+- Accent illustration: ต้นไม้/ใบไม้มุมล่างซ้าย-ขวา
 
-## ไฟล์ที่จะสร้าง
-- `src/pages/LauncherPreview.tsx` — หน้ารวม 6 ดีไซน์ พร้อม section header แต่ละแบบ
-- `src/components/launcher/LauncherIOS.tsx`
-- `src/components/launcher/LauncherIOSFolder.tsx`
-- `src/components/launcher/LauncherBento.tsx`
-- `src/components/launcher/LauncherBentoGlass.tsx`
-- `src/components/launcher/LauncherDark.tsx`
-- `src/components/launcher/LauncherMinimal.tsx`
-- `src/data/launcherMenu.ts` — สกัด menuGroups มาใช้ซ้ำ (ไม่กระทบ MainSidebar)
+**Typography**: ฟอนต์ไทยเดิมของโปรเจกต์ (Sarabun/Noto), หัวข้อหนา, ตัวเลขใหญ่
 
-## ไฟล์ที่จะแก้
-- `src/App.tsx` — เพิ่ม `<Route path="/launcher-preview" element={<LauncherPreview/>} />` เท่านั้น
+**หน้า Home (รูป 2)**
+- Sidebar ซ้าย 220px: โลโก้ Aile Coffee + 10 เมนู (หน้าหลัก active)
+- Header: "สวัสดี, ผู้ดูแลระบบ" + เวลา + 🔔 + avatar
+- Grid 4×2 การ์ดเมนูใหญ่: POS / รายการสั่งซื้อ / ลูกค้า / สินค้า / สต็อก / โปรโมชั่น / รายงาน / ตั้งค่า (แต่ละใบ pastel + icon 3D)
+- Bottom row 4 stat cards: ยอดขายวันนี้ / ออเดอร์วันนี้ / ลูกค้าใหม่ / สินค้าใกล้หมด
+- Illustration ต้นไม้มุมล่าง
 
-## หลังดูตัวอย่าง
-คุณเลือกเบอร์ที่ชอบ → ผมค่อยเอาไปเป็นหน้าหลักจริง (จะให้แทน `/` หรือแยก `/home` ค่อยตัดสินอีกที)
+**หน้า POS (รูป 1)**
+- Sidebar เดียวกับ Home (POS active)
+- Top: "POS / จุดขาย / สร้างรายการสั่งซื้อ" + ปุ่ม "โต๊ะ 3" + dropdown "ลูกค้าทั่วไป" + 🔔 + เวลา + avatar
+- Search bar + barcode icon
+- Category pills แนวนอน (ทั้งหมด/กาแฟ/นม/ชา/ปั่น/เบเกอรี่/ของว่าง/+เพิ่มหมวด)
+- Grid สินค้า 5 คอลัมน์: การ์ดขาว รูปกลม + ชื่อ + ราคา
+- Panel ขวา 340px: "รายการสั่งซื้อ" + list พร้อม +/- + "เพิ่มหมายเหตุ" + สรุปยอด + ปุ่ม "บันทึกรายการ" (ฟ้า) / "ชำระเงิน" (ชมพู)
+- แถบล่าง "การทำงานด่วน": 5 ปุ่มไอคอนสี (ยกเลิก/พัก/ค้นหา/คูปอง/พิมพ์)
 
-## วิธีเข้าดู
-เปิด URL: `/launcher-preview`
+## ข้อมูลที่ใช้
+- Preview ใช้ **mock data** ในไฟล์ preview เอง (ไม่ยิง Supabase) เพื่อให้เร็ว โฟกัสหน้าตา
+- ไม่มี logic จริง (add to cart, ชำระเงิน) — เป็นภาพนิ่งที่ดูเลย์เอาต์
+
+## สิ่งที่ไม่ทำในรอบนี้
+- ไม่แตะ `/` (POS จริง), MainSidebar, Cart, PaymentModal
+- ไม่เชื่อม data จริง / auth / shop context
+- ไม่ทำ mobile responsive ละเอียด (โฟกัส desktop/tablet ตามรูป)
+
+## หลังผู้ใช้ดูแล้ว
+ถ้าโอเค → รอบถัดไปค่อยย้ายมาแทน POS/Home จริง พร้อมต่อ data
