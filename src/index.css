@@ -96,10 +96,29 @@
     @apply border-border;
   }
 
-  /* Eliminate 300ms tap delay on all interactive elements */
-  a, button, [role="button"], input, select, textarea, label {
+  /* Eliminate tap delay + double-tap issues on touch devices */
+  a, button, [role="button"], [role="tab"], [role="menuitem"], [role="option"],
+  input, select, textarea, label, .cursor-pointer, [data-radix-collection-item] {
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], .cursor-pointer {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* On touch devices, disable :hover styles so first tap = click (not hover-then-click) */
+  @media (hover: none) and (pointer: coarse) {
+    button:hover, [role="button"]:hover, [role="tab"]:hover,
+    [role="menuitem"]:hover, [role="option"]:hover, a:hover, .cursor-pointer:hover {
+      background-color: revert !important;
+      color: revert !important;
+      transform: none !important;
+      opacity: revert !important;
+    }
+  }
+
 
   html {
     height: -webkit-fill-available;
