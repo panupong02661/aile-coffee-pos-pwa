@@ -161,12 +161,13 @@ const OptimizedPaymentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
+        <DialogHeader className="flex-shrink-0 border-b px-4 py-3">
           <DialogTitle className="text-coffee-800">ชำระเงิน</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {/* Total Amount */}
           <div className="text-center py-4 bg-coffee-50 rounded-lg">
             <div className="text-2xl font-bold text-coffee-800">฿{total.toFixed(2)}</div>
@@ -183,8 +184,8 @@ const OptimizedPaymentModal = ({
                   variant={selectedMethod === method.id ? "default" : "outline"}
                   onClick={() => setSelectedMethod(method.id)}
                   className={`h-16 flex flex-col gap-1 ${
-                    selectedMethod === method.id 
-                      ? `${method.color} text-white` 
+                    selectedMethod === method.id
+                      ? `${method.color} text-white`
                       : 'border-coffee-200 text-coffee-700'
                   }`}
                 >
@@ -239,8 +240,10 @@ const OptimizedPaymentModal = ({
               </div>
             </>
           )}
+        </div>
 
-          {/* Payment Button */}
+        {/* Sticky Footer */}
+        <div className="flex-shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             onClick={handlePayment}
             disabled={isProcessing || (selectedMethod === 'cash' && cashReceived < total)}
@@ -255,3 +258,4 @@ const OptimizedPaymentModal = ({
 };
 
 export default OptimizedPaymentModal;
+
