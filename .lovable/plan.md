@@ -1,54 +1,62 @@
-## 1) กดครั้งเดียวติดทั้งระบบ (tap responsiveness)
+# แผนปรับปรุงระบบ Aile Coffee POS
 
-**ปัญหา**: บนมือถือ/แท็บเล็ต บางปุ่มต้องกด 2–3 ครั้งถึงจะติด สาเหตุหลักคือ tap delay, `hover:` state ค้างบน touch, และการที่ Radix/shadcn ส่ง event เป็น `pointerdown` แต่ overlay/ripple ค้างชั่วคราว
+ครอบคลุม 4 ด้านตามที่เลือก แบ่งเป็น Phase ทำทีละส่วน ตัดสินใจได้ว่าจะทำ Phase ไหนก่อน
 
-**แก้ที่ระดับ CSS ครั้งเดียว (src/index.css)** ให้ครอบทั้งระบบ ไม่ต้องแก้รายไฟล์:
-- ขยาย `touch-action: manipulation` ให้ครอบ `[role="tab"]`, `[role="menuitem"]`, `[role="option"]`, `.cursor-pointer`, `[data-radix-collection-item]` และ card ที่ทำเป็นปุ่ม
-- เพิ่ม `-webkit-tap-highlight-color: transparent` และ `user-select: none` บน interactive elements เพื่อไม่ให้เกิด selection แทน click
-- เพิ่ม `@media (hover: none)` ลบ `:hover` state ที่ทำให้ต้องแตะสองครั้ง (แตะแรก = hover, แตะสอง = click บน touch device):
-  ```css
-  @media (hover: none) {
-    *:hover { all: revert; }
-  }
-  ```
-  (จริง ๆ จะทำแบบ targeted: unset hover bg/scale บน button, [role="button"])
-- ตั้ง `cursor: pointer` + `touch-action: manipulation` บนทุก `<button>` เพื่อกัน Safari iOS ที่บาง element ไม่ fire click
+---
 
-## 2) หน้าชำระเงิน (PaymentModal) — ปุ่มยืนยันต้องเห็นตลอด
+## Phase 1 — Security (ปิด findings ที่ยังค้าง)
 
-**ปัญหา**: `DialogContent` เป็น flex-col สูง 95vh แต่ปุ่ม "ยืนยันชำระเงิน" อยู่ปลาย content ที่ scroll ได้ ทำให้ต้องเลื่อนลงไปกด
+1. **Users plaintext password** — เปลี่ยน login flow ให้เรียก `authenticate_user()` RPC (มีอยู่แล้ว) แทนการ query `password_hash` ตรง ๆ ใน `useAuth.tsx` + migrate password เก่าเป็น hash+salt อัตโนมัติเมื่อ login ครั้งแรก
+2. **wifi_vouchers** — จำกัดสิทธิ์ read/write ให้ authenticated + shop-scoped เท่านั้น (ปัจจุบัน public)
+3. **user_shop_assignments** — ปิด public read, ให้เห็นเฉพาะ record ของตัวเองหรือ admin ของ shop
+4. เพิ่ม **audit log** อัตโนมัติเมื่อมีการ login/logout/เปลี่ยนสิทธิ์ (trigger)
+5. รัน security scan อีกครั้ง ปิด findings + อัพเดต @security-memory
 
-**แก้ที่ `src/components/PaymentModal.tsx`**:
-- โครง Dialog เป็น 3 ชั้นแบบ sticky header/footer:
-  ```
-  DialogContent (flex flex-col h-[95vh] p-0 overflow-hidden)
-    ├─ Header  (shrink-0, sticky บนสุด)
-    ├─ Body    (flex-1 overflow-y-auto) ← ส่วนเลือก method / QR / ที่อยู่ ฯลฯ
-    └─ Footer  (shrink-0, border-t, bg-background) ← ปุ่ม "ยืนยันชำระเงิน" + ยอดรวม
-  ```
-- ย้ายปุ่ม "ยืนยันชำระเงิน / ยกเลิก" และแถบสรุปยอดออกจาก scroll area ไปไว้ใน footer ที่ตรึงล่าง
-- ทำเช่นเดียวกันกับ `OptimizedPaymentModal.tsx` เผื่อบางจุดเรียกใช้
+## Phase 2 — Performance
 
-## 3) หน้า Addon Modal — header/footer ฟิก, กลาง scroll
+1. **Slow queries** — เรียก `supabase--slow_queries` ดู top 10 → เพิ่ม index เฉพาะจุด (คาดว่า `orders(shop_id, created_at)`, `order_items(order_id)`, `point_transactions(member_id)`)
+2. **React re-render** — ตรวจหน้า POS (Index.tsx) ที่ effect log ทุก render → เพิ่ม `useMemo`/`useCallback` ให้ `convertedMenuItems`, `filteredMenuItems`, handler ต่าง ๆ
+3. **Bundle size** — audit `src/App.tsx` route lazy-load ให้ครบทุกหน้า (ปัจจุบันบางหน้ายัง import ตรง)
+4. **Realtime subscription** — ตรวจว่ามี channel ไหนไม่ cleanup ทำให้ reconnect loop (ตาม guidance)
+5. **React Query cache** — ตั้ง `staleTime` มาตรฐาน 5-10 นาทีทั่ว app (ตาม memory เดิม แต่ยังไม่ครบทุก hook)
 
-**แก้ที่ `src/components/AddonModal.tsx`**:
-- เปลี่ยน `DialogContent` จาก `max-h-[80vh] overflow-y-auto` เป็น layout 3 ส่วน:
-  ```
-  DialogContent (max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden)
-    ├─ DialogHeader (shrink-0 border-b px-4 py-3) — ชื่อเมนู
-    ├─ div.flex-1.overflow-y-auto.px-4.py-3   — กลุ่ม addon ทั้งหมด
-    └─ div.shrink-0.border-t.bg-background.px-4.py-3 — ยอดรวม + ปุ่ม "ยกเลิก / เพิ่มลงตะกร้า"
-  ```
-- ปุ่ม "เพิ่มลงตะกร้า" จะเห็นตลอด ไม่ต้อง scroll
-- เพิ่ม `pb-[env(safe-area-inset-bottom)]` ที่ footer เพื่อกัน iOS home indicator บัง
+## Phase 3 — UX/UI
 
-## ไฟล์ที่แก้
-- `src/index.css` — global tap/hover fix
-- `src/components/PaymentModal.tsx` — sticky footer
-- `src/components/OptimizedPaymentModal.tsx` — sticky footer (สอดคล้องกัน)
-- `src/components/AddonModal.tsx` — header ฟิก / body scroll / footer ฟิก
+1. **Loading states** — แทน spinner ที่เหลือด้วย Skeleton (POS, Reports, Members)
+2. **Error boundary** — เพิ่ม global `<ErrorBoundary>` ใน `App.tsx` + toast แจ้ง user แทนหน้าจอขาว
+3. **Empty states** — ออกแบบภาพ + ข้อความให้ตารางว่าง (Reports, Members, Coupons ที่ยังไม่มีข้อมูล)
+4. **Mobile responsiveness** — ตรวจหน้า Reports, StaffManagement, Inventory ที่ตารางล้นจอมือถือ → wrap ด้วย horizontal scroll + sticky column
+5. **Consistency** — แทน hardcoded color (`#2B1D14`, `#8A7563` ใน PreviewHeader) ด้วย semantic tokens
+6. **Accessibility** — เพิ่ม `aria-label` ให้ icon-only buttons, focus ring ที่มองเห็นได้
 
-## รายละเอียดเทคนิค (สำหรับตรวจสอบ)
-- ไม่แตะ business logic (ราคา, addon, payment flow) — เฉพาะ layout + CSS
-- ไม่แก้ Radix Dialog primitive; ใช้ flex-col + overflow-hidden ที่ DialogContent เพื่อให้ header/footer ตรึง
-- Global CSS ใช้ `@media (hover: none) and (pointer: coarse)` เพื่อไม่กระทบเดสก์ท็อป
+## Phase 4 — ฟีเจอร์ใหม่ (เลือกได้ 1-2 ตัวก่อน)
+
+**Option A — รายงานเชิงลึก**
+- Dashboard "เปรียบเทียบ" ยอดขายเดือนนี้ vs เดือนก่อน + %growth ต่อสินค้า
+- แจ้งเตือน low stock/สินค้าขายดี-ขายช้า อัตโนมัติเข้า Discord/LINE
+
+**Option B — AI ช่วยงาน** (ใช้ Lovable AI Gateway ฟรี Sep 29-Oct 6)
+- แนะนำเมนูให้ลูกค้าจากประวัติสั่งซื้อ
+- สรุปยอดขายรายวันเป็นภาษาธรรมชาติส่ง Discord
+- ตอบคำถามลูกค้าผ่าน Chatbot ในหน้า customer app
+
+**Option C — ระบบแจ้งเตือนขั้นสูง**
+- Push notification (Web Push + Capacitor) เมื่อมีออเดอร์ใหม่/สต็อกหมด
+- LINE Notify ยิงเข้ากลุ่มพนักงานตาม role
+
+**Option D — Table Management เต็มรูปแบบ**
+- Drag & drop โต๊ะบน floor plan (มีบางส่วนแล้ว)
+- Timer แสดงเวลาลูกค้านั่งโต๊ะ + auto-hold bill
+
+---
+
+## ลำดับที่แนะนำ
+
+1. **Phase 1 (Security)** — ทำก่อน เพราะเป็น production risk
+2. **Phase 2 (Performance)** — วัดผลชัด, กระทบทุกหน้า
+3. **Phase 3 (UX/UI)** — polish
+4. **Phase 4 (Feature)** — ค่อยเลือก option หลังฐานแน่น
+
+## ต้องการคำตอบเพิ่ม
+- เริ่ม Phase ไหนก่อน?
+- Phase 4 อยากได้ option ไหน (A/B/C/D หรือหลายตัว)?
