@@ -51,39 +51,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, username, role, password_hash')
-        .eq('username', username)
-        .maybeSingle();
+      // Use secure RPC: hash+salt verification, rate limiting, account lockout, audit logs
+      const { data, error } = await supabase.rpc('authenticate_user', {
+        username_input: username,
+        password_input: password,
+      });
 
       if (error) {
-        console.error('Database error:', error);
+        console.error('Auth RPC error:', error);
         showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
         return false;
       }
 
-      if (!data) {
-        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
-        return false;
-      }
+      const result = data as { success: boolean; user_id?: string; role?: string; message?: string };
 
-      // Check password against password_hash in database
-      if (password !== data.password_hash) {
-        showToast('ข้อผิดพลาด', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
+      if (!result?.success) {
+        showToast('ข้อผิดพลาด', result?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
 
       const userData: AuthUser = {
-        id: data.id,
-        username: data.username,
-        full_name: getLevelDisplayName(data.role as UserRole),
-        role: data.role as UserRole,
+        id: result.user_id!,
+        username,
+        full_name: getLevelDisplayName(result.role as UserRole),
+        role: result.role as UserRole,
       };
 
       setUser(userData);
       localStorage.setItem('currentUser', JSON.stringify(userData));
-      
       showToast('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว');
       return true;
     } catch (error) {
