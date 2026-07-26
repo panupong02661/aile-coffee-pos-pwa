@@ -80,6 +80,7 @@ const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
+const PosV2 = lazy(() => import('./pages/preview/PosV2'));
 
 function AppContent() {
   usePrefetch();
@@ -117,6 +118,7 @@ function App() {
                     <Route path="/kitchen-display" element={<KitchenDisplay />} />
                     <Route path="/preview-home" element={<PreviewHome />} />
                     <Route path="/preview-pos" element={<PreviewPOS />} />
+                    <Route path="/pos-v2" element={<PosV2 />} />
 
                     {/* Protected routes */}
                     <Route path="/" element={<ProtectedRoute><POS /></ProtectedRoute>} />
