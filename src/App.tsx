@@ -80,6 +80,7 @@ const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
+const PosV2 = lazy(() => import('./pages/preview/PosV2'));
 
 function AppContent() {
   usePrefetch();
