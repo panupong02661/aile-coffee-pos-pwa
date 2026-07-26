@@ -374,3 +374,35 @@
 .pos-animate .animate-pos-badge-pop {
   animation: pos-badge-pop 0.3s ease-out both;
 }
+
+/* ===== POS v2 preview tokens (scoped to /pos-v2 preview only) ===== */
+:root {
+  --posv2-surface: 36 33% 96%;
+  --posv2-card: 0 0% 100%;
+  --posv2-ink: 24 33% 13%;
+  --posv2-ink-soft: 26 14% 47%;
+  --posv2-accent: 27 49% 47%;
+  --posv2-accent-fg: 40 60% 98%;
+  --posv2-line: 32 25% 88%;
+  --posv2-danger: 354 72% 55%;
+  --posv2-shadow-soft: 0 2px 10px -4px hsl(24 33% 13% / 0.12);
+  --posv2-shadow-lift: 0 18px 40px -22px hsl(24 33% 13% / 0.35);
+  --posv2-shadow-accent: 0 10px 24px -12px hsl(27 49% 47% / 0.6);
+}
+
+.dark {
+  --posv2-surface: 24 14% 9%;
+  --posv2-card: 24 12% 14%;
+  --posv2-ink: 36 33% 96%;
+  --posv2-ink-soft: 30 8% 65%;
+  --posv2-accent: 32 72% 58%;
+  --posv2-accent-fg: 24 33% 10%;
+  --posv2-line: 24 10% 26%;
+  --posv2-danger: 354 72% 62%;
+  --posv2-shadow-soft: 0 2px 10px -4px hsl(0 0% 0% / 0.5);
+  --posv2-shadow-lift: 0 18px 40px -22px hsl(0 0% 0% / 0.7);
+  --posv2-shadow-accent: 0 10px 24px -12px hsl(32 72% 58% / 0.45);
+}
+
+.posv2-noscroll::-webkit-scrollbar { display: none; }
+.posv2-noscroll { scrollbar-width: none; }
