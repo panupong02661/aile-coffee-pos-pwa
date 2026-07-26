@@ -28,7 +28,7 @@ export default function PosV2() {
           name: m.name,
           price: Number(m.price),
           image: m.image_url || undefined,
-          description: m.description || undefined,
+          description: m.description && m.description !== m.name ? m.description : undefined,
         })),
     [menuItems, selectedCategory, search]
   );
