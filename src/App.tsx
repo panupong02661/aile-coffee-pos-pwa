@@ -117,7 +117,7 @@ function App() {
                     <Route path="/queue-tracker" element={<QueueTracker />} />
                     <Route path="/kitchen-display" element={<KitchenDisplay />} />
                     <Route path="/preview-home" element={<PreviewHome />} />
-                    <Route path="/preview-pos" element={<PreviewPOS />} />
+                    <Route path="/pos-v2" element={<PosV2 />} />
 
                     {/* Protected routes */}
                     <Route path="/" element={<ProtectedRoute><POS /></ProtectedRoute>} />
