@@ -50,7 +50,7 @@ interface SoundPopupSettings {
   };
 }
 
-const POS = () => {
+const POS = ({ classic = false }: { classic?: boolean }) => {
   console.log('🚀 POS Component Started');
   
   const [selectedCategory, setSelectedCategory] = useState('1');
