@@ -3,6 +3,9 @@ import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
+import PosMenuGridV2 from '@/components/pos/PosMenuGridV2';
+import PosCartV2 from '@/components/pos/PosCartV2';
+import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
 import MemberSearchModal from '@/components/MemberSearchModal';
@@ -47,7 +50,7 @@ interface SoundPopupSettings {
   };
 }
 
-const POS = () => {
+const POS = ({ classic = false }: { classic?: boolean }) => {
   console.log('🚀 POS Component Started');
   
   const [selectedCategory, setSelectedCategory] = useState('1');
@@ -661,6 +664,7 @@ const POS = () => {
       className={cn(
         "fixed inset-0 bg-background flex overflow-hidden transition-colors duration-300",
         themeClass,
+        !classic && 'posv2-skin bg-[hsl(var(--posv2-surface))]',
         animationsEnabled && 'pos-animate',
         fontSizeClass,
         fontWeightClass
@@ -678,13 +682,16 @@ const POS = () => {
         'md:ml-[56px]'
       }`}>
         {/* Fixed Header - pt-safe for iPad status bar */}
-        <div className={`flex-shrink-0 bg-background border-b border-border z-20 ${
-          isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'
-        }`}>
+        <div className={cn(
+          'flex-shrink-0 z-20',
+          classic
+            ? `bg-background border-b border-border ${isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'}`
+            : `bg-transparent ${isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'}`
+        )}>
           <Header
             onToggleSidebar={handleToggleSidebar}
             onMemberClick={handleMemberClick}
-            categories={convertedCategories}
+            categories={classic ? convertedCategories : []}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
             gridColumns={gridColumns}
@@ -705,31 +712,58 @@ const POS = () => {
             onMemberInfoClick={() => setIsCustomerDetailsOpen(true)}
           />
         </div>
+
+        {/* v2 category pills */}
+        {!classic && (
+          <div className="flex-shrink-0 px-3 pb-1 pt-1.5">
+            <PosV2CategoryBar
+              categories={convertedCategories.map(c => ({ id: c.id, name: c.name }))}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+        )}
         
         {/* Content Area - fills remaining space */}
-        <div className={`flex-1 flex overflow-hidden ${
-          isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1'
-        }`} style={{ minHeight: 0 }}>
+        <div className={cn(
+          'flex-1 flex overflow-hidden',
+          classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-2 p-2' : 'gap-3 p-3 pt-1')
+        )} style={{ minHeight: 0 }}>
           {/* Menu Grid Container */}
           <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
-            <div className="h-full bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-              <div className={`h-full overflow-y-auto overflow-x-hidden ${
-                isMobile ? 'p-1' : 'p-1'
-              }`} 
+            <div className={cn(
+              'h-full overflow-hidden',
+              classic && 'bg-card rounded-lg border border-border shadow-sm'
+            )}>
+              <div className={cn(
+                'h-full overflow-y-auto overflow-x-hidden',
+                classic ? 'p-1' : 'pr-1 pb-2'
+              )}
               style={{ 
                 scrollbarWidth: 'thin',
                 scrollBehavior: 'smooth'
               }}>
                 {filteredMenuItems.length > 0 ? (
-                  <MenuGrid
-                    menuItems={filteredMenuItems}
-                    addons={[]}
-                    onAddToCart={handleMenuItemClick}
-                    gridColumns={gridColumns}
-                    itemSize={itemSize}
-                    cartItems={cartItems}
-                    shopLogoUrl={shopLogoUrl}
-                  />
+                  classic ? (
+                    <MenuGrid
+                      menuItems={filteredMenuItems}
+                      addons={[]}
+                      onAddToCart={handleMenuItemClick}
+                      gridColumns={gridColumns}
+                      itemSize={itemSize}
+                      cartItems={cartItems}
+                      shopLogoUrl={shopLogoUrl}
+                    />
+                  ) : (
+                    <PosMenuGridV2
+                      menuItems={filteredMenuItems}
+                      onAddToCart={handleMenuItemClick}
+                      gridColumns={gridColumns}
+                      itemSize={itemSize}
+                      cartItems={cartItems}
+                      shopLogoUrl={shopLogoUrl}
+                    />
+                  )
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
@@ -747,40 +781,47 @@ const POS = () => {
 
           {/* Desktop/Tablet Cart */}
           {!isMobile && (
-            <div className="w-60 md:w-64 lg:w-72 xl:w-80 flex-shrink-0 overflow-hidden" style={{ minHeight: 0 }}>
-              <Cart
-                cartItems={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeFromCart}
-                onUpdateDiscount={updateDiscount}
-                onClearCart={handleClearCart}
-                billDiscount={billDiscount}
-                billDiscountType={billDiscountType}
-                onUpdateBillDiscount={setBillDiscount}
-                onUpdateBillDiscountType={setBillDiscountType}
-                onRestoreCart={restoreCart}
-                selectedMember={selectedMember}
-                onCodeApply={handleCodeApply}
-                appliedGiftCode={appliedGiftCode}
-                onPaymentComplete={handlePaymentComplete}
-                onMemberUpdate={handleMemberUpdate}
-                tables={tables}
-                selectedTableId={selectedTableId}
-                onSelectTable={handleSelectTable}
-                tablesWithOrders={tablesWithOrders}
-                onSaveToTable={handleSaveToTable}
-                onLoadFromTable={handleLoadFromTable}
-                selectedTableNumber={selectedTableNumber}
-                tableRounds={selectedTableId ? getTableRounds(selectedTableId) : []}
-                onLoadRound={handleLoadRoundToCart}
-                onDeleteRound={deleteRound}
-                onUpdateRoundItem={updateRoundItems}
-                backdatedAt={backdatedAt}
-                onChangeBackdatedAt={setBackdatedAt}
-              />
+            <div className={cn(
+              'flex-shrink-0 overflow-hidden',
+              classic ? 'w-60 md:w-64 lg:w-72 xl:w-80' : 'w-72 lg:w-80 xl:w-[360px]'
+            )} style={{ minHeight: 0 }}>
+              {(() => {
+                const cartProps = {
+                  cartItems,
+                  onUpdateQuantity: updateQuantity,
+                  onRemoveItem: removeFromCart,
+                  onUpdateDiscount: updateDiscount,
+                  onClearCart: handleClearCart,
+                  billDiscount,
+                  billDiscountType,
+                  onUpdateBillDiscount: setBillDiscount,
+                  onUpdateBillDiscountType: setBillDiscountType,
+                  onRestoreCart: restoreCart,
+                  selectedMember,
+                  onCodeApply: handleCodeApply,
+                  appliedGiftCode,
+                  onPaymentComplete: handlePaymentComplete,
+                  onMemberUpdate: handleMemberUpdate,
+                  tables,
+                  selectedTableId,
+                  onSelectTable: handleSelectTable,
+                  tablesWithOrders,
+                  onSaveToTable: handleSaveToTable,
+                  onLoadFromTable: handleLoadFromTable,
+                  selectedTableNumber,
+                  tableRounds: selectedTableId ? getTableRounds(selectedTableId) : [],
+                  onLoadRound: handleLoadRoundToCart,
+                  onDeleteRound: deleteRound,
+                  onUpdateRoundItem: updateRoundItems,
+                  backdatedAt,
+                  onChangeBackdatedAt: setBackdatedAt,
+                };
+                return classic ? <Cart {...cartProps} /> : <PosCartV2 {...cartProps} />;
+              })()}
             </div>
           )}
         </div>
+
 
         {/* Mobile Cart Button - Fixed Position */}
         {isMobile && (

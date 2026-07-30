@@ -406,3 +406,25 @@
 
 .posv2-noscroll::-webkit-scrollbar { display: none; }
 .posv2-noscroll { scrollbar-width: none; }
+
+/* POS v2 skin follows the POS theme presets + user primary color */
+.pos-dark,
+.pos-neon-dark,
+.pos-cyber,
+.pos-glass {
+  --posv2-surface: 24 14% 9%;
+  --posv2-card: 24 12% 14%;
+  --posv2-ink: 36 33% 96%;
+  --posv2-ink-soft: 30 8% 65%;
+  --posv2-accent-fg: 24 33% 10%;
+  --posv2-line: 24 10% 26%;
+  --posv2-danger: 354 72% 62%;
+  --posv2-shadow-soft: 0 2px 10px -4px hsl(0 0% 0% / 0.5);
+  --posv2-shadow-lift: 0 18px 40px -22px hsl(0 0% 0% / 0.7);
+}
+
+.posv2-skin {
+  --posv2-accent: var(--primary);
+  --posv2-shadow-accent: 0 10px 24px -12px hsl(var(--primary) / 0.6);
+}
+

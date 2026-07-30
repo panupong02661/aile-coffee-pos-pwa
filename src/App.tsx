@@ -126,6 +126,7 @@ function App() {
                     <Route path="/menu" element={<ProtectedRoute><MenuManagement /></ProtectedRoute>} />
                     <Route path="/members" element={<ProtectedRoute><MemberManagement /></ProtectedRoute>} />
                     <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
+                    <Route path="/pos-classic" element={<ProtectedRoute><POS classic /></ProtectedRoute>} />
                     <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                     <Route path="/shop-settings" element={<ProtectedRoute><ShopSettings /></ProtectedRoute>} />
                     <Route path="/business-settings" element={<ProtectedRoute><BusinessSettings /></ProtectedRoute>} />
