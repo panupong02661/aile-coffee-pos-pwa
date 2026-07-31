@@ -31,6 +31,8 @@ const MenuManagement = lazy(() => import('./pages/MenuManagement'));
 const MemberManagement = lazy(() => import('./pages/MemberManagement'));
 const MemberRegistration = lazy(() => import('./pages/MemberRegistration'));
 const POS = lazy(() => import('./pages/POS'));
+const SidebarPreview = lazy(() => import('./pages/SidebarPreview'));
+
 const Reports = lazy(() => import('./pages/Reports'));
 const ShopSettings = lazy(() => import('./pages/ShopSettings'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
@@ -119,6 +121,8 @@ function App() {
                     <Route path="/preview-home" element={<PreviewHome />} />
                     <Route path="/preview-pos" element={<PreviewPOS />} />
                     <Route path="/pos-v2" element={<PosV2 />} />
+                    <Route path="/sidebar-preview" element={<SidebarPreview />} />
+
 
                     {/* Protected routes */}
                     <Route path="/" element={<ProtectedRoute><POS /></ProtectedRoute>} />
