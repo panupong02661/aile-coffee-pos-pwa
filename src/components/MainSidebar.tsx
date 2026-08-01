@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,191 +9,36 @@ import UserProfile from './UserProfile';
 import POSGeneralSettings from './POSGeneralSettings';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
-import {
-  BarChart3,
-  Calculator,
-  Clock,
-  Table,
-  Menu as MenuIcon,
-  Users,
-  Globe,
-  FileText,
-  CreditCard,
-  Package,
-  UserCheck,
-  Bell,
-  Smartphone,
-  ChefHat,
-  Truck,
-  UserCog,
-  Settings,
-  Gamepad2,
-  Percent,
-  Shield,
-  Store,
-  Building,
-  MessageCircle,
-  Printer,
-  QrCode,
-  ShoppingCart,
-  TrendingUp,
-  PieChart,
-  BarChart,
-  UserPlus,
-  MapPin,
-  DollarSign,
-  Receipt,
-  Calculator as CalculatorIcon,
-  Banknote,
-  BookOpen,
-  Mail,
-  Calendar,
-  Smartphone as PhoneIcon,
-  Wifi,
-  Database,
-  HardDrive,
-  Ticket,
-  MessageSquare,
-  Tag,
-  ChevronDown,
-  PanelLeftClose,
-  PanelLeft,
-  Eye,
-  LucideIcon,
-} from 'lucide-react';
+import { usePOSSettings, SIDEBAR_WIDTHS } from '@/hooks/usePOSSettings';
+import { menuGroups, SidebarSkinProps } from './sidebar/menuConfig';
+import SkinRailFlyout from './sidebar/skins/SkinRailFlyout';
+import SkinTwoPane from './sidebar/skins/SkinTwoPane';
+import SkinSearchFirst from './sidebar/skins/SkinSearchFirst';
+import SkinCardGroups from './sidebar/skins/SkinCardGroups';
+import SkinIconTabs from './sidebar/skins/SkinIconTabs';
+import SkinFlatList from './sidebar/skins/SkinFlatList';
+import { ChevronDown, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 interface MainSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface MenuGroup {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  items: { id: string; label: string; icon: LucideIcon; path: string }[];
-}
-
-const menuGroups: MenuGroup[] = [
-  {
-    id: 'main',
-    label: 'หลัก',
-    icon: Calculator,
-    items: [
-      { id: 'pos', label: 'POS', icon: Calculator, path: '/' },
-      { id: 'dashboard', label: 'แดชบอร์ด', icon: BarChart3, path: '/dashboard' },
-      { id: 'shop-benchmark', label: 'Benchmark ร้านค้า', icon: Eye, path: '/shop-benchmark' },
-    ],
-  },
-  {
-    id: 'store',
-    label: 'ร้านค้า & ออเดอร์',
-    icon: ShoppingCart,
-    items: [
-      { id: 'kitchen-display', label: 'จอครัว (KDS)', icon: ChefHat, path: '/kitchen-display' },
-      { id: 'customer-display', label: 'จอลูกค้า', icon: Table, path: '/customer-display' },
-      { id: 'online-orders', label: 'ออเดอร์ออนไลน์', icon: ShoppingCart, path: '/online-orders' },
-      { id: 'delivery-integration', label: 'Delivery', icon: Truck, path: '/delivery-integration' },
-      { id: 'delivery-management', label: 'จัดการจัดส่ง', icon: Truck, path: '/delivery-management' },
-      { id: 'delivery-tracking', label: 'ติดตามเดลิเวอรี่', icon: MapPin, path: '/delivery-tracking' },
-      { id: 'queue-management', label: 'ระบบคิว', icon: Users, path: '/queue-management' },
-      { id: 'queue-display', label: 'จอแสดงคิว', icon: Eye, path: '/queue-display' },
-      { id: 'table-management', label: 'จัดการโต๊ะ', icon: Table, path: '/table-management' },
-    ],
-  },
-  {
-    id: 'menu',
-    label: 'เมนู & สินค้า',
-    icon: MenuIcon,
-    items: [
-      { id: 'menu', label: 'จัดการเมนู', icon: MenuIcon, path: '/menu' },
-      { id: 'inventory', label: 'คลังสินค้า', icon: Package, path: '/inventory' },
-      { id: 'cost-analysis', label: 'วิเคราะห์ต้นทุน', icon: DollarSign, path: '/cost-analysis' },
-    ],
-  },
-  {
-    id: 'customers',
-    label: 'ลูกค้า & สมาชิก',
-    icon: Users,
-    items: [
-      { id: 'members', label: 'จัดการสมาชิก', icon: Users, path: '/members' },
-      { id: 'customer-mobile-app', label: 'แอปลูกค้า', icon: PhoneIcon, path: '/customer-mobile-app' },
-      { id: 'customer-app-management', label: 'จัดการแอปลูกค้า', icon: UserCog, path: '/customer-app-management' },
-    ],
-  },
-  {
-    id: 'promotions',
-    label: 'โปรโมชั่น & Engagement',
-    icon: Gamepad2,
-    items: [
-      { id: 'engagement', label: 'Engagement', icon: Gamepad2, path: '/engagement' },
-      { id: 'promotions', label: 'จัดการแอปลูกค้า', icon: Percent, path: '/promotions' },
-      { id: 'menu-promotions', label: 'โปรโมชั่นเมนู', icon: Tag, path: '/menu-promotions' },
-      { id: 'coupon-management', label: 'คูปอง', icon: Ticket, path: '/coupon-management' },
-    ],
-  },
-  {
-    id: 'staff',
-    label: 'พนักงาน',
-    icon: UserPlus,
-    items: [
-      { id: 'staff', label: 'จัดการพนักงาน', icon: UserPlus, path: '/staff' },
-      { id: 'time-attendance', label: 'บันทึกเวลา', icon: Clock, path: '/time-attendance' },
-      { id: 'permissions', label: 'สิทธิ์ผู้ใช้', icon: Shield, path: '/permissions' },
-    ],
-  },
-  {
-    id: 'reports',
-    label: 'รายงาน & วิเคราะห์',
-    icon: BarChart,
-    items: [
-      { id: 'reports', label: 'รายงาน', icon: FileText, path: '/reports' },
-      { id: 'advanced-reports', label: 'รายงานขั้นสูง', icon: TrendingUp, path: '/advanced-reports' },
-      { id: 'analytics-dashboard', label: 'Analytics', icon: TrendingUp, path: '/analytics-dashboard' },
-      { id: 'customer-analytics', label: 'วิเคราะห์ลูกค้า', icon: UserCheck, path: '/customer-analytics' },
-    ],
-  },
-  {
-    id: 'finance',
-    label: 'การเงิน',
-    icon: Banknote,
-    items: [
-      { id: 'financial-dashboard', label: 'Financial Dashboard', icon: DollarSign, path: '/financial-dashboard' },
-      { id: 'qr-promptpay', label: 'QR PromptPay', icon: QrCode, path: '/qr-promptpay' },
-      { id: 'credit-system', label: 'ระบบเครดิต', icon: Banknote, path: '/credit-system' },
-    ],
-  },
-  {
-    id: 'communication',
-    label: 'การสื่อสาร',
-    icon: MessageCircle,
-    items: [
-      { id: 'notifications', label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
-      { id: 'line-messaging', label: 'LINE Messaging', icon: MessageCircle, path: '/line-messaging' },
-      { id: 'review-management', label: 'จัดการรีวิว', icon: MessageSquare, path: '/review-management' },
-      { id: 'wifi-vouchers', label: 'WiFi ลูกค้า', icon: Wifi, path: '/wifi-vouchers' },
-    ],
-  },
-  {
-    id: 'settings',
-    label: 'ตั้งค่า & ระบบ',
-    icon: Settings,
-    items: [
-      { id: 'shop-settings', label: 'ตั้งค่าร้าน', icon: Store, path: '/shop-settings' },
-      { id: 'business-settings', label: 'ตั้งค่าธุรกิจ', icon: Building, path: '/business-settings' },
-      { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings' },
-      { id: 'security-dashboard', label: 'ความปลอดภัย', icon: Shield, path: '/security-dashboard' },
-      { id: 'security-recommendations', label: 'แนะนำความปลอดภัย', icon: Shield, path: '/security-recommendations' },
-      { id: 'app-build-guide', label: 'สร้างแอปมือถือ', icon: Smartphone, path: '/app-build-guide' },
-    ],
-  },
-];
+const SKINS: Record<string, (p: SidebarSkinProps) => JSX.Element | null> = {
+  rail: SkinRailFlyout,
+  'two-pane': SkinTwoPane,
+  search: SkinSearchFirst,
+  cards: SkinCardGroups,
+  'icon-tabs': SkinIconTabs,
+  flat: SkinFlatList,
+};
 
 const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const { hasPermission } = useUserPermissions();
   const { currentShop } = useCurrentShop();
+  const { sidebarStyle } = usePOSSettings();
 
   // Filter menu groups based on user permissions
   const filteredMenuGroups = useMemo(() => {
@@ -213,6 +57,17 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     return new Set(activeGroup ? [activeGroup.id] : ['main']);
   });
 
+  const shopName = currentShop?.shop_name || 'POS System';
+  const width = SIDEBAR_WIDTHS[sidebarStyle] ?? 56;
+
+  // Expose the current sidebar width so page layouts can offset content
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--sidebar-w',
+      `${sidebarStyle === 'classic' ? (collapsed ? 56 : 56) : width}px`
+    );
+  }, [sidebarStyle, width, collapsed]);
+
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -226,6 +81,33 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     if (window.innerWidth < 768) onClose();
   };
 
+  // ---------- Alternative skins ----------
+  if (sidebarStyle !== 'classic' && SKINS[sidebarStyle]) {
+    const Skin = SKINS[sidebarStyle];
+    return (
+      <>
+        {isOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onClose} />
+        )}
+        <div
+          className={cn(
+            'fixed left-0 top-0 h-full z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0',
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+          style={{ width }}
+        >
+          <Skin
+            groups={filteredMenuGroups}
+            pathname={location.pathname}
+            shopName={shopName}
+            onNavigate={handleMenuClick}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // ---------- Classic skin (default) ----------
   const sidebarWidth = collapsed ? 'w-[56px]' : 'w-64';
 
   return (
@@ -259,9 +141,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
             {!collapsed && (
-              <h2 className="text-lg font-semibold text-foreground truncate">
-                {currentShop?.shop_name || 'POS System'}
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground truncate">{shopName}</h2>
             )}
             <Button
               variant="ghost"
