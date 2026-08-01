@@ -1,4 +1,4 @@
-import { usePOSSettings, ThemePreset } from '@/hooks/usePOSSettings';
+import { usePOSSettings, ThemePreset, SidebarStyle } from '@/hooks/usePOSSettings';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
@@ -13,6 +13,7 @@ import {
   Paintbrush,
   Layers,
   GlassWater,
+  PanelLeft,
 } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -31,6 +32,104 @@ const THEME_PRESETS: { value: ThemePreset; label: string; preview: string; desc:
   { value: 'neon-dark', label: 'Neon Dark', preview: 'bg-gradient-to-br from-emerald-900 to-gray-900', desc: 'มืด + เขียวนีออน' },
   { value: 'cyber', label: 'Cyber', preview: 'bg-gradient-to-br from-blue-900 to-slate-900', desc: 'มืด + ฟ้าไซเบอร์' },
   { value: 'glass', label: 'Glass', preview: 'bg-gradient-to-br from-slate-600/50 to-slate-800/50', desc: 'โปร่งใส ปรับได้' },
+];
+
+const SIDEBAR_STYLES: { value: SidebarStyle; label: string; desc: string; preview: JSX.Element }[] = [
+  {
+    value: 'classic',
+    label: 'คลาสสิก',
+    desc: 'แบบเดิม ย่อ/ขยายได้',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-2 rounded-sm bg-primary/70" />
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'rail',
+    label: 'Rail + Flyout',
+    desc: 'แถบไอคอน + แผงลอย',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-2.5 rounded-sm bg-primary/70" />
+        <div className="w-4 rounded-sm bg-primary/25" />
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'two-pane',
+    label: 'Two-Pane',
+    desc: 'กลุ่มซ้าย รายการขวา',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-2 rounded-sm bg-primary/70" />
+        <div className="w-5 rounded-sm bg-primary/30" />
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'search',
+    label: 'Search-First',
+    desc: 'ค้นหา + ใช้บ่อย',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-7 rounded-sm bg-primary/40 flex flex-col p-[2px] gap-[2px]">
+          <div className="h-1 rounded-sm bg-primary/70" />
+          <div className="h-1 rounded-sm bg-primary/50" />
+        </div>
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'cards',
+    label: 'Card Groups',
+    desc: 'การ์ดใหญ่ แตะง่าย',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-7 flex flex-col gap-[2px]">
+          <div className="flex-1 rounded-sm bg-primary/50" />
+          <div className="flex-1 rounded-sm bg-primary/30" />
+        </div>
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'icon-tabs',
+    label: 'Icon Tabs',
+    desc: 'แท็บไอคอน + กริด',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-2 rounded-sm bg-primary/70" />
+        <div className="w-7 grid grid-cols-2 gap-[2px]">
+          <div className="rounded-sm bg-primary/30" />
+          <div className="rounded-sm bg-primary/30" />
+          <div className="rounded-sm bg-primary/30" />
+          <div className="rounded-sm bg-primary/30" />
+        </div>
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
+  {
+    value: 'flat',
+    label: 'Minimal Flat',
+    desc: 'ลิสต์เดียว เห็นครบ',
+    preview: (
+      <div className="flex h-8 w-full gap-[2px]">
+        <div className="w-6 rounded-sm bg-primary/40 flex flex-col justify-center gap-[2px] p-[2px]">
+          <div className="h-[2px] rounded-sm bg-primary/80" />
+          <div className="h-[2px] rounded-sm bg-primary/60" />
+          <div className="h-[2px] rounded-sm bg-primary/60" />
+        </div>
+        <div className="flex-1 rounded-sm bg-muted" />
+      </div>
+    ),
+  },
 ];
 
 const FONT_SIZE_OPTIONS = [
@@ -71,6 +170,7 @@ const POSGeneralSettings = () => {
     textColor,
     themePreset,
     glassOpacity,
+    sidebarStyle,
     setAnimationsEnabled,
     setDarkModeEnabled,
     setFontSize,
@@ -79,6 +179,7 @@ const POSGeneralSettings = () => {
     setTextColor,
     setThemePreset,
     setGlassOpacity,
+    setSidebarStyle,
   } = usePOSSettings();
 
   return (
@@ -89,6 +190,34 @@ const POSGeneralSettings = () => {
       </h3>
 
       <div className="space-y-2">
+        {/* Sidebar Style */}
+        <div className="px-3 py-2 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-2 mb-2">
+            <PanelLeft className="w-4 h-4 text-primary" />
+            <span className="text-sm text-foreground">รูปแบบเมนูหลัก (Sidebar)</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {SIDEBAR_STYLES.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSidebarStyle(opt.value)}
+                className={cn(
+                  'flex flex-col items-start gap-1 p-2 rounded-lg transition-all text-left text-[10px] border',
+                  sidebarStyle === opt.value
+                    ? 'ring-2 ring-primary border-primary bg-primary/5'
+                    : 'border-border hover:bg-accent'
+                )}
+              >
+                <div className="w-full rounded-md border border-border/60 bg-background p-[3px]">
+                  {opt.preview}
+                </div>
+                <span className="text-foreground font-medium">{opt.label}</span>
+                <span className="text-muted-foreground leading-tight">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Theme Presets */}
         <div className="px-3 py-2 rounded-lg bg-muted/50">
           <div className="flex items-center gap-2 mb-2">
