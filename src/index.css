@@ -428,3 +428,10 @@
   --posv2-shadow-accent: 0 10px 24px -12px hsl(var(--primary) / 0.6);
 }
 
+
+/* Sidebar skin width — page layouts use md:ml-[56px]; keep it in sync with the selected sidebar skin */
+@media (min-width: 768px) {
+  .md\:ml-\[56px\] {
+    margin-left: var(--sidebar-w, 56px);
+  }
+}
