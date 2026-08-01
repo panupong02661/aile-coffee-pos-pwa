@@ -1,6 +1,24 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 
 export type ThemePreset = 'default' | 'neon-dark' | 'cyber' | 'glass';
+export type SidebarStyle =
+  | 'classic'
+  | 'rail'
+  | 'two-pane'
+  | 'search'
+  | 'cards'
+  | 'icon-tabs'
+  | 'flat';
+
+export const SIDEBAR_WIDTHS: Record<SidebarStyle, number> = {
+  classic: 56,
+  rail: 64,
+  'two-pane': 284,
+  search: 256,
+  cards: 272,
+  'icon-tabs': 296,
+  flat: 240,
+};
 
 export interface POSSettings {
   animationsEnabled: boolean;
@@ -11,6 +29,7 @@ export interface POSSettings {
   textColor: string; // full HSL value e.g. '220 15% 93%' or 'default'
   themePreset: ThemePreset;
   glassOpacity: number; // 0.1 – 0.9
+  sidebarStyle: SidebarStyle;
 }
 
 const STORAGE_KEY = 'pos-ui-settings';
@@ -25,6 +44,7 @@ const defaultSettings: POSSettings = {
   textColor: 'default',
   themePreset: 'default',
   glassOpacity: 0.7,
+  sidebarStyle: 'classic',
 };
 
 // Shared mutable snapshot so every hook instance reads the same object
@@ -112,6 +132,10 @@ export function usePOSSettings() {
     updateSettings({ themePreset: preset, ...presetConfig[preset] });
   }, []);
 
+  const setSidebarStyle = useCallback((style: SidebarStyle) => {
+    updateSettings({ sidebarStyle: style });
+  }, []);
+
   const setGlassOpacity = useCallback((opacity: number) => {
     updateSettings({ glassOpacity: Math.max(0.1, Math.min(0.9, opacity)) });
   }, []);
@@ -126,5 +150,6 @@ export function usePOSSettings() {
     setTextColor,
     setThemePreset,
     setGlassOpacity,
+    setSidebarStyle,
   };
 }
