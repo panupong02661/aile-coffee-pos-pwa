@@ -540,8 +540,8 @@ const PosCartV2 = ({
         </div>
 
         {/* Fixed footer */}
-        <div className="shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] px-4 pb-4 pt-3">
-          <div className="mb-3 space-y-1">
+        <div className="mt-auto shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] px-4 pb-6 pt-4">
+          <div className="mb-4 space-y-1">
             <div className="flex justify-between text-xs text-[hsl(var(--posv2-ink-soft))]">
               <span>ยอดรวมย่อย</span>
               <span>฿{subtotal.toLocaleString()}</span>
