@@ -540,8 +540,8 @@ const PosCartV2 = ({
         </div>
 
         {/* Fixed footer */}
-        <div className="shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] px-4 pb-4 pt-3">
-          <div className="mb-3 space-y-1">
+        <div className="mt-auto shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] px-4 pb-6 pt-4">
+          <div className="mb-4 space-y-1">
             <div className="flex justify-between text-xs text-[hsl(var(--posv2-ink-soft))]">
               <span>ยอดรวมย่อย</span>
               <span>฿{subtotal.toLocaleString()}</span>
@@ -569,7 +569,7 @@ const PosCartV2 = ({
             </div>
           </div>
 
-          <div className="mb-2.5 grid grid-cols-4 gap-1.5">
+          <div className="mb-4 grid grid-cols-4 gap-1.5">
             {shortcuts.map(({ icon: Icon, label, onClick, danger, active }) => (
               <button
                 key={label}
@@ -592,7 +592,7 @@ const PosCartV2 = ({
           <button
             disabled={cartItems.length === 0}
             onClick={() => setIsPaymentModalOpen(true)}
-            className="w-full rounded-2xl bg-[hsl(var(--posv2-ink))] py-3.5 text-base font-extrabold text-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-lift)] transition-all active:scale-[0.98] disabled:opacity-40"
+            className="w-full rounded-2xl bg-[hsl(var(--posv2-ink))] py-4 text-lg font-extrabold text-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-lift)] transition-all active:scale-[0.98] disabled:opacity-40"
           >
             ชำระเงิน
           </button>

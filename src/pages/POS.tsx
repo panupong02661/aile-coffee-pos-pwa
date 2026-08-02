@@ -659,6 +659,37 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
     return '';
   })();
 
+  const buildCartProps = () => ({
+    cartItems,
+    onUpdateQuantity: updateQuantity,
+    onRemoveItem: removeFromCart,
+    onUpdateDiscount: updateDiscount,
+    onClearCart: handleClearCart,
+    billDiscount,
+    billDiscountType,
+    onUpdateBillDiscount: setBillDiscount,
+    onUpdateBillDiscountType: setBillDiscountType,
+    onRestoreCart: restoreCart,
+    selectedMember,
+    onCodeApply: handleCodeApply,
+    appliedGiftCode,
+    onPaymentComplete: handlePaymentComplete,
+    onMemberUpdate: handleMemberUpdate,
+    tables,
+    selectedTableId,
+    onSelectTable: handleSelectTable,
+    tablesWithOrders,
+    onSaveToTable: handleSaveToTable,
+    onLoadFromTable: handleLoadFromTable,
+    selectedTableNumber,
+    tableRounds: selectedTableId ? getTableRounds(selectedTableId) : [],
+    onLoadRound: handleLoadRoundToCart,
+    onDeleteRound: deleteRound,
+    onUpdateRoundItem: updateRoundItems,
+    backdatedAt,
+    onChangeBackdatedAt: setBackdatedAt,
+  });
+
   return (
     <div 
       className={cn(
@@ -678,9 +709,10 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
         onClose={handleCloseSidebar}
       />
       
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+      <div className={`flex-1 flex overflow-hidden transition-all duration-300 ease-in-out ${
         'md:ml-[56px]'
       }`}>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Fixed Header - pt-safe for iPad status bar */}
         <div className={cn(
           'flex-shrink-0 z-20',
@@ -710,24 +742,20 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
             onSearchOpen={() => setIsSearchOpen(true)}
             onSettingsOpen={() => setIsSettingsOpen(true)}
             onMemberInfoClick={() => setIsCustomerDetailsOpen(true)}
+            trailing={!classic ? (
+              <PosV2CategoryBar
+                categories={convertedCategories.map(c => ({ id: c.id, name: c.name }))}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
+            ) : undefined}
           />
         </div>
-
-        {/* v2 category pills */}
-        {!classic && (
-          <div className="flex-shrink-0 px-3 pb-1 pt-1.5">
-            <PosV2CategoryBar
-              categories={convertedCategories.map(c => ({ id: c.id, name: c.name }))}
-              selected={selectedCategory}
-              onSelect={setSelectedCategory}
-            />
-          </div>
-        )}
         
         {/* Content Area - fills remaining space */}
         <div className={cn(
           'flex-1 flex overflow-hidden',
-          classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-2 p-2' : 'gap-3 p-3 pt-1')
+          classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-2 p-2' : 'gap-3 p-3 pt-1.5')
         )} style={{ minHeight: 0 }}>
           {/* Menu Grid Container */}
           <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
@@ -779,48 +807,25 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
             </div>
           </div>
 
-          {/* Desktop/Tablet Cart */}
-          {!isMobile && (
-            <div className={cn(
-              'flex-shrink-0 overflow-hidden',
-              classic ? 'w-60 md:w-64 lg:w-72 xl:w-80' : 'w-72 lg:w-80 xl:w-[360px]'
-            )} style={{ minHeight: 0 }}>
-              {(() => {
-                const cartProps = {
-                  cartItems,
-                  onUpdateQuantity: updateQuantity,
-                  onRemoveItem: removeFromCart,
-                  onUpdateDiscount: updateDiscount,
-                  onClearCart: handleClearCart,
-                  billDiscount,
-                  billDiscountType,
-                  onUpdateBillDiscount: setBillDiscount,
-                  onUpdateBillDiscountType: setBillDiscountType,
-                  onRestoreCart: restoreCart,
-                  selectedMember,
-                  onCodeApply: handleCodeApply,
-                  appliedGiftCode,
-                  onPaymentComplete: handlePaymentComplete,
-                  onMemberUpdate: handleMemberUpdate,
-                  tables,
-                  selectedTableId,
-                  onSelectTable: handleSelectTable,
-                  tablesWithOrders,
-                  onSaveToTable: handleSaveToTable,
-                  onLoadFromTable: handleLoadFromTable,
-                  selectedTableNumber,
-                  tableRounds: selectedTableId ? getTableRounds(selectedTableId) : [],
-                  onLoadRound: handleLoadRoundToCart,
-                  onDeleteRound: deleteRound,
-                  onUpdateRoundItem: updateRoundItems,
-                  backdatedAt,
-                  onChangeBackdatedAt: setBackdatedAt,
-                };
-                return classic ? <Cart {...cartProps} /> : <PosCartV2 {...cartProps} />;
-              })()}
+          {/* Classic cart stays inside content area */}
+          {!isMobile && classic && (
+            <div className="flex-shrink-0 overflow-hidden w-60 md:w-64 lg:w-72 xl:w-80" style={{ minHeight: 0 }}>
+              <Cart {...buildCartProps()} />
             </div>
           )}
         </div>
+        </div>
+
+        {/* v2 Cart - full screen height column */}
+        {!isMobile && !classic && (
+          <div
+            className="flex-shrink-0 overflow-hidden w-72 lg:w-80 xl:w-[360px] py-3 pr-3 pl-0"
+            style={{ minHeight: 0 }}
+          >
+            <PosCartV2 {...buildCartProps()} />
+          </div>
+        )}
+
 
 
         {/* Mobile Cart Button - Fixed Position */}
