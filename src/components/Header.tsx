@@ -64,7 +64,8 @@ const Header = ({
   onToggleDebug,
   onSearchOpen,
   onSettingsOpen,
-  onMemberInfoClick
+  onMemberInfoClick,
+  trailing
 }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
