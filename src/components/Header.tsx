@@ -40,6 +40,7 @@ interface HeaderProps {
   onToggleDebug?: () => void;
   onSearchOpen?: () => void;
   onSettingsOpen?: () => void;
+  trailing?: React.ReactNode;
 }
 
 const Header = ({ 
