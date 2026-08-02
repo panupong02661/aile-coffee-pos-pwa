@@ -659,6 +659,37 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
     return '';
   })();
 
+  const buildCartProps = () => ({
+    cartItems,
+    onUpdateQuantity: updateQuantity,
+    onRemoveItem: removeFromCart,
+    onUpdateDiscount: updateDiscount,
+    onClearCart: handleClearCart,
+    billDiscount,
+    billDiscountType,
+    onUpdateBillDiscount: setBillDiscount,
+    onUpdateBillDiscountType: setBillDiscountType,
+    onRestoreCart: restoreCart,
+    selectedMember,
+    onCodeApply: handleCodeApply,
+    appliedGiftCode,
+    onPaymentComplete: handlePaymentComplete,
+    onMemberUpdate: handleMemberUpdate,
+    tables,
+    selectedTableId,
+    onSelectTable: handleSelectTable,
+    tablesWithOrders,
+    onSaveToTable: handleSaveToTable,
+    onLoadFromTable: handleLoadFromTable,
+    selectedTableNumber,
+    tableRounds: selectedTableId ? getTableRounds(selectedTableId) : [],
+    onLoadRound: handleLoadRoundToCart,
+    onDeleteRound: deleteRound,
+    onUpdateRoundItem: updateRoundItems,
+    backdatedAt,
+    onChangeBackdatedAt: setBackdatedAt,
+  });
+
   return (
     <div 
       className={cn(
