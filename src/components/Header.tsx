@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Menu, Search, Settings, User, Star, Award, Crown, X, Bug } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
+import { cn } from '@/lib/utils';
 
 interface Member {
   id: string;
@@ -117,8 +118,8 @@ const Header = ({
   return (
     <>
       {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
-      <div className="flex items-center justify-between w-full overflow-hidden">
-        <div className="flex items-center flex-1 min-w-0 overflow-hidden">
+      <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
+        <div className={cn('flex items-center', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
           <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
             <Menu className="w-5 h-5" />
           </Button>
@@ -130,7 +131,7 @@ const Header = ({
           )}
           
           <div className="flex items-center ml-2 md:ml-6 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {categories.map(category => (
+            {!trailing && categories.map(category => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
@@ -165,13 +166,14 @@ const Header = ({
               </Button>
             )}
           </div>
-
-          {trailing && (
-            <div className="ml-2 flex-1 min-w-0">
-              {trailing}
-            </div>
-          )}
         </div>
+
+        {trailing && (
+          <div className="ml-2 flex-1 min-w-0">
+            {trailing}
+          </div>
+        )}
+
 
         {/* Member display - height matches category buttons */}
         {selectedMember && (
