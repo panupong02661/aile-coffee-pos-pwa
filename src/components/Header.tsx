@@ -131,7 +131,7 @@ const Header = ({
           )}
           
           <div className="flex items-center ml-2 md:ml-6 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {categories.map(category => (
+            {!trailing && categories.map(category => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
@@ -166,13 +166,14 @@ const Header = ({
               </Button>
             )}
           </div>
-
-          {trailing && (
-            <div className="ml-2 flex-1 min-w-0">
-              {trailing}
-            </div>
-          )}
         </div>
+
+        {trailing && (
+          <div className="ml-2 flex-1 min-w-0">
+            {trailing}
+          </div>
+        )}
+
 
         {/* Member display - height matches category buttons */}
         {selectedMember && (
