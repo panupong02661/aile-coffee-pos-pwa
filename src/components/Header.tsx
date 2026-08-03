@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Menu, Search, Settings, User, Star, Award, Crown, X, Bug } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
+import { cn } from '@/lib/utils';
 
 interface Member {
   id: string;
