@@ -117,8 +117,8 @@ const Header = ({
   return (
     <>
       {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
-      <div className="flex items-center justify-between w-full overflow-hidden">
-        <div className="flex items-center flex-1 min-w-0 overflow-hidden">
+      <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
+        <div className={cn('flex items-center', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
           <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
             <Menu className="w-5 h-5" />
           </Button>
