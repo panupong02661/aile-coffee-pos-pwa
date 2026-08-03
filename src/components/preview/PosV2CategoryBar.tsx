@@ -11,7 +11,7 @@ interface Props {
 
 export default function PosV2CategoryBar({ categories, selected, onSelect }: Props) {
   return (
-    <div className="flex gap-2.5 overflow-x-auto pb-1 posv2-noscroll">
+    <div className="flex flex-wrap content-start gap-1.5 max-h-[5.25rem] overflow-y-auto posv2-noscroll">
       {categories.map((cat) => {
         const active = cat.id === selected;
         return (
