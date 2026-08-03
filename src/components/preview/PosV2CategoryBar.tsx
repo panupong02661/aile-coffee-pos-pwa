@@ -18,7 +18,7 @@ export default function PosV2CategoryBar({ categories, selected, onSelect }: Pro
           <button
             key={cat.id}
             onClick={() => onSelect(cat.id)}
-            className={`whitespace-nowrap rounded-2xl px-5 py-2.5 text-sm font-semibold transition-all active:scale-95 ${
+            className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all active:scale-95 ${
               active
                 ? 'bg-[hsl(var(--posv2-accent))] text-[hsl(var(--posv2-accent-fg))] shadow-[var(--posv2-shadow-accent)]'
                 : 'bg-[hsl(var(--posv2-card))] text-[hsl(var(--posv2-ink-soft))] shadow-[var(--posv2-shadow-soft)] hover:text-[hsl(var(--posv2-ink))]'
