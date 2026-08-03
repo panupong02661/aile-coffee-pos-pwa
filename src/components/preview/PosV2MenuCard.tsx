@@ -51,8 +51,8 @@ export default function PosV2MenuCard({ item, qty, onAdd }: Props) {
         )}
       </div>
 
-      <div className="px-1.5 pb-1 pt-2.5">
-        <h3 className="truncate text-sm font-bold leading-tight text-[hsl(var(--posv2-ink))]">{item.name}</h3>
+      <div className="px-1.5 pb-1 pt-2">
+        <h3 className="line-clamp-2 min-h-[2.5em] text-sm font-bold leading-tight text-[hsl(var(--posv2-ink))]">{item.name}</h3>
         {item.description && (
           <p className="mt-0.5 truncate text-xs text-[hsl(var(--posv2-ink-soft))]">{item.description}</p>
         )}

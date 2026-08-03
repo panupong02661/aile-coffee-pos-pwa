@@ -118,10 +118,10 @@ const PosMenuGridV2 = ({
                 )}
               </div>
 
-              <div className="px-1 pb-0.5 pt-2">
+              <div className="px-1 pb-0.5 pt-1.5">
                 <h3
                   className={cn(
-                    'truncate font-bold leading-tight text-[hsl(var(--posv2-ink))]',
+                    'line-clamp-2 min-h-[2.5em] font-bold leading-tight text-[hsl(var(--posv2-ink))]',
                     nameSize
                   )}
                 >
