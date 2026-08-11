@@ -960,11 +960,17 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
       return null;
     }
     
-    const { data: urlData } = supabase.storage
+    // receipts bucket is private — use a signed URL (7-day expiry) so staff can view the slip
+    const { data: signedData, error: signError } = await supabase.storage
       .from('receipts')
-      .getPublicUrl(fileName);
-    
-    return urlData.publicUrl;
+      .createSignedUrl(fileName, 604800);
+
+    if (signError || !signedData?.signedUrl) {
+      console.error('Signed URL error:', signError);
+      return null;
+    }
+
+    return signedData.signedUrl;
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
