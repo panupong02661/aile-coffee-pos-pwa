@@ -42,9 +42,9 @@ const SkinRailFlyout = ({ groups, pathname, shopName, onNavigate }: SidebarSkinP
             return (
               <button
                 key={g.id}
-                onMouseEnter={() => setOpen(g.id)}
                 onClick={() => setOpen(isOn ? null : g.id)}
                 title={g.label}
+                aria-expanded={isOn}
                 className={cn(
                   'relative w-11 h-11 rounded-xl flex items-center justify-center transition-colors flex-shrink-0',
                   isOn || hasActive
