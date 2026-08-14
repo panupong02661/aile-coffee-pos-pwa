@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
