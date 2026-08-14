@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,9 +9,27 @@ import SidebarUtilityBar from '../SidebarUtilityBar';
 const SkinRailFlyout = ({ groups, pathname, shopName, onNavigate }: SidebarSkinProps) => {
   const [open, setOpen] = useState<string | null>(null);
   const activeGroup = groups.find((g) => g.id === open);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // ปิดเมนูย่อยเมื่อคลิกนอกพื้นที่ หรือกด Escape (ไม่ปิดเมื่อเลื่อนเมาส์ออก)
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(null);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   return (
-    <div className="relative flex h-full" onMouseLeave={() => setOpen(null)}>
+    <div ref={rootRef} className="relative flex h-full">
       <div className="w-16 h-full bg-card border-r border-border flex flex-col items-center py-3 gap-1">
         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2 flex-shrink-0">
           <Coffee className="w-5 h-5 text-primary" />
@@ -24,9 +42,9 @@ const SkinRailFlyout = ({ groups, pathname, shopName, onNavigate }: SidebarSkinP
             return (
               <button
                 key={g.id}
-                onMouseEnter={() => setOpen(g.id)}
                 onClick={() => setOpen(isOn ? null : g.id)}
                 title={g.label}
+                aria-expanded={isOn}
                 className={cn(
                   'relative w-11 h-11 rounded-xl flex items-center justify-center transition-colors flex-shrink-0',
                   isOn || hasActive
