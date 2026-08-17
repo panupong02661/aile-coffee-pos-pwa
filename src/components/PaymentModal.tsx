@@ -1194,7 +1194,7 @@ const PaymentModal = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setReceiptTab(tab.id)}
-                className={`flex-1 px-1.5 py-1.5 text-[10px] font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-2 py-2 text-sm font-semibold rounded-lg transition-all ${
                   receiptTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
