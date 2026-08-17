@@ -1177,7 +1177,26 @@ const PaymentModal = ({
               />
             </div>
           )}
+          {/* Sticky Action Buttons (left column, always visible) */}
+          <div className="sticky bottom-0 z-10 -mx-1 px-1 border-t bg-background/95 backdrop-blur-sm pt-2 mt-2 flex gap-2 pb-[env(safe-area-inset-bottom)]">
+            <Button
+              onClick={onClose}
+              className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white border-0 shadow-md rounded-xl"
+              disabled={isProcessing}
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handlePayment}
+              className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg rounded-xl"
+              disabled={isProcessing || !cartItems || cartItems.length === 0}
+            >
+              {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
+            </Button>
+          </div>
         </div>
+
 
 
         {/* Right Column - Receipt Preview with Tabs */}
@@ -1194,7 +1213,7 @@ const PaymentModal = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setReceiptTab(tab.id)}
-                className={`flex-1 px-1.5 py-1.5 text-[10px] font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-2 py-2 text-sm font-semibold rounded-lg transition-all ${
                   receiptTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -1242,24 +1261,8 @@ const PaymentModal = ({
         </div>
       </div>
 
-      {/* Sticky Footer - Action Buttons (always visible) */}
-      <div className="flex-shrink-0 border-t bg-background/95 backdrop-blur-sm pt-2 mt-1 flex gap-2 pb-[env(safe-area-inset-bottom)]">
-        <Button
-          onClick={onClose}
-          className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white border-0 shadow-md rounded-xl"
-          disabled={isProcessing}
-        >
-          <ArrowLeft className="w-4 h-4 mr-1.5" />
-          ยกเลิก
-        </Button>
-        <Button
-          onClick={handlePayment}
-          className="flex-1 h-12 text-base font-bold bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg rounded-xl"
-          disabled={isProcessing || !cartItems || cartItems.length === 0}
-        >
-          {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
-        </Button>
-      </div>
+
+
 
 
       {/* Split Bill Modal */}
