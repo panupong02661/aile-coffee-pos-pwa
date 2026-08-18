@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
@@ -227,7 +228,7 @@ const Reports = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">กำลังโหลดข้อมูล...</div>
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   ) : (
                     <SalesChart
                       data={dailyData}
@@ -258,7 +259,7 @@ const Reports = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">กำลังโหลดข้อมูล...</div>
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   ) : (
                     <SalesChart
                       data={monthlyData}
