@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import CancelledOrdersList from '@/components/CancelledOrdersList';
@@ -161,7 +162,7 @@ const Reports = () => {
   }, [refreshData]);
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-background flex">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -184,23 +185,24 @@ const Reports = () => {
           />
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-coffee-800">รายงาน</h1>
-            <p className="text-coffee-600 mt-2">
-              รายงานยอดขายและข้อมูลต่างๆ ของร้าน 
-              <span className="text-sm text-green-600 ml-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">รายงาน</h1>
+            <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
+              รายงานยอดขายและข้อมูลต่างๆ ของร้าน
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 🔄 อัปเดตล่าสุด: {lastRefresh.toLocaleTimeString('th-TH')}
               </span>
             </p>
           </div>
 
           <Tabs defaultValue="all-orders" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="all-orders">ประวัติบิล</TabsTrigger>
-              <TabsTrigger value="cancelled-orders">ยกเลิก</TabsTrigger>
-              <TabsTrigger value="daily-sales">รายวัน</TabsTrigger>
-              <TabsTrigger value="monthly-sales">รายเดือน</TabsTrigger>
-              <TabsTrigger value="profit-loss">กำไร-ขาดทุน</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5 h-auto rounded-xl p-1">
+              <TabsTrigger value="all-orders" className="rounded-lg py-2 text-xs sm:text-sm">ประวัติบิล</TabsTrigger>
+              <TabsTrigger value="cancelled-orders" className="rounded-lg py-2 text-xs sm:text-sm">ยกเลิก</TabsTrigger>
+              <TabsTrigger value="daily-sales" className="rounded-lg py-2 text-xs sm:text-sm">รายวัน</TabsTrigger>
+              <TabsTrigger value="monthly-sales" className="rounded-lg py-2 text-xs sm:text-sm">รายเดือน</TabsTrigger>
+              <TabsTrigger value="profit-loss" className="rounded-lg py-2 text-xs sm:text-sm">กำไร-ขาดทุน</TabsTrigger>
             </TabsList>
+
 
             <TabsContent value="all-orders">
               <AllOrdersList />
@@ -226,7 +228,7 @@ const Reports = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">กำลังโหลดข้อมูล...</div>
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   ) : (
                     <SalesChart
                       data={dailyData}
@@ -257,7 +259,7 @@ const Reports = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">กำลังโหลดข้อมูล...</div>
+                    <Skeleton className="h-72 w-full rounded-xl" />
                   ) : (
                     <SalesChart
                       data={monthlyData}
