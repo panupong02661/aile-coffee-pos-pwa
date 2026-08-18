@@ -550,7 +550,7 @@ const Dashboard = () => {
 
           {/* Member Tier Analysis */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-coffee-800 mb-4">การวิเคราะห์สมาชิกเชิงลึก</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">การวิเคราะห์สมาชิกเชิงลึก</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
