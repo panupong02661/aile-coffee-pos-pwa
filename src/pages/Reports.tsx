@@ -161,7 +161,7 @@ const Reports = () => {
   }, [refreshData]);
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-background flex">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
