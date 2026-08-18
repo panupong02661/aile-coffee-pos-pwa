@@ -115,76 +115,50 @@ const Dashboard = () => {
             page="dashboard"
           />
           
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-coffee-800">แดชบอร์ดรายงาน</h1>
-              <p className="text-coffee-600 mt-2">ภาพรวมการดำเนินงาน: ยอดขาย, วิธีชำระเงิน, สมาชิก, โปรโมชั่น</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">แดชบอร์ดรายงาน</h1>
+              <p className="text-sm text-muted-foreground mt-1">ภาพรวมการดำเนินงาน: ยอดขาย, วิธีชำระเงิน, สมาชิก, โปรโมชั่น</p>
             </div>
-            <Button onClick={refreshData} variant="outline" className="gap-2">
+            <Button onClick={refreshData} variant="outline" className="gap-2 rounded-xl">
               <RefreshCw className="w-4 h-4" />
               รีเฟรช
             </Button>
           </div>
 
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ยอดขายวันนี้</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">฿{dashboardStats.todaySales.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  {dashboardStats.todayOrders} ออเดอร์
-                  {dashboardStats.salesGrowthRate !== 0 && (
-                    <span className={`text-xs ${dashboardStats.salesGrowthRate > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ({dashboardStats.salesGrowthRate > 0 ? '+' : ''}{dashboardStats.salesGrowthRate.toFixed(1)}%)
-                    </span>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ส่วนลดวันนี้</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">฿{dashboardStats.todayDiscount.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  ส่วนลดที่ให้
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ยอดสุทธิวันนี้</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">฿{dashboardStats.todayNetSales.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  หลังหักส่วนลด
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">สมาชิกทั้งหมด</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.totalMembers.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  +{dashboardStats.newMembersToday} วันนี้
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <StatCard
+              label="ยอดขายวันนี้"
+              value={`฿${dashboardStats.todaySales.toLocaleString()}`}
+              hint={<span>{dashboardStats.todayOrders} ออเดอร์</span>}
+              trend={dashboardStats.salesGrowthRate}
+              icon={ShoppingCart}
+              tone="primary"
+            />
+            <StatCard
+              label="ส่วนลดวันนี้"
+              value={`฿${dashboardStats.todayDiscount.toLocaleString()}`}
+              hint={<span>ส่วนลดที่ให้</span>}
+              icon={DollarSign}
+              tone="warning"
+            />
+            <StatCard
+              label="ยอดสุทธิวันนี้"
+              value={`฿${dashboardStats.todayNetSales.toLocaleString()}`}
+              hint={<span>หลังหักส่วนลด</span>}
+              icon={TrendingUp}
+              tone="success"
+            />
+            <StatCard
+              label="สมาชิกทั้งหมด"
+              value={dashboardStats.totalMembers.toLocaleString()}
+              hint={<span>+{dashboardStats.newMembersToday} วันนี้</span>}
+              icon={Users}
+              tone="info"
+            />
           </div>
+
 
           {/* Sales Comparison */}
           <Card className="mb-6">
