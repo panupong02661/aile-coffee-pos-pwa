@@ -847,132 +847,138 @@ const DetailedOrderReport = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">เลือกด่วน</label>
-              <Select value={quickSelect} onValueChange={handleQuickSelect}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="เลือกช่วงเวลา" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">วันนี้</SelectItem>
-                  <SelectItem value="yesterday">เมื่อวาน</SelectItem>
-                  <SelectItem value="last7days">7 วันที่ผ่านมา</SelectItem>
-                  <SelectItem value="last30days">30 วันที่ผ่านมา</SelectItem>
-                  <SelectItem value="thisMonth">เดือนนี้</SelectItem>
-                  <SelectItem value="lastMonth">เดือนที่แล้ว</SelectItem>
-                  <SelectItem value="byMonth">เลือกเดือน/ปี</SelectItem>
-                  <SelectItem value="custom">กำหนดเอง</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">เลือกด่วน</label>
+                <Select value={quickSelect} onValueChange={handleQuickSelect}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกช่วงเวลา" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">วันนี้</SelectItem>
+                    <SelectItem value="yesterday">เมื่อวาน</SelectItem>
+                    <SelectItem value="last7days">7 วันที่ผ่านมา</SelectItem>
+                    <SelectItem value="last30days">30 วันที่ผ่านมา</SelectItem>
+                    <SelectItem value="thisMonth">เดือนนี้</SelectItem>
+                    <SelectItem value="lastMonth">เดือนที่แล้ว</SelectItem>
+                    <SelectItem value="byMonth">เลือกเดือน/ปี</SelectItem>
+                    <SelectItem value="custom">กำหนดเอง</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">เดือน</label>
+                <Select
+                  value={selectedMonth}
+                  onValueChange={(v) => {
+                    setSelectedMonth(v);
+                    applyMonthYear(parseInt(v), parseInt(selectedYear));
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกเดือน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS_TH.map((m, idx) => (
+                      <SelectItem key={idx} value={String(idx)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">ปี</label>
+                <Select
+                  value={selectedYear}
+                  onValueChange={(v) => {
+                    setSelectedYear(v);
+                    applyMonthYear(parseInt(selectedMonth), parseInt(v));
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกปี" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y + 543}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">วันที่เริ่มต้น</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="truncate">{format(dateRange.from, 'dd MMM yyyy', { locale: th })}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.from}
+                      onSelect={(date) => {
+                        if (date) {
+                          setDateRange(prev => ({ ...prev, from: startOfDay(date) }));
+                          setQuickSelect('custom');
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">วันที่สิ้นสุด</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="truncate">{format(dateRange.to, 'dd MMM yyyy', { locale: th })}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.to}
+                      onSelect={(date) => {
+                        if (date) {
+                          setDateRange(prev => ({ ...prev, to: endOfDay(date) }));
+                          setQuickSelect('custom');
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">เดือน</label>
-              <Select
-                value={selectedMonth}
-                onValueChange={(v) => {
-                  setSelectedMonth(v);
-                  applyMonthYear(parseInt(v), parseInt(selectedYear));
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="เลือกเดือน" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS_TH.map((m, idx) => (
-                    <SelectItem key={idx} value={String(idx)}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <Button onClick={fetchOrders} disabled={loading} className="flex-1 sm:flex-none">
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+                ค้นหา
+              </Button>
+
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <span className="hidden md:inline text-xs text-muted-foreground">ส่งออกข้อมูล:</span>
+                <Button onClick={exportToExcel} variant="outline" className="gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  ทุกบิล
+                </Button>
+                <Button onClick={exportMonthlySummaryToExcel} variant="outline" className="gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-sky-600" />
+                  สรุปรายวัน
+                </Button>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">ปี</label>
-              <Select
-                value={selectedYear}
-                onValueChange={(v) => {
-                  setSelectedYear(v);
-                  applyMonthYear(parseInt(selectedMonth), parseInt(v));
-                }}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="เลือกปี" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y + 543}</SelectItem>
-                  ))}
-
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">วันที่เริ่มต้น</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateRange.from, 'dd MMM yyyy', { locale: th })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.from}
-                    onSelect={(date) => {
-                      if (date) {
-                        setDateRange(prev => ({ ...prev, from: startOfDay(date) }));
-                        setQuickSelect('custom');
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">วันที่สิ้นสุด</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateRange.to, 'dd MMM yyyy', { locale: th })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.to}
-                    onSelect={(date) => {
-                      if (date) {
-                        setDateRange(prev => ({ ...prev, to: endOfDay(date) }));
-                        setQuickSelect('custom');
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <Button onClick={fetchOrders} disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
-              ค้นหา
-            </Button>
-
-            <Button onClick={exportToExcel} variant="default" className="bg-green-600 hover:bg-green-700">
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              ดาวน์โหลด Excel
-            </Button>
-
-            <Button onClick={exportMonthlySummaryToExcel} variant="default" className="bg-blue-600 hover:bg-blue-700">
-              <FileSpreadsheet className="w-4 h-4 mr-2" />
-              ดาวน์โหลด Excel (สรุปรายวัน)
-            </Button>
           </div>
+
         </CardContent>
       </Card>
 
