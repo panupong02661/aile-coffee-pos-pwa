@@ -293,7 +293,7 @@ const CustomerDisplay = () => {
                   <p className="text-lg">ยังไม่มีสินค้าในตะกร้า</p>
                 </div>
               ) : (
-                <div className="divide-y divide-coffee-100">
+                <div className="divide-y divide-border">
                 {displayData.cartItems.map((item, index) => {
                     const itemTotal = calculateItemTotal(item);
                     const hasDiscount = item.discount && item.discount > 0;

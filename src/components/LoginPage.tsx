@@ -35,7 +35,7 @@ const LoginPage = () => {
   const bgPattern = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L40 20L20 40L0 20L20 0Z' fill='%23f5f5f0' opacity='0.1'/%3E%3C/svg%3E";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-muted via-cream-50 to-muted/40 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-muted via-background to-muted/40 flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-repeat opacity-20"
         style={{ backgroundImage: `url("${bgPattern}")` }}
@@ -65,7 +65,7 @@ const LoginPage = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10 h-12 border-border focus:border-primary focus:ring-coffee-200"
+                  className="pl-10 h-12 border-border focus:border-primary focus:ring-primary/30"
                   placeholder="กรอกชื่อผู้ใช้งาน"
                   required
                 />
@@ -83,7 +83,7 @@ const LoginPage = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-12 border-border focus:border-primary focus:ring-coffee-200"
+                  className="pl-10 h-12 border-border focus:border-primary focus:ring-primary/30"
                   placeholder="กรอกรหัสผ่าน"
                   required
                 />

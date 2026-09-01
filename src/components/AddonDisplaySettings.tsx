@@ -94,7 +94,7 @@ const AddonDisplaySettings = () => {
                   onClick={() => setStyleId(s.id)}
                   className={`text-left rounded-xl border-2 transition-all overflow-hidden ${
                     active
-                      ? 'border-primary ring-2 ring-coffee-300 shadow-lg'
+                      ? 'border-primary ring-2 ring-primary/30 shadow-lg'
                       : 'border-gray-200 hover:border-border hover:shadow-md'
                   }`}
                 >
