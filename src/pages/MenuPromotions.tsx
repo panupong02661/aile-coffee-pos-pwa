@@ -380,7 +380,7 @@ const MenuPromotions = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-coffee-50 flex">
+    <div className="min-h-screen bg-background flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
       <div className={`flex-1 transition-all duration-300 ${'md:ml-[56px]'}`}>

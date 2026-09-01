@@ -154,7 +154,7 @@ const FestivalEventManager = () => {
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-coffee-600 hover:bg-coffee-700"><Plus className="w-4 h-4 mr-2" /> สร้างกิจกรรม</Button>
+            <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" /> สร้างกิจกรรม</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>สร้างกิจกรรมใหม่</DialogTitle></DialogHeader>
@@ -223,7 +223,7 @@ const FestivalEventManager = () => {
                   <Input type="number" value={eventForm.gift_box_choices} onChange={(e) => setEventForm({ ...eventForm, gift_box_choices: parseInt(e.target.value) || 3 })} />
                 </div>
               )}
-              <Button onClick={handleCreateEvent} className="w-full bg-coffee-600 hover:bg-coffee-700">สร้างกิจกรรม</Button>
+              <Button onClick={handleCreateEvent} className="w-full bg-primary hover:bg-primary/90">สร้างกิจกรรม</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -342,7 +342,7 @@ const FestivalEventManager = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleAddPrize} className="w-full bg-coffee-600 hover:bg-coffee-700">เพิ่มรางวัล</Button>
+            <Button onClick={handleAddPrize} className="w-full bg-primary hover:bg-primary/90">เพิ่มรางวัล</Button>
           </div>
         </DialogContent>
       </Dialog>

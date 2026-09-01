@@ -307,7 +307,7 @@ const DeliveryIntegration = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-coffee-50 flex">
+      <div className="min-h-screen bg-background flex">
         <MainSidebar 
           isOpen={isSidebarOpen} 
           onClose={handleCloseSidebar} 
@@ -346,7 +346,7 @@ const DeliveryIntegration = () => {
   }
 
   return (
-    <div className="min-h-screen bg-coffee-50 flex">
+    <div className="min-h-screen bg-background flex">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 

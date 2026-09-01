@@ -19,14 +19,14 @@ const OnlineSystemHeader = ({
   onOnlineModeToggle 
 }: OnlineSystemHeaderProps) => {
   return (
-    <Card className="p-4 bg-coffee-600 text-white border-coffee-700">
+    <Card className="p-4 bg-primary text-white border-primary">
       <div className="flex items-center justify-between">
         {/* ปุ่มเมนู 3 ขีด */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onMenuToggle(!isMenuOpen)}
-          className="text-white hover:bg-coffee-700 p-2"
+          className="text-white hover:bg-primary/90 p-2"
         >
           {isMenuOpen ? (
             <X className="w-5 h-5" />

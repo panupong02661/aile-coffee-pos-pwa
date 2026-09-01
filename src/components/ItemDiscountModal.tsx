@@ -62,7 +62,7 @@ const ItemDiscountModal = ({
           <div className="flex space-x-2">
             <Button 
               onClick={handleApply}
-              className="flex-1 bg-coffee-600 hover:bg-coffee-700"
+              className="flex-1 bg-primary hover:bg-primary/90"
             >
               ใช้ส่วนลด
             </Button>

@@ -40,11 +40,11 @@ const MemberRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coffee-50 to-coffee-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-muted to-muted/40 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-coffee-800 mb-2">{shopName}</h1>
-          <p className="text-coffee-600">สมัครสมาชิกเพื่อรับสิทธิประโยชน์พิเศษ</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{shopName}</h1>
+          <p className="text-muted-foreground">สมัครสมาชิกเพื่อรับสิทธิประโยชน์พิเศษ</p>
         </div>
         <QRMemberRegistration />
       </div>

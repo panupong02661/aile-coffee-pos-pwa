@@ -88,8 +88,8 @@ const SecurityDashboardContent = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-coffee-800">Security Dashboard</h1>
-        <p className="text-coffee-600 mt-2">ตรวจสอบความปลอดภัยและการเข้าถึงผิดปกติ</p>
+        <h1 className="text-3xl font-bold text-foreground">Security Dashboard</h1>
+        <p className="text-muted-foreground mt-2">ตรวจสอบความปลอดภัยและการเข้าถึงผิดปกติ</p>
       </div>
 
       {/* Security Overview Cards */}

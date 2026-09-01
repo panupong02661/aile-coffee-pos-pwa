@@ -17,7 +17,7 @@ export default function AppBuildGuide() {
     <Shell>
       <div className="max-w-5xl mx-auto space-y-6 py-6 px-4">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-coffee-800">🚀 สร้างแอปมือถือ</h1>
+          <h1 className="text-3xl font-bold text-foreground">🚀 สร้างแอปมือถือ</h1>
           <p className="text-muted-foreground">เลือกวิธีที่เหมาะกับคุณในการทำให้ระบบ POS เป็นแอปบนมือถือ</p>
         </div>
 

@@ -328,7 +328,7 @@ const MenuForm: React.FC<MenuFormProps> = ({
               <Button type="button" variant="outline" onClick={onClose}>
                 ยกเลิก
               </Button>
-              <Button type="submit" disabled={loading || uploading} className="bg-coffee-600 hover:bg-coffee-700">
+              <Button type="submit" disabled={loading || uploading} className="bg-primary hover:bg-primary/90">
                 {loading ? 'กำลังบันทึก...' : 'บันทึก'}
               </Button>
             </div>

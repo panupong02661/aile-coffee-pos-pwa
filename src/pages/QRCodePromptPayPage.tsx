@@ -218,7 +218,7 @@ const QRCodePromptPayPage = () => {
     }
   }, []);
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden">
+    <div className="h-screen bg-background flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -227,7 +227,7 @@ const QRCodePromptPayPage = () => {
       <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
         'md:ml-[56px]'
       }`}>
-        <div className="flex-shrink-0 bg-cream-50 p-4 pb-0">
+        <div className="flex-shrink-0 bg-background p-4 pb-0">
           <Header 
             onToggleSidebar={handleToggleSidebar}
             page="qr-promptpay"
@@ -237,10 +237,10 @@ const QRCodePromptPayPage = () => {
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <QrCode className="w-8 h-8 text-coffee-600" />
+              <QrCode className="w-8 h-8 text-muted-foreground" />
               <div>
-                <h1 className="text-2xl font-bold text-coffee-800">QR Code PromptPay</h1>
-                <p className="text-coffee-600">สร้าง QR Code สำหรับรับเงินผ่าน PromptPay</p>
+                <h1 className="text-2xl font-bold text-foreground">QR Code PromptPay</h1>
+                <p className="text-muted-foreground">สร้าง QR Code สำหรับรับเงินผ่าน PromptPay</p>
               </div>
             </div>
 
@@ -268,7 +268,7 @@ const QRCodePromptPayPage = () => {
                   {/* Phone Settings Panel */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <Settings className="w-5 h-5" />
                         ตั้งค่าหมายเลขโทรศัพท์
                       </CardTitle>
@@ -289,7 +289,7 @@ const QRCodePromptPayPage = () => {
                           <Button 
                             onClick={savePhoneNumber}
                             disabled={!newPhoneNumber.trim()}
-                            className="bg-coffee-600 hover:bg-coffee-700"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             บันทึก
                           </Button>
@@ -351,7 +351,7 @@ const QRCodePromptPayPage = () => {
                   {/* QR Code Display - Phone */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <QrCode className="w-5 h-5" />
                         QR Code PromptPay
                       </CardTitle>
@@ -382,7 +382,7 @@ const QRCodePromptPayPage = () => {
                   {/* Bank Account Settings Panel */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <Building2 className="w-5 h-5" />
                         ตั้งค่าเลขบัญชีธนาคาร
                       </CardTitle>
@@ -419,7 +419,7 @@ const QRCodePromptPayPage = () => {
                           <Button 
                             onClick={saveBankAccount}
                             disabled={!newAccountNumber.trim() || !newBankCode}
-                            className="bg-coffee-600 hover:bg-coffee-700"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             บันทึก
                           </Button>
@@ -450,7 +450,7 @@ const QRCodePromptPayPage = () => {
                                       size="sm"
                                       variant="outline"
                                       onClick={() => selectBankAccount(entry)}
-                                      className={`text-xs ${selectedAccount?.account === entry.account ? 'bg-coffee-100' : ''}`}
+                                      className={`text-xs ${selectedAccount?.account === entry.account ? 'bg-muted' : ''}`}
                                     >
                                       เลือก
                                     </Button>
@@ -490,7 +490,7 @@ const QRCodePromptPayPage = () => {
                   {/* QR Code Display - Bank Account */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <QrCode className="w-5 h-5" />
                         QR Code PromptPay (เลขบัญชี)
                       </CardTitle>
@@ -535,7 +535,7 @@ const QRCodePromptPayPage = () => {
                   {/* National ID Settings Panel */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <IdCard className="w-5 h-5" />
                         ตั้งค่าเลขบัตรประชาชน
                       </CardTitle>
@@ -557,7 +557,7 @@ const QRCodePromptPayPage = () => {
                           <Button 
                             onClick={saveNationalId}
                             disabled={newNationalId.replace(/\D/g, '').length !== 13}
-                            className="bg-coffee-600 hover:bg-coffee-700"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             บันทึก
                           </Button>
@@ -583,7 +583,7 @@ const QRCodePromptPayPage = () => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => setSelectedNationalId(id)}
-                                    className={`text-xs ${selectedNationalId === id ? 'bg-coffee-100' : ''}`}
+                                    className={`text-xs ${selectedNationalId === id ? 'bg-muted' : ''}`}
                                   >
                                     เลือก
                                   </Button>
@@ -622,7 +622,7 @@ const QRCodePromptPayPage = () => {
                   {/* QR Code Display - National ID */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-coffee-800">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <QrCode className="w-5 h-5" />
                         QR Code PromptPay (บัตรประชาชน)
                       </CardTitle>

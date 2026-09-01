@@ -81,14 +81,14 @@ const OnlineSystem = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">กำลังโหลดข้อมูล...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex overflow-hidden">
+    <div className="h-screen bg-background flex overflow-hidden">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -98,7 +98,7 @@ const OnlineSystem = () => {
         'md:ml-[56px]'
       }`}>
         {/* Header */}
-        <div className={`flex-shrink-0 bg-cream-50 sticky top-0 z-10 ${
+        <div className={`flex-shrink-0 bg-background sticky top-0 z-10 ${
           isMobile ? 'p-2 pb-0' : 'p-4 pb-0'
         }`}>
           <Header 
@@ -120,7 +120,7 @@ const OnlineSystem = () => {
         }`}>
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="h-full bg-white rounded-lg border border-coffee-200">
+            <div className="h-full bg-white rounded-lg border border-border">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-2' : 'p-4'
               }`} style={{ scrollbarWidth: 'thin' }}>
@@ -138,7 +138,7 @@ const OnlineSystem = () => {
           {/* Cart/Order Summary - placeholder for future implementation */}
           {!isMobile && (
             <div className="w-80 flex-shrink-0 overflow-hidden">
-              <div className="h-full bg-white rounded-lg border border-coffee-200 p-4">
+              <div className="h-full bg-white rounded-lg border border-border p-4">
                 <h3 className="text-lg font-semibold mb-4">ตะกร้าสินค้า</h3>
                 <p className="text-gray-500 text-center">ยังไม่มีสินค้าในตะกร้า</p>
               </div>
@@ -150,7 +150,7 @@ const OnlineSystem = () => {
         {isMobile && (
           <div className="fixed bottom-4 right-4 z-20">
             <Button
-              className="w-14 h-14 rounded-full bg-coffee-600 hover:bg-coffee-700 shadow-lg"
+              className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg"
               size="sm"
             >
               <ShoppingCart className="w-6 h-6" />

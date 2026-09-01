@@ -62,7 +62,7 @@ const SelectedMemberDisplay = ({ member, onRemove }: SelectedMemberDisplayProps)
         <div className="flex items-center justify-between gap-2">
           {/* ชื่อและเบอร์โทร */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <h3 className="font-semibold text-sm text-coffee-800 truncate">{member.name}</h3>
+            <h3 className="font-semibold text-sm text-foreground truncate">{member.name}</h3>
             <span className="text-xs text-gray-500 flex-shrink-0">({member.phone})</span>
           </div>
           
@@ -76,7 +76,7 @@ const SelectedMemberDisplay = ({ member, onRemove }: SelectedMemberDisplayProps)
           
           {/* แต้มและยอดใช้จ่าย */}
           <div className="flex items-center gap-2 text-[10px] flex-shrink-0">
-            <span className="font-bold text-coffee-600">{member.points.toLocaleString()} แต้ม</span>
+            <span className="font-bold text-muted-foreground">{member.points.toLocaleString()} แต้ม</span>
             <span className="text-gray-400">|</span>
             <span className="font-bold text-green-600">฿{member.total_spent.toLocaleString()}</span>
           </div>

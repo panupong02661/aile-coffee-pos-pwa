@@ -414,7 +414,7 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
           </div>
 
           <div className="flex space-x-2 pt-4">
-            <Button type="submit" disabled={loading} className="flex-1 bg-coffee-600 hover:bg-coffee-700">
+            <Button type="submit" disabled={loading} className="flex-1 bg-primary hover:bg-primary/90">
               {loading ? 'กำลังบันทึก...' : (editAddonGroup ? 'อัปเดต' : 'เพิ่มกลุ่ม Add-on')}
             </Button>
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">

@@ -21,7 +21,7 @@ const CustomerAppManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
@@ -30,24 +30,24 @@ const CustomerAppManagement = () => {
       <div className="flex-1 md:ml-[56px]">
         <div className="p-4">
           {/* Header with Menu Button */}
-          <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow-sm border border-coffee-200">
+          <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow-sm border border-border">
             <div className="flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 hover:bg-coffee-100"
+                className="p-2 hover:bg-muted"
               >
-                <Menu className="w-5 h-5 text-coffee-700" />
+                <Menu className="w-5 h-5 text-foreground" />
               </Button>
-              <h1 className="text-2xl font-bold text-coffee-800">จัดการแอปลูกค้า</h1>
+              <h1 className="text-2xl font-bold text-foreground">จัดการแอปลูกค้า</h1>
             </div>
           </div>
           
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl text-coffee-800">ระบบจัดการแอพพลิเคชั่นลูกค้า</CardTitle>
+                <CardTitle className="text-xl text-foreground">ระบบจัดการแอพพลิเคชั่นลูกค้า</CardTitle>
                 <CardDescription>จัดการและกำหนดค่าแอพลูกค้า คูปอง และโปรโมชั่น</CardDescription>
               </CardHeader>
               <CardContent>

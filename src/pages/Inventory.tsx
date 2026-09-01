@@ -22,7 +22,7 @@ const Inventory = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -45,7 +45,7 @@ const Inventory = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">จัดการคลังสินค้า</CardTitle>
+                <CardTitle className="text-2xl text-foreground">จัดการคลังสินค้า</CardTitle>
                 <CardDescription>ระบบจัดการสต็อก สูตรอาหาร การคำนวณต้นทุน และรายงาน</CardDescription>
               </CardHeader>
               <CardContent>

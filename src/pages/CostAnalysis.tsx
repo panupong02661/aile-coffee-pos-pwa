@@ -144,7 +144,7 @@ const CostAnalysis = () => {
   };
 
   return (
-    <div className="h-screen bg-cream-50 flex">
+    <div className="h-screen bg-background flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
       
       <div className={`flex-1 transition-all duration-300 ease-in-out ${

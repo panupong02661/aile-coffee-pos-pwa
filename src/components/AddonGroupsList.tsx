@@ -181,7 +181,7 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
           variant={viewMode === 'grid' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('grid')}
-          className={viewMode === 'grid' ? 'bg-coffee-600 hover:bg-coffee-700' : ''}
+          className={viewMode === 'grid' ? 'bg-primary hover:bg-primary/90' : ''}
         >
           <LayoutGrid className="w-4 h-4 mr-1" />
           Grid
@@ -190,7 +190,7 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
           variant={viewMode === 'list' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('list')}
-          className={viewMode === 'list' ? 'bg-coffee-600 hover:bg-coffee-700' : ''}
+          className={viewMode === 'list' ? 'bg-primary hover:bg-primary/90' : ''}
         >
           <List className="w-4 h-4 mr-1" />
           List

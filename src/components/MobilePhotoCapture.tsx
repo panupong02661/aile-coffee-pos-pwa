@@ -100,7 +100,7 @@ const MobilePhotoCapture = ({ onPhotoCapture, currentPhoto, title = 'เพิ�
               <Button 
                 onClick={handleTakePhoto}
                 disabled={isLoading}
-                className="bg-coffee-600 hover:bg-coffee-700 h-12 text-lg"
+                className="bg-primary hover:bg-primary/90 h-12 text-lg"
               >
                 <Camera className="w-5 h-5 mr-2" />
                 ถ่ายรูป

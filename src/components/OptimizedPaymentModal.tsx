@@ -163,15 +163,15 @@ const OptimizedPaymentModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
         <DialogHeader className="flex-shrink-0 border-b px-4 py-3">
-          <DialogTitle className="text-coffee-800">ชำระเงิน</DialogTitle>
+          <DialogTitle className="text-foreground">ชำระเงิน</DialogTitle>
         </DialogHeader>
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {/* Total Amount */}
-          <div className="text-center py-4 bg-coffee-50 rounded-lg">
-            <div className="text-2xl font-bold text-coffee-800">฿{total.toFixed(2)}</div>
-            <div className="text-sm text-coffee-600">ยอดชำระสุทธิ</div>
+          <div className="text-center py-4 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-foreground">฿{total.toFixed(2)}</div>
+            <div className="text-sm text-muted-foreground">ยอดชำระสุทธิ</div>
           </div>
 
           {/* Payment Methods */}
@@ -186,7 +186,7 @@ const OptimizedPaymentModal = ({
                   className={`h-16 flex flex-col gap-1 ${
                     selectedMethod === method.id
                       ? `${method.color} text-white`
-                      : 'border-coffee-200 text-coffee-700'
+                      : 'border-border text-foreground'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -247,7 +247,7 @@ const OptimizedPaymentModal = ({
           <Button
             onClick={handlePayment}
             disabled={isProcessing || (selectedMethod === 'cash' && cashReceived < total)}
-            className="w-full h-12 text-lg bg-coffee-600 hover:bg-coffee-700"
+            className="w-full h-12 text-lg bg-primary hover:bg-primary/90"
           >
             {isProcessing ? 'กำลังประมวลผล...' : 'ชำระเงิน'}
           </Button>

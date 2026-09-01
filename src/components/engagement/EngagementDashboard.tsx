@@ -64,7 +64,7 @@ const EngagementDashboard = () => {
     { label: 'รางวัลในระบบ', value: stats.totalPrizes, sub: 'รายการรางวัล', icon: Gift, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'รางวัลที่แจกไป', value: stats.totalPrizeClaims, sub: `ใช้แล้ว ${stats.usedPrizeClaims}`, icon: Award, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'ลูกค้าถือบัตร', value: stats.totalCustomerStampCards, sub: `สะสมครบ ${stats.completedStampCards}`, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'อัตราการใช้รางวัล', value: stats.totalPrizeClaims > 0 ? `${((stats.usedPrizeClaims / stats.totalPrizeClaims) * 100).toFixed(0)}%` : '0%', sub: 'Redemption Rate', icon: Percent, color: 'text-coffee-600', bg: 'bg-coffee-50' },
+    { label: 'อัตราการใช้รางวัล', value: stats.totalPrizeClaims > 0 ? `${((stats.usedPrizeClaims / stats.totalPrizeClaims) * 100).toFixed(0)}%` : '0%', sub: 'Redemption Rate', icon: Percent, color: 'text-muted-foreground', bg: 'bg-background' },
   ];
 
   return (

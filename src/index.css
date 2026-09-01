@@ -142,11 +142,11 @@
 
 @layer components {
   .coffee-gradient {
-    @apply bg-gradient-to-br from-coffee-400 to-coffee-600;
+    @apply bg-gradient-to-br from-primary to-primary;
   }
   
   .cream-gradient {
-    @apply bg-gradient-to-br from-cream-200 to-cream-400;
+    @apply bg-gradient-to-br from-muted to-muted/40;
   }
 }
 

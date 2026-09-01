@@ -25,7 +25,7 @@ const PrinterSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -48,7 +48,7 @@ const PrinterSettings = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">ระบบเครื่องพิมพ์</CardTitle>
+                <CardTitle className="text-2xl text-foreground">ระบบเครื่องพิมพ์</CardTitle>
                 <CardDescription>จัดการการตั้งค่าเครื่องพิมพ์และการพิมพ์รายงาน</CardDescription>
               </CardHeader>
               <CardContent>

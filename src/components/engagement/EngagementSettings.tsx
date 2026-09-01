@@ -120,7 +120,7 @@ const EngagementSettings = () => {
               return (
                 <div key={feature.key} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5 text-coffee-600" />
+                    <Icon className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <Label className="text-sm font-medium">{feature.label}</Label>
                       <p className="text-xs text-muted-foreground">{feature.description}</p>
@@ -138,7 +138,7 @@ const EngagementSettings = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={saveSettings} disabled={saving} className="bg-coffee-600 hover:bg-coffee-700">
+        <Button onClick={saveSettings} disabled={saving} className="bg-primary hover:bg-primary/90">
           {saving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
         </Button>
       </div>

@@ -58,7 +58,7 @@ const AddonDisplaySettings = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-coffee-800">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <Settings className="w-5 h-5" />
           ตั้งค่าการแสดงผล Add-on
         </CardTitle>
@@ -66,7 +66,7 @@ const AddonDisplaySettings = () => {
       <CardContent className="space-y-6">
         {/* Style Picker */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <LayoutGrid className="w-4 h-4" />
             เลือกรูปแบบ Add-on (21 แบบ)
           </h3>
@@ -94,33 +94,33 @@ const AddonDisplaySettings = () => {
                   onClick={() => setStyleId(s.id)}
                   className={`text-left rounded-xl border-2 transition-all overflow-hidden ${
                     active
-                      ? 'border-coffee-600 ring-2 ring-coffee-300 shadow-lg'
-                      : 'border-gray-200 hover:border-coffee-300 hover:shadow-md'
+                      ? 'border-primary ring-2 ring-coffee-300 shadow-lg'
+                      : 'border-gray-200 hover:border-border hover:shadow-md'
                   }`}
                 >
                   {/* Header */}
-                  <div className={`flex items-center justify-between px-4 py-2.5 ${active ? 'bg-coffee-600 text-white' : 'bg-coffee-50 text-coffee-800'}`}>
+                  <div className={`flex items-center justify-between px-4 py-2.5 ${active ? 'bg-primary text-white' : 'bg-background text-foreground'}`}>
                     <div className="flex items-baseline gap-2">
                       <span className="font-bold text-sm">แบบ {s.id}</span>
                       <span className="text-xs font-semibold opacity-90">{s.name}</span>
                     </div>
-                    {active && <span className="text-[10px] px-2 py-0.5 bg-white text-coffee-700 rounded-full font-bold">กำลังใช้</span>}
+                    {active && <span className="text-[10px] px-2 py-0.5 bg-white text-foreground rounded-full font-bold">กำลังใช้</span>}
                   </div>
 
                   {/* Mock modal body */}
                   <div className="p-4 bg-white space-y-3">
                     {/* Menu header */}
-                    <div className="flex items-center gap-2 pb-2 border-b border-coffee-100">
-                      <div className="w-10 h-10 rounded-lg bg-coffee-100 flex items-center justify-center text-lg">☕</div>
+                    <div className="flex items-center gap-2 pb-2 border-b border-border">
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">☕</div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-coffee-800 truncate">ลาเต้เย็น</div>
-                        <div className="text-xs text-coffee-500">฿ 55</div>
+                        <div className="text-sm font-bold text-foreground truncate">ลาเต้เย็น</div>
+                        <div className="text-xs text-muted-foreground">฿ 55</div>
                       </div>
                     </div>
 
                     {/* Group 1 */}
                     <div>
-                      <div className="text-xs font-semibold text-coffee-700 mb-1.5 flex items-center gap-1">
+                      <div className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1">
                         ระดับความหวาน
                         <span className="text-[10px] text-red-500">*จำเป็น</span>
                       </div>
@@ -141,7 +141,7 @@ const AddonDisplaySettings = () => {
 
                     {/* Group 2 */}
                     <div>
-                      <div className="text-xs font-semibold text-coffee-700 mb-1.5">
+                      <div className="text-xs font-semibold text-foreground mb-1.5">
                         ท็อปปิ้งเพิ่มเติม
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
@@ -160,23 +160,23 @@ const AddonDisplaySettings = () => {
                     </div>
 
                     {/* Description + footer */}
-                    <div className="pt-2 border-t border-coffee-100 flex items-center justify-between">
-                      <span className="text-[11px] text-coffee-500 line-clamp-1 pr-2">{s.description}</span>
-                      <span className="text-sm font-bold text-coffee-800 whitespace-nowrap">รวม ฿ 70</span>
+                    <div className="pt-2 border-t border-border flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground line-clamp-1 pr-2">{s.description}</span>
+                      <span className="text-sm font-bold text-foreground whitespace-nowrap">รวม ฿ 70</span>
                     </div>
                   </div>
                 </button>
               );
             })}
           </div>
-          <p className="text-xs text-coffee-500">
+          <p className="text-xs text-muted-foreground">
             * เลือกรูปแบบที่ต้องการแล้วกด "บันทึกการตั้งค่า" ด้านล่าง เพื่อใช้กับหน้าเลือกเมนู
           </p>
         </div>
 
         {/* Typography Settings */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <Type className="w-4 h-4" />
             การตั้งค่าตัวอักษร
           </h3>
@@ -219,7 +219,7 @@ const AddonDisplaySettings = () => {
 
         {/* Color Settings */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-coffee-700 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <Palette className="w-4 h-4" />
             การตั้งค่าสี
           </h3>
@@ -301,7 +301,7 @@ const AddonDisplaySettings = () => {
 
         {/* Size Settings */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-coffee-700">การตั้งค่าขนาด</h3>
+          <h3 className="font-semibold text-foreground">การตั้งค่าขนาด</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -338,7 +338,7 @@ const AddonDisplaySettings = () => {
 
         {/* Preview */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-coffee-700">ตัวอย่างการแสดงผล</h3>
+          <h3 className="font-semibold text-foreground">ตัวอย่างการแสดงผล</h3>
           <div className="flex gap-3 p-4 bg-gray-50 rounded-lg">
             {/* Normal State */}
             <div
@@ -385,7 +385,7 @@ const AddonDisplaySettings = () => {
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1 bg-coffee-600 hover:bg-coffee-700"
+            className="flex-1 bg-primary hover:bg-primary/90"
           >
             <Save className="w-4 h-4 mr-2" />
             บันทึกการตั้งค่า

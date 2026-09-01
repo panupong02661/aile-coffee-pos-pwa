@@ -379,8 +379,8 @@ const Index = () => {
   // Show loading only when truly loading with no backup data
   if (isDataLoading) {
     return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground text-center">
           <div className="text-lg mb-2">กำลังโหลดข้อมูล...</div>
           {isSyncing && <div className="text-sm text-muted-foreground">กำลังซิงค์ข้อมูล...</div>}
         </div>
@@ -391,8 +391,8 @@ const Index = () => {
   // Show offline message if no data available at all
   if (!hasUsableData && !hasOfflineData()) {
     return (
-      <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center gap-4 p-4">
-        <div className="text-coffee-600 text-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
+        <div className="text-muted-foreground text-center">
           <div className="text-xl font-semibold mb-2">
             {isOnline ? 'ไม่พบข้อมูลเมนู' : 'ไม่มีข้อมูลออฟไลน์'}
           </div>
@@ -402,7 +402,7 @@ const Index = () => {
               : 'กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อดาวน์โหลดข้อมูลเมนูครั้งแรก'}
           </div>
           {isSyncing && (
-            <div className="mt-4 text-sm text-coffee-500">กำลังซิงค์ข้อมูล...</div>
+            <div className="mt-4 text-sm text-muted-foreground">กำลังซิงค์ข้อมูล...</div>
           )}
         </div>
       </div>
@@ -411,7 +411,7 @@ const Index = () => {
 
   return (
     <div 
-      className="bg-cream-50 flex overflow-hidden" 
+      className="bg-background flex overflow-hidden" 
       style={{ 
         height: '100svh',
         maxHeight: '100svh'
@@ -439,7 +439,7 @@ const Index = () => {
         }}
       >
         {/* Header */}
-        <div className={`bg-cream-50 z-10 ${
+        <div className={`bg-background z-10 ${
           isMobile ? 'p-2 pb-0' : 'p-3 pb-0'
         }`}>
           <Header 
@@ -471,7 +471,7 @@ const Index = () => {
         >
           {/* Menu Grid Container */}
           <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
-            <div className="h-full bg-white rounded-lg border border-coffee-200 overflow-hidden">
+            <div className="h-full bg-white rounded-lg border border-border overflow-hidden">
               <div className={`h-full overflow-y-auto overflow-x-hidden ${
                 isMobile ? 'p-2' : 'p-3'
               }`} style={{ scrollbarWidth: 'thin' }}>
@@ -517,7 +517,7 @@ const Index = () => {
           <div className="fixed bottom-4 right-4 z-20">
             <Button
               onClick={() => setIsMobileCartOpen(true)}
-              className="w-14 h-14 rounded-full bg-coffee-600 hover:bg-coffee-700 shadow-lg relative"
+              className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg relative"
               size="sm"
             >
               <ShoppingCart className="w-6 h-6" />

@@ -171,7 +171,7 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
           variant={viewMode === 'grid' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('grid')}
-          className={viewMode === 'grid' ? 'bg-coffee-600 hover:bg-coffee-700' : ''}
+          className={viewMode === 'grid' ? 'bg-primary hover:bg-primary/90' : ''}
         >
           <LayoutGrid className="w-4 h-4 mr-1" />
           Grid
@@ -180,7 +180,7 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
           variant={viewMode === 'list' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setViewMode('list')}
-          className={viewMode === 'list' ? 'bg-coffee-600 hover:bg-coffee-700' : ''}
+          className={viewMode === 'list' ? 'bg-primary hover:bg-primary/90' : ''}
         >
           <List className="w-4 h-4 mr-1" />
           List
@@ -245,7 +245,7 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
                 )}
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-coffee-600">
+                  <span className="text-lg font-bold text-muted-foreground">
                     {addon.price > 0 ? `+฿${addon.price.toFixed(2)}` : 'ฟรี'}
                   </span>
                   <div className="flex gap-2">
@@ -314,7 +314,7 @@ const AddonsList: React.FC<AddonsListProps> = ({ addons, addonGroups, onEdit, on
                       {getGroupName(addon.addon_group_id)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-bold text-coffee-600">
+                  <TableCell className="font-bold text-muted-foreground">
                     {addon.price > 0 ? `+฿${addon.price.toFixed(2)}` : 'ฟรี'}
                   </TableCell>
                   <TableCell>
