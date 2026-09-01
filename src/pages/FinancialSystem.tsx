@@ -19,7 +19,7 @@ const FinancialSystem = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -42,7 +42,7 @@ const FinancialSystem = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">ระบบการเงิน</CardTitle>
+                <CardTitle className="text-2xl text-foreground">ระบบการเงิน</CardTitle>
                 <CardDescription>ระบบบัญชี ภาษี และเครดิตครบครัน</CardDescription>
               </CardHeader>
               <CardContent>

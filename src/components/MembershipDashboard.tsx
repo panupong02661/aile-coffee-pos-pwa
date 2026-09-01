@@ -63,7 +63,7 @@ const MembershipDashboard = () => {
       ) : (
         members.map((member, index) => (
           <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-coffee-600 text-white font-bold text-sm">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">
               {index + 1}
             </div>
             <Avatar className="w-8 h-8">
@@ -186,7 +186,7 @@ const MembershipDashboard = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-coffee-600">{totalPoints.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-muted-foreground">{totalPoints.toLocaleString()}</div>
               <p className="text-sm text-gray-500">แต้มทั้งหมด</p>
             </div>
             <div className="text-center">

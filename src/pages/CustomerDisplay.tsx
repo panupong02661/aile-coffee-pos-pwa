@@ -207,7 +207,7 @@ const CustomerDisplay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 space-y-1 text-sm">
-              <div className="flex justify-between text-coffee-700">
+              <div className="flex justify-between text-foreground">
                 <span>ยอดรวม</span>
                 <span>฿{subtotal.toLocaleString()}</span>
               </div>
@@ -223,9 +223,9 @@ const CustomerDisplay = () => {
                 </div>
               )}
               
-              <div className="border-t border-coffee-200 pt-2">
+              <div className="border-t border-border pt-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-base font-bold text-coffee-800">ยอดที่ต้องชำระ</span>
+                  <span className="text-base font-bold text-foreground">ยอดที่ต้องชำระ</span>
                   <span className="text-2xl font-bold text-orange-600">
                     ฿{Math.max(0, finalTotal).toLocaleString()}
                   </span>
@@ -272,14 +272,14 @@ const CustomerDisplay = () => {
             className="w-20 h-20 rounded-full mx-auto mb-2 object-cover border-4 border-white shadow-lg"
           />
         )}
-        <h1 className="text-3xl font-bold text-coffee-800">{shopName}</h1>
-        <p className="text-coffee-600 text-sm">รายการสินค้าของคุณ</p>
+        <h1 className="text-3xl font-bold text-foreground">{shopName}</h1>
+        <p className="text-muted-foreground text-sm">รายการสินค้าของคุณ</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
         {/* Cart Items Section */}
-        <Card className="border-coffee-200 shadow-lg">
-          <CardHeader className="bg-coffee-600 text-white rounded-t-lg">
+        <Card className="border-border shadow-lg">
+          <CardHeader className="bg-primary text-white rounded-t-lg">
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
               รายการสินค้า ({displayData.cartItems.length} รายการ)
@@ -288,12 +288,12 @@ const CustomerDisplay = () => {
           <CardContent className="p-0">
             <ScrollArea className="h-[400px]">
               {displayData.cartItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full py-12 text-coffee-400">
+                <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
                   <ShoppingCart className="w-16 h-16 mb-4 opacity-50" />
                   <p className="text-lg">ยังไม่มีสินค้าในตะกร้า</p>
                 </div>
               ) : (
-                <div className="divide-y divide-coffee-100">
+                <div className="divide-y divide-border">
                 {displayData.cartItems.map((item, index) => {
                     const itemTotal = calculateItemTotal(item);
                     const hasDiscount = item.discount && item.discount > 0;
@@ -301,17 +301,17 @@ const CustomerDisplay = () => {
                     const originalPrice = (item.price + addonsTotal) * item.quantity;
                     
                     return (
-                      <div key={item.id || index} className="p-4 hover:bg-coffee-50 transition-colors">
+                      <div key={item.id || index} className="p-4 hover:bg-muted transition-colors">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-coffee-800 text-lg">
+                            <h3 className="font-semibold text-foreground text-lg">
                               {item.name}
                             </h3>
-                            <p className="text-coffee-600 text-sm">
+                            <p className="text-muted-foreground text-sm">
                               ฿{item.price.toLocaleString()} x {item.quantity}
                             </p>
                             {item.addons && item.addons.length > 0 && (
-                              <div className="mt-1 text-xs text-coffee-500">
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 + {item.addons.map(a => `${a.name} (฿${a.price})`).join(', ')}
                               </div>
                             )}
@@ -323,11 +323,11 @@ const CustomerDisplay = () => {
                           </div>
                           <div className="text-right">
                             {hasDiscount && (
-                              <span className="text-coffee-400 text-sm line-through block">
+                              <span className="text-muted-foreground text-sm line-through block">
                                 ฿{originalPrice.toLocaleString()}
                               </span>
                             )}
-                            <span className={`font-bold text-lg ${hasDiscount ? 'text-red-600' : 'text-coffee-800'}`}>
+                            <span className={`font-bold text-lg ${hasDiscount ? 'text-red-600' : 'text-foreground'}`}>
                               ฿{itemTotal.toLocaleString()}
                             </span>
                           </div>
@@ -344,7 +344,7 @@ const CustomerDisplay = () => {
         {/* Payment Section */}
         <div className="space-y-4">
           {/* Summary Card */}
-          <Card className="border-coffee-200 shadow-lg">
+          <Card className="border-border shadow-lg">
             <CardHeader className="bg-orange-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
                 <Receipt className="w-5 h-5" />
@@ -352,7 +352,7 @@ const CustomerDisplay = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
-              <div className="flex justify-between text-coffee-700">
+              <div className="flex justify-between text-foreground">
                 <span>ยอดรวม</span>
                 <span>฿{subtotal.toLocaleString()}</span>
               </div>
@@ -368,9 +368,9 @@ const CustomerDisplay = () => {
                 </div>
               )}
               
-              <div className="border-t border-coffee-200 pt-3">
+              <div className="border-t border-border pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-coffee-800">ยอดที่ต้องชำระ</span>
+                  <span className="text-xl font-bold text-foreground">ยอดที่ต้องชำระ</span>
                   <span className="text-3xl font-bold text-orange-600">
                     ฿{Math.max(0, finalTotal).toLocaleString()}
                   </span>
@@ -380,7 +380,7 @@ const CustomerDisplay = () => {
           </Card>
 
           {/* QR Code Payment */}
-          <Card className="border-coffee-200 shadow-lg">
+          <Card className="border-border shadow-lg">
             <CardHeader className="bg-green-600 text-white rounded-t-lg">
               <CardTitle className="text-center">สแกนเพื่อชำระเงิน</CardTitle>
             </CardHeader>
@@ -391,7 +391,7 @@ const CustomerDisplay = () => {
                 compact={true}
                 shopLogoUrl={shopLogo}
               />
-              <p className="text-center text-sm text-coffee-600 mt-4">
+              <p className="text-center text-sm text-muted-foreground mt-4">
                 สแกน QR Code ด้วยแอป Banking หรือ PromptPay
               </p>
             </CardContent>
@@ -400,7 +400,7 @@ const CustomerDisplay = () => {
       </div>
 
       {/* Footer */}
-      <div className="text-center mt-6 text-coffee-500 text-sm">
+      <div className="text-center mt-6 text-muted-foreground text-sm">
         <p>ขอบคุณที่ใช้บริการ {shopName}</p>
       </div>
     </div>

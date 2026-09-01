@@ -14,7 +14,7 @@ const EngagementManagement = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
@@ -37,7 +37,7 @@ const EngagementManagement = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">🎯 ระบบ Engagement</CardTitle>
+                <CardTitle className="text-2xl text-foreground">🎯 ระบบ Engagement</CardTitle>
                 <p className="text-sm text-muted-foreground">จัดการบัตรสะสมแสตมป์ กิจกรรมเทศกาล วงล้อนำโชค และอื่นๆ</p>
               </CardHeader>
               <CardContent>

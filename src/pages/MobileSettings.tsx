@@ -33,7 +33,7 @@ const MobileSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -56,7 +56,7 @@ const MobileSettings = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800 flex items-center">
+                <CardTitle className="text-2xl text-foreground flex items-center">
                   <Smartphone className="w-6 h-6 mr-2" />
                   ตั้งค่าแอพมือถือ
                 </CardTitle>

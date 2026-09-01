@@ -90,7 +90,7 @@ const FestivalThemeManager = () => {
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-coffee-600 hover:bg-coffee-700"><Plus className="w-4 h-4 mr-2" /> สร้างธีม</Button>
+            <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" /> สร้างธีม</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>สร้างธีมใหม่</DialogTitle></DialogHeader>
@@ -149,7 +149,7 @@ const FestivalThemeManager = () => {
                   <Input type="datetime-local" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
                 </div>
               </div>
-              <Button onClick={handleCreate} className="w-full bg-coffee-600 hover:bg-coffee-700">สร้างธีม</Button>
+              <Button onClick={handleCreate} className="w-full bg-primary hover:bg-primary/90">สร้างธีม</Button>
             </div>
           </DialogContent>
         </Dialog>

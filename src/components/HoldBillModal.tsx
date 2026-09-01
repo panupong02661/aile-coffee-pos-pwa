@@ -126,7 +126,7 @@ const HoldBillModal = ({
                         <Button
                           size="sm"
                           onClick={() => handleRestoreBill(bill)}
-                          className="bg-coffee-600 hover:bg-coffee-700"
+                          className="bg-primary hover:bg-primary/90"
                         >
                           เรียกคืน
                         </Button>

@@ -20,7 +20,7 @@ const SecuritySystem = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -43,7 +43,7 @@ const SecuritySystem = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">ระบบรักษาความปลอดภัย</CardTitle>
+                <CardTitle className="text-2xl text-foreground">ระบบรักษาความปลอดภัย</CardTitle>
                 <CardDescription>ระบบสำรองข้อมูล ระบบ Log และการจัดการสิทธิ์</CardDescription>
               </CardHeader>
               <CardContent>

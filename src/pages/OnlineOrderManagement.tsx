@@ -306,7 +306,7 @@ const OnlineOrderManagement = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-cream-50 flex">
+      <div className="h-screen bg-background flex">
         <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
         
       <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -338,7 +338,7 @@ const OnlineOrderManagement = () => {
   }
 
   return (
-    <div className="h-screen bg-cream-50 flex">
+    <div className="h-screen bg-background flex">
       <MainSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
       
       <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -361,10 +361,10 @@ const OnlineOrderManagement = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-coffee-800 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               จัดการออเดอร์ทั้งหมด
             </h1>
-            <p className="text-coffee-600">
+            <p className="text-muted-foreground">
               ระบบจัดการออเดอร์จากระบบ POS
             </p>
           </div>

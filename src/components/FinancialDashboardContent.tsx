@@ -109,8 +109,8 @@ const FinancialDashboardContent = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-coffee-800">Financial Dashboard</h1>
-          <p className="text-coffee-600 mt-2">กำไรขาดทุน กระแสเงินสด และการคำนวณภาษี</p>
+          <h1 className="text-3xl font-bold text-foreground">Financial Dashboard</h1>
+          <p className="text-muted-foreground mt-2">กำไรขาดทุน กระแสเงินสด และการคำนวณภาษี</p>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-48">

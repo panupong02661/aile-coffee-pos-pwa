@@ -23,9 +23,9 @@ const Sidebar = () => {
   ];
 
   return (
-    <Card className="w-64 h-full border-coffee-200">
+    <Card className="w-64 h-full border-border">
       <div className="p-4">
-        <h2 className="text-lg font-semibold text-coffee-800 mb-4">เมนูหลัก</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">เมนูหลัก</h2>
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -37,8 +37,8 @@ const Sidebar = () => {
                 to={item.path}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-coffee-600 text-white'
-                    : 'text-coffee-700 hover:bg-coffee-50'
+                    ? 'bg-primary text-white'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 <Icon className="w-5 h-5" />

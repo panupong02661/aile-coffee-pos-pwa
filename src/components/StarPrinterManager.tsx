@@ -198,7 +198,7 @@ const StarPrinterManager = () => {
                     size="sm"
                     onClick={() => connectPrinter(printer)}
                     disabled={connection.connected && connection.portName === printer.portName}
-                    className="bg-coffee-600 hover:bg-coffee-700"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {connection.connected && connection.portName === printer.portName
                       ? 'เชื่อมต่อแล้ว'

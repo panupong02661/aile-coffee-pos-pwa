@@ -325,7 +325,7 @@ const ShopBasicSettings = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={loading} className="bg-coffee-600 hover:bg-coffee-700">
+        <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
           {loading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
         </Button>
       </div>

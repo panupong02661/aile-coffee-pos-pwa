@@ -79,8 +79,8 @@ const AnalyticsDashboardContent = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-coffee-800">Analytics Dashboard</h1>
-          <p className="text-coffee-600 mt-2">วิเคราะห์พฤติกรรมลูกค้าและยอดขายตามช่วงเวลา</p>
+          <h1 className="text-3xl font-bold text-foreground">Analytics Dashboard</h1>
+          <p className="text-muted-foreground mt-2">วิเคราะห์พฤติกรรมลูกค้าและยอดขายตามช่วงเวลา</p>
         </div>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-48">

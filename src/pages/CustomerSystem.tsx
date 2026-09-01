@@ -20,7 +20,7 @@ const CustomerSystem = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -43,7 +43,7 @@ const CustomerSystem = () => {
           <div className="max-w-7xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">ระบบลูกค้า</CardTitle>
+                <CardTitle className="text-2xl text-foreground">ระบบลูกค้า</CardTitle>
                 <CardDescription>ระบบ CRM การตลาด และการจองโต๊ะครบครัน</CardDescription>
               </CardHeader>
               <CardContent>

@@ -125,7 +125,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
 
               return (
                 <div key={groupName} className={`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`}>
-                  <h3 className="font-bold text-base text-coffee-800">
+                  <h3 className="font-bold text-base text-foreground">
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -151,7 +151,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
         <div className="flex-shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex justify-between items-center mb-3">
             <span className="font-bold text-lg">ราคารวม:</span>
-            <span className="text-2xl font-bold text-coffee-600">฿{totalPrice}</span>
+            <span className="text-2xl font-bold text-muted-foreground">฿{totalPrice}</span>
           </div>
           <div className="flex space-x-2">
             <Button
@@ -163,7 +163,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
             </Button>
             <Button
               onClick={handleAddToCart}
-              className="flex-1 bg-coffee-600 hover:bg-coffee-700 font-bold text-lg h-12"
+              className="flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12"
             >
               เพิ่มลงตะกร้า
             </Button>

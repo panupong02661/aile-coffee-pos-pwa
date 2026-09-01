@@ -292,7 +292,7 @@ const StampCardManager = () => {
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-coffee-600 hover:bg-coffee-700">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" /> สร้างบัตรใหม่
             </Button>
           </DialogTrigger>
@@ -325,7 +325,7 @@ const StampCardManager = () => {
                 <Label>รีเซ็ตอัตโนมัติเมื่อครบ</Label>
                 <Switch checked={form.auto_reset_on_complete} onCheckedChange={(v) => setForm({ ...form, auto_reset_on_complete: v })} />
               </div>
-              <Button onClick={handleCreateCard} className="w-full bg-coffee-600 hover:bg-coffee-700">สร้างบัตร</Button>
+              <Button onClick={handleCreateCard} className="w-full bg-primary hover:bg-primary/90">สร้างบัตร</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -361,16 +361,16 @@ const StampCardManager = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-2 bg-coffee-50 rounded">
-                    <p className="text-2xl font-bold text-coffee-800">{card.total_stamps}</p>
+                  <div className="text-center p-2 bg-background rounded">
+                    <p className="text-2xl font-bold text-foreground">{card.total_stamps}</p>
                     <p className="text-xs text-muted-foreground">แสตมป์ทั้งหมด</p>
                   </div>
-                  <div className="text-center p-2 bg-coffee-50 rounded">
-                    <p className="text-2xl font-bold text-coffee-800">฿{card.min_purchase_per_stamp}</p>
+                  <div className="text-center p-2 bg-background rounded">
+                    <p className="text-2xl font-bold text-foreground">฿{card.min_purchase_per_stamp}</p>
                     <p className="text-xs text-muted-foreground">ขั้นต่ำ/แสตมป์</p>
                   </div>
-                  <div className="text-center p-2 bg-coffee-50 rounded">
-                    <p className="text-2xl font-bold text-coffee-800">{milestones[card.id]?.length || 0}</p>
+                  <div className="text-center p-2 bg-background rounded">
+                    <p className="text-2xl font-bold text-foreground">{milestones[card.id]?.length || 0}</p>
                     <p className="text-xs text-muted-foreground">รางวัล</p>
                   </div>
                 </div>
@@ -381,7 +381,7 @@ const StampCardManager = () => {
                     const milestone = milestones[card.id]?.find(m => m.stamp_number === i + 1);
                     return (
                       <div key={i} className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                        milestone ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-coffee-200 bg-white text-coffee-400'
+                        milestone ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-border bg-white text-muted-foreground'
                       }`}>
                         {milestone ? <Award className="w-4 h-4" /> : i + 1}
                       </div>
@@ -449,7 +449,7 @@ const StampCardManager = () => {
             {/* Dynamic fields based on reward type */}
             {renderMilestoneFormFields()}
 
-            <Button onClick={handleAddMilestone} className="w-full bg-coffee-600 hover:bg-coffee-700">เพิ่มรางวัล</Button>
+            <Button onClick={handleAddMilestone} className="w-full bg-primary hover:bg-primary/90">เพิ่มรางวัล</Button>
           </div>
         </DialogContent>
       </Dialog>

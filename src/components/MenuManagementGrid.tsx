@@ -84,7 +84,7 @@ const MenuManagementGrid = ({
               )}
               
               <div className="flex items-center justify-between mb-2">
-                <span className="text-lg font-bold text-coffee-600">฿{item.price}</span>
+                <span className="text-lg font-bold text-muted-foreground">฿{item.price}</span>
                 <Badge variant={item.is_available ? "default" : "secondary"}>
                   {item.is_available ? 'พร้อมขาย' : 'หมด'}
                 </Badge>

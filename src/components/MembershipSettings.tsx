@@ -168,7 +168,7 @@ const MembershipSettings = () => {
         <CardContent>
           <div className="space-y-8">
             {settings.map((setting) => (
-              <Card key={setting.tier} className="border-l-4 border-l-coffee-400">
+              <Card key={setting.tier} className="border-l-4 border-l-primary">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Award className="w-5 h-5" />

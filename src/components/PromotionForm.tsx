@@ -137,7 +137,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-coffee-800">
+          <DialogTitle className="text-foreground">
             {editPromotion ? 'แก้ไขโปรโมชั่น' : 'สร้างโปรโมชั่นใหม่'}
           </DialogTitle>
         </DialogHeader>
@@ -258,7 +258,7 @@ const PromotionForm = ({ isOpen, onClose, onSuccess, editPromotion }: PromotionF
             </Button>
             <Button 
               type="submit" 
-              className="bg-coffee-600 hover:bg-coffee-700"
+              className="bg-primary hover:bg-primary/90"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'กำลังบันทึก...' : (editPromotion ? 'แก้ไข' : 'สร้าง')}

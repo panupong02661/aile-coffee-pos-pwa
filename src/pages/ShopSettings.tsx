@@ -22,7 +22,7 @@ const ShopSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-coffee-50">
+    <div className="min-h-screen bg-background">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar} 
@@ -45,7 +45,7 @@ const ShopSettings = () => {
           <div className="max-w-6xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-coffee-800">ตั้งค่าร้าน</CardTitle>
+                <CardTitle className="text-2xl text-foreground">ตั้งค่าร้าน</CardTitle>
                 <CardDescription>จัดการข้อมูลร้านและการตั้งค่าใบเสร็จ</CardDescription>
               </CardHeader>
               <CardContent>

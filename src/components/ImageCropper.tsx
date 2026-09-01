@@ -260,7 +260,7 @@ const ImageCropper = ({ isOpen, onClose, onCrop, imageSrc }: ImageCropperProps) 
             <Button 
               onClick={handleCrop}
               disabled={loading}
-              className="flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700"
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90"
             >
               <Check className="w-4 h-4" />
               {loading ? 'กำลังครอป...' : 'ใช้รูปภาพนี้'}

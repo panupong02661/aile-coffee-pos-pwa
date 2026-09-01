@@ -228,7 +228,7 @@ const QRCodePromptPay = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-coffee-800">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <QrCode className="w-5 h-5" />
           QR Code PromptPay
         </CardTitle>
@@ -277,7 +277,7 @@ const QRCodePromptPay = ({
 
         <Button 
           onClick={generateQR} 
-          className="w-full bg-coffee-600 hover:bg-coffee-700"
+          className="w-full bg-primary hover:bg-primary/90"
           disabled={!phoneNumber.trim()}
         >
           สร้าง QR Code

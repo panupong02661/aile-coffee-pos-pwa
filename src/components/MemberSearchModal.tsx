@@ -154,7 +154,7 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-600">{member.phone}</p>
-                          <p className="text-xs text-coffee-600 font-medium">
+                          <p className="text-xs text-muted-foreground font-medium">
                             {member.points.toLocaleString()} แต้ม
                           </p>
                         </div>
@@ -192,7 +192,7 @@ const MemberSearchModal = ({ isOpen, onClose, onSelectMember }: MemberSearchModa
                               </Badge>
                             </div>
                             <p className="text-xs text-gray-600">{member.phone}</p>
-                            <p className="text-xs text-coffee-600 font-medium">
+                            <p className="text-xs text-muted-foreground font-medium">
                               {member.points.toLocaleString()} แต้ม
                             </p>
                           </div>

@@ -146,14 +146,14 @@ const MenuManagement = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-coffee-600">กำลังโหลดข้อมูล...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">กำลังโหลดข้อมูล...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-background flex">
       <MainSidebar 
         isOpen={isSidebarOpen} 
         onClose={handleCloseSidebar}
@@ -179,8 +179,8 @@ const MenuManagement = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-2xl text-coffee-800">จัดการเมนู</CardTitle>
-                  <p className="text-coffee-600 mt-1">
+                  <CardTitle className="text-2xl text-foreground">จัดการเมนู</CardTitle>
+                  <p className="text-muted-foreground mt-1">
                     จัดการเมนูอาหาร หมวดหมู่ และตัวเลือกเสริม
                     {isMobile && (
                       <span className="flex items-center text-sm text-blue-600 mt-1">
@@ -222,7 +222,7 @@ const MenuManagement = () => {
                           onClick={handleExportMenu}
                           disabled={isExporting || menuItems.length === 0}
                           variant="outline"
-                          className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                          className="border-border text-muted-foreground hover:bg-muted"
                         >
                           <Download className="w-4 h-4 mr-2" />
                           {isExporting ? 'กำลังส่งออก...' : 'ส่งออก Excel'}
@@ -233,7 +233,7 @@ const MenuManagement = () => {
                           onClick={handleImportMenu}
                           disabled={isImporting}
                           variant="outline"
-                          className="border-coffee-200 text-coffee-600 hover:bg-coffee-50"
+                          className="border-border text-muted-foreground hover:bg-muted"
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           {isImporting ? 'กำลังนำเข้า...' : 'นำเข้า Excel'}
@@ -251,7 +251,7 @@ const MenuManagement = () => {
                         {/* Add Menu Button */}
                         <Button 
                           onClick={() => setIsMenuFormOpen(true)}
-                          className="bg-coffee-600 hover:bg-coffee-700"
+                          className="bg-primary hover:bg-primary/90"
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           เพิ่มเมนูใหม่
@@ -265,7 +265,7 @@ const MenuManagement = () => {
                         variant={selectedCategoryFilter === 'all' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setSelectedCategoryFilter('all')}
-                        className={selectedCategoryFilter === 'all' ? 'bg-coffee-600 hover:bg-coffee-700' : 'border-coffee-200 text-coffee-600 hover:bg-coffee-50'}
+                        className={selectedCategoryFilter === 'all' ? 'bg-primary hover:bg-primary/90' : 'border-border text-muted-foreground hover:bg-muted'}
                       >
                         เมนูทั้งหมด ({menuItems.length})
                       </Button>
@@ -277,7 +277,7 @@ const MenuManagement = () => {
                             variant={selectedCategoryFilter === category.id ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setSelectedCategoryFilter(category.id)}
-                            className={selectedCategoryFilter === category.id ? 'bg-coffee-600 hover:bg-coffee-700' : 'border-coffee-200 text-coffee-600 hover:bg-coffee-50'}
+                            className={selectedCategoryFilter === category.id ? 'bg-primary hover:bg-primary/90' : 'border-border text-muted-foreground hover:bg-muted'}
                           >
                             {category.name} ({count})
                           </Button>
@@ -299,7 +299,7 @@ const MenuManagement = () => {
                     <h3 className="text-lg font-semibold">หมวดหมู่ ({categories.length})</h3>
                     <Button 
                       onClick={() => setIsCategoryFormOpen(true)}
-                      className="bg-coffee-600 hover:bg-coffee-700"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       เพิ่มหมวดหมู่ใหม่
@@ -318,7 +318,7 @@ const MenuManagement = () => {
                     <h3 className="text-lg font-semibold">กลุ่ม Add-on ({addonGroups.length})</h3>
                     <Button 
                       onClick={() => setIsAddonGroupFormOpen(true)}
-                      className="bg-coffee-600 hover:bg-coffee-700"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       เพิ่มกลุ่ม Add-on ใหม่
@@ -337,7 +337,7 @@ const MenuManagement = () => {
                     <h3 className="text-lg font-semibold">Add-ons ({addons.length})</h3>
                     <Button 
                       onClick={() => setIsAddonFormOpen(true)}
-                      className="bg-coffee-600 hover:bg-coffee-700"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       เพิ่ม Add-on ใหม่
