@@ -12,6 +12,8 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton';
 import ProtectedRoute from './components/ProtectedRoute';
+import CommandPalette from '@/components/CommandPalette';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
