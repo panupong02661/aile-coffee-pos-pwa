@@ -209,7 +209,9 @@ function App() {
                   </Routes>
 
                 </Suspense>
+                <CommandPalette />
                 <PWAInstallPrompt />
+
                 <OfflineIndicator />
                 <Toaster />
                 <SonnerToaster />
