@@ -82,6 +82,8 @@ const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
+const ShiftClose = lazy(() => import('./pages/ShiftClose'));
+
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
 const PosV2 = lazy(() => import('./pages/preview/PosV2'));
