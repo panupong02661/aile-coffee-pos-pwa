@@ -1,7 +1,7 @@
 import { MenuItem, Addon, CartItem } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 
 interface Props {
   menuItems: MenuItem[];
@@ -11,7 +11,10 @@ interface Props {
   itemSize?: 'small' | 'medium' | 'large';
   cartItems?: CartItem[];
   shopLogoUrl?: string;
+  /** menu_item_id -> รายชื่อวัตถุดิบที่ใกล้หมด */
+  lowStockMap?: Record<string, string[]>;
 }
+
 
 const COLS: Record<number, string> = {
   1: 'grid-cols-1',

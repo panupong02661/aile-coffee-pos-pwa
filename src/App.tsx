@@ -12,6 +12,8 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { PageLoadingSkeleton } from '@/components/ui/page-loading-skeleton';
 import ProtectedRoute from './components/ProtectedRoute';
+import CommandPalette from '@/components/CommandPalette';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +82,8 @@ const TableManagement = lazy(() => import('./pages/TableManagement'));
 const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
+const ShiftClose = lazy(() => import('./pages/ShiftClose'));
+
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
 const PosV2 = lazy(() => import('./pages/preview/PosV2'));
@@ -201,9 +205,13 @@ function App() {
                     <Route path="/table-management" element={<ProtectedRoute><TableManagement /></ProtectedRoute>} />
                     <Route path="/delivery-tracking" element={<ProtectedRoute><DeliveryTracking /></ProtectedRoute>} />
                     <Route path="/launcher-preview" element={<ProtectedRoute><LauncherPreview /></ProtectedRoute>} />
+                    <Route path="/shift-close" element={<ProtectedRoute><ShiftClose /></ProtectedRoute>} />
                   </Routes>
+
                 </Suspense>
+                <CommandPalette />
                 <PWAInstallPrompt />
+
                 <OfflineIndicator />
                 <Toaster />
                 <SonnerToaster />
