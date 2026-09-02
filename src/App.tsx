@@ -203,7 +203,9 @@ function App() {
                     <Route path="/table-management" element={<ProtectedRoute><TableManagement /></ProtectedRoute>} />
                     <Route path="/delivery-tracking" element={<ProtectedRoute><DeliveryTracking /></ProtectedRoute>} />
                     <Route path="/launcher-preview" element={<ProtectedRoute><LauncherPreview /></ProtectedRoute>} />
+                    <Route path="/shift-close" element={<ProtectedRoute><ShiftClose /></ProtectedRoute>} />
                   </Routes>
+
                 </Suspense>
                 <PWAInstallPrompt />
                 <OfflineIndicator />
