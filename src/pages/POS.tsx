@@ -787,15 +787,23 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
                       shopLogoUrl={shopLogoUrl}
                     />
                   ) : (
-                    <PosMenuGridV2
-                      menuItems={filteredMenuItems}
-                      onAddToCart={handleMenuItemClick}
-                      gridColumns={gridColumns}
-                      itemSize={itemSize}
-                      cartItems={cartItems}
-                      shopLogoUrl={shopLogoUrl}
-                    />
+                    <>
+                      <QuickSaleBar
+                        menuItems={availableMenuItems}
+                        onAddToCart={handleMenuItemClick}
+                      />
+                      <PosMenuGridV2
+                        menuItems={filteredMenuItems}
+                        onAddToCart={handleMenuItemClick}
+                        gridColumns={gridColumns}
+                        itemSize={itemSize}
+                        cartItems={cartItems}
+                        shopLogoUrl={shopLogoUrl}
+                        lowStockMap={lowStockInfo?.menuMap}
+                      />
+                    </>
                   )
+
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
