@@ -129,51 +129,37 @@ const MembershipDashboard = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">สมาชิกทั้งหมด</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{members.length}</div>
-            <p className="text-xs text-muted-foreground">คน</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">สมาชิกเงิน</CardTitle>
-            <Badge className={getTierBadgeColor('silver')}>เงิน</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{silverMembers.length}</div>
-            <p className="text-xs text-muted-foreground">คน</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">สมาชิกทอง</CardTitle>
-            <Badge className={getTierBadgeColor('gold')}>ทอง</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{goldMembers.length}</div>
-            <p className="text-xs text-muted-foreground">คน</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">สมาชิกแพลตินัม</CardTitle>
-            <Badge className={getTierBadgeColor('platinum')}>แพลตินัม</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{platinumMembers.length}</div>
-            <p className="text-xs text-muted-foreground">คน</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="สมาชิกทั้งหมด"
+          value={members.length.toLocaleString()}
+          hint="คน"
+          icon={Users}
+          tone="primary"
+        />
+        <StatCard
+          label="สมาชิกเงิน"
+          value={silverMembers.length.toLocaleString()}
+          hint="คน"
+          icon={Star}
+          tone="info"
+        />
+        <StatCard
+          label="สมาชิกทอง"
+          value={goldMembers.length.toLocaleString()}
+          hint="คน"
+          icon={Award}
+          tone="warning"
+        />
+        <StatCard
+          label="สมาชิกแพลตินัม"
+          value={platinumMembers.length.toLocaleString()}
+          hint="คน"
+          icon={Award}
+          tone="success"
+        />
       </div>
+
 
       {/* Points Summary */}
       <Card>
