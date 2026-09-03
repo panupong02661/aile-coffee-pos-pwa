@@ -4,6 +4,9 @@ import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
 import PosMenuGridV2 from '@/components/pos/PosMenuGridV2';
+import QuickSaleBar from '@/components/pos/QuickSaleBar';
+import { useLowStockMenu } from '@/hooks/usePosInsights';
+
 import PosCartV2 from '@/components/pos/PosCartV2';
 import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
 import MobileCart from '@/components/MobileCart';
@@ -54,6 +57,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   console.log('🚀 POS Component Started');
   
   const [selectedCategory, setSelectedCategory] = useState('1');
+  const { data: lowStockInfo } = useLowStockMenu();
   const isMobile = useIsMobile();
   const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor, themePreset, glassOpacity } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
@@ -783,15 +787,23 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
                       shopLogoUrl={shopLogoUrl}
                     />
                   ) : (
-                    <PosMenuGridV2
-                      menuItems={filteredMenuItems}
-                      onAddToCart={handleMenuItemClick}
-                      gridColumns={gridColumns}
-                      itemSize={itemSize}
-                      cartItems={cartItems}
-                      shopLogoUrl={shopLogoUrl}
-                    />
+                    <>
+                      <QuickSaleBar
+                        menuItems={availableMenuItems}
+                        onAddToCart={handleMenuItemClick}
+                      />
+                      <PosMenuGridV2
+                        menuItems={filteredMenuItems}
+                        onAddToCart={handleMenuItemClick}
+                        gridColumns={gridColumns}
+                        itemSize={itemSize}
+                        cartItems={cartItems}
+                        shopLogoUrl={shopLogoUrl}
+                        lowStockMap={lowStockInfo?.menuMap}
+                      />
+                    </>
                   )
+
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
