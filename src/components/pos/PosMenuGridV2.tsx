@@ -121,7 +121,18 @@ const PosMenuGridV2 = ({
                     {qty}
                   </span>
                 )}
+
+                {lowStock?.length ? (
+                  <span
+                    title={`วัตถุดิบใกล้หมด: ${lowStock.join(', ')}`}
+                    className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow"
+                  >
+                    <AlertTriangle className="h-3 w-3" strokeWidth={3} />
+                    {!compact && 'สต็อกต่ำ'}
+                  </span>
+                ) : null}
               </div>
+
 
               <div className="px-1 pb-0.5 pt-1.5">
                 <h3
