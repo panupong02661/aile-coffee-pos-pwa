@@ -36,6 +36,7 @@ const PosMenuGridV2 = ({
   itemSize = 'medium',
   cartItems = [],
   shopLogoUrl,
+  lowStockMap = {},
 }: Props) => {
   const isMobile = useIsMobile();
 
