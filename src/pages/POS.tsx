@@ -57,6 +57,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   console.log('🚀 POS Component Started');
   
   const [selectedCategory, setSelectedCategory] = useState('1');
+  const { data: lowStockInfo } = useLowStockMenu();
   const isMobile = useIsMobile();
   const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor, themePreset, glassOpacity } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
