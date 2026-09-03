@@ -59,6 +59,7 @@ const PosMenuGridV2 = ({
         .filter((item) => item.is_available === true)
         .map((item) => {
           const qty = qtyMap.get(item.id) || 0;
+          const lowStock = lowStockMap[item.id];
           return (
             <button
               key={item.id}
