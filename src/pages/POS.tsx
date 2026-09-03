@@ -4,6 +4,9 @@ import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
 import PosMenuGridV2 from '@/components/pos/PosMenuGridV2';
+import QuickSaleBar from '@/components/pos/QuickSaleBar';
+import { useLowStockMenu } from '@/hooks/usePosInsights';
+
 import PosCartV2 from '@/components/pos/PosCartV2';
 import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
 import MobileCart from '@/components/MobileCart';
