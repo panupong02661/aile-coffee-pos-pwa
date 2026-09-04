@@ -83,6 +83,7 @@ const DeliveryTracking = lazy(() => import('./pages/DeliveryTracking'));
 const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
 const ShiftClose = lazy(() => import('./pages/ShiftClose'));
+const CategoryBarPreview = lazy(() => import('./pages/CategoryBarPreview'));
 
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
@@ -126,6 +127,7 @@ function App() {
                     <Route path="/preview-pos" element={<PreviewPOS />} />
                     <Route path="/pos-v2" element={<PosV2 />} />
                     <Route path="/sidebar-preview" element={<SidebarPreview />} />
+                    <Route path="/category-bar-preview" element={<CategoryBarPreview />} />
 
 
                     {/* Protected routes */}
