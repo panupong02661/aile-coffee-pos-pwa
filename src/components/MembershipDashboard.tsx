@@ -6,17 +6,27 @@ import { Users, Award, Star, FileSpreadsheet, FileText } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { exportToExcel, exportToPDF, formatDashboardDataForExport } from '@/utils/exportUtils';
 import { toast } from 'sonner';
+import StatCard from '@/components/dashboard/StatCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MembershipDashboard = () => {
   const { members, loading } = useSupabaseData();
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-gray-500">กำลังโหลดข้อมูล...</div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-40 rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-2xl" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -42,8 +52,8 @@ const MembershipDashboard = () => {
     switch (tier) {
       case 'platinum': return 'bg-purple-100 text-purple-800';
       case 'gold': return 'bg-yellow-100 text-yellow-800';
-      case 'silver': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'silver': return 'bg-muted text-muted-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -59,11 +69,11 @@ const MembershipDashboard = () => {
   const renderTopMembers = (members: typeof topSilver, tier: string) => (
     <div className="space-y-3">
       {members.length === 0 ? (
-        <p className="text-gray-500 text-sm">ยังไม่มีสมาชิก</p>
+        <p className="text-muted-foreground text-sm">ยังไม่มีสมาชิก</p>
       ) : (
         members.map((member, index) => (
-          <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm">
+          <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-muted/50">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
               {index + 1}
             </div>
             <Avatar className="w-8 h-8">
@@ -73,11 +83,11 @@ const MembershipDashboard = () => {
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{member.name}</p>
-              <p className="text-xs text-gray-500">{member.phone}</p>
+              <p className="text-xs text-muted-foreground">{member.phone}</p>
             </div>
             <div className="text-right">
               <p className="font-semibold text-sm">{member.points.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">แต้ม</p>
+              <p className="text-xs text-muted-foreground">แต้ม</p>
             </div>
           </div>
         ))
@@ -173,25 +183,25 @@ const MembershipDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-muted-foreground">{totalPoints.toLocaleString()}</div>
-              <p className="text-sm text-gray-500">แต้มทั้งหมด</p>
+              <p className="text-sm text-muted-foreground">แต้มทั้งหมด</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
+              <div className="text-2xl font-bold text-muted-foreground">
                 {silverMembers.reduce((sum, m) => sum + m.points, 0).toLocaleString()}
               </div>
-              <p className="text-sm text-gray-500">แต้มสมาชิกเงิน</p>
+              <p className="text-sm text-muted-foreground">แต้มสมาชิกเงิน</p>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
                 {goldMembers.reduce((sum, m) => sum + m.points, 0).toLocaleString()}
               </div>
-              <p className="text-sm text-gray-500">แต้มสมาชิกทอง</p>
+              <p className="text-sm text-muted-foreground">แต้มสมาชิกทอง</p>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
                 {platinumMembers.reduce((sum, m) => sum + m.points, 0).toLocaleString()}
               </div>
-              <p className="text-sm text-gray-500">แต้มสมาชิกแพลตินัม</p>
+              <p className="text-sm text-muted-foreground">แต้มสมาชิกแพลตินัม</p>
             </div>
           </div>
         </CardContent>
