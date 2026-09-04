@@ -119,92 +119,94 @@ const Header = ({
     <>
       {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
       <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
-        <div className={cn('flex items-center', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
-            <Menu className="w-5 h-5" />
-          </Button>
-
-          {onMemberClick && (
-            <Button variant="outline" size="icon" className="ml-2 flex-shrink-0" onClick={onMemberClick}>
-              <User className="w-4 h-4" />
+        <div className={cn('flex flex-col gap-1', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
+              <Menu className="w-5 h-5" />
             </Button>
-          )}
-          
-          <div className="flex items-center ml-2 md:ml-6 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {!trailing && categories.map(category => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                size="sm"
-                className="mr-2 flex-shrink-0"
-                onClick={() => onCategorySelect(category.id)}
-              >
-                {category.name}
-              </Button>
-            ))}
-            
-            {onToggleDebug && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={onToggleDebug}
-                className="ml-2 flex-shrink-0"
-              >
-                <Bug className="w-5 h-5" />
+
+            {onMemberClick && (
+              <Button variant="outline" size="icon" className="flex-shrink-0 h-9 w-9" onClick={onMemberClick}>
+                <User className="w-4 h-4" />
               </Button>
             )}
-            
-            {onSearchOpen && (
-              <Button variant="ghost" size="icon" onClick={onSearchOpen} className="flex-shrink-0">
-                <Search className="w-5 h-5" />
-              </Button>
-            )}
-            
-            {onSettingsOpen && (
-              <Button variant="ghost" size="icon" onClick={onSettingsOpen} className="flex-shrink-0">
-                <Settings className="w-5 h-5" />
-              </Button>
-            )}
+
+            <div className="flex items-center gap-1 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {!trailing && categories.map(category => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  className="flex-shrink-0"
+                  onClick={() => onCategorySelect(category.id)}
+                >
+                  {category.name}
+                </Button>
+              ))}
+
+              {onToggleDebug && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleDebug}
+                  className="flex-shrink-0 h-9 w-9"
+                >
+                  <Bug className="w-5 h-5" />
+                </Button>
+              )}
+
+              {onSearchOpen && (
+                <Button variant="ghost" size="icon" onClick={onSearchOpen} className="flex-shrink-0 h-9 w-9">
+                  <Search className="w-5 h-5" />
+                </Button>
+              )}
+
+              {onSettingsOpen && (
+                <Button variant="ghost" size="icon" onClick={onSettingsOpen} className="flex-shrink-0 h-9 w-9">
+                  <Settings className="w-5 h-5" />
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Member display - below the action buttons */}
+          {selectedMember && (
+            <div
+              onClick={() => onMemberInfoClick?.()}
+              className="flex items-center gap-1.5 px-2 h-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow self-start"
+              style={{ maxWidth: '190px' }}
+            >
+              <span className="text-xs font-bold text-blue-900 truncate" style={{ maxWidth: '80px' }}>
+                {selectedMember.name}
+              </span>
+              <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0.5 font-bold shadow-sm flex-shrink-0`}>
+                <span className="flex items-center gap-0.5">
+                  {getTierIcon(selectedMember.tier)}
+                  {getTierName(selectedMember.tier)}
+                </span>
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveMember();
+                }}
+                className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 rounded-full flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {trailing && (
-          <div className="ml-2 flex-1 min-w-0">
+          <div className="ml-1 flex-1 min-w-0">
             {trailing}
           </div>
         )}
-
-
-        {/* Member display - height matches category buttons */}
-        {selectedMember && (
-          <div 
-            onClick={() => onMemberInfoClick?.()}
-            className="flex items-center gap-1.5 px-3 h-9 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow flex-shrink-0 ml-2"
-            style={{ maxWidth: '180px' }}
-          >
-            <span className="text-sm font-bold text-blue-900 truncate" style={{ maxWidth: '70px' }}>
-              {selectedMember.name}
-            </span>
-            <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0.5 font-bold shadow-sm flex-shrink-0`}>
-              <span className="flex items-center gap-0.5">
-                {getTierIcon(selectedMember.tier)}
-                {getTierName(selectedMember.tier)}
-              </span>
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveMember();
-              }}
-              className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 rounded-full flex-shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        )}
       </div>
+
 
       {/* Search Modal */}
       <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
