@@ -127,6 +127,7 @@ function App() {
                     <Route path="/preview-pos" element={<PreviewPOS />} />
                     <Route path="/pos-v2" element={<PosV2 />} />
                     <Route path="/sidebar-preview" element={<SidebarPreview />} />
+                    <Route path="/category-bar-preview" element={<CategoryBarPreview />} />
 
 
                     {/* Protected routes */}
