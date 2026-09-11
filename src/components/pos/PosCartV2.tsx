@@ -315,7 +315,7 @@ const PosCartV2 = ({
 
   return (
     <>
-      <aside className="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-lift)]">
+      <aside className="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-[hsl(var(--posv2-card))] border border-[hsl(var(--posv2-line))] shadow-[var(--posv2-shadow-lift)]">
         {/* Head — fixed */}
         <div className="shrink-0 space-y-2 px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-2">
@@ -474,7 +474,7 @@ const PosCartV2 = ({
             </div>
           ) : (
             cartItems.map((item) => (
-              <div key={item.id} className="rounded-2xl bg-[hsl(var(--posv2-surface))] p-2.5">
+              <div key={item.id} className="rounded-2xl bg-[hsl(var(--posv2-surface))] border border-[hsl(var(--posv2-line))] p-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-[hsl(var(--posv2-ink))]">
@@ -540,7 +540,7 @@ const PosCartV2 = ({
         </div>
 
         {/* Fixed footer */}
-        <div className="mt-auto shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] px-4 pb-6 pt-4">
+        <div className="mt-auto shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] border-t border-[hsl(var(--posv2-line))] px-4 pb-6 pt-4">
           <div className="mb-4 space-y-1">
             <div className="flex justify-between text-xs text-[hsl(var(--posv2-ink-soft))]">
               <span>ยอดรวมย่อย</span>
@@ -575,12 +575,12 @@ const PosCartV2 = ({
                 key={label}
                 onClick={onClick}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[10px] font-bold transition-all active:scale-95',
+                  'flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[10px] font-bold transition-all active:scale-95 border',
                   danger
-                    ? 'bg-[hsl(var(--posv2-danger)/0.12)] text-[hsl(var(--posv2-danger))]'
+                    ? 'bg-[hsl(var(--posv2-danger)/0.12)] text-[hsl(var(--posv2-danger))] border-[hsl(var(--posv2-danger)/0.25)]'
                     : active
-                      ? 'bg-[hsl(var(--posv2-accent))] text-[hsl(var(--posv2-accent-fg))]'
-                      : 'bg-[hsl(var(--posv2-card))] text-[hsl(var(--posv2-ink-soft))] shadow-[var(--posv2-shadow-soft)]'
+                      ? 'bg-[hsl(var(--posv2-accent))] text-[hsl(var(--posv2-accent-fg))] border-[hsl(var(--posv2-accent))]'
+                      : 'bg-[hsl(var(--posv2-card))] text-[hsl(var(--posv2-ink))] border-[hsl(var(--posv2-line))] shadow-[var(--posv2-shadow-soft)]'
                 )}
               >
                 <Icon className="h-4 w-4" />

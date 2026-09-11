@@ -764,7 +764,9 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
           <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
             <div className={cn(
               'h-full overflow-hidden',
-              classic && 'bg-card rounded-lg border border-border shadow-sm'
+              classic
+                ? 'bg-card rounded-lg border border-border shadow-sm'
+                : 'bg-[hsl(var(--posv2-card))] rounded-3xl border border-[hsl(var(--posv2-line))] shadow-sm'
             )}>
               <div className={cn(
                 'h-full overflow-y-auto overflow-x-hidden',
