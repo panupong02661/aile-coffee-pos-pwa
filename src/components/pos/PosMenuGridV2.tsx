@@ -66,11 +66,11 @@ const PosMenuGridV2 = ({
               type="button"
               onClick={() => onAddToCart(item)}
               className={cn(
-                'group relative flex flex-col overflow-hidden text-left transition-all duration-200 active:scale-[0.97] touch-manipulation',
+                'group relative flex flex-col overflow-hidden text-left transition-all duration-200 active:scale-[0.97] touch-manipulation border',
                 radius,
                 pad,
-                'bg-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-soft)] hover:shadow-[var(--posv2-shadow-lift)]',
-                qty > 0 && 'ring-2 ring-[hsl(var(--posv2-accent))]'
+                'bg-[hsl(var(--posv2-card))] border-[hsl(var(--posv2-line))] shadow-[var(--posv2-shadow-soft)] hover:shadow-[var(--posv2-shadow-lift)] hover:border-[hsl(var(--posv2-ink-soft))]',
+                qty > 0 && 'ring-2 ring-[hsl(var(--posv2-accent))] border-[hsl(var(--posv2-accent))]'
               )}
             >
               <div
@@ -103,7 +103,7 @@ const PosMenuGridV2 = ({
 
                 <span
                   className={cn(
-                    'absolute bottom-1.5 left-2 font-extrabold tracking-tight text-white drop-shadow',
+                    'absolute bottom-1.5 left-2 font-extrabold tracking-tight text-white bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-lg',
                     priceSize
                   )}
                 >
