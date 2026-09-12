@@ -802,12 +802,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
                 scrollbarWidth: 'thin',
                 scrollBehavior: 'smooth'
               }}>
-                {isOnline && selectedCategory === '1' && (
-                  <QuickSaleBar
-                    menuItems={availableMenuItems as any}
-                    onAddToCart={handleMenuItemClick as any}
-                  />
-                )}
+                
                 {filteredMenuItems.length > 0 ? (
                   classic ? (
                     <MenuGrid
