@@ -766,7 +766,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
               'h-full overflow-hidden',
               classic
                 ? 'bg-card rounded-lg border border-border shadow-sm'
-                : 'bg-[hsl(var(--posv2-card))] rounded-3xl border border-[hsl(var(--posv2-line))] shadow-sm'
+                : 'bg-[hsl(var(--posv2-card))] rounded-3xl shadow-sm'
             )}>
               <div className={cn(
                 'h-full overflow-y-auto overflow-x-hidden',
