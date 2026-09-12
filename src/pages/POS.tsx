@@ -770,6 +770,14 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
               />
             ) : undefined}
           />
+          <div className="px-1.5 pb-1">
+            <OfflineIndicator compact />
+            {useOfflineFallback && (
+              <div className="mt-1 rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-800">
+                กำลังใช้เมนูที่บันทึกไว้ในเครื่อง (โหมดออฟไลน์)
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Content Area - fills remaining space */}
