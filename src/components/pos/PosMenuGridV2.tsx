@@ -58,7 +58,7 @@ const PosMenuGridV2 = ({
   const gap = itemSize === 'small' ? 'gap-2' : itemSize === 'large' ? 'gap-4' : 'gap-3';
 
   return (
-    <div className={cn('grid gap-2.5 sm:gap-3', cols)}>
+    <div className={cn('grid', gap, cols)}>
       {menuItems
         .filter((item) => item.is_available === true)
         .map((item) => {
