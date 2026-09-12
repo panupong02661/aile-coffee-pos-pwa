@@ -7,7 +7,7 @@ import PosMenuGridV2 from '@/components/pos/PosMenuGridV2';
 import { useLowStockMenu } from '@/hooks/usePosInsights';
 import { useOfflinePOS } from '@/hooks/useOfflinePOS';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
-import QuickSaleBar from '@/components/pos/QuickSaleBar';
+
 
 import PosCartV2 from '@/components/pos/PosCartV2';
 import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
