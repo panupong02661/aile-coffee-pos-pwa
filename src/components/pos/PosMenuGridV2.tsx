@@ -46,12 +46,16 @@ const PosMenuGridV2 = ({
   });
 
   const cols = isMobile ? 'grid-cols-3' : COLS[gridColumns] || 'grid-cols-4';
-  const compact = gridColumns >= 6 || isMobile;
-  const pad = compact ? 'p-1.5' : 'p-2.5';
-  const radius = compact ? 'rounded-2xl' : 'rounded-3xl';
-  const imgRadius = compact ? 'rounded-xl' : 'rounded-[20px]';
-  const nameSize = compact ? 'text-xs' : itemSize === 'large' ? 'text-base' : 'text-sm';
-  const priceSize = compact ? 'text-sm' : itemSize === 'large' ? 'text-xl' : 'text-lg';
+  const dense = gridColumns >= 6 || isMobile;
+  const compact = dense && itemSize === 'small';
+  const pad = itemSize === 'small' ? 'p-1.5' : itemSize === 'large' ? 'p-3.5' : 'p-2.5';
+  const radius = itemSize === 'small' ? 'rounded-2xl' : 'rounded-3xl';
+  const imgRadius = itemSize === 'small' ? 'rounded-xl' : 'rounded-[20px]';
+  const nameSize =
+    itemSize === 'small' ? 'text-xs' : itemSize === 'large' ? 'text-lg' : 'text-sm';
+  const priceSize =
+    itemSize === 'small' ? 'text-sm' : itemSize === 'large' ? 'text-2xl' : 'text-lg';
+  const gap = itemSize === 'small' ? 'gap-2' : itemSize === 'large' ? 'gap-4' : 'gap-3';
 
   return (
     <div className={cn('grid gap-2.5 sm:gap-3', cols)}>
