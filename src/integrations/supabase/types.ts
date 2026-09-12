@@ -5624,6 +5624,9 @@ export type Database = {
       }
       get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
       hash_password: { Args: { password: string }; Returns: Json }
+      header_user_id: { Args: never; Returns: string }
+      header_user_shop_ids: { Args: never; Returns: string[] }
+      is_admin_header: { Args: never; Returns: boolean }
       restore_stock_for_cancelled_order: {
         Args: { order_id_param: string }
         Returns: Json
