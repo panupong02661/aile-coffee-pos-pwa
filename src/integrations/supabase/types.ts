@@ -5623,6 +5623,7 @@ export type Database = {
         }[]
       }
       get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
+      has_verified_shop_access: { Args: { _shop_id: string }; Returns: boolean }
       hash_password: { Args: { password: string }; Returns: Json }
       header_user_id: { Args: never; Returns: string }
       header_user_shop_ids: { Args: never; Returns: string[] }
