@@ -5,6 +5,8 @@ import MenuGrid from '@/components/MenuGrid';
 import Cart from '@/components/Cart';
 import PosMenuGridV2 from '@/components/pos/PosMenuGridV2';
 import { useLowStockMenu } from '@/hooks/usePosInsights';
+import { useOfflinePOS } from '@/hooks/useOfflinePOS';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 import PosCartV2 from '@/components/pos/PosCartV2';
 import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
@@ -271,6 +273,21 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
     getAddonGroupsForCategory 
   } = useSupabaseData();
 
+  // ---- Offline mode ----
+  const {
+    isOnline,
+    hasOfflineData,
+    getCachedMenuItems,
+    getCachedCategories,
+  } = useOfflinePOS();
+
+  // ใช้ข้อมูลที่บันทึกไว้เมื่อเน็ตหลุด หรือโหลดข้อมูลจากเซิร์ฟเวอร์ไม่ได้
+  const useOfflineFallback =
+    !loading && (menuItems?.length ?? 0) === 0 && hasOfflineData();
+
+  const sourceMenuItems: any[] = useOfflineFallback ? getCachedMenuItems() : (menuItems || []);
+  const sourceCategories: any[] = useOfflineFallback ? getCachedCategories() : (categories || []);
+
   // Use shop logo from filtered shop settings
   useEffect(() => {
     if (supabaseShopSettings?.logo_url) {
@@ -312,7 +329,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   // This listener is removed to prevent duplicate notifications
 
   const activeCategoryIds = new Set(
-    (categories || [])
+    sourceCategories
       .filter(cat => cat.is_active)
       .map(cat => cat.id)
   );
@@ -325,7 +342,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
       sort_order: 0,
       is_active: true
     },
-    ...(categories || [])
+    ...sourceCategories
       .filter(cat => cat.is_active)
       .map(cat => ({ 
         id: cat.id, 
@@ -338,7 +355,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
 
   console.log('🏷️ Converted categories:', convertedCategories.length);
 
-  const convertedMenuItems = (menuItems || []).map(item => {
+  const convertedMenuItems = sourceMenuItems.map(item => {
     const categoryIsActive = !item.category_id 
       || activeCategoryIds.has(item.category_id);
 
