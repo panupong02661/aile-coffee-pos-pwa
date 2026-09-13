@@ -142,12 +142,22 @@ const BranchDatabaseManagement = () => {
       };
 
       if (editingShop) {
-        const { error } = await supabase.from('shops').update(data).eq('id', editingShop.id);
+        const { data: updated, error } = await supabase
+          .from('shops')
+          .update(data)
+          .eq('id', editingShop.id)
+          .select('id');
         if (error) throw error;
+        if (!updated || updated.length === 0) {
+          throw new Error('ไม่มีสิทธิ์แก้ไขสาขานี้ กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแล');
+        }
         toast({ title: 'สำเร็จ', description: 'แก้ไขข้อมูลสาขาแล้ว' });
       } else {
-        const { error } = await supabase.from('shops').insert(data);
+        const { data: created, error } = await supabase.from('shops').insert(data).select('id');
         if (error) throw error;
+        if (!created || created.length === 0) {
+          throw new Error('ไม่มีสิทธิ์เพิ่มสาขา กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแล');
+        }
         toast({ title: 'สำเร็จ', description: 'เพิ่มสาขาใหม่แล้ว' });
       }
       setIsShopDialogOpen(false);
