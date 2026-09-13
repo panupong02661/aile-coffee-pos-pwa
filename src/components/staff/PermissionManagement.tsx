@@ -465,6 +465,11 @@ const PermissionManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {currentUser?.role === 'admin' && (
+                          <Button variant="outline" size="sm" title="ดู/เปลี่ยนรหัสผ่าน" onClick={() => openCredentials(u)}>
+                            <KeyRound className="w-4 h-4" />
+                          </Button>
+                        )}
                         {canManageUser(u) && (
                           <>
                             <Button variant="outline" size="sm" onClick={() => openEditPermissions(u)}>
