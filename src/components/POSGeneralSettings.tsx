@@ -142,7 +142,7 @@ const CATEGORY_BAR_STYLES: { value: CategoryBarStyle; label: string; desc: strin
   { value: 5, label: 'Mega Directory', desc: 'สารบัญเต็มความกว้าง' },
   { value: 6, label: 'Market Labels', desc: 'ป้ายกระดาษขอบคม' },
   { value: 7, label: 'Editorial Strip', desc: 'แถบดำสไตล์นิตยสาร' },
-  { value: 8, label: 'Search & Browse', desc: 'ค้นหา + หมวดแถวเดียว' },
+  { value: 8, label: 'Browse Row', desc: 'หมวดแบบแถวเดียวกะทัดรัด' },
   { value: 9, label: 'Soft Switchboard', desc: 'แผงสวิตช์เรียบ' },
   { value: 10, label: 'Cafe Contents', desc: 'สารบัญร้านกาแฟ' },
 ];

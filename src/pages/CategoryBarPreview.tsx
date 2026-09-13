@@ -22,7 +22,7 @@ const VARIANTS = [
   { id: 5, name: 'Mega Directory', desc: 'ช่องสารบัญเต็มความกว้าง มองเห็นครบ' },
   { id: 6, name: 'Market Labels', desc: 'ป้ายกระดาษขอบคมและเงาพิมพ์' },
   { id: 7, name: 'Editorial Strip', desc: 'แถบดำแบบเมนูคาเฟ่สไตล์นิตยสาร' },
-  { id: 8, name: 'Search & Browse', desc: 'ช่องค้นหารวมกับหมวดแบบแถวเดียว' },
+  { id: 8, name: 'Browse Row', desc: 'หมวดแบบแถวเดียวกะทัดรัด' },
   { id: 9, name: 'Soft Switchboard', desc: 'แผงสวิตช์เรียบและกดง่าย' },
   { id: 10, name: 'Cafe Contents', desc: 'สารบัญร้านกาแฟพร้อมตัวอักษรกำกับ' },
 ];
