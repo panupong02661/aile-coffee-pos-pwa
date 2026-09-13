@@ -223,6 +223,50 @@ const PermissionManagement = () => {
     }
   };
 
+  const openCredentials = async (user: UserData) => {
+    setCredUser(user);
+    setCredVisible(false);
+    setCredPassword('');
+    setCredLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      setCredPassword((data as any)?.password_hash || '');
+    } catch (error: any) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถดึงรหัสผ่านได้', variant: 'destructive' });
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (!credUser) return;
+    if (!credPassword.trim()) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกรหัสผ่าน', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ password_hash: credPassword })
+        .eq('id', credUser.id)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('ไม่มีสิทธิ์เปลี่ยนรหัสผ่านผู้ใช้นี้');
+      toast({ title: 'สำเร็จ', description: 'เปลี่ยนรหัสผ่านแล้ว' });
+      setCredUser(null);
+    } catch (error: any) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message || 'ไม่สามารถบันทึกได้', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openEditPermissions = (user: UserData) => {
     setSelectedUser(user);
     const perms: UserPermissionMap = {};
