@@ -673,6 +673,51 @@ const PermissionManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Credentials dialog (admin only) */}
+      <Dialog open={!!credUser} onOpenChange={(o) => !o && setCredUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              ชื่อผู้ใช้และรหัสผ่าน
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>ชื่อผู้ใช้</Label>
+              <Input value={credUser?.username || ''} readOnly />
+            </div>
+            <div className="space-y-2">
+              <Label>รหัสผ่าน</Label>
+              <div className="relative">
+                <Input
+                  type={credVisible ? 'text' : 'password'}
+                  value={credLoading ? '' : credPassword}
+                  placeholder={credLoading ? 'กำลังโหลด...' : ''}
+                  onChange={e => setCredPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-8"
+                  onClick={() => setCredVisible(v => !v)}
+                >
+                  {credVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">แก้ไขช่องนี้แล้วกดบันทึกเพื่อตั้งรหัสผ่านใหม่</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCredUser(null)}>ปิด</Button>
+              <Button onClick={handleSavePassword} disabled={saving || credLoading}>
+                {saving ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่าน'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
