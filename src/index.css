@@ -141,6 +141,16 @@
 }
 
 @layer components {
+  .category-preview-body {
+    font-family: 'IBM Plex Sans', 'Noto Sans Thai', sans-serif;
+    letter-spacing: 0;
+  }
+
+  .category-preview-serif {
+    font-family: 'Libre Baskerville', Georgia, serif;
+    letter-spacing: 0;
+  }
+
   .coffee-gradient {
     @apply bg-gradient-to-br from-primary to-primary;
   }
