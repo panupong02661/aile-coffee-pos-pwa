@@ -1,4 +1,4 @@
-import { usePOSSettings, ThemePreset, SidebarStyle } from '@/hooks/usePOSSettings';
+import { usePOSSettings, ThemePreset, SidebarStyle, CategoryBarStyle } from '@/hooks/usePOSSettings';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
@@ -14,6 +14,7 @@ import {
   Layers,
   GlassWater,
   PanelLeft,
+  LayoutGrid,
 } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -132,6 +133,20 @@ const SIDEBAR_STYLES: { value: SidebarStyle; label: string; desc: string; previe
   },
 ];
 
+const CATEGORY_BAR_STYLES: { value: CategoryBarStyle; label: string; desc: string }[] = [
+  { value: 0, label: 'แบบเดิม', desc: 'ปุ่มมนเรียงแถว' },
+  { value: 1, label: 'Index Tabs', desc: 'แท็บสารบัญ + เลขลำดับ' },
+  { value: 2, label: 'Ticket Row', desc: 'ป้ายตั๋วแยกใบ' },
+  { value: 3, label: 'Featured Lead', desc: 'หมวดแนะนำนำหน้า' },
+  { value: 4, label: 'Two-Level Map', desc: 'สองระดับแบบแผนผัง' },
+  { value: 5, label: 'Mega Directory', desc: 'สารบัญเต็มความกว้าง' },
+  { value: 6, label: 'Market Labels', desc: 'ป้ายกระดาษขอบคม' },
+  { value: 7, label: 'Editorial Strip', desc: 'แถบดำสไตล์นิตยสาร' },
+  { value: 8, label: 'Search & Browse', desc: 'ค้นหา + หมวดแถวเดียว' },
+  { value: 9, label: 'Soft Switchboard', desc: 'แผงสวิตช์เรียบ' },
+  { value: 10, label: 'Cafe Contents', desc: 'สารบัญร้านกาแฟ' },
+];
+
 const FONT_SIZE_OPTIONS = [
   { value: 'small' as const, label: 'เล็ก', sample: 'text-xs' },
   { value: 'medium' as const, label: 'กลาง', sample: 'text-sm' },
@@ -171,6 +186,7 @@ const POSGeneralSettings = () => {
     themePreset,
     glassOpacity,
     sidebarStyle,
+    categoryBarStyle,
     setAnimationsEnabled,
     setDarkModeEnabled,
     setFontSize,
@@ -180,6 +196,7 @@ const POSGeneralSettings = () => {
     setThemePreset,
     setGlassOpacity,
     setSidebarStyle,
+    setCategoryBarStyle,
   } = usePOSSettings();
 
   return (
@@ -211,6 +228,31 @@ const POSGeneralSettings = () => {
                 <div className="w-full rounded-md border border-border/60 bg-background p-[3px]">
                   {opt.preview}
                 </div>
+                <span className="text-foreground font-medium">{opt.label}</span>
+                <span className="text-muted-foreground leading-tight">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Bar Style */}
+        <div className="px-3 py-2 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-2 mb-2">
+            <LayoutGrid className="w-4 h-4 text-primary" />
+            <span className="text-sm text-foreground">รูปแบบแถบหมวดหมู่ (POS)</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {CATEGORY_BAR_STYLES.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setCategoryBarStyle(opt.value)}
+                className={cn(
+                  'flex flex-col items-start gap-0.5 p-2 rounded-lg transition-all text-left text-[10px] border',
+                  categoryBarStyle === opt.value
+                    ? 'ring-2 ring-primary border-primary bg-primary/5'
+                    : 'border-border hover:bg-accent'
+                )}
+              >
                 <span className="text-foreground font-medium">{opt.label}</span>
                 <span className="text-muted-foreground leading-tight">{opt.desc}</span>
               </button>
