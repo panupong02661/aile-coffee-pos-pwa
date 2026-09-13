@@ -58,6 +58,8 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
   });
 
   const shopName = currentShop?.shop_name || 'POS System';
+  const branchName = currentShop?.branch_name || '';
+  const shopDisplayName = branchName ? `${shopName} · ${branchName}` : shopName;
   const width = SIDEBAR_WIDTHS[sidebarStyle] ?? 56;
 
   // Expose the current sidebar width so page layouts can offset content
@@ -99,7 +101,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           <Skin
             groups={filteredMenuGroups}
             pathname={location.pathname}
-            shopName={shopName}
+            shopName={shopDisplayName}
             onNavigate={handleMenuClick}
           />
         </div>
@@ -141,7 +143,12 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
             {!collapsed && (
-              <h2 className="text-lg font-semibold text-foreground truncate">{shopName}</h2>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-foreground truncate">{shopName}</h2>
+                {branchName && (
+                  <p className="text-[11px] text-muted-foreground truncate -mt-0.5">{branchName}</p>
+                )}
+              </div>
             )}
             <Button
               variant="ghost"

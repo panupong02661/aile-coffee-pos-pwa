@@ -152,6 +152,17 @@ const ShopBasicSettings = () => {
         if (error) throw error;
       }
 
+      // Sync shop name to the shops table so the sidebar/branch name stays consistent
+      if (shopId && data.shop_name) {
+        const { error: shopSyncError } = await supabase
+          .from('shops')
+          .update({ shop_name: data.shop_name })
+          .eq('id', shopId);
+        if (shopSyncError) {
+          console.error('Error syncing shop name to shops table:', shopSyncError);
+        }
+      }
+
       toast({
         title: 'บันทึกสำเร็จ',
         description: 'ข้อมูลร้านได้ถูกบันทึกเรียบร้อยแล้ว'
