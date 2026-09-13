@@ -848,18 +848,15 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
               <Cart {...buildCartProps()} />
             </div>
           )}
-        </div>
-        </div>
 
-        {/* v2 Cart - full screen height column */}
-        {!isMobile && !classic && (
-          <div
-            className="flex-shrink-0 overflow-hidden w-72 lg:w-80 xl:w-[360px] py-3 pr-3 pl-0"
-            style={{ minHeight: 0 }}
-          >
-            <PosCartV2 {...buildCartProps()} />
-          </div>
-        )}
+          {/* v2 cart shares the content row so its top aligns with the menu cards */}
+          {!isMobile && !classic && (
+            <div className="flex-shrink-0 overflow-hidden w-72 lg:w-80 xl:w-[360px]" style={{ minHeight: 0 }}>
+              <PosCartV2 {...buildCartProps()} />
+            </div>
+          )}
+        </div>
+        </div>
 
 
 
