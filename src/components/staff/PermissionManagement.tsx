@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -111,6 +111,10 @@ const PermissionManagement = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'staff' });
+  const [credUser, setCredUser] = useState<UserData | null>(null);
+  const [credPassword, setCredPassword] = useState('');
+  const [credVisible, setCredVisible] = useState(false);
+  const [credLoading, setCredLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -216,6 +220,50 @@ const PermissionManagement = () => {
     } catch (error) {
       console.error('Error deleting user:', error);
       toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถลบผู้ใช้ได้', variant: 'destructive' });
+    }
+  };
+
+  const openCredentials = async (user: UserData) => {
+    setCredUser(user);
+    setCredVisible(false);
+    setCredPassword('');
+    setCredLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      setCredPassword((data as any)?.password_hash || '');
+    } catch (error: any) {
+      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถดึงรหัสผ่านได้', variant: 'destructive' });
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (!credUser) return;
+    if (!credPassword.trim()) {
+      toast({ title: 'ข้อผิดพลาด', description: 'กรุณากรอกรหัสผ่าน', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ password_hash: credPassword })
+        .eq('id', credUser.id)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('ไม่มีสิทธิ์เปลี่ยนรหัสผ่านผู้ใช้นี้');
+      toast({ title: 'สำเร็จ', description: 'เปลี่ยนรหัสผ่านแล้ว' });
+      setCredUser(null);
+    } catch (error: any) {
+      toast({ title: 'ข้อผิดพลาด', description: error.message || 'ไม่สามารถบันทึกได้', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -417,6 +465,11 @@ const PermissionManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {currentUser?.role === 'admin' && (
+                          <Button variant="outline" size="sm" title="ดู/เปลี่ยนรหัสผ่าน" onClick={() => openCredentials(u)}>
+                            <KeyRound className="w-4 h-4" />
+                          </Button>
+                        )}
                         {canManageUser(u) && (
                           <>
                             <Button variant="outline" size="sm" onClick={() => openEditPermissions(u)}>
@@ -615,6 +668,51 @@ const PermissionManagement = () => {
               <Button variant="outline" onClick={() => setIsEditOpen(false)}>ยกเลิก</Button>
               <Button onClick={handleSavePermissions} disabled={saving}>
                 {saving ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials dialog (admin only) */}
+      <Dialog open={!!credUser} onOpenChange={(o) => !o && setCredUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              ชื่อผู้ใช้และรหัสผ่าน
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>ชื่อผู้ใช้</Label>
+              <Input value={credUser?.username || ''} readOnly />
+            </div>
+            <div className="space-y-2">
+              <Label>รหัสผ่าน</Label>
+              <div className="relative">
+                <Input
+                  type={credVisible ? 'text' : 'password'}
+                  value={credLoading ? '' : credPassword}
+                  placeholder={credLoading ? 'กำลังโหลด...' : ''}
+                  onChange={e => setCredPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-8"
+                  onClick={() => setCredVisible(v => !v)}
+                >
+                  {credVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">แก้ไขช่องนี้แล้วกดบันทึกเพื่อตั้งรหัสผ่านใหม่</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCredUser(null)}>ปิด</Button>
+              <Button onClick={handleSavePassword} disabled={saving || credLoading}>
+                {saving ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่าน'}
               </Button>
             </div>
           </div>
