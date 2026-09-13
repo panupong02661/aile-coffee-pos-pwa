@@ -33,6 +33,7 @@ export interface POSSettings {
   themePreset: ThemePreset;
   glassOpacity: number; // 0.1 – 0.9
   sidebarStyle: SidebarStyle;
+  categoryBarStyle: CategoryBarStyle;
 }
 
 const STORAGE_KEY = 'pos-ui-settings';
@@ -48,6 +49,7 @@ const defaultSettings: POSSettings = {
   themePreset: 'default',
   glassOpacity: 0.7,
   sidebarStyle: 'classic',
+  categoryBarStyle: 0,
 };
 
 // Shared mutable snapshot so every hook instance reads the same object
@@ -139,6 +141,10 @@ export function usePOSSettings() {
     updateSettings({ sidebarStyle: style });
   }, []);
 
+  const setCategoryBarStyle = useCallback((style: CategoryBarStyle) => {
+    updateSettings({ categoryBarStyle: style });
+  }, []);
+
   const setGlassOpacity = useCallback((opacity: number) => {
     updateSettings({ glassOpacity: Math.max(0.1, Math.min(0.9, opacity)) });
   }, []);
@@ -154,5 +160,6 @@ export function usePOSSettings() {
     setThemePreset,
     setGlassOpacity,
     setSidebarStyle,
+    setCategoryBarStyle,
   };
 }
