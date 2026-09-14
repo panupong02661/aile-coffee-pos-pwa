@@ -62,7 +62,10 @@ const scopedFetch: typeof fetch = async (input, init) => {
       ? input.toString()
       : input.url;
 
-  if (!requestUrl.includes('/rest/v1/')) {
+  const isRest = requestUrl.includes('/rest/v1/');
+  const isStorage = requestUrl.includes('/storage/v1/');
+
+  if (!isRest && !isStorage) {
     return fetch(input, init);
   }
 
@@ -79,7 +82,7 @@ const scopedFetch: typeof fetch = async (input, init) => {
 
   let body = init?.body;
 
-  if (shopId && tableName && !EXCLUDED_TABLES.has(tableName)) {
+  if (isRest && shopId && tableName && !EXCLUDED_TABLES.has(tableName)) {
     if (['GET', 'HEAD', 'PATCH', 'DELETE'].includes(method) && !url.searchParams.has('shop_id')) {
       url.searchParams.append('shop_id', `eq.${shopId}`);
     }
