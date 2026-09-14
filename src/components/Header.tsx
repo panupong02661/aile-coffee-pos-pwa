@@ -131,6 +131,36 @@ const Header = ({
               </Button>
             )}
 
+            {selectedMember && (
+              <div
+                onClick={() => onMemberInfoClick?.()}
+                className="flex items-center gap-1.5 px-2 h-9 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow flex-shrink-0"
+                style={{ maxWidth: '190px' }}
+              >
+                <span className="text-xs font-bold text-blue-900 truncate" style={{ maxWidth: '80px' }}>
+                  {selectedMember.name}
+                </span>
+                <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0.5 font-bold shadow-sm flex-shrink-0`}>
+                  <span className="flex items-center gap-0.5">
+                    {getTierIcon(selectedMember.tier)}
+                    {getTierName(selectedMember.tier)}
+                  </span>
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveMember();
+                  }}
+                  className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 rounded-full flex-shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            )}
+
+
             <div className="flex items-center gap-1 flex-shrink min-w-0 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {!trailing && categories.map(category => (
                 <Button
@@ -169,35 +199,6 @@ const Header = ({
             </div>
           </div>
 
-          {/* Member display - below the action buttons */}
-          {selectedMember && (
-            <div
-              onClick={() => onMemberInfoClick?.()}
-              className="flex items-center gap-1.5 px-2 h-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow self-start"
-              style={{ maxWidth: '190px' }}
-            >
-              <span className="text-xs font-bold text-blue-900 truncate" style={{ maxWidth: '80px' }}>
-                {selectedMember.name}
-              </span>
-              <Badge className={`${getTierBadgeColor(selectedMember.tier)} text-[10px] px-1.5 py-0.5 font-bold shadow-sm flex-shrink-0`}>
-                <span className="flex items-center gap-0.5">
-                  {getTierIcon(selectedMember.tier)}
-                  {getTierName(selectedMember.tier)}
-                </span>
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveMember();
-                }}
-                className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-5 h-5 p-0 rounded-full flex-shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          )}
         </div>
 
         {trailing && (
