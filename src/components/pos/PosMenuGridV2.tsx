@@ -107,7 +107,7 @@ const PosMenuGridV2 = ({
 
                 <span
                   className={cn(
-                    'absolute bottom-1.5 left-2 font-extrabold tracking-tight text-white bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-lg',
+                    'absolute bottom-1 left-1 font-extrabold tracking-tight text-white bg-black/70 backdrop-blur-sm px-1 py-0.5 rounded-md',
                     priceSize
                   )}
                 >
@@ -115,13 +115,13 @@ const PosMenuGridV2 = ({
                 </span>
 
                 {!compact && (
-                  <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-[hsl(var(--posv2-ink))] shadow transition-colors group-hover:bg-[hsl(var(--posv2-accent))] group-hover:text-[hsl(var(--posv2-accent-fg))]">
-                    <Plus className="h-4 w-4" strokeWidth={3} />
+                  <span className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-[hsl(var(--posv2-ink))] shadow transition-colors group-hover:bg-[hsl(var(--posv2-accent))] group-hover:text-[hsl(var(--posv2-accent-fg))]">
+                    <Plus className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
                 )}
 
                 {qty > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-[hsl(var(--posv2-accent))] px-1.5 text-xs font-bold text-[hsl(var(--posv2-accent-fg))] shadow-[var(--posv2-shadow-accent)]">
+                  <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[hsl(var(--posv2-accent))] px-1 text-[10px] font-bold text-[hsl(var(--posv2-accent-fg))] shadow-[var(--posv2-shadow-accent)]">
                     {qty}
                   </span>
                 )}
@@ -129,7 +129,7 @@ const PosMenuGridV2 = ({
                 {lowStock?.length ? (
                   <span
                     title={`วัตถุดิบใกล้หมด: ${lowStock.join(', ')}`}
-                    className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow"
+                    className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-amber-500 px-1 py-0 text-[10px] font-bold text-white shadow"
                   >
                     <AlertTriangle className="h-3 w-3" strokeWidth={3} />
                     {!compact && 'สต็อกต่ำ'}
@@ -137,11 +137,10 @@ const PosMenuGridV2 = ({
                 ) : null}
               </div>
 
-
-              <div className="px-1 pb-0.5 pt-1.5">
+              <div className="px-0.5 pb-0 pt-1">
                 <h3
                   className={cn(
-                    'line-clamp-2 min-h-[2.5em] font-bold leading-tight text-[hsl(var(--posv2-ink))]',
+                    'line-clamp-2 min-h-[2em] font-bold leading-tight text-[hsl(var(--posv2-ink))]',
                     nameSize
                   )}
                 >
