@@ -784,7 +784,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
         {/* Content Area - fills remaining space */}
         <div className={cn(
           'flex-1 flex overflow-hidden',
-          classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-2 p-2' : 'gap-3 p-3 pt-1.5')
+          classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-1.5 p-1.5' : 'gap-2 p-2 pt-1')
         )} style={{ minHeight: 0 }}>
           {/* Menu Grid Container */}
           <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
@@ -796,7 +796,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
             )}>
               <div className={cn(
                 'h-full overflow-y-auto overflow-x-hidden',
-                classic ? 'p-1' : 'pr-1 pb-2'
+                classic ? 'p-1' : 'pr-0.5 pb-1'
               )}
               style={{ 
                 scrollbarWidth: 'thin',
