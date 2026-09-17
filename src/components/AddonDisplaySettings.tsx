@@ -8,6 +8,9 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { Settings, Palette, Type, Save, LayoutGrid } from 'lucide-react';
 import AddonOption, { ADDON_STYLES, ADDON_STYLE_STORAGE_KEY, getSavedAddonStyleId } from './AddonOption';
+import AddonModal from './AddonModal';
+import type { MenuItem } from '@/types';
+import type { DatabaseAddon } from '@/hooks/useSupabaseData';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -31,9 +34,45 @@ const defaultConfig: AddonDisplayConfig = {
   minHeight: '52',
 };
 
+const previewMenuItem: MenuItem = {
+  id: 'addon-preview-menu',
+  name: 'ลาเต้เย็น',
+  price: 55,
+  category_id: 'preview',
+  is_available: true,
+};
+
+const previewAddons: DatabaseAddon[] = [
+  ['sweet-0', 'ไม่หวาน', 0, 'ระดับความหวาน', true, false, 0],
+  ['sweet-1', 'หวาน 50%', 0, 'ระดับความหวาน', true, false, 1],
+  ['sweet-2', 'หวานปกติ', 0, 'ระดับความหวาน', true, false, 2],
+  ['sweet-3', 'หวานมาก', 0, 'ระดับความหวาน', true, false, 3],
+  ['top-0', 'ช็อตพิเศษ', 15, 'ท็อปปิ้งเพิ่มเติม', false, true, 0],
+  ['top-1', 'วิปครีม', 20, 'ท็อปปิ้งเพิ่มเติม', false, true, 1],
+  ['top-2', 'ไข่มุก', 10, 'ท็อปปิ้งเพิ่มเติม', false, true, 2],
+  ['top-3', 'เจลลี่', 10, 'ท็อปปิ้งเพิ่มเติม', false, true, 3],
+].map(([id, name, price, groupName, isRequired, allowMultiple, sortOrder]) => ({
+  id: String(id),
+  name: String(name),
+  price: Number(price),
+  addon_group_id: `group-${groupName}`,
+  sort_order: Number(sortOrder),
+  is_active: true,
+  created_at: '',
+  updated_at: '',
+  addon_groups: {
+    id: `group-${groupName}`,
+    name: String(groupName),
+    is_required: Boolean(isRequired),
+    allow_multiple: Boolean(allowMultiple),
+    sort_order: String(groupName) === 'ระดับความหวาน' ? 0 : 1,
+  },
+}));
+
 const AddonDisplaySettings = () => {
   const [config, setConfig] = useState<AddonDisplayConfig>(defaultConfig);
   const [styleId, setStyleId] = useState<number>(1);
+  const [previewStyleId, setPreviewStyleId] = useState<number | null>(null);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('addonDisplayConfig');
@@ -88,11 +127,19 @@ const AddonDisplaySettings = () => {
               const selectedSweet = 1;
               const selectedTopping = 0;
               return (
-                <button
+                <div
                   key={s.id}
-                  type="button"
-                  onClick={() => setStyleId(s.id)}
-                  className={`text-left rounded-xl border-2 transition-all overflow-hidden ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setStyleId(s.id); setPreviewStyleId(s.id); }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setStyleId(s.id);
+                      setPreviewStyleId(s.id);
+                    }
+                  }}
+                  className={`text-left rounded-xl border-2 transition-all overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     active
                       ? 'border-primary ring-2 ring-primary/30 shadow-lg'
                       : 'border-gray-200 hover:border-border hover:shadow-md'
@@ -108,7 +155,7 @@ const AddonDisplaySettings = () => {
                   </div>
 
                   {/* Mock modal body */}
-                  <div className={`p-4 space-y-3 ${
+                    <div className={`p-4 space-y-3 ${
                     s.id === 22 ? 'bg-[hsl(var(--addon-classic-paper))]' :
                     s.id === 23 ? 'bg-[hsl(var(--addon-pixel-yellow)/0.16)]' :
                     s.id === 24 ? 'bg-[hsl(var(--addon-float-surface))] py-6' :
@@ -125,12 +172,12 @@ const AddonDisplaySettings = () => {
                     </div>
 
                     {/* Group 1 */}
-                    <div>
-                      <div className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1">
+                      <div className={s.id === 25 ? 'grid grid-cols-[92px_1fr] items-center' : ''}>
+                        <div className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1">
                         ระดับความหวาน
                         <span className="text-[10px] text-red-500">*จำเป็น</span>
                       </div>
-                      <div className={`grid grid-cols-4 gap-1.5 ${s.id === 25 ? 'ml-6' : ''}`}>
+                        <div className="grid grid-cols-4 gap-1.5">
                         {sweetOptions.map((o, i) => (
                           <AddonOption
                             key={o.name}
@@ -146,11 +193,11 @@ const AddonDisplaySettings = () => {
                     </div>
 
                     {/* Group 2 */}
-                    <div>
+                      <div className={s.id === 25 ? 'grid grid-cols-[92px_1fr] items-center' : ''}>
                       <div className="text-xs font-semibold text-foreground mb-1.5">
                         ท็อปปิ้งเพิ่มเติม
                       </div>
-                      <div className={`grid gap-1.5 ${s.id >= 22 && s.id !== 25 ? 'grid-cols-3' : 'grid-cols-2'} ${s.id === 25 ? 'ml-6' : ''}`}>
+                        <div className={`grid gap-1.5 ${s.id >= 22 && s.id !== 25 ? 'grid-cols-3' : s.id === 25 ? 'grid-cols-4' : 'grid-cols-2'}`}>
                         {toppingOptions.map((o, i) => (
                           <AddonOption
                             key={o.name}
@@ -171,7 +218,7 @@ const AddonDisplaySettings = () => {
                       <span className="text-sm font-bold text-foreground whitespace-nowrap">รวม ฿ 70</span>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -179,6 +226,16 @@ const AddonDisplaySettings = () => {
             * เลือกรูปแบบที่ต้องการแล้วกด "บันทึกการตั้งค่า" ด้านล่าง เพื่อใช้กับหน้าเลือกเมนู
           </p>
         </div>
+
+        <AddonModal
+          isOpen={previewStyleId !== null}
+          onClose={() => setPreviewStyleId(null)}
+          menuItem={previewMenuItem}
+          addons={previewAddons}
+          onAddToCart={() => undefined}
+          styleIdOverride={previewStyleId ?? undefined}
+          previewMode
+        />
 
         {/* Typography Settings */}
         <div className="space-y-4">

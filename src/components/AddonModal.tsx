@@ -37,9 +37,11 @@ interface AddonModalProps {
   menuItem: MenuItem | null;
   addons: DatabaseAddon[];
   onAddToCart: (menuItem: MenuItem, selectedAddons: DatabaseAddon[]) => void;
+  styleIdOverride?: number;
+  previewMode?: boolean;
 }
 
-const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonModalProps) => {
+const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOverride, previewMode = false }: AddonModalProps) => {
   const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
   const [displayConfig, setDisplayConfig] = useState<AddonDisplayConfig>(defaultConfig);
   const [styleId, setStyleId] = useState<number>(1);
@@ -49,8 +51,8 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
     if (savedConfig) {
       setDisplayConfig(JSON.parse(savedConfig));
     }
-    setStyleId(getSavedAddonStyleId());
-  }, [isOpen]);
+    setStyleId(styleIdOverride ?? getSavedAddonStyleId());
+  }, [isOpen, styleIdOverride]);
 
   if (!menuItem) return null;
 
@@ -89,6 +91,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
   };
 
   const handleAddToCart = () => {
+    if (previewMode) return;
     onAddToCart(menuItem, selectedAddons);
     setSelectedAddons([]);
     onClose();
@@ -198,7 +201,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               onClick={handleAddToCart}
               className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-green))] font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
             >
-              เพิ่มลงตะกร้า
+              {previewMode ? 'ปุ่มเพิ่มลงตะกร้า' : 'เพิ่มลงตะกร้า'}
             </Button>
           </div>
         </div>
