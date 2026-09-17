@@ -20,9 +20,9 @@ const LoginPage = () => {
     setError('');
     
     try {
-      const success = await login(username, password);
-      if (!success) {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      const result = await login(username, password);
+      if (!result.success) {
+        setError(result.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       }
       // No navigate needed - ProtectedRoute will automatically show children when user state updates
     } catch (err) {
