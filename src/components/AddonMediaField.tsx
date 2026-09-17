@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   Apple, Beef, Candy, Cherry, CircleDot, Coffee, Cookie, CupSoda,
-  Droplets, Flame, GlassWater, Grape, IceCreamBowl, Leaf, Lemon,
+  Citrus, Droplets, Flame, GlassWater, Grape, IceCreamBowl, Leaf,
   Milk, Nut, PackagePlus, Pizza, Salad, Sandwich, Sparkles, Star,
   UtensilsCrossed, Upload, X,
 } from 'lucide-react';
@@ -17,7 +17,7 @@ export type AddonMediaType = 'none' | 'icon' | 'image';
 
 const ADDON_ICON_MAP = {
   Coffee, CupSoda, GlassWater, Milk, Droplets, IceCreamBowl, Candy, Cookie,
-  Apple, Cherry, Lemon, Grape, Leaf, Nut, Beef, Pizza, Salad, Sandwich,
+  Apple, Cherry, Citrus, Grape, Leaf, Nut, Beef, Pizza, Salad, Sandwich,
   Flame, Sparkles, Star, CircleDot, PackagePlus, UtensilsCrossed,
 } as const;
 

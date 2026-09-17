@@ -38,6 +38,9 @@ interface DatabaseAddon {
   addon_group_id?: string;
   sort_order: number;
   is_active: boolean;
+  media_type?: string;
+  icon_name?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
   addon_groups?: {
@@ -45,6 +48,10 @@ interface DatabaseAddon {
     name: string;
     is_required: boolean;
     allow_multiple: boolean;
+    sort_order?: number;
+    media_type?: string;
+    icon_name?: string;
+    image_url?: string;
   };
 }
 
