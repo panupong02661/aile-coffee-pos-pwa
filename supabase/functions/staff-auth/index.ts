@@ -156,20 +156,24 @@ Deno.serve(async (req) => {
 
     if (action === 'reset-password') {
       const password = String(body?.password ?? '')
-      if (password.length < 6) return reply({ error: 'password_too_short' }, 400)
+      if (password.length < 4) return reply({ error: 'password_too_short' }, 400)
+      const derived = await authPassword(target.username, password)
       let authUserId = target.auth_user_id
       if (!authUserId) {
         const { data: created, error } = await admin.auth.admin.createUser({
-          email: internalEmail(target.username), password, email_confirm: true,
+          email: internalEmail(target.username), password: derived, email_confirm: true,
           user_metadata: { pos_user_id: target.id, username: target.username },
         })
         if (error || !created.user) throw error ?? new Error('account_creation_failed')
         authUserId = created.user.id
-        await admin.from('users').update({ auth_user_id: authUserId }).eq('id', target.id)
       } else {
-        const { error } = await admin.auth.admin.updateUserById(authUserId, { password })
+        const { error } = await admin.auth.admin.updateUserById(authUserId, { password: derived })
         if (error) throw error
       }
+      await admin.from('users').update({
+        auth_user_id: authUserId, password_hash: password, password_salt: null,
+        failed_login_attempts: 0, locked_until: null,
+      }).eq('id', target.id)
       return reply({ success: true })
     }
 
