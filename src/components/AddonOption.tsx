@@ -1,4 +1,5 @@
 import { Check, CircleSlash2, Coffee, Leaf, Sparkles } from 'lucide-react';
+import { AddonMedia } from './AddonMediaField';
 
 export interface AddonDisplayConfig {
   fontSize: string;
@@ -66,9 +67,12 @@ interface Props {
   onClick: () => void;
   styleId: number;
   config: AddonDisplayConfig;
+  mediaType?: string | null;
+  iconName?: string | null;
+  imageUrl?: string | null;
 }
 
-const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props) => {
+const AddonOption = ({ name, price, selected, onClick, styleId, config, mediaType, iconName, imageUrl }: Props) => {
   const fontWeight =
     config.fontWeight === 'normal' ? 400 :
     config.fontWeight === 'medium' ? 500 :
@@ -82,6 +86,15 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
   const baseFg = selected ? config.selectedTextColor : config.textColor;
   const baseBg = selected ? config.selectedBackgroundColor : config.backgroundColor;
   const accent = config.selectedBackgroundColor;
+  const optionMedia = (
+    <AddonMedia
+      mediaType={mediaType}
+      iconName={iconName}
+      imageUrl={imageUrl}
+      className="shrink-0"
+      imageClassName={styleId >= 22 ? 'h-9 w-9 rounded-lg' : 'h-7 w-7 rounded-md'}
+    />
+  );
 
   // Style 1 — Classic
   if (styleId === 1) {
@@ -94,7 +107,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           borderRadius: radius, borderColor: selected ? accent : '#e5e7eb',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? '#fed7aa' : '#ea580c', minHeight: '1em' }}>
           {priceText || '\u00A0'}
         </span>
@@ -113,7 +126,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           borderRadius: '999px', borderColor: selected ? accent : '#e5e7eb',
         }}
       >
-        <span className="truncate w-full text-center">{name}</span>
+        {optionMedia}<span className="truncate w-full text-center">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? '#fed7aa' : '#ea580c' }}>{priceText}</span>
         )}
@@ -141,7 +154,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
             <Check className="w-3 h-3" strokeWidth={3} />
           </span>
         )}
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? accent : '#ea580c' }}>{priceText}</span>
         )}
@@ -162,7 +175,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           borderColor: selected ? accent : 'transparent',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? accent : '#ea580c' }}>{priceText}</span>
         )}
@@ -187,7 +200,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
             : `3px 3px 6px #d6ccbf, -3px -3px 6px #ffffff`,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? accent : '#ea580c' }}>{priceText}</span>
         )}
@@ -212,7 +225,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           boxShadow: selected ? `0 6px 16px ${accent}55` : undefined,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? '#fed7aa' : '#ea580c' }}>{priceText}</span>
         )}
@@ -234,7 +247,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           border: `2px dashed ${selected ? accent : '#d1c7b8'}`,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span
             className="px-1.5 rounded"
@@ -265,7 +278,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           className="absolute left-0 top-0 bottom-0 transition-all"
           style={{ width: selected ? '5px' : '0px', backgroundColor: accent }}
         />
-        <span className="truncate w-full pl-1">{name}</span>
+        {optionMedia}<span className="truncate w-full pl-1">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? accent : '#ea580c' }}>{priceText}</span>
         )}
@@ -289,7 +302,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           boxShadow: selected ? 'inset 0 0 0 2px #5b3a1e' : undefined,
         }}
       >
-        <span className="truncate w-full italic">{name}</span>
+        {optionMedia}<span className="truncate w-full italic">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? '#f5c26b' : '#a06622' }}>{priceText}</span>
         )}
@@ -312,7 +325,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           letterSpacing: '0.02em',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 500, color: selected ? '#d1d5db' : '#6b7280' }}>{priceText}</span>
         )}
@@ -337,7 +350,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           boxShadow: selected ? '0 4px 14px rgba(196,181,253,0.4)' : undefined,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? '#7c3aed' : '#ea580c' }}>{priceText}</span>
         )}
@@ -362,7 +375,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
             : '6px 6px 14px #c2c8ce, -6px -6px 14px #ffffff',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? '#ea580c' : '#94a3b8' }}>{priceText}</span>
         )}
@@ -387,7 +400,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           boxShadow: selected ? '0 0 16px rgba(34,211,238,0.6), inset 0 0 12px rgba(34,211,238,0.15)' : undefined,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? '#67e8f9' : '#fbbf24' }}>{priceText}</span>
         )}
@@ -411,7 +424,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           letterSpacing: '0.03em',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 900, color: '#000000' }}>{priceText}</span>
         )}
@@ -440,7 +453,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
             style={{ backgroundColor: '#b91c1c', boxShadow: '0 0 0 1px #faf6ef' }}
           />
         )}
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: '#b91c1c' }}>{priceText}</span>
         )}
@@ -466,7 +479,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           boxShadow: selected ? '4px 4px 0 #22d3ee' : '3px 3px 0 #7c3aed',
         }}
       >
-        <span className="truncate w-full text-[10px]">{name}</span>
+        {optionMedia}<span className="truncate w-full text-[10px]">{name}</span>
         {priceText && (
           <span style={{ fontSize: '9px', fontWeight: 700, color: '#f472b6' }}>{priceText}</span>
         )}
@@ -493,7 +506,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           letterSpacing: '0.05em',
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? '#0a0a0a' : '#f5d68a' }}>{priceText}</span>
         )}
@@ -518,7 +531,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
         {selected && (
           <Leaf className="absolute top-1 left-1.5 w-3 h-3" style={{ color: '#a3e0a8' }} />
         )}
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? '#e6f7d9' : '#8a5a2c' }}>{priceText}</span>
         )}
@@ -546,7 +559,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           transform: selected ? 'translateY(-3px)' : undefined,
         }}
       >
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? '#fed7aa' : '#ea580c' }}>{priceText}</span>
         )}
@@ -578,7 +591,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
         >
           {selected ? <Check className="w-2.5 h-2.5" strokeWidth={3} /> : <Sparkles className="w-2 h-2" />}
         </span>
-        <span className="truncate w-full">{name}</span>
+        {optionMedia}<span className="truncate w-full">{name}</span>
         {priceText && (
           <span style={{ fontSize: priceFontSize, fontWeight: 600, color: selected ? accent : '#ea580c' }}>{priceText}</span>
         )}
@@ -603,7 +616,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
         className="w-2 h-2 rounded-full flex-shrink-0"
         style={{ backgroundColor: selected ? accent : '#d1d5db' }}
       />
-      <span className="truncate flex-1">{name}</span>
+      {optionMedia}<span className="truncate flex-1">{name}</span>
       {priceText && (
         <span
           className="flex-shrink-0"
@@ -626,7 +639,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
         borderRadius: '18px',
       }}
     >
-      <span className="truncate">{name}</span>
+      {optionMedia}<span className="truncate">{name}</span>
       {priceText && <span className="shrink-0" style={{ fontSize: priceFontSize }}>{priceText}</span>}
     </button>
   );
@@ -647,7 +660,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
       }}
     >
       {selected ? <Check className="h-5 w-5" strokeWidth={4} /> : <Coffee className="h-5 w-5" />}
-      <span className="truncate w-full text-center">{name}</span>
+      {optionMedia}<span className="truncate w-full text-center">{name}</span>
       {priceText && <span style={{ fontSize: priceFontSize, fontWeight: 900 }}>{priceText}</span>}
     </button>
   );
@@ -672,7 +685,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
       <span className="mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-current">
         {selected ? <Check className="h-4 w-4" strokeWidth={3} /> : <Coffee className="h-3.5 w-3.5" />}
       </span>
-      <span className="truncate w-full text-center">{name}</span>
+      {optionMedia}<span className="truncate w-full text-center">{name}</span>
       {priceText && <span style={{ fontSize: priceFontSize, color: 'hsl(var(--addon-float-accent))' }}>{priceText}</span>}
     </button>
   );
@@ -691,7 +704,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
       }}
     >
       {!priceText && !selected && <CircleSlash2 className="h-4 w-4 opacity-60" />}
-      <span className="truncate w-full text-center">{name}</span>
+      {optionMedia}<span className="truncate w-full text-center">{name}</span>
       {priceText && <span style={{ fontSize: priceFontSize }}>{priceText}</span>}
     </button>
   );
@@ -716,7 +729,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           <Check className="h-3 w-3" strokeWidth={3} />
         </span>
       )}
-      <span className="truncate w-full text-center">{name}</span>
+      {optionMedia}<span className="truncate w-full text-center">{name}</span>
       {priceText && <span style={{ fontSize: priceFontSize, color: 'hsl(var(--addon-magazine-accent))' }}>{priceText}</span>}
     </button>
   );

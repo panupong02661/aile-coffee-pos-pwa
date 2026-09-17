@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AddonMedia } from './AddonMediaField';
 
 interface AddonGroupsListProps {
   addonGroups: any[];
@@ -224,6 +225,7 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
                         <ChevronDown className="w-4 h-4" />
                       </Button>
                     </div>
+                    <AddonMedia mediaType={group.media_type} iconName={group.icon_name} imageUrl={group.image_url} imageClassName="h-10 w-10 rounded-md" />
                     <h3 className="font-semibold text-lg">{group.name}</h3>
                   </div>
                   <Badge 
@@ -320,7 +322,7 @@ const AddonGroupsList: React.FC<AddonGroupsListProps> = ({ addonGroups, onEdit, 
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{group.name}</TableCell>
+                  <TableCell className="font-medium"><div className="flex items-center gap-2"><AddonMedia mediaType={group.media_type} iconName={group.icon_name} imageUrl={group.image_url} imageClassName="h-8 w-8 rounded-md" />{group.name}</div></TableCell>
                   <TableCell>
                     <Badge variant={group.is_required ? 'destructive' : 'outline'}>
                       {group.is_required ? 'จำเป็น' : 'เสริม'}
