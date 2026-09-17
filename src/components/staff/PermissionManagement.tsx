@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
+import { Shield, User, Edit, Plus, Trash2, Search, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,7 +119,6 @@ const PermissionManagement = () => {
   const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'staff' });
   const [credUser, setCredUser] = useState<UserData | null>(null);
   const [credPassword, setCredPassword] = useState('');
-  const [credVisible, setCredVisible] = useState(false);
   const [credLoading, setCredLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -196,13 +195,10 @@ const PermissionManagement = () => {
     }
     setSaving(true);
     try {
-      const { error } = await supabase.from('users').insert({
-        username: newUser.username,
-        password_hash: newUser.password, // In production, hash this
-        full_name: newUser.full_name || newUser.username,
-        role: newUser.role,
+      const { data, error } = await supabase.functions.invoke('staff-auth', {
+        body: { action: 'create', ...newUser },
       });
-      if (error) throw error;
+      if (error || !data?.success) throw error ?? new Error('ไม่สามารถสร้างบัญชีได้');
 
       toast({ title: 'สำเร็จ', description: 'สร้างผู้ใช้งานเรียบร้อยแล้ว' });
       setIsCreateOpen(false);
@@ -219,8 +215,8 @@ const PermissionManagement = () => {
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('ต้องการลบผู้ใช้นี้หรือไม่?')) return;
     try {
-      const { error } = await supabase.from('users').delete().eq('id', userId);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('staff-auth', { body: { action: 'delete', user_id: userId } });
+      if (error || !data?.success) throw error ?? new Error('ไม่สามารถลบบัญชีได้');
       toast({ title: 'สำเร็จ', description: 'ลบผู้ใช้งานแล้ว' });
       fetchData();
     } catch (error) {
@@ -229,24 +225,9 @@ const PermissionManagement = () => {
     }
   };
 
-  const openCredentials = async (user: UserData) => {
+  const openCredentials = (user: UserData) => {
     setCredUser(user);
-    setCredVisible(false);
     setCredPassword('');
-    setCredLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('password_hash')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (error) throw error;
-      setCredPassword((data as any)?.password_hash || '');
-    } catch (error: any) {
-      toast({ title: 'ข้อผิดพลาด', description: 'ไม่สามารถดึงรหัสผ่านได้', variant: 'destructive' });
-    } finally {
-      setCredLoading(false);
-    }
   };
 
   const handleSavePassword = async () => {
@@ -257,13 +238,10 @@ const PermissionManagement = () => {
     }
     setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({ password_hash: credPassword })
-        .eq('id', credUser.id)
-        .select('id');
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error('ไม่มีสิทธิ์เปลี่ยนรหัสผ่านผู้ใช้นี้');
+      const { data, error } = await supabase.functions.invoke('staff-auth', {
+        body: { action: 'reset-password', user_id: credUser.id, password: credPassword },
+      });
+      if (error || !data?.success) throw error ?? new Error('ไม่มีสิทธิ์เปลี่ยนรหัสผ่านผู้ใช้นี้');
       toast({ title: 'สำเร็จ', description: 'เปลี่ยนรหัสผ่านแล้ว' });
       setCredUser(null);
     } catch (error: any) {
@@ -472,7 +450,7 @@ const PermissionManagement = () => {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         {currentUser?.role === 'admin' && (
-                          <Button variant="outline" size="sm" title="ดู/เปลี่ยนรหัสผ่าน" onClick={() => openCredentials(u)}>
+                          <Button variant="outline" size="sm" title="ตั้งรหัสผ่านใหม่" onClick={() => openCredentials(u)}>
                             <KeyRound className="w-4 h-4" />
                           </Button>
                         )}
@@ -686,7 +664,7 @@ const PermissionManagement = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="w-5 h-5" />
-              ชื่อผู้ใช้และรหัสผ่าน
+              ชื่อผู้ใช้และตั้งรหัสผ่านใหม่
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -695,25 +673,16 @@ const PermissionManagement = () => {
               <Input value={credUser?.username || ''} readOnly />
             </div>
             <div className="space-y-2">
-              <Label>รหัสผ่าน</Label>
-              <div className="relative">
+                <Label>รหัสผ่านใหม่</Label>
+               <div>
                 <Input
-                  type={credVisible ? 'text' : 'password'}
+                   type="password"
                   value={credLoading ? '' : credPassword}
-                  placeholder={credLoading ? 'กำลังโหลด...' : ''}
+                   placeholder="อย่างน้อย 6 ตัวอักษร"
                   onChange={e => setCredPassword(e.target.value)}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1 h-8"
-                  onClick={() => setCredVisible(v => !v)}
-                >
-                  {credVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">แก้ไขช่องนี้แล้วกดบันทึกเพื่อตั้งรหัสผ่านใหม่</p>
+              <p className="text-xs text-muted-foreground">เพื่อความปลอดภัย ระบบจะไม่แสดงรหัสผ่านเดิม แต่ผู้ดูแลตั้งรหัสใหม่ได้</p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCredUser(null)}>ปิด</Button>

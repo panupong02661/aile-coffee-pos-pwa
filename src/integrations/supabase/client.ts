@@ -15,20 +15,11 @@ const EXCLUDED_TABLES = new Set([
 
 const readScope = () => {
   if (typeof window === 'undefined') {
-    return { userId: null as string | null, shopId: null as string | null };
-  }
-
-  let userId: string | null = null;
-  try {
-    const raw = localStorage.getItem('currentUser');
-    const parsed = raw ? JSON.parse(raw) : null;
-    userId = parsed?.id ?? null;
-  } catch {
-    userId = null;
+    return { shopId: null as string | null };
   }
 
   const shopId = localStorage.getItem('active_shop_id');
-  return { userId, shopId };
+  return { shopId };
 };
 
 const injectShopIdIntoBody = (body: BodyInit | null | undefined, shopId: string) => {
@@ -75,9 +66,8 @@ const scopedFetch: typeof fetch = async (input, init) => {
 
   const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
   const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-  const { userId, shopId } = readScope();
+  const { shopId } = readScope();
 
-  if (userId) headers.set('x-user-id', userId);
   if (shopId) headers.set('x-shop-id', shopId);
 
   let body = init?.body;
