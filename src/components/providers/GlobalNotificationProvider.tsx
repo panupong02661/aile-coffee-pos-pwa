@@ -236,12 +236,10 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           console.log('🔔 🎉 REAL-TIME ORDER INSERT DETECTED 🎉:', payload);
           const order = payload.new as any;
           
-          // 🚫 FIRST CHECK: Skip ALL processing for POS/in-store orders immediately
+          // POS/in-store orders: send external notifications (Discord/LINE) but no UI popup/sound
           const orderSource = order.order_source || 'pos';
-          if (orderSource === 'pos' || orderSource === 'in_store') {
-            console.log(`🚫 Skipping ALL notifications for POS/in-store order: ${order.order_number}`);
-            return;
-          }
+          const isPosOrder = orderSource === 'pos' || orderSource === 'in_store';
+
           
           // Skip test/trigger orders
           if (order.order_number && order.order_number.includes('-TRIGGER')) {
