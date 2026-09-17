@@ -1,4 +1,4 @@
-import { Check, Leaf, Sparkles } from 'lucide-react';
+import { Check, CircleSlash2, Coffee, Leaf, Sparkles } from 'lucide-react';
 
 export interface AddonDisplayConfig {
   fontSize: string;
@@ -44,6 +44,11 @@ export const ADDON_STYLES = [
   { id: 19, name: 'ลอย (Floating)', description: 'ปุ่มลอยด้วยเงาซ้อน ยกขึ้นเมื่อเลือก' },
   { id: 20, name: 'ขั้นตอนตัวเลข', description: 'มีตัวเลขวงกลมนำ แบบนิตยสาร' },
   { id: 21, name: 'ป้ายซ้าย', description: 'จุดสีด้านซ้าย + ตัวอักษรชิดซ้าย' },
+  { id: 22, name: 'คลาสสิกคอฟฟี่', description: 'กรอบวินเทจครีม-น้ำตาล จัดวางแบบร้านกาแฟคลาสสิก' },
+  { id: 23, name: 'พิกเซลคาเฟ่', description: 'หน้าต่างเกม 8-บิต ปุ่มสีสดและปุ่มตะกร้าสีเขียว' },
+  { id: 24, name: 'โฟลตติ้งคัพ', description: 'การ์ดลอยมีมิติ เน้นรูปสินค้าและตัวเลือกแบบยกชั้น' },
+  { id: 25, name: 'เลเบลด้านซ้าย', description: 'หัวข้อกลุ่มด้านซ้าย ตัวเลือกเรียงแนวนอนแบบกระชับ' },
+  { id: 26, name: 'แมกกาซีนสปลิต', description: 'ภาพใหญ่ครึ่งหน้าและตัวเลือกสไตล์นิตยสาร' },
 ] as const;
 
 export const ADDON_STYLE_STORAGE_KEY = 'addonStyleId';
@@ -51,7 +56,7 @@ export const ADDON_STYLE_STORAGE_KEY = 'addonStyleId';
 export const getSavedAddonStyleId = (): number => {
   const saved = localStorage.getItem(ADDON_STYLE_STORAGE_KEY);
   const parsed = saved ? parseInt(saved) : 1;
-  return parsed >= 1 && parsed <= 21 ? parsed : 1;
+  return parsed >= 1 && parsed <= 26 ? parsed : 1;
 };
 
 interface Props {
@@ -582,7 +587,7 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
   }
 
   // Style 21 — Side Label (left-aligned)
-  return (
+  if (styleId === 21) return (
     <button
       onClick={onClick}
       className="text-left px-3 py-2 transition-all flex items-center gap-2"
@@ -605,6 +610,114 @@ const AddonOption = ({ name, price, selected, onClick, styleId, config }: Props)
           style={{ fontSize: priceFontSize, fontWeight: 700, color: selected ? accent : '#ea580c' }}
         >{priceText}</span>
       )}
+    </button>
+  );
+
+  // Style 22 — Classic Coffee frame
+  if (styleId === 22) return (
+    <button
+      onClick={onClick}
+      className="relative min-w-0 px-2 py-2 transition-all flex items-center justify-center gap-1 border-2"
+      style={{
+        minHeight, fontSize, fontWeight,
+        color: selected ? 'hsl(var(--addon-classic-cream))' : 'hsl(var(--addon-classic-ink))',
+        backgroundColor: selected ? 'hsl(var(--addon-classic-ink))' : 'hsl(var(--addon-classic-paper))',
+        borderColor: 'hsl(var(--addon-classic-ink))',
+        borderRadius: '18px',
+      }}
+    >
+      <span className="truncate">{name}</span>
+      {priceText && <span className="shrink-0" style={{ fontSize: priceFontSize }}>{priceText}</span>}
+    </button>
+  );
+
+  // Style 23 — Pixel Cafe
+  if (styleId === 23) return (
+    <button
+      onClick={onClick}
+      className="relative min-w-0 p-2 transition-transform flex flex-col items-center justify-center gap-1"
+      style={{
+        minHeight: `calc(${minHeight} + 10px)`, fontSize, fontWeight: 800,
+        color: 'hsl(var(--addon-pixel-ink))',
+        backgroundColor: selected ? 'hsl(var(--addon-pixel-yellow))' : 'hsl(var(--addon-pixel-blue))',
+        border: '3px solid hsl(var(--addon-pixel-ink))',
+        borderRadius: '7px',
+        boxShadow: selected ? '4px 4px 0 hsl(var(--addon-pixel-orange))' : '3px 3px 0 hsl(var(--addon-pixel-shadow))',
+        fontFamily: '"Courier New", monospace',
+      }}
+    >
+      {selected ? <Check className="h-5 w-5" strokeWidth={4} /> : <Coffee className="h-5 w-5" />}
+      <span className="truncate w-full text-center">{name}</span>
+      {priceText && <span style={{ fontSize: priceFontSize, fontWeight: 900 }}>{priceText}</span>}
+    </button>
+  );
+
+  // Style 24 — Floating Cup
+  if (styleId === 24) return (
+    <button
+      onClick={onClick}
+      className="relative min-w-0 px-2 py-3 transition-all flex flex-col items-center justify-center gap-1"
+      style={{
+        minHeight: `calc(${minHeight} + 14px)`, fontSize, fontWeight,
+        color: 'hsl(var(--addon-float-ink))',
+        backgroundColor: 'hsl(var(--addon-float-surface))',
+        border: selected ? '1.5px solid hsl(var(--addon-float-accent))' : '1px solid hsl(var(--addon-float-border))',
+        borderRadius: '20px',
+        boxShadow: selected
+          ? '0 9px 0 hsl(var(--addon-float-layer)), 0 16px 24px hsl(var(--addon-float-shadow))'
+          : '0 9px 18px hsl(var(--addon-float-shadow))',
+        transform: selected ? 'translateY(-4px)' : undefined,
+      }}
+    >
+      <span className="mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-current">
+        {selected ? <Check className="h-4 w-4" strokeWidth={3} /> : <Coffee className="h-3.5 w-3.5" />}
+      </span>
+      <span className="truncate w-full text-center">{name}</span>
+      {priceText && <span style={{ fontSize: priceFontSize, color: 'hsl(var(--addon-float-accent))' }}>{priceText}</span>}
+    </button>
+  );
+
+  // Style 25 — Left Label rows
+  if (styleId === 25) return (
+    <button
+      onClick={onClick}
+      className="relative min-w-0 px-3 py-2 transition-all flex flex-col items-center justify-center gap-0.5 border"
+      style={{
+        minHeight, fontSize, fontWeight,
+        color: selected ? 'hsl(var(--addon-left-selected-fg))' : 'hsl(var(--addon-left-ink))',
+        backgroundColor: selected ? 'hsl(var(--addon-left-accent))' : 'hsl(var(--addon-left-surface))',
+        borderColor: selected ? 'hsl(var(--addon-left-accent))' : 'hsl(var(--addon-left-border))',
+        borderRadius: '10px',
+      }}
+    >
+      {!priceText && !selected && <CircleSlash2 className="h-4 w-4 opacity-60" />}
+      <span className="truncate w-full text-center">{name}</span>
+      {priceText && <span style={{ fontSize: priceFontSize }}>{priceText}</span>}
+    </button>
+  );
+
+  // Style 26 — Editorial Magazine
+  return (
+    <button
+      onClick={onClick}
+      className="relative min-w-0 px-2 py-2 transition-all flex flex-col items-center justify-center gap-0.5 border"
+      style={{
+        minHeight: `calc(${minHeight} + 4px)`, fontSize, fontWeight,
+        color: 'hsl(var(--addon-magazine-ink))',
+        backgroundColor: 'hsl(var(--addon-magazine-paper))',
+        borderColor: selected ? 'hsl(var(--addon-magazine-accent))' : 'hsl(var(--addon-magazine-border))',
+        borderWidth: selected ? '2px' : '1px',
+        borderRadius: '10px',
+        boxShadow: selected ? '0 5px 12px hsl(var(--addon-magazine-shadow))' : undefined,
+      }}
+    >
+      {selected && (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--addon-magazine-accent))] text-[hsl(var(--addon-magazine-paper))]">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
+      <span className="truncate w-full text-center">{name}</span>
+      {priceText && <span style={{ fontSize: priceFontSize, color: 'hsl(var(--addon-magazine-accent))' }}>{priceText}</span>}
     </button>
   );
 };

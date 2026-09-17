@@ -49,6 +49,32 @@
     /* Glass defaults */
     --glass-opacity: 1;
     --glass-blur: 0px;
+
+    --addon-classic-paper: 40 70% 96%;
+    --addon-classic-cream: 39 66% 92%;
+    --addon-classic-ink: 27 62% 22%;
+    --addon-pixel-ink: 20 74% 12%;
+    --addon-pixel-blue: 195 72% 73%;
+    --addon-pixel-yellow: 42 100% 63%;
+    --addon-pixel-orange: 27 94% 50%;
+    --addon-pixel-green: 101 55% 42%;
+    --addon-pixel-shadow: 274 54% 36%;
+    --addon-float-surface: 0 0% 100%;
+    --addon-float-ink: 28 58% 20%;
+    --addon-float-accent: 31 48% 43%;
+    --addon-float-border: 35 24% 90%;
+    --addon-float-layer: 35 34% 86%;
+    --addon-float-shadow: 28 24% 78% / 0.55;
+    --addon-left-surface: 0 0% 100%;
+    --addon-left-ink: 25 20% 12%;
+    --addon-left-accent: 27 55% 34%;
+    --addon-left-selected-fg: 0 0% 100%;
+    --addon-left-border: 30 12% 84%;
+    --addon-magazine-paper: 39 48% 96%;
+    --addon-magazine-ink: 27 25% 18%;
+    --addon-magazine-accent: 29 76% 43%;
+    --addon-magazine-border: 32 24% 81%;
+    --addon-magazine-shadow: 29 66% 38% / 0.25;
   }
 
   .dark {

@@ -68,7 +68,7 @@ const AddonDisplaySettings = () => {
         <div className="space-y-4">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <LayoutGrid className="w-4 h-4" />
-            เลือกรูปแบบ Add-on (21 แบบ)
+            เลือกรูปแบบ Add-on (26 แบบ)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ADDON_STYLES.map((s) => {
@@ -108,7 +108,13 @@ const AddonDisplaySettings = () => {
                   </div>
 
                   {/* Mock modal body */}
-                  <div className="p-4 bg-white space-y-3">
+                  <div className={`p-4 space-y-3 ${
+                    s.id === 22 ? 'bg-[hsl(var(--addon-classic-paper))]' :
+                    s.id === 23 ? 'bg-[hsl(var(--addon-pixel-yellow)/0.16)]' :
+                    s.id === 24 ? 'bg-[hsl(var(--addon-float-surface))] py-6' :
+                    s.id === 25 ? 'bg-[hsl(var(--addon-left-surface))]' :
+                    s.id === 26 ? 'bg-[hsl(var(--addon-magazine-paper))]' : 'bg-card'
+                  }`}>
                     {/* Menu header */}
                     <div className="flex items-center gap-2 pb-2 border-b border-border">
                       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">☕</div>
@@ -124,7 +130,7 @@ const AddonDisplaySettings = () => {
                         ระดับความหวาน
                         <span className="text-[10px] text-red-500">*จำเป็น</span>
                       </div>
-                      <div className="grid grid-cols-4 gap-1.5">
+                      <div className={`grid grid-cols-4 gap-1.5 ${s.id === 25 ? 'ml-6' : ''}`}>
                         {sweetOptions.map((o, i) => (
                           <AddonOption
                             key={o.name}
@@ -144,7 +150,7 @@ const AddonDisplaySettings = () => {
                       <div className="text-xs font-semibold text-foreground mb-1.5">
                         ท็อปปิ้งเพิ่มเติม
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className={`grid gap-1.5 ${s.id >= 22 && s.id !== 25 ? 'grid-cols-3' : 'grid-cols-2'} ${s.id === 25 ? 'ml-6' : ''}`}>
                         {toppingOptions.map((o, i) => (
                           <AddonOption
                             key={o.name}
