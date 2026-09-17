@@ -18,3 +18,6 @@ verify_jwt = false
 
 [functions.generate-report-image]
 verify_jwt = false
+
+[functions.staff-auth]
+verify_jwt = false

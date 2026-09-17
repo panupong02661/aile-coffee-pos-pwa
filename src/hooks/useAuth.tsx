@@ -36,12 +36,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    let active = true;
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        if (active) { setUser(null); setLoading(false); }
+        return;
+      }
+      const { data } = await supabase.from('users').select('id, username, full_name, role').eq('auth_user_id', session.user.id).maybeSingle();
+      if (!active) return;
+      if (data) {
+        const profile = data as AuthUser;
+        setUser(profile);
+        localStorage.setItem('currentUser', JSON.stringify(profile));
+      } else {
+        setUser(null);
+        localStorage.removeItem('currentUser');
+      }
+      setLoading(false);
+    };
+    void loadProfile();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => { void loadProfile(); });
+    return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
 
   const showToast = (title: string, description: string, variant?: 'default' | 'destructive') => {
@@ -51,10 +67,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Use secure RPC: hash+salt verification, rate limiting, account lockout, audit logs
-      const { data, error } = await supabase.rpc('authenticate_user', {
-        username_input: username,
-        password_input: password,
+      const { data, error } = await supabase.functions.invoke('staff-auth', {
+        body: { action: 'login', username, password },
       });
 
       if (error) {
@@ -63,22 +77,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      const result = data as { success: boolean; user_id?: string; role?: string; message?: string };
-
-      if (!result?.success) {
+      const result = data as { success?: boolean; session?: { access_token: string; refresh_token: string }; message?: string };
+      if (!result?.success || !result.session) {
         showToast('ข้อผิดพลาด', result?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
         return false;
       }
-
-      const userData: AuthUser = {
-        id: result.user_id!,
-        username,
-        full_name: getLevelDisplayName(result.role as UserRole),
-        role: result.role as UserRole,
-      };
-
-      setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      const { error: sessionError } = await supabase.auth.setSession(result.session);
+      if (sessionError) throw sessionError;
       showToast('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว');
       return true;
     } catch (error) {
@@ -89,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    void supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('currentUser');
     showToast('สำเร็จ', 'ออกจากระบบเรียบร้อยแล้ว');
