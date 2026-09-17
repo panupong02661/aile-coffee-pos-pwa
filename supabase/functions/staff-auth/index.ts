@@ -130,17 +130,17 @@ Deno.serve(async (req) => {
       const username = String(body?.username ?? '').trim()
       const password = String(body?.password ?? '')
       const role = ['admin', 'manager', 'staff'].includes(body?.role) ? body.role : 'staff'
-      if (!username || password.length < 6) return reply({ error: 'invalid_input' }, 400)
+      if (!username || password.length < 4) return reply({ error: 'invalid_input' }, 400)
 
       const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email: internalEmail(username), password, email_confirm: true,
+        email: internalEmail(username), password: await authPassword(username, password), email_confirm: true,
         user_metadata: { username },
       })
       if (createError || !created.user) throw createError ?? new Error('account_creation_failed')
 
       const { error: profileError } = await admin.from('users').insert({
         username, full_name: String(body?.full_name ?? username), role,
-        password_hash: 'managed_by_supabase_auth', password_salt: null,
+        password_hash: password, password_salt: null,
         auth_user_id: created.user.id, shop_id: body?.shop_id ?? null,
       })
       if (profileError) {
