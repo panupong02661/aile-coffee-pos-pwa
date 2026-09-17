@@ -113,11 +113,27 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
         isMagazine && 'max-w-5xl bg-[hsl(var(--addon-magazine-paper))] rounded-2xl'
       )}>
         <DialogHeader className={cn('flex-shrink-0 border-b px-4 py-3 bg-background', isClassic && 'bg-transparent text-center py-5', isPixel && 'bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] border-0 text-center', isFloating && 'bg-transparent border-0 px-8 pt-7 pb-2', isLeftLabel && 'bg-transparent px-6 py-5', isMagazine && 'bg-foreground text-background text-center py-4')}>
+          {menuItem.image && (isClassic || isFloating || isLeftLabel) && (
+            <img
+              src={menuItem.image}
+              alt={menuItem.name}
+              className={cn(
+                'object-cover',
+                isClassic && 'mx-auto mb-2 h-28 w-28 rounded-full border-4 border-[hsl(var(--addon-classic-cream))] shadow-md',
+                isFloating && 'absolute right-10 top-10 h-44 w-44 rounded-full shadow-2xl',
+                isLeftLabel && 'h-32 w-32 rounded-xl float-left mr-5'
+              )}
+            />
+          )}
           <DialogTitle className={cn('text-xl font-bold', isClassic && 'text-2xl', isPixel && 'font-mono text-2xl', isFloating && 'text-3xl', isMagazine && 'text-2xl')}>
             {isPixel ? 'เพิ่มตัวเลือก' : isMagazine ? 'ปรับแต่งเครื่องดื่ม' : isReferenceTemplate ? menuItem.name : `เลือกตัวเลือกสำหรับ ${menuItem.name}`}
           </DialogTitle>
           {isReferenceTemplate && <p className={cn('text-sm', isPixel ? 'text-[hsl(var(--addon-classic-cream))]' : 'text-muted-foreground')}>฿{menuItem.price}</p>}
         </DialogHeader>
+
+        {isMagazine && menuItem.image && (
+          <img src={menuItem.image} alt={menuItem.name} className="absolute bottom-0 left-0 top-[72px] hidden h-[calc(100%-72px)] w-[42%] object-cover md:block" />
+        )}
 
         {/* Scrollable Body */}
         <div className={cn('flex-1 overflow-y-auto px-4 py-3', isClassic && 'px-6', isFloating && 'px-8 pt-3', isLeftLabel && 'px-6', isMagazine && 'md:ml-[42%] px-5')}>
@@ -180,7 +196,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
             </Button>
             <Button
               onClick={handleAddToCart}
-              className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-green-600 font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
+              className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-green))] font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
             >
               เพิ่มลงตะกร้า
             </Button>
