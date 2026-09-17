@@ -5392,6 +5392,7 @@ export type Database = {
       }
       users: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           failed_login_attempts: number | null
           full_name: string | null
@@ -5407,6 +5408,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           failed_login_attempts?: number | null
           full_name?: string | null
@@ -5422,6 +5424,7 @@ export type Database = {
           username: string
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           failed_login_attempts?: number | null
           full_name?: string | null
@@ -5587,6 +5590,7 @@ export type Database = {
         Args: { password_input: string; username_input: string }
         Returns: Json
       }
+      authenticated_user_role: { Args: never; Returns: string }
       calculate_menu_cost: { Args: { menu_id: string }; Returns: number }
       check_rate_limit: {
         Args: {
