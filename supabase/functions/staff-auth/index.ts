@@ -86,10 +86,11 @@ Deno.serve(async (req) => {
       }
 
       const email = internalEmail(profile.username)
+      const derived = await authPassword(profile.username, password)
       if (!profile.auth_user_id && valid) {
         const { data: created, error: createError } = await admin.auth.admin.createUser({
           email,
-          password,
+          password: derived,
           email_confirm: true,
           user_metadata: { pos_user_id: profile.id, username: profile.username },
         })
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
       const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       })
-      const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({ email, password })
+      const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({ email, password: derived })
 
       if (signInError || !signedIn.session) {
         const attempts = Number(profile.failed_login_attempts ?? 0) + 1
