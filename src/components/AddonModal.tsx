@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { MenuItem, Addon } from '@/types';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import AddonOption, { getSavedAddonStyleId, ADDON_STYLE_STORAGE_KEY } from './AddonOption';
+import { cn } from '@/lib/utils';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -94,17 +95,33 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
   };
 
   const totalPrice = menuItem.price + selectedAddons.reduce((sum, addon) => sum + Number(addon.price), 0);
+  const isClassic = styleId === 22;
+  const isPixel = styleId === 23;
+  const isFloating = styleId === 24;
+  const isLeftLabel = styleId === 25;
+  const isMagazine = styleId === 26;
+  const isReferenceTemplate = styleId >= 22;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
-        <DialogHeader className="flex-shrink-0 border-b px-4 py-3 bg-background">
-          <DialogTitle className="text-xl font-bold">เลือกตัวเลือกสำหรับ {menuItem.name}</DialogTitle>
+      <DialogContent className={cn(
+        'max-w-4xl max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0',
+        isClassic && 'border-[3px] border-[hsl(var(--addon-classic-ink))] bg-[hsl(var(--addon-classic-paper))]',
+        isPixel && 'border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-yellow)/0.16)] rounded-md',
+        isFloating && 'max-w-2xl border-0 bg-[hsl(var(--addon-float-surface))] rounded-[28px] shadow-2xl',
+        isLeftLabel && 'bg-[hsl(var(--addon-left-surface))] rounded-2xl',
+        isMagazine && 'max-w-5xl bg-[hsl(var(--addon-magazine-paper))] rounded-2xl'
+      )}>
+        <DialogHeader className={cn('flex-shrink-0 border-b px-4 py-3 bg-background', isClassic && 'bg-transparent text-center py-5', isPixel && 'bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] border-0 text-center', isFloating && 'bg-transparent border-0 px-8 pt-7 pb-2', isLeftLabel && 'bg-transparent px-6 py-5', isMagazine && 'bg-foreground text-background text-center py-4')}>
+          <DialogTitle className={cn('text-xl font-bold', isClassic && 'text-2xl', isPixel && 'font-mono text-2xl', isFloating && 'text-3xl', isMagazine && 'text-2xl')}>
+            {isPixel ? 'เพิ่มตัวเลือก' : isMagazine ? 'ปรับแต่งเครื่องดื่ม' : isReferenceTemplate ? menuItem.name : `เลือกตัวเลือกสำหรับ ${menuItem.name}`}
+          </DialogTitle>
+          {isReferenceTemplate && <p className={cn('text-sm', isPixel ? 'text-[hsl(var(--addon-classic-cream))]' : 'text-muted-foreground')}>฿{menuItem.price}</p>}
         </DialogHeader>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto px-4 py-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={cn('flex-1 overflow-y-auto px-4 py-3', isClassic && 'px-6', isFloating && 'px-8 pt-3', isLeftLabel && 'px-6', isMagazine && 'md:ml-[42%] px-5')}>
+          <div className={cn('grid grid-cols-1 md:grid-cols-2 gap-3', isReferenceTemplate && 'md:grid-cols-1')}>
             {addonGroups.map((groupName, groupIndex) => {
               if (!groupName) return null;
               const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
@@ -124,11 +141,11 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
               const color = groupColors[groupIndex % groupColors.length];
 
               return (
-                <div key={groupName} className={`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`}>
-                  <h3 className="font-bold text-base text-foreground">
+                <div key={groupName} className={cn(`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`, isClassic && 'border-0 border-t border-dotted rounded-none bg-transparent py-4', isPixel && 'border-0 border-t-4 rounded-none bg-transparent', isFloating && 'border-0 bg-transparent px-0 py-3', isLeftLabel && 'grid grid-cols-[125px_1fr] items-center border-0 border-b rounded-none bg-transparent px-0 py-4', isMagazine && 'border-0 border-b rounded-none bg-transparent px-0 py-4')}>
+                  <h3 className={cn('font-bold text-base text-foreground', isPixel && 'inline-flex w-fit bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] px-3 py-1 font-mono', isMagazine && 'border-l-4 border-[hsl(var(--addon-magazine-accent))] pl-3')}>
                     {groupName} {isRequired && <span className="text-red-500">*</span>}
                   </h3>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className={cn('grid grid-cols-3 gap-1.5', isClassic && 'grid-cols-4', isPixel && 'gap-3', isFloating && 'gap-4', isLeftLabel && 'grid-cols-4', isMagazine && 'gap-2')}>
                     {groupAddons.map(addon => (
                       <AddonOption
                         key={addon.id}
@@ -148,7 +165,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
         </div>
 
         {/* Sticky Footer */}
-        <div className="flex-shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className={cn('flex-shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]', isClassic && 'bg-transparent', isPixel && 'bg-transparent border-0', isFloating && 'bg-transparent border-0 px-8 pb-6', isMagazine && 'md:ml-[42%] bg-transparent')}>
           <div className="flex justify-between items-center mb-3">
             <span className="font-bold text-lg">ราคารวม:</span>
             <span className="text-2xl font-bold text-muted-foreground">฿{totalPrice}</span>
@@ -163,7 +180,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart }: AddonMod
             </Button>
             <Button
               onClick={handleAddToCart}
-              className="flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12"
+              className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-green-600 font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
             >
               เพิ่มลงตะกร้า
             </Button>
