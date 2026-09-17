@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseAddon, DatabaseAddonGroup } from '@/hooks/useSupabaseData';
+import AddonMediaField, { AddonMediaType } from './AddonMediaField';
 
 interface AddonFormProps {
   isOpen: boolean;
@@ -25,6 +26,9 @@ const AddonForm = ({ isOpen, onClose, onSuccess, addonGroups, editAddon }: Addon
     addon_group_id: '',
     sort_order: 0,
     is_active: true,
+    media_type: 'none' as AddonMediaType,
+    icon_name: '',
+    image_url: '',
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -39,6 +43,9 @@ const AddonForm = ({ isOpen, onClose, onSuccess, addonGroups, editAddon }: Addon
           addon_group_id: editAddon.addon_group_id || '',
           sort_order: editAddon.sort_order || 0,
           is_active: editAddon.is_active ?? true,
+          media_type: (editAddon.media_type as AddonMediaType) || 'none',
+          icon_name: editAddon.icon_name || '',
+          image_url: editAddon.image_url || '',
         });
       } else {
         setFormData({
@@ -47,6 +54,9 @@ const AddonForm = ({ isOpen, onClose, onSuccess, addonGroups, editAddon }: Addon
           addon_group_id: '',
           sort_order: 0,
           is_active: true,
+          media_type: 'none',
+          icon_name: '',
+          image_url: '',
         });
       }
     }
@@ -142,6 +152,14 @@ const AddonForm = ({ isOpen, onClose, onSuccess, addonGroups, editAddon }: Addon
               onChange={(e) => setFormData(prev => ({ ...prev, sort_order: Number(e.target.value) }))}
             />
           </div>
+
+          <AddonMediaField
+            mediaType={formData.media_type}
+            iconName={formData.icon_name}
+            imageUrl={formData.image_url}
+            uploadFolder="addons"
+            onChange={(media) => setFormData(prev => ({ ...prev, ...media }))}
+          />
 
           <div className="flex items-center space-x-2">
             <Switch

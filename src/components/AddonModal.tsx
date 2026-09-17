@@ -8,6 +8,7 @@ import { MenuItem, Addon } from '@/types';
 import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import AddonOption, { getSavedAddonStyleId, ADDON_STYLE_STORAGE_KEY } from './AddonOption';
 import { cn } from '@/lib/utils';
+import { AddonMedia } from './AddonMediaField';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -116,12 +117,13 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
         isMagazine && 'max-w-5xl bg-[hsl(var(--addon-magazine-paper))] rounded-2xl'
       )}>
         <DialogHeader className={cn('flex-shrink-0 border-b px-4 py-3 bg-background', isClassic && 'bg-transparent text-center py-5', isPixel && 'bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] border-0 text-center', isFloating && 'bg-transparent border-0 px-8 pt-7 pb-2', isLeftLabel && 'bg-transparent px-6 py-5', isMagazine && 'bg-foreground text-background text-center py-4')}>
-          {menuItem.image && (isClassic || isFloating || isLeftLabel) && (
+          {menuItem.image && !isMagazine && (
             <img
               src={menuItem.image}
               alt={menuItem.name}
               className={cn(
                 'object-cover',
+                !isClassic && !isFloating && !isLeftLabel && 'mx-auto mb-2 h-24 w-full max-w-sm rounded-lg',
                 isClassic && 'mx-auto mb-2 h-28 w-28 rounded-full border-4 border-[hsl(var(--addon-classic-cream))] shadow-md',
                 isFloating && 'absolute right-10 top-10 h-44 w-44 rounded-full shadow-2xl',
                 isLeftLabel && 'h-32 w-32 rounded-xl float-left mr-5'
@@ -161,8 +163,9 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
 
               return (
                 <div key={groupName} className={cn(`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`, isClassic && 'border-0 border-t border-dotted rounded-none bg-transparent py-4', isPixel && 'border-0 border-t-4 rounded-none bg-transparent', isFloating && 'border-0 bg-transparent px-0 py-3', isLeftLabel && 'grid grid-cols-[125px_1fr] items-center border-0 border-b rounded-none bg-transparent px-0 py-4', isMagazine && 'border-0 border-b rounded-none bg-transparent px-0 py-4')}>
-                  <h3 className={cn('font-bold text-base text-foreground', isPixel && 'inline-flex w-fit bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] px-3 py-1 font-mono', isMagazine && 'border-l-4 border-[hsl(var(--addon-magazine-accent))] pl-3')}>
-                    {groupName} {isRequired && <span className="text-red-500">*</span>}
+                  <h3 className={cn('flex items-center gap-2 font-bold text-base text-foreground', isPixel && 'inline-flex w-fit bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] px-3 py-1 font-mono', isMagazine && 'border-l-4 border-[hsl(var(--addon-magazine-accent))] pl-3')}>
+                    <AddonMedia mediaType={groupAddons[0]?.addon_groups?.media_type} iconName={groupAddons[0]?.addon_groups?.icon_name} imageUrl={groupAddons[0]?.addon_groups?.image_url} imageClassName="h-8 w-8 rounded-md" />
+                    {groupName} {isRequired && <span className="text-destructive">*</span>}
                   </h3>
                   <div className={cn('grid grid-cols-3 gap-1.5', isClassic && 'grid-cols-4', isPixel && 'gap-3', isFloating && 'gap-4', isLeftLabel && 'grid-cols-4', isMagazine && 'gap-2')}>
                     {groupAddons.map(addon => (
@@ -174,6 +177,9 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
                         onClick={() => handleAddonToggle(addon, groupName)}
                         styleId={styleId}
                         config={displayConfig}
+                        mediaType={addon.media_type}
+                        iconName={addon.icon_name}
+                        imageUrl={addon.image_url}
                       />
                     ))}
                   </div>

@@ -63,9 +63,12 @@ export type Database = {
           allow_multiple: boolean
           created_at: string
           description: string | null
+          icon_name: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           is_required: boolean
+          media_type: string
           name: string
           shop_id: string | null
           sort_order: number
@@ -75,9 +78,12 @@ export type Database = {
           allow_multiple?: boolean
           created_at?: string
           description?: string | null
+          icon_name?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_required?: boolean
+          media_type?: string
           name: string
           shop_id?: string | null
           sort_order?: number
@@ -87,9 +93,12 @@ export type Database = {
           allow_multiple?: boolean
           created_at?: string
           description?: string | null
+          icon_name?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_required?: boolean
+          media_type?: string
           name?: string
           shop_id?: string | null
           sort_order?: number
@@ -109,8 +118,11 @@ export type Database = {
         Row: {
           addon_group_id: string | null
           created_at: string
+          icon_name: string | null
           id: string
+          image_url: string | null
           is_active: boolean
+          media_type: string
           name: string
           price: number
           shop_id: string | null
@@ -120,8 +132,11 @@ export type Database = {
         Insert: {
           addon_group_id?: string | null
           created_at?: string
+          icon_name?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
+          media_type?: string
           name: string
           price?: number
           shop_id?: string | null
@@ -131,8 +146,11 @@ export type Database = {
         Update: {
           addon_group_id?: string | null
           created_at?: string
+          icon_name?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
+          media_type?: string
           name?: string
           price?: number
           shop_id?: string | null

@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseAddonGroup, useSupabaseData } from '@/hooks/useSupabaseData';
 import { Check, ChevronDown } from 'lucide-react';
+import AddonMediaField, { AddonMediaType } from './AddonMediaField';
 
 interface AddonGroupFormProps {
   isOpen: boolean;
@@ -26,6 +27,9 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
     is_required: false,
     allow_multiple: false,
     sort_order: 0,
+    media_type: 'none' as AddonMediaType,
+    icon_name: '',
+    image_url: '',
   });
   const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -72,6 +76,9 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
           is_required: editAddonGroup.is_required ?? false,
           allow_multiple: editAddonGroup.allow_multiple ?? false,
           sort_order: editAddonGroup.sort_order || 0,
+          media_type: (editAddonGroup.media_type as AddonMediaType) || 'none',
+          icon_name: editAddonGroup.icon_name || '',
+          image_url: editAddonGroup.image_url || '',
         });
       } else {
         setFormData({
@@ -80,6 +87,9 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
           is_required: false,
           allow_multiple: false,
           sort_order: 0,
+          media_type: 'none',
+          icon_name: '',
+          image_url: '',
         });
         setSelectedMenuItems([]);
         setSelectedCategories([]);
@@ -238,6 +248,14 @@ const AddonGroupForm = ({ isOpen, onClose, onSuccess, editAddonGroup }: AddonGro
               onChange={(e) => setFormData(prev => ({ ...prev, sort_order: Number(e.target.value) }))}
             />
           </div>
+
+          <AddonMediaField
+            mediaType={formData.media_type}
+            iconName={formData.icon_name}
+            imageUrl={formData.image_url}
+            uploadFolder="addon-groups"
+            onChange={(media) => setFormData(prev => ({ ...prev, ...media }))}
+          />
 
           <div className="flex items-center space-x-2">
             <Switch

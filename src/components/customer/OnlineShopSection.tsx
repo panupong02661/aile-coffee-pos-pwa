@@ -38,6 +38,9 @@ interface DatabaseAddon {
   addon_group_id?: string;
   sort_order: number;
   is_active: boolean;
+  media_type?: string;
+  icon_name?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
   addon_groups?: {
@@ -45,6 +48,10 @@ interface DatabaseAddon {
     name: string;
     is_required: boolean;
     allow_multiple: boolean;
+    sort_order?: number;
+    media_type?: string;
+    icon_name?: string;
+    image_url?: string;
   };
 }
 
@@ -616,6 +623,9 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
           addon_group_id,
           sort_order,
           is_active,
+          media_type,
+          icon_name,
+          image_url,
           created_at,
           updated_at,
           addon_groups!addons_addon_group_id_fkey (
@@ -624,7 +634,10 @@ const OnlineShopSection = ({ currentUser, setCurrentUser, selectedMenuItemId, on
             allow_multiple,
             is_required,
             is_active,
-            sort_order
+            sort_order,
+            media_type,
+            icon_name,
+            image_url
           )
         `)
         .eq('is_active', true)

@@ -28,11 +28,17 @@ export interface Addon {
   allow_multiple: boolean;
   menu_item_id?: string;
   addon_group_id?: string;
+  media_type?: 'none' | 'icon' | 'image';
+  icon_name?: string;
+  image_url?: string;
   addon_groups?: {
     id: string;
     name: string;
     allow_multiple: boolean;
     is_required: boolean;
+    media_type?: 'none' | 'icon' | 'image';
+    icon_name?: string;
+    image_url?: string;
   };
 }
 

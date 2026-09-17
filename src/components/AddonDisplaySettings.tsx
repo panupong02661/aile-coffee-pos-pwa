@@ -58,6 +58,7 @@ const previewAddons: DatabaseAddon[] = [
   addon_group_id: `group-${groupName}`,
   sort_order: Number(sortOrder),
   is_active: true,
+  media_type: 'none',
   created_at: '',
   updated_at: '',
   addon_groups: {
