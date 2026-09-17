@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
+import { createClient } from 'npm:@supabase/supabase-js@2.50.0'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -25,6 +25,16 @@ const internalEmail = (username: string) =>
 const sha256Base64 = async (value: string) => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
   return btoa(String.fromCharCode(...new Uint8Array(digest)))
+}
+
+// Auth passwords must be >= 6 chars; legacy staff passwords can be shorter.
+// Derive a deterministic strong password from the username + real password.
+const authPassword = async (username: string, password: string) => {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`aile-pos:${username.trim().toLowerCase()}:${password}`),
+  )
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 const requireAdmin = async (req: Request) => {
@@ -76,10 +86,11 @@ Deno.serve(async (req) => {
       }
 
       const email = internalEmail(profile.username)
+      const derived = await authPassword(profile.username, password)
       if (!profile.auth_user_id && valid) {
         const { data: created, error: createError } = await admin.auth.admin.createUser({
           email,
-          password,
+          password: derived,
           email_confirm: true,
           user_metadata: { pos_user_id: profile.id, username: profile.username },
         })
@@ -97,7 +108,7 @@ Deno.serve(async (req) => {
       const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       })
-      const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({ email, password })
+      const { data: signedIn, error: signInError } = await authClient.auth.signInWithPassword({ email, password: derived })
 
       if (signInError || !signedIn.session) {
         const attempts = Number(profile.failed_login_attempts ?? 0) + 1
@@ -119,17 +130,17 @@ Deno.serve(async (req) => {
       const username = String(body?.username ?? '').trim()
       const password = String(body?.password ?? '')
       const role = ['admin', 'manager', 'staff'].includes(body?.role) ? body.role : 'staff'
-      if (!username || password.length < 6) return reply({ error: 'invalid_input' }, 400)
+      if (!username || password.length < 4) return reply({ error: 'invalid_input' }, 400)
 
       const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email: internalEmail(username), password, email_confirm: true,
+        email: internalEmail(username), password: await authPassword(username, password), email_confirm: true,
         user_metadata: { username },
       })
       if (createError || !created.user) throw createError ?? new Error('account_creation_failed')
 
       const { error: profileError } = await admin.from('users').insert({
         username, full_name: String(body?.full_name ?? username), role,
-        password_hash: 'managed_by_supabase_auth', password_salt: null,
+        password_hash: password, password_salt: null,
         auth_user_id: created.user.id, shop_id: body?.shop_id ?? null,
       })
       if (profileError) {
@@ -145,20 +156,24 @@ Deno.serve(async (req) => {
 
     if (action === 'reset-password') {
       const password = String(body?.password ?? '')
-      if (password.length < 6) return reply({ error: 'password_too_short' }, 400)
+      if (password.length < 4) return reply({ error: 'password_too_short' }, 400)
+      const derived = await authPassword(target.username, password)
       let authUserId = target.auth_user_id
       if (!authUserId) {
         const { data: created, error } = await admin.auth.admin.createUser({
-          email: internalEmail(target.username), password, email_confirm: true,
+          email: internalEmail(target.username), password: derived, email_confirm: true,
           user_metadata: { pos_user_id: target.id, username: target.username },
         })
         if (error || !created.user) throw error ?? new Error('account_creation_failed')
         authUserId = created.user.id
-        await admin.from('users').update({ auth_user_id: authUserId }).eq('id', target.id)
       } else {
-        const { error } = await admin.auth.admin.updateUserById(authUserId, { password })
+        const { error } = await admin.auth.admin.updateUserById(authUserId, { password: derived })
         if (error) throw error
       }
+      await admin.from('users').update({
+        auth_user_id: authUserId, password_hash: password, password_salt: null,
+        failed_login_attempts: 0, locked_until: null,
+      }).eq('id', target.id)
       return reply({ success: true })
     }
 

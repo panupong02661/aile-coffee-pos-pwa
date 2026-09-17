@@ -14,10 +14,15 @@ interface AuthUser {
   avatar_url?: string;
 }
 
+export interface LoginResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 }
 
@@ -65,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`);
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
       const { data, error } = await supabase.functions.invoke('staff-auth', {
         body: { action: 'login', username, password },
@@ -73,23 +78,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Auth RPC error:', error);
-        showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
-        return false;
+        return { success: false, message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง' };
       }
 
       const result = data as { success?: boolean; session?: { access_token: string; refresh_token: string }; message?: string };
       if (!result?.success || !result.session) {
-        showToast('ข้อผิดพลาด', result?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'destructive');
-        return false;
+        const message = result?.message === 'Account temporarily locked'
+          ? 'บัญชีถูกล็อกชั่วคราว กรุณารอ 15 นาทีแล้วลองใหม่'
+          : 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+        return { success: false, message };
       }
       const { error: sessionError } = await supabase.auth.setSession(result.session);
       if (sessionError) throw sessionError;
       showToast('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว');
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ', 'destructive');
-      return false;
+      return { success: false, message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง' };
     }
   };
 
