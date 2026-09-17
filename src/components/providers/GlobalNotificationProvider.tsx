@@ -342,9 +342,13 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
               globalProcessedOrders.delete(notificationCacheKey);
             }
           }
-          
-          // Show UI notification and sound ONLY for online orders
-          console.log(`🔔 Preparing UI notification for ONLINE order: ${order.order_number}`);
+
+          // POS orders: external notifications only, no popup/sound on screen
+          if (isPosOrder) {
+            console.log(`🔕 Skipping UI popup/sound for POS order: ${order.order_number}`);
+            return;
+          }
+
           await handleNewOrderUI({
             orderId: order.id,
             orderNumber: order.order_number,
