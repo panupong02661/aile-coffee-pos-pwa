@@ -132,7 +132,31 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
         .filter((d: any) => d.shops)
         .map((d: any) => d.shops as ShopInfo);
 
+      // Fallback: user has no explicit assignment -> use their own shop_id
+      if (shops.length === 0) {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('shop_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (userRow?.shop_id) {
+          const { data: shopRow } = await supabase
+            .from('shops')
+            .select('id, shop_name, branch_name, branch_code, database_mode')
+            .eq('id', userRow.shop_id)
+            .maybeSingle();
+
+          if (shopRow) {
+            setAllShops([shopRow as ShopInfo]);
+            setCurrentShop(shopRow as ShopInfo);
+            return;
+          }
+        }
+      }
+
       setAllShops(shops);
+
 
       // Set primary shop as current
       const primaryAssignment = (data || []).find((d: any) => d.is_primary);
