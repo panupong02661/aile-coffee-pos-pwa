@@ -39,6 +39,9 @@ export interface DatabaseAddonGroup {
   allow_multiple: boolean;
   sort_order: number;
   is_active: boolean;
+  media_type: 'none' | 'icon' | 'image';
+  icon_name?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +53,9 @@ export interface DatabaseAddon {
   addon_group_id?: string;
   sort_order: number;
   is_active: boolean;
+  media_type: 'none' | 'icon' | 'image';
+  icon_name?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
   addon_groups?: {
@@ -57,6 +63,10 @@ export interface DatabaseAddon {
     name: string;
     is_required: boolean;
     allow_multiple: boolean;
+    sort_order?: number;
+    media_type?: 'none' | 'icon' | 'image';
+    icon_name?: string;
+    image_url?: string;
   };
 }
 
@@ -326,7 +336,10 @@ export const useSupabaseData = () => {
           name,
           is_required,
           allow_multiple,
-          sort_order
+          sort_order,
+          media_type,
+          icon_name,
+          image_url
         )
       `)
       .order('sort_order');
