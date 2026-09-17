@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Shield, User, Edit, Plus, Trash2, Search, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
+import { Shield, User, Edit, Plus, Trash2, Eye, EyeOff, Search, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
