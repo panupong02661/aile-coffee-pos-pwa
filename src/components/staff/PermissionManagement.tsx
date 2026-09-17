@@ -79,6 +79,12 @@ const ALL_PERMISSIONS = [
   { key: 'printer-settings', label: 'เครื่องพิมพ์', group: 'ตั้งค่า' },
   { key: 'wifi-vouchers', label: 'WiFi สำหรับลูกค้า', group: 'ตั้งค่า' },
   { key: 'app-build-guide', label: 'สร้างแอปมือถือ', group: 'ตั้งค่า' },
+  { key: 'shift-close', label: 'สรุปกะ / ปิดรอบขาย', group: 'POS และ Dashboard' },
+  { key: 'shop-benchmark', label: 'Benchmark ร้านค้า', group: 'POS และ Dashboard' },
+  { key: 'delivery-tracking', label: 'ติดตามเดลิเวอรี่', group: 'หน้าร้าน' },
+  { key: 'queue-management', label: 'ระบบคิว', group: 'หน้าร้าน' },
+  { key: 'queue-display', label: 'จอแสดงคิว', group: 'หน้าร้าน' },
+  { key: 'table-management', label: 'จัดการโต๊ะ', group: 'หน้าร้าน' },
 ];
 
 interface UserData {
