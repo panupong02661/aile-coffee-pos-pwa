@@ -27,6 +27,16 @@ const sha256Base64 = async (value: string) => {
   return btoa(String.fromCharCode(...new Uint8Array(digest)))
 }
 
+// Auth passwords must be >= 6 chars; legacy staff passwords can be shorter.
+// Derive a deterministic strong password from the username + real password.
+const authPassword = async (username: string, password: string) => {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`aile-pos:${username.trim().toLowerCase()}:${password}`),
+  )
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 const requireAdmin = async (req: Request) => {
   const authorization = req.headers.get('Authorization') ?? ''
   const token = authorization.replace(/^Bearer\s+/i, '')
