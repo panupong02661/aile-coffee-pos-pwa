@@ -187,7 +187,15 @@ const ReceiptPreview = ({
   return (
     <Card className={compact ? "border-0 shadow-none" : ""}>
       <CardContent className={compact ? "p-2" : "pt-6"}>
+        {(usingDefaults || loadError) && (
+          <div className="mx-auto mb-2 max-w-sm rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
+            {loadError
+              ? 'โหลดการตั้งค่าใบเสร็จไม่สำเร็จ กำลังแสดงรูปแบบเริ่มต้น'
+              : 'สาขานี้ยังไม่ได้ตั้งค่าใบเสร็จ กำลังแสดงรูปแบบเริ่มต้น'}
+          </div>
+        )}
         <div className={`mx-auto bg-white border-2 border-dashed border-gray-300 font-mono text-sm ${compact ? "max-w-[280px] p-3" : "max-w-sm p-6"}`}>
+
           {/* Logo */}
           {effectiveReceiptSettings.show_logo && effectiveShopSettings.logo_url && (
             <div className="text-center mb-4">
