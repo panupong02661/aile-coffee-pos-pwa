@@ -422,13 +422,22 @@ const PosCartV2 = ({
               </Popover>
             )}
 
-            {tables.length > 0 && (
+            {tables.length === 0 ? (
+              <button
+                disabled
+                title="สาขานี้ยังไม่มีโต๊ะ"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--posv2-surface))] text-[hsl(var(--posv2-ink-soft))] opacity-50"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+              </button>
+            ) : (
               <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
                 <PopoverTrigger asChild>
                   <button className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--posv2-surface))] text-[hsl(var(--posv2-ink-soft))] active:scale-95">
                     <ArrowRightLeft className="h-3.5 w-3.5" />
                   </button>
                 </PopoverTrigger>
+
                 <PopoverContent className="w-40 p-1" align="end">
                   <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs"
                     onClick={() => { setTablePopoverOpen(false); setIsMoveDialogOpen(true); }}>
