@@ -696,7 +696,13 @@ const PaymentModal = ({
       // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
       console.log('[PaymentModal] 📦 Saving to database...');
       const actualMethod = isMultiPay ? 'cash' as PaymentMethod : paymentMethod;
-      const savedOrder = await saveOrderToDatabase(actualMethod);
+      const savedOrder = await Promise.race([
+        saveOrderToDatabase(actualMethod),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('การบันทึกออเดอร์ใช้เวลานานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')), 20000)
+        ),
+      ]);
+
       
       const dbTime = Date.now() - startTime;
       console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
