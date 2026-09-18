@@ -301,8 +301,33 @@ npx cap run ios`} />
                     </p>
                   </div>
                 </NativeStep>
+
+                <NativeStep step={6} title="อัปเดตแอปที่ติดตั้งไปแล้ว (เมื่อล็อกอินไม่ได้)">
+                  <p className="text-sm text-muted-foreground">
+                    ถ้าเครื่องที่ติดตั้ง APK ไว้เข้าสู่ระบบไม่ได้ แปลว่าแอปในเครื่องยังเป็นโค้ดเก่า
+                    ให้บิลด์ APK ใหม่แล้วติดตั้งทับ (ไม่ต้องถอนแอป ข้อมูลและการตั้งค่าเดิมยังอยู่)
+                  </p>
+                  <CodeBlock code={`git pull
+npm install
+npm run build
+npx cap sync android
+# แล้วเปิด Android Studio > Build > Build APK(s)`} />
+                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mt-2">
+                    <p className="text-sm text-amber-800">
+                      <strong>⚠️ สำคัญ:</strong> ต้องเซ็นไฟล์ APK ด้วย keystore เดิม จึงจะติดตั้งทับของเดิมได้
+                      หากใช้ keystore คนละตัว ต้องถอนแอปเก่าออกก่อน
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
+                    <p className="text-sm text-blue-800">
+                      ตรวจเวอร์ชันได้ที่มุมล่างของหน้าเข้าสู่ระบบ ถ้าเลขบิลด์ในเครื่องเก่ากว่าบนเว็บ แปลว่าต้องอัปเดต
+                      ระหว่างรอ ใช้งานผ่านเบราว์เซอร์แล้วกด "เพิ่มลงหน้าจอโฮม" ได้ทันที
+                    </p>
+                  </div>
+                </NativeStep>
               </CardContent>
             </Card>
+
 
             {/* Option B: App Store */}
             <Card className="border-2 border-purple-200">
