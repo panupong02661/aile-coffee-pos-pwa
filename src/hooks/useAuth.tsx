@@ -78,6 +78,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Auth RPC error:', error);
+        const raw = `${error.message ?? ''} ${(error as { status?: number }).status ?? ''}`.toLowerCase();
+        const outdated = raw.includes('404')
+          || raw.includes('401')
+          || raw.includes('403')
+          || raw.includes('pgrst202')
+          || raw.includes('not found')
+          || raw.includes('permission denied');
+        if (outdated) {
+          return {
+            success: false,
+            message: 'แอปที่ติดตั้งเป็นเวอร์ชันเก่า กรุณาอัปเดตแอป (หรือเปิดผ่านเบราว์เซอร์ชั่วคราว)',
+          };
+        }
         return { success: false, message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง' };
       }
 
