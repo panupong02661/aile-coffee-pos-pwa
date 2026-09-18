@@ -189,10 +189,10 @@ const ReceiptPreview = ({
       <CardContent className={compact ? "p-2" : "pt-6"}>
         <div className={`mx-auto bg-white border-2 border-dashed border-gray-300 font-mono text-sm ${compact ? "max-w-[280px] p-3" : "max-w-sm p-6"}`}>
           {/* Logo */}
-          {receiptSettings.show_logo && shopSettings.logo_url && (
+          {effectiveReceiptSettings.show_logo && effectiveShopSettings.logo_url && (
             <div className="text-center mb-4">
               <img
-                src={shopSettings.logo_url}
+                src={effectiveShopSettings.logo_url}
                 alt="Logo"
                 className="w-24 h-24 mx-auto object-contain"
               />
@@ -200,48 +200,48 @@ const ReceiptPreview = ({
           )}
 
           {/* Shop Info */}
-          {(receiptSettings.show_shop_name || receiptSettings.show_shop_address || receiptSettings.show_shop_phone) && (
+          {(effectiveReceiptSettings.show_shop_name || effectiveReceiptSettings.show_shop_address || effectiveReceiptSettings.show_shop_phone) && (
             <div className="text-center mb-4">
-              {receiptSettings.show_shop_name && (
-                <div className="font-bold text-lg">{shopSettings.shop_name}</div>
+              {effectiveReceiptSettings.show_shop_name && (
+                <div className="font-bold text-lg">{effectiveShopSettings.shop_name}</div>
               )}
-              {receiptSettings.show_shop_address && shopSettings.address && (
-                <div className="text-xs mt-1">{shopSettings.address}</div>
+              {effectiveReceiptSettings.show_shop_address && effectiveShopSettings.address && (
+                <div className="text-xs mt-1">{effectiveShopSettings.address}</div>
               )}
-              {receiptSettings.show_shop_phone && shopSettings.phone && (
-                <div className="text-xs">โทร: {shopSettings.phone}</div>
+              {effectiveReceiptSettings.show_shop_phone && effectiveShopSettings.phone && (
+                <div className="text-xs">โทร: {effectiveShopSettings.phone}</div>
               )}
-              {receiptSettings.show_shop_name && shopSettings.email && (
-                <div className="text-xs">Email: {shopSettings.email}</div>
+              {effectiveReceiptSettings.show_shop_name && effectiveShopSettings.email && (
+                <div className="text-xs">Email: {effectiveShopSettings.email}</div>
               )}
             </div>
           )}
 
           {/* Tax ID */}
-          {receiptSettings.show_tax_id && shopSettings.tax_id && (
+          {effectiveReceiptSettings.show_tax_id && effectiveShopSettings.tax_id && (
             <div className="text-center text-xs mb-4">
-              เลขประจำตัวผู้เสียภาษี: {shopSettings.tax_id}
+              เลขประจำตัวผู้เสียภาษี: {effectiveShopSettings.tax_id}
             </div>
           )}
 
           <Separator className="my-4" />
 
           {/* Date and Time */}
-          {receiptSettings.show_date_time && (
+          {effectiveReceiptSettings.show_date_time && (
             <div className="text-xs mb-2">
               วันที่: {new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH')}
             </div>
           )}
 
           {/* Order Number */}
-          {receiptSettings.show_order_number && orderNumber && (
+          {effectiveReceiptSettings.show_order_number && orderNumber && (
             <div className="text-xs mb-2">
               หมายเลขคำสั่งซื้อ: #{orderNumber}
             </div>
           )}
 
           {/* Queue Number */}
-          {(receiptSettings as any).show_queue_number && queueNumber && (
+          {(effectiveReceiptSettings as any).show_queue_number && queueNumber && (
             <div className="text-center mb-4">
               <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
                 <div className="text-xs text-gray-500">คิวของคุณ</div>
@@ -251,7 +251,7 @@ const ReceiptPreview = ({
           )}
 
           {/* Customer Info */}
-          {receiptSettings.show_customer_info && (memberName || memberPhone) && (
+          {effectiveReceiptSettings.show_customer_info && (memberName || memberPhone) && (
             <div className="text-xs mb-4">
               {memberName && <>ลูกค้า: {memberName}<br /></>}
               {memberPhone && <>โทร: {memberPhone}</>}
@@ -261,7 +261,7 @@ const ReceiptPreview = ({
           <Separator className="my-4" />
 
           {/* Item Details */}
-          {receiptSettings.show_item_details && cartItems.length > 0 && (
+          {effectiveReceiptSettings.show_item_details && cartItems.length > 0 && (
             <div className="mb-4">
               <div className="text-xs font-bold mb-2">รายการสินค้า</div>
               {cartItems.map((item, index) => (
@@ -290,7 +290,7 @@ const ReceiptPreview = ({
           <Separator className="my-4" />
 
           {/* Total */}
-          {receiptSettings.show_total && (
+          {effectiveReceiptSettings.show_total && (
             <div className="text-xs">
               <div className="flex justify-between mb-1">
                 <span>ยอดรวม:</span>
@@ -308,7 +308,7 @@ const ReceiptPreview = ({
                   <span>-{discountAmount.toLocaleString()} บาท</span>
                 </div>
               )}
-              {receiptSettings.show_tax && (
+              {effectiveReceiptSettings.show_tax && (
                 <div className="flex justify-between mb-1">
                   <span>ภาษี (7%):</span>
                   <span>{tax.toLocaleString()} บาท</span>
@@ -322,7 +322,7 @@ const ReceiptPreview = ({
           )}
 
           {/* Payment Method */}
-          {receiptSettings.show_payment_method && paymentMethod && (
+          {effectiveReceiptSettings.show_payment_method && paymentMethod && (
             <div className="text-xs mt-4">
               ชำระด้วย: {paymentMethod === 'cash' ? 'เงินสด' : paymentMethod === 'qr' ? 'QR Code' : 'PromptPay'}
             </div>
@@ -331,19 +331,19 @@ const ReceiptPreview = ({
           <Separator className="my-4" />
 
           {/* Footer Message */}
-          {receiptSettings.footer_message && (
+          {effectiveReceiptSettings.footer_message && (
             <div className="text-center text-xs mt-4">
-              {receiptSettings.footer_message}
+              {effectiveReceiptSettings.footer_message}
             </div>
           )}
 
           {/* WiFi Voucher Section */}
-          {wifiVoucher && receiptSettings.show_wifi_voucher && (
+          {wifiVoucher && effectiveReceiptSettings.show_wifi_voucher && (
             <>
               <Separator className="my-4" />
-              {shopSettings?.wifi_header_text && (
+              {effectiveShopSettings?.wifi_header_text && (
                 <div className="text-center text-xs mb-2">
-                  {shopSettings.wifi_header_text}
+                  {effectiveShopSettings.wifi_header_text}
                 </div>
               )}
               <div className="border-2 border-red-600 rounded-lg p-3 mt-4">
@@ -356,7 +356,7 @@ const ReceiptPreview = ({
                   <div className="font-mono font-bold">{wifiVoucher.username}</div>
                   <div className="font-mono font-bold">{wifiVoucher.password}</div>
                 </div>
-                {wifiVoucher.qr_code_url && receiptSettings.show_wifi_qr && (
+                {wifiVoucher.qr_code_url && effectiveReceiptSettings.show_wifi_qr && (
                   <div className="flex justify-center mt-2">
                     <img 
                       src={wifiVoucher.qr_code_url} 
@@ -366,16 +366,16 @@ const ReceiptPreview = ({
                   </div>
                 )}
               </div>
-              {shopSettings?.wifi_footer_text && (
+              {effectiveShopSettings?.wifi_footer_text && (
                 <div className="text-center text-xs mt-2">
-                  {shopSettings.wifi_footer_text}
+                  {effectiveShopSettings.wifi_footer_text}
                 </div>
               )}
             </>
           )}
 
           {/* Queue QR Code */}
-          {(receiptSettings as any).show_queue_qr && queueNumber && (
+          {(effectiveReceiptSettings as any).show_queue_qr && queueNumber && (
             <QueueQRSection queueNumber={queueNumber} />
           )}
         </div>
