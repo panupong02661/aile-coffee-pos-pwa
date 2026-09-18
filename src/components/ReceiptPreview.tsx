@@ -59,6 +59,27 @@ interface ReceiptPreviewProps {
   compact?: boolean;
 }
 
+const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
+  show_logo: true,
+  show_shop_info: true,
+  show_shop_name: true,
+  show_shop_address: true,
+  show_shop_phone: true,
+  show_tax_id: false,
+  show_date_time: true,
+  show_order_number: true,
+  show_item_details: true,
+  show_total: true,
+  show_tax: false,
+  show_payment_method: true,
+  show_customer_info: true,
+  show_wifi_voucher: true,
+  show_wifi_qr: true,
+  show_queue_number: true,
+  show_queue_qr: false,
+  footer_message: 'ขอบคุณที่ใช้บริการ',
+};
+
 const ReceiptPreview = ({ 
   cartItems = [], 
   totalAmount = 0,
@@ -74,13 +95,21 @@ const ReceiptPreview = ({
 }: ReceiptPreviewProps) => {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [wifiVoucher, setWifiVoucher] = useState<WiFiVoucher | null>(propWifiVoucher || null);
-  const { shopId, loading: shopLoading } = useCurrentShop();
+  const { shopId, currentShop, loading: shopLoading } = useCurrentShop();
 
   useEffect(() => {
-    if (!shopLoading && shopId) {
-      fetchSettings();
+    if (shopLoading) return;
+    if (!shopId) {
+      // ไม่มีสาขา: ใช้ค่าเริ่มต้น ไม่ดึงข้อมูลข้ามสาขา
+      setShopSettings(null);
+      setReceiptSettings(null);
+      setIsLoading(false);
+      return;
     }
+    fetchSettings();
   }, [shopId, shopLoading, totalAmount, discountAmount, paymentMethod, memberName, memberPhone, orderNumber]);
 
   useEffect(() => {
@@ -91,9 +120,11 @@ const ReceiptPreview = ({
   }, [propWifiVoucher]);
 
   const fetchSettings = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
       // Fetch shop settings filtered by shop_id
-      const { data: shopData } = await supabase
+      const { data: shopData, error: shopErr } = await supabase
         .from('shop_settings')
         .select('*')
         .eq('shop_id', shopId!)
@@ -101,20 +132,25 @@ const ReceiptPreview = ({
         .maybeSingle();
 
       // Fetch receipt settings filtered by shop_id
-      const { data: receiptData } = await supabase
+      const { data: receiptData, error: receiptErr } = await supabase
         .from('receipt_settings')
         .select('*')
         .eq('shop_id', shopId!)
         .limit(1)
         .maybeSingle();
 
-      // WiFi voucher จะถูกส่งมาจาก prop เท่านั้น ไม่ fetch ใหม่
-      // เพื่อให้แสดง voucher ที่ถูกต้องตาม price tier และสถานะที่ใช้ไปแล้ว
+      if (shopErr || receiptErr) {
+        setLoadError((shopErr || receiptErr)!.message);
+      }
 
-      setShopSettings(shopData);
-      setReceiptSettings(receiptData);
-    } catch (error) {
+      // WiFi voucher จะถูกส่งมาจาก prop เท่านั้น ไม่ fetch ใหม่
+      setShopSettings(shopData as any);
+      setReceiptSettings(receiptData as any);
+    } catch (error: any) {
       console.error('Error fetching settings:', error);
+      setLoadError(error?.message || 'ไม่สามารถโหลดการตั้งค่าใบเสร็จได้');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -130,7 +166,14 @@ const ReceiptPreview = ({
   const tax = Math.round(subtotal * 0.07);
   const total = totalAmount || (subtotal + tax - discountAmount);
 
-  if (!shopSettings || !receiptSettings) {
+  // ใช้ค่าเริ่มต้นเมื่อสาขานี้ยังไม่ได้ตั้งค่า (ไม่ดึงของสาขาอื่น)
+  const effectiveReceiptSettings: ReceiptSettings = receiptSettings || DEFAULT_RECEIPT_SETTINGS;
+  const effectiveShopSettings: ShopSettings = shopSettings || {
+    shop_name: currentShop?.shop_name || '',
+  };
+  const usingDefaults = !receiptSettings || !shopSettings;
+
+  if (shopLoading || isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -139,6 +182,7 @@ const ReceiptPreview = ({
       </Card>
     );
   }
+
 
   return (
     <Card className={compact ? "border-0 shadow-none" : ""}>
