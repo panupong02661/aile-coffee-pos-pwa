@@ -9,6 +9,8 @@ import { DatabaseAddon } from '@/hooks/useSupabaseData';
 import AddonOption, { getSavedAddonStyleId, ADDON_STYLE_STORAGE_KEY } from './AddonOption';
 import { cn } from '@/lib/utils';
 import { AddonMedia } from './AddonMediaField';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -43,17 +45,20 @@ interface AddonModalProps {
 }
 
 const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOverride, previewMode = false }: AddonModalProps) => {
+  const { shopId } = useCurrentShop();
   const [selectedAddons, setSelectedAddons] = useState<DatabaseAddon[]>([]);
   const [displayConfig, setDisplayConfig] = useState<AddonDisplayConfig>(defaultConfig);
   const [styleId, setStyleId] = useState<number>(1);
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem('addonDisplayConfig');
+    if (!shopId) return;
+    const savedConfig = localStorage.getItem(buildScopedStorageKey('addonDisplayConfig', { shopId }))
+      ?? localStorage.getItem('addonDisplayConfig');
     if (savedConfig) {
       setDisplayConfig(JSON.parse(savedConfig));
     }
-    setStyleId(styleIdOverride ?? getSavedAddonStyleId());
-  }, [isOpen, styleIdOverride]);
+    setStyleId(styleIdOverride ?? getSavedAddonStyleId(shopId));
+  }, [isOpen, styleIdOverride, shopId]);
 
   if (!menuItem) return null;
 
@@ -109,14 +114,14 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn(
-        'max-w-4xl max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0',
+        'max-w-5xl max-h-[90vh] h-[90vh] p-0 flex flex-col overflow-hidden gap-0 bg-background',
         isClassic && 'border-[3px] border-[hsl(var(--addon-classic-ink))] bg-[hsl(var(--addon-classic-paper))]',
         isPixel && 'border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-yellow)/0.16)] rounded-md',
         isFloating && 'max-w-2xl border-0 bg-[hsl(var(--addon-float-surface))] rounded-[28px] shadow-2xl',
         isLeftLabel && 'bg-[hsl(var(--addon-left-surface))] rounded-2xl',
-        isMagazine && 'max-w-5xl bg-[hsl(var(--addon-magazine-paper))] rounded-2xl'
+        isMagazine && 'max-w-6xl bg-[hsl(var(--addon-magazine-paper))] rounded-2xl'
       )}>
-        <DialogHeader className={cn('flex-shrink-0 border-b px-4 py-3 bg-background', isClassic && 'bg-transparent text-center py-5', isPixel && 'bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] border-0 text-center', isFloating && 'bg-transparent border-0 px-8 pt-7 pb-2', isLeftLabel && 'bg-transparent px-6 py-5', isMagazine && 'bg-foreground text-background text-center py-4')}>
+        <DialogHeader className={cn('flex-shrink-0 border-b px-4 py-2 bg-background', isClassic && 'bg-transparent text-center py-3', isPixel && 'bg-[hsl(var(--addon-pixel-yellow)/0.16)] text-[hsl(var(--addon-pixel-ink))] border-0 text-center', isFloating && 'bg-transparent border-0 px-6 pt-4 pb-1', isLeftLabel && 'bg-transparent px-5 py-3', isMagazine && 'bg-[hsl(var(--addon-magazine-paper))] text-[hsl(var(--addon-magazine-ink))] text-center py-2')}>
           {menuItem.image && !isMagazine && (
             <img
               src={menuItem.image}
@@ -125,7 +130,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
                 'object-cover',
                 !isClassic && !isFloating && !isLeftLabel && 'mx-auto mb-2 h-24 w-full max-w-sm rounded-lg',
                 isClassic && 'mx-auto mb-2 h-28 w-28 rounded-full border-4 border-[hsl(var(--addon-classic-cream))] shadow-md',
-                isFloating && 'absolute right-10 top-10 h-44 w-44 rounded-full shadow-2xl',
+                isFloating && 'absolute right-8 top-7 h-36 w-36 rounded-full shadow-2xl',
                 isLeftLabel && 'h-32 w-32 rounded-xl float-left mr-5'
               )}
             />
@@ -137,12 +142,12 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
         </DialogHeader>
 
         {isMagazine && menuItem.image && (
-          <img src={menuItem.image} alt={menuItem.name} className="absolute bottom-0 left-0 top-[72px] hidden h-[calc(100%-72px)] w-[42%] object-cover md:block" />
+          <img src={menuItem.image} alt={menuItem.name} className="absolute bottom-0 left-0 top-[56px] hidden h-[calc(100%-56px)] w-[36%] object-cover md:block" />
         )}
 
         {/* Scrollable Body */}
-        <div className={cn('flex-1 overflow-y-auto px-4 py-3', isClassic && 'px-6', isFloating && 'px-8 pt-3', isLeftLabel && 'px-6', isMagazine && 'md:ml-[42%] px-5')}>
-          <div className={cn('grid grid-cols-1 md:grid-cols-2 gap-3', isReferenceTemplate && 'md:grid-cols-1')}>
+        <div className={cn('flex-1 overflow-y-auto px-3 py-2', isClassic && 'px-5', isFloating && 'px-6 pt-2', isLeftLabel && 'px-5', isMagazine && 'md:ml-[36%] px-4')}>
+          <div className={cn('grid grid-cols-1 md:grid-cols-2 gap-2', isReferenceTemplate && 'md:grid-cols-1')}>
             {addonGroups.map((groupName, groupIndex) => {
               if (!groupName) return null;
               const groupAddons = addons.filter(addon => addon.addon_groups?.name === groupName);
@@ -162,7 +167,7 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
               const color = groupColors[groupIndex % groupColors.length];
 
               return (
-                <div key={groupName} className={cn(`space-y-1.5 border rounded-lg p-3 ${color.border} ${color.bg}`, isClassic && 'border-0 border-t border-dotted rounded-none bg-transparent py-4', isPixel && 'border-0 border-t-4 rounded-none bg-transparent', isFloating && 'border-0 bg-transparent px-0 py-3', isLeftLabel && 'grid grid-cols-[125px_1fr] items-center border-0 border-b rounded-none bg-transparent px-0 py-4', isMagazine && 'border-0 border-b rounded-none bg-transparent px-0 py-4')}>
+                <div key={groupName} className={cn(`space-y-1 border rounded-lg p-2 ${color.border} ${color.bg}`, isClassic && 'border-0 border-t border-dotted rounded-none bg-transparent py-2', isPixel && 'border-0 border-t-4 rounded-none bg-transparent', isFloating && 'border-0 bg-transparent px-0 py-2', isLeftLabel && 'grid grid-cols-[110px_1fr] items-center border-0 border-b rounded-none bg-transparent px-0 py-2', isMagazine && 'border-0 border-b rounded-none bg-transparent px-0 py-2')}>
                   <h3 className={cn('flex items-center gap-2 font-bold text-base text-foreground', isPixel && 'inline-flex w-fit bg-[hsl(var(--addon-pixel-ink))] text-[hsl(var(--addon-classic-cream))] px-3 py-1 font-mono', isMagazine && 'border-l-4 border-[hsl(var(--addon-magazine-accent))] pl-3')}>
                     <AddonMedia mediaType={groupAddons[0]?.addon_groups?.media_type} iconName={groupAddons[0]?.addon_groups?.icon_name} imageUrl={groupAddons[0]?.addon_groups?.image_url} imageClassName="h-8 w-8 rounded-md" />
                     {groupName} {isRequired && <span className="text-destructive">*</span>}
@@ -190,8 +195,8 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
         </div>
 
         {/* Sticky Footer */}
-        <div className={cn('flex-shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]', isClassic && 'bg-transparent', isPixel && 'bg-transparent border-0', isFloating && 'bg-transparent border-0 px-8 pb-6', isMagazine && 'md:ml-[42%] bg-transparent')}>
-          <div className="flex justify-between items-center mb-3">
+        <div className={cn('flex-shrink-0 border-t bg-background px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]', isClassic && 'bg-transparent', isPixel && 'bg-transparent border-0', isFloating && 'bg-transparent border-0 px-6 pb-3', isMagazine && 'md:ml-[36%] bg-transparent')}>
+          <div className="flex justify-between items-center mb-2">
             <span className="font-bold text-lg">ราคารวม:</span>
             <span className="text-2xl font-bold text-muted-foreground">฿{totalPrice}</span>
           </div>
@@ -199,13 +204,13 @@ const AddonModal = ({ isOpen, onClose, menuItem, addons, onAddToCart, styleIdOve
             <Button
               variant="outline"
               onClick={onClose}
-              className="flex-1 font-bold text-lg h-12"
+              className="flex-1 font-bold text-base h-10"
             >
               ยกเลิก
             </Button>
             <Button
               onClick={handleAddToCart}
-              className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-lg h-12', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-green))] font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
+              className={cn('flex-1 bg-primary hover:bg-primary/90 font-bold text-base h-10', isClassic && 'rounded-xl bg-[hsl(var(--addon-classic-ink))] text-[hsl(var(--addon-classic-cream))]', isPixel && 'rounded-md border-4 border-[hsl(var(--addon-pixel-ink))] bg-[hsl(var(--addon-pixel-green))] font-mono shadow-[4px_4px_0_hsl(var(--addon-pixel-ink))]', isFloating && 'rounded-full bg-[hsl(var(--addon-float-accent))]', isMagazine && 'bg-[hsl(var(--addon-magazine-accent))] rounded-xl')}
             >
               {previewMode ? 'ปุ่มเพิ่มลงตะกร้า' : 'เพิ่มลงตะกร้า'}
             </Button>

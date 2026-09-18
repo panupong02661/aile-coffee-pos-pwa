@@ -739,7 +739,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
           'flex-shrink-0 z-20',
           classic
             ? `bg-background border-b border-border ${isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'}`
-            : `bg-transparent ${isMobile ? 'pt-4 p-1' : 'pt-3 py-1 px-1.5'}`
+            : `bg-transparent ${isMobile ? 'pt-4 px-1 pb-0' : 'pt-3 px-1.5 pb-0'}`
         )}>
           <Header
             onToggleSidebar={handleToggleSidebar}
