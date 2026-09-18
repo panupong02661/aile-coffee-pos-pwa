@@ -583,21 +583,31 @@ const PaymentModal = ({
       
       console.log(`[PaymentModal] 🚀 Background tasks started (not waiting)`);
       
-      // 4. Create queue ticket (fire-and-forget)
+      // 4. Create queue ticket (time-bounded, must never block checkout)
       let queueNumber: number | null = null;
       try {
-        queueNumber = await createQueueFromOrder(
+        const queuePromise = createQueueFromOrder(
           order.id,
           shopId || null,
           selectedMember?.name || null,
           selectedMember?.phone || null
-        );
+        ).catch((err) => {
+          console.warn('[PaymentModal] Queue error:', err);
+          return null;
+        });
+        queueNumber = await Promise.race([
+          queuePromise,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
         if (queueNumber) {
           console.log(`[PaymentModal] ✅ Queue ticket #${queueNumber} created`);
+        } else {
+          console.warn('[PaymentModal] Queue creation slow/failed — continuing in background');
         }
       } catch (err) {
         console.warn('[PaymentModal] Queue error:', err);
       }
+
 
       console.log('[PaymentModal] Order processing completed successfully');
       
