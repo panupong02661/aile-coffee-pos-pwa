@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Coffee, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { APP_VERSION, APP_BUILD_LABEL } from '@/lib/appVersion';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -110,6 +111,9 @@ const LoginPage = () => {
               <p><span className="font-medium text-foreground">Manager:</span> ผู้จัดการ</p>
               <p><span className="font-medium text-foreground">Staff:</span> พนักงาน</p>
             </div>
+            <p className="mt-4 text-[11px] text-muted-foreground/70">
+              เวอร์ชัน {APP_VERSION} · บิลด์ {APP_BUILD_LABEL}
+            </p>
           </div>
         </CardContent>
       </Card>
