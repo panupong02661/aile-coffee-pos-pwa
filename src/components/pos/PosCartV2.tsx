@@ -317,7 +317,7 @@ const PosCartV2 = ({
     <>
       <aside className="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-[hsl(var(--posv2-card))] border border-[hsl(var(--posv2-line))] shadow-[var(--posv2-shadow-lift)]">
         {/* Head — fixed */}
-        <div className="shrink-0 space-y-2 px-4 pb-3 pt-4">
+        <div className="shrink-0 space-y-1 px-3 pb-2 pt-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <h2 className="truncate text-lg font-extrabold text-[hsl(var(--posv2-ink))]">
@@ -464,7 +464,7 @@ const PosCartV2 = ({
         </div>
 
         {/* Scroll body */}
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-2.5">
           {cartItems.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 py-10 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[hsl(var(--posv2-surface))]">
@@ -474,7 +474,7 @@ const PosCartV2 = ({
             </div>
           ) : (
             cartItems.map((item) => (
-              <div key={item.id} className="rounded-2xl bg-[hsl(var(--posv2-surface))] border border-[hsl(var(--posv2-line))] p-2.5">
+              <div key={item.id} className="rounded-xl bg-[hsl(var(--posv2-surface))] border border-[hsl(var(--posv2-line))] px-2 py-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-[hsl(var(--posv2-ink))]">
@@ -496,11 +496,11 @@ const PosCartV2 = ({
                   </span>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1 rounded-xl bg-[hsl(var(--posv2-card))] p-1 shadow-[var(--posv2-shadow-soft)]">
+                <div className="mt-1 flex items-center justify-between">
+                  <div className="flex items-center gap-1 rounded-lg bg-[hsl(var(--posv2-card))] p-0.5 shadow-[var(--posv2-shadow-soft)]">
                     <button
                       onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-[hsl(var(--posv2-ink-soft))] active:scale-90"
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-[hsl(var(--posv2-ink-soft))] active:scale-90"
                     >
                       <Minus className="h-3.5 w-3.5" strokeWidth={3} />
                     </button>
@@ -509,7 +509,7 @@ const PosCartV2 = ({
                     </span>
                     <button
                       onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--posv2-ink))] text-[hsl(var(--posv2-card))] active:scale-90"
+                      className="flex h-6 w-6 items-center justify-center rounded-md bg-[hsl(var(--posv2-ink))] text-[hsl(var(--posv2-card))] active:scale-90"
                     >
                       <Plus className="h-3.5 w-3.5" strokeWidth={3} />
                     </button>
@@ -520,7 +520,7 @@ const PosCartV2 = ({
                       onClick={() => handleItemDiscountClick(item)}
                       title="ส่วนลดรายการ"
                       className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-xl bg-[hsl(var(--posv2-card))] text-[hsl(var(--posv2-ink-soft))] shadow-[var(--posv2-shadow-soft)] active:scale-90',
+                        'flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--posv2-card))] text-[hsl(var(--posv2-ink-soft))] shadow-[var(--posv2-shadow-soft)] active:scale-90',
                         item.item_discount > 0 && 'bg-[hsl(var(--posv2-accent))] text-[hsl(var(--posv2-accent-fg))]'
                       )}
                     >
@@ -528,7 +528,7 @@ const PosCartV2 = ({
                     </button>
                     <button
                       onClick={() => onRemoveItem(item.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[hsl(var(--posv2-danger)/0.12)] text-[hsl(var(--posv2-danger))] active:scale-90"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--posv2-danger)/0.12)] text-[hsl(var(--posv2-danger))] active:scale-90"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -540,8 +540,8 @@ const PosCartV2 = ({
         </div>
 
         {/* Fixed footer */}
-        <div className="mt-auto shrink-0 rounded-t-3xl bg-[hsl(var(--posv2-surface))] border-t border-[hsl(var(--posv2-line))] px-4 pb-6 pt-4">
-          <div className="mb-4 space-y-1">
+        <div className="mt-auto shrink-0 rounded-t-2xl bg-[hsl(var(--posv2-surface))] border-t border-[hsl(var(--posv2-line))] px-3 pb-2.5 pt-2">
+          <div className="mb-2 space-y-0.5">
             <div className="flex justify-between text-xs text-[hsl(var(--posv2-ink-soft))]">
               <span>ยอดรวมย่อย</span>
               <span>฿{subtotal.toLocaleString()}</span>
@@ -561,21 +561,21 @@ const PosCartV2 = ({
               </span>
               <span>-฿{billDiscountAmount.toLocaleString()}</span>
             </button>
-            <div className="flex items-end justify-between border-t border-dashed border-[hsl(var(--posv2-line))] pt-2">
+            <div className="flex items-end justify-between border-t border-dashed border-[hsl(var(--posv2-line))] pt-1">
               <span className="text-sm font-bold text-[hsl(var(--posv2-ink))]">ยอดสุทธิ</span>
-              <span className="text-2xl font-black tracking-tight text-[hsl(var(--posv2-accent))]">
+              <span className="text-xl font-black tracking-tight text-[hsl(var(--posv2-accent))]">
                 ฿{total.toLocaleString()}
               </span>
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-4 gap-1.5">
+          <div className="mb-2 grid grid-cols-4 gap-1">
             {shortcuts.map(({ icon: Icon, label, onClick, danger, active }) => (
               <button
                 key={label}
                 onClick={onClick}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[10px] font-bold transition-all active:scale-95 border',
+                  'flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-bold transition-all active:scale-95 border',
                   danger
                     ? 'bg-[hsl(var(--posv2-danger)/0.12)] text-[hsl(var(--posv2-danger))] border-[hsl(var(--posv2-danger)/0.25)]'
                     : active
@@ -592,7 +592,7 @@ const PosCartV2 = ({
           <button
             disabled={cartItems.length === 0}
             onClick={() => setIsPaymentModalOpen(true)}
-            className="w-full rounded-2xl bg-[hsl(var(--posv2-ink))] py-4 text-lg font-extrabold text-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-lift)] transition-all active:scale-[0.98] disabled:opacity-40"
+            className="w-full rounded-xl bg-[hsl(var(--posv2-ink))] py-2.5 text-base font-extrabold text-[hsl(var(--posv2-card))] shadow-[var(--posv2-shadow-lift)] transition-all active:scale-[0.98] disabled:opacity-40"
           >
             ชำระเงิน
           </button>

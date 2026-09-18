@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { Settings, Palette, Type, Save, LayoutGrid } from 'lucide-react';
-import AddonOption, { ADDON_STYLES, ADDON_STYLE_STORAGE_KEY, getSavedAddonStyleId } from './AddonOption';
+import AddonOption, { ADDON_STYLES, getAddonStyleStorageKey, getSavedAddonStyleId } from './AddonOption';
 import AddonModal from './AddonModal';
 import type { MenuItem } from '@/types';
 import type { DatabaseAddon } from '@/hooks/useSupabaseData';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface AddonDisplayConfig {
   fontSize: string;
@@ -71,27 +73,37 @@ const previewAddons: DatabaseAddon[] = [
 }));
 
 const AddonDisplaySettings = () => {
+  const { shopId } = useCurrentShop();
   const [config, setConfig] = useState<AddonDisplayConfig>(defaultConfig);
   const [styleId, setStyleId] = useState<number>(1);
   const [previewStyleId, setPreviewStyleId] = useState<number | null>(null);
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem('addonDisplayConfig');
+    if (!shopId) return;
+    const configKey = buildScopedStorageKey('addonDisplayConfig', { shopId });
+    const savedConfig = localStorage.getItem(configKey) ?? localStorage.getItem('addonDisplayConfig');
     if (savedConfig) {
       setConfig(JSON.parse(savedConfig));
+    } else {
+      setConfig(defaultConfig);
     }
-    setStyleId(getSavedAddonStyleId());
-  }, []);
+    setStyleId(getSavedAddonStyleId(shopId));
+  }, [shopId]);
 
   const handleSave = () => {
-    localStorage.setItem('addonDisplayConfig', JSON.stringify(config));
-    localStorage.setItem(ADDON_STYLE_STORAGE_KEY, styleId.toString());
+    if (!shopId) return;
+    localStorage.setItem(buildScopedStorageKey('addonDisplayConfig', { shopId }), JSON.stringify(config));
+    localStorage.setItem(getAddonStyleStorageKey(shopId), styleId.toString());
     toast.success('บันทึกการตั้งค่าเรียบร้อยแล้ว');
   };
 
   const handleReset = () => {
     setConfig(defaultConfig);
-    localStorage.removeItem('addonDisplayConfig');
+    if (shopId) {
+      localStorage.removeItem(buildScopedStorageKey('addonDisplayConfig', { shopId }));
+      localStorage.removeItem(getAddonStyleStorageKey(shopId));
+      setStyleId(1);
+    }
     toast.success('รีเซ็ตการตั้งค่าเรียบร้อยแล้ว');
   };
 

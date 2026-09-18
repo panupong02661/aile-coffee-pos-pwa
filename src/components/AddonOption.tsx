@@ -1,5 +1,6 @@
 import { Check, CircleSlash2, Coffee, Leaf, Sparkles } from 'lucide-react';
 import { AddonMedia } from './AddonMediaField';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 export interface AddonDisplayConfig {
   fontSize: string;
@@ -54,8 +55,12 @@ export const ADDON_STYLES = [
 
 export const ADDON_STYLE_STORAGE_KEY = 'addonStyleId';
 
-export const getSavedAddonStyleId = (): number => {
-  const saved = localStorage.getItem(ADDON_STYLE_STORAGE_KEY);
+export const getAddonStyleStorageKey = (shopId?: string | null) =>
+  buildScopedStorageKey(ADDON_STYLE_STORAGE_KEY, { shopId });
+
+export const getSavedAddonStyleId = (shopId?: string | null): number => {
+  const scopedKey = getAddonStyleStorageKey(shopId);
+  const saved = localStorage.getItem(scopedKey) ?? localStorage.getItem(ADDON_STYLE_STORAGE_KEY);
   const parsed = saved ? parseInt(saved) : 1;
   return parsed >= 1 && parsed <= 26 ? parsed : 1;
 };
