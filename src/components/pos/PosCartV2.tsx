@@ -336,9 +336,10 @@ const PosCartV2 = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {tables.length > 0 && onSelectTable && (
+            {onSelectTable && (
               <Select
                 value={selectedTableId || 'none'}
+                disabled={tables.length === 0}
                 onValueChange={(val) => {
                   if (val === 'none') {
                     onSelectTable(null);
@@ -348,9 +349,9 @@ const PosCartV2 = ({
                   }
                 }}
               >
-                <SelectTrigger className="h-8 flex-1 rounded-xl border-0 bg-[hsl(var(--posv2-surface))] text-xs text-[hsl(var(--posv2-ink))]">
+                <SelectTrigger className="h-8 flex-1 rounded-xl border-0 bg-[hsl(var(--posv2-surface))] text-xs text-[hsl(var(--posv2-ink))] disabled:opacity-60">
                   <UtensilsCrossed className="mr-1 h-3 w-3 shrink-0" />
-                  <SelectValue placeholder="โต๊ะ" />
+                  <SelectValue placeholder={tables.length === 0 ? 'ยังไม่มีโต๊ะ' : 'โต๊ะ'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">ไม่เลือก</SelectItem>
@@ -367,6 +368,7 @@ const PosCartV2 = ({
                 </SelectContent>
               </Select>
             )}
+
 
             {onChangeBackdatedAt && (
               <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -420,13 +422,22 @@ const PosCartV2 = ({
               </Popover>
             )}
 
-            {tables.length > 0 && (
+            {tables.length === 0 ? (
+              <button
+                disabled
+                title="สาขานี้ยังไม่มีโต๊ะ"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--posv2-surface))] text-[hsl(var(--posv2-ink-soft))] opacity-50"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+              </button>
+            ) : (
               <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
                 <PopoverTrigger asChild>
                   <button className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--posv2-surface))] text-[hsl(var(--posv2-ink-soft))] active:scale-95">
                     <ArrowRightLeft className="h-3.5 w-3.5" />
                   </button>
                 </PopoverTrigger>
+
                 <PopoverContent className="w-40 p-1" align="end">
                   <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs"
                     onClick={() => { setTablePopoverOpen(false); setIsMoveDialogOpen(true); }}>
