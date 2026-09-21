@@ -182,10 +182,15 @@ const NotificationPage = () => {
   const saveSettings = async () => {
     try {
       setIsSaving(true);
-      
+
+      if (shopLoading || !shopId) {
+        throw new Error('ยังไม่พบข้อมูลสาขา กรุณารอสักครู่แล้วลองใหม่');
+      }
+
       const { data: existingData, error: selectError } = await supabase
         .from('notification_settings')
         .select('id')
+        .eq('shop_id', shopId)
         .maybeSingle();
 
       if (selectError) {
@@ -206,16 +211,24 @@ const NotificationPage = () => {
         result = await supabase
           .from('notification_settings')
           .update(settingsData)
-          .eq('id', existingData.id);
+          .eq('id', existingData.id)
+          .eq('shop_id', shopId)
+          .select('id');
       } else {
         result = await supabase
           .from('notification_settings')
           .insert({
             ...settingsData,
+            shop_id: shopId,
             sound_enabled: true,
             volume: 0.5,
             duration: 5
-          });
+          })
+          .select('id');
+      }
+
+      if (!result.error && (!result.data || result.data.length === 0)) {
+        throw new Error('ไม่มีสิทธิ์บันทึกการตั้งค่าของสาขานี้');
       }
 
       if (result.error) {
