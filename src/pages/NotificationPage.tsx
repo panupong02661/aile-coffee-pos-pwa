@@ -971,10 +971,10 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                       </Button>
                     </div>
                     {platform === 'line' && (
-                      <p className="text-xs text-muted-foreground">
-                        💡 {(config as any).type === 'group' 
-                          ? 'ใส่ LINE Group ID (เชิญบอทเข้ากลุ่มก่อน แล้วส่งข้อความใดๆ เพื่อรับ Group ID)'
-                          : 'ใส่ LINE User ID ของคุณ (หาได้จากการส่งข้อความมาที่บอท หรือจาก LINE Official Account Manager)'}
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">
+                        {(config as any).type === 'group' 
+                          ? '💡 วิธีรับ Group ID:\n1) เชิญ LINE Official Account (บอท) เข้ากลุ่ม\n2) พิมพ์ข้อความอะไรก็ได้ในกลุ่ม บอทจะตอบ Group ID กลับมา\n3) คัดลอก ID ที่ขึ้นต้นด้วย C มาวางในช่องนี้\n⚠️ ต้องเปิด "Allow bot to join group chats" ใน LINE Developers ก่อน'
+                          : '💡 ใส่ LINE User ID ของคุณ (หาได้จากการส่งข้อความมาที่บอท หรือจาก LINE Official Account Manager)'}
                       </p>
                     )}
                   </div>
