@@ -35,9 +35,11 @@ import {
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 const NotificationPage = () => {
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
