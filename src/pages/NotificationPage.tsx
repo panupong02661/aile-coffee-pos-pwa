@@ -35,9 +35,11 @@ import {
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
 
 const NotificationPage = () => {
   const { toast } = useToast();
+  const { shopId, loading: shopLoading } = useCurrentShop();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showDiscordGuide, setShowDiscordGuide] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -113,10 +115,11 @@ const NotificationPage = () => {
     }
   });
 
-  // โหลดข้อมูลการตั้งค่าจากฐานข้อมูล
+  // โหลดข้อมูลการตั้งค่าจากฐานข้อมูล (รอให้รู้สาขาปัจจุบันก่อน)
   useEffect(() => {
+    if (shopLoading || !shopId) return;
     loadSettings();
-  }, []);
+  }, [shopLoading, shopId]);
 
   const loadSettings = async () => {
     try {
@@ -124,6 +127,7 @@ const NotificationPage = () => {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .maybeSingle();
 
       if (error) {
@@ -178,10 +182,15 @@ const NotificationPage = () => {
   const saveSettings = async () => {
     try {
       setIsSaving(true);
-      
+
+      if (shopLoading || !shopId) {
+        throw new Error('ยังไม่พบข้อมูลสาขา กรุณารอสักครู่แล้วลองใหม่');
+      }
+
       const { data: existingData, error: selectError } = await supabase
         .from('notification_settings')
         .select('id')
+        .eq('shop_id', shopId)
         .maybeSingle();
 
       if (selectError) {
@@ -202,16 +211,24 @@ const NotificationPage = () => {
         result = await supabase
           .from('notification_settings')
           .update(settingsData)
-          .eq('id', existingData.id);
+          .eq('id', existingData.id)
+          .eq('shop_id', shopId)
+          .select('id');
       } else {
         result = await supabase
           .from('notification_settings')
           .insert({
             ...settingsData,
+            shop_id: shopId,
             sound_enabled: true,
             volume: 0.5,
             duration: 5
-          });
+          })
+          .select('id');
+      }
+
+      if (!result.error && (!result.data || result.data.length === 0)) {
+        throw new Error('ไม่มีสิทธิ์บันทึกการตั้งค่าของสาขานี้');
       }
 
       if (result.error) {
@@ -222,11 +239,11 @@ const NotificationPage = () => {
         title: 'บันทึกการตั้งค่าสำเร็จ ✅',
         description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
       toast({
         title: 'ไม่สามารถบันทึกการตั้งค่าได้',
-        description: 'กรุณาลองใหม่อีกครั้ง',
+        description: String(error?.message || 'กรุณาลองใหม่อีกครั้ง'),
         variant: 'destructive'
       });
     } finally {
