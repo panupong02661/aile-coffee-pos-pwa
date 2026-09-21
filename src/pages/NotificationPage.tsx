@@ -239,11 +239,11 @@ const NotificationPage = () => {
         title: 'บันทึกการตั้งค่าสำเร็จ ✅',
         description: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
       toast({
         title: 'ไม่สามารถบันทึกการตั้งค่าได้',
-        description: 'กรุณาลองใหม่อีกครั้ง',
+        description: String(error?.message || 'กรุณาลองใหม่อีกครั้ง'),
         variant: 'destructive'
       });
     } finally {
