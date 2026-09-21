@@ -763,21 +763,40 @@ ${topMenusList || 'ไม่มีข้อมูล'}
       }
 
       if (!lineToken || lineToken.trim() === '') {
-        console.log('LINE token check:', { type, lineToken, settings });
         toast({
-          title: 'ไม่พบ LINE User ID',
-          description: 'กรุณากรอก LINE User ID ในช่องด้านบน (ไม่ใช่ Channel Access Token)',
+          title: 'ไม่พบ LINE ID',
+          description: 'กรุณากรอก LINE User ID หรือ Group ID ในช่องด้านบน (ไม่ใช่ Channel Access Token)',
           variant: 'destructive'
         });
         return;
       }
-      
-      console.log('Sending LINE test message:', { type, userId: lineToken.split(':')[0] });
+
+      const targetId = (lineToken.includes(':') ? lineToken.split(':')[0] : lineToken).trim();
+      const isGroupMode = ((): boolean => {
+        if (type === 'ออเดอร์ออนไลน์') return settings.onlineOrders.platforms.line.type === 'group';
+        if (type === 'ออเดอร์ POS') return settings.posOrders.platforms.line.type === 'group';
+        if (type === 'รายงานประจำวัน') return (settings.dailyReports.platforms.line as any).type === 'group';
+        return (settings.monthlyReports.platforms.line as any).type === 'group';
+      })();
+
+      if (isGroupMode && !/^[CR][0-9a-f]{32}$/i.test(targetId)) {
+        toast({
+          title: 'Group ID ไม่ถูกต้อง',
+          description: 'Group ID ต้องขึ้นต้นด้วยตัว C (หรือ R สำหรับห้องแชท) และยาว 33 ตัวอักษร เชิญบอทเข้ากลุ่มแล้วพิมพ์ข้อความในกลุ่ม บอทจะตอบ Group ID กลับมา',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (!isGroupMode && !/^U[0-9a-f]{32}$/i.test(targetId)) {
+        toast({
+          title: 'User ID ไม่ถูกต้อง',
+          description: 'User ID ต้องขึ้นต้นด้วยตัว U และยาว 33 ตัวอักษร หากต้องการส่งเข้ากลุ่ม กรุณาเลือกประเภทการส่งเป็น Group',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       try {
-        // แยก token เป็น userId และ accessToken (ถ้ามี)
-        const [userId, accessToken] = lineToken.includes(':') ? lineToken.split(':') : [lineToken, ''];
-
         const testMessage = `🧪 ทดสอบระบบแจ้งเตือนร้านอาหาร
 
 ประเภท: ${type}
@@ -789,22 +808,32 @@ ${topMenusList || 'ไม่มีข้อมูล'}
         const { data, error } = await supabase.functions.invoke('line-messaging', {
           body: {
             action: 'send',
-            userId: userId,
+            userId: targetId,
             message: testMessage
           }
         });
 
         if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
         toast({
           title: 'ทดสอบสำเร็จ! ✅',
-          description: 'ข้อความทดสอบถูกส่งไปยัง LINE แล้ว',
+          description: isGroupMode ? 'ข้อความทดสอบถูกส่งเข้ากลุ่ม LINE แล้ว' : 'ข้อความทดสอบถูกส่งไปยัง LINE แล้ว',
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('LINE test error:', error);
+        const raw = String(error?.message || error);
+        let hint = raw;
+        if (raw.includes('403') || raw.toLowerCase().includes('forbidden')) {
+          hint = isGroupMode
+            ? 'บอทยังไม่ได้อยู่ในกลุ่มนี้ หรือถูกเตะออกจากกลุ่มแล้ว กรุณาเชิญ LINE Official Account เข้ากลุ่มก่อน'
+            : 'ผู้ใช้คนนี้ยังไม่ได้เพิ่มบอทเป็นเพื่อน หรือบล็อกบอทอยู่';
+        } else if (raw.includes('400')) {
+          hint = 'ID ที่กรอกไม่ถูกต้อง กรุณาคัดลอก ID ที่บอทตอบกลับมาให้ครบทุกตัวอักษร';
+        }
         toast({
           title: 'ทดสอบไม่สำเร็จ',
-          description: 'ไม่สามารถส่งข้อความไปยัง LINE ได้ กรุณาตรวจสอบ User ID และ Token',
+          description: hint,
           variant: 'destructive'
         });
       }
