@@ -115,10 +115,11 @@ const NotificationPage = () => {
     }
   });
 
-  // โหลดข้อมูลการตั้งค่าจากฐานข้อมูล
+  // โหลดข้อมูลการตั้งค่าจากฐานข้อมูล (รอให้รู้สาขาปัจจุบันก่อน)
   useEffect(() => {
+    if (shopLoading || !shopId) return;
     loadSettings();
-  }, []);
+  }, [shopLoading, shopId]);
 
   const loadSettings = async () => {
     try {
@@ -126,6 +127,7 @@ const NotificationPage = () => {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
+        .eq('shop_id', shopId)
         .maybeSingle();
 
       if (error) {
