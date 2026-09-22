@@ -158,12 +158,15 @@ serve(async (req) => {
       endOfDay: endOfDay.toISOString()
     });
 
-    // Get today's orders
-    const { data: todayOrders, error: ordersError } = await supabase
+    // Get today's orders (scoped to this shop)
+    let ordersQuery = supabase
       .from('orders')
       .select('id, total_amount, bill_discount, created_at')
       .gte('created_at', startOfDay.toISOString())
       .lte('created_at', endOfDay.toISOString())
+    if (shopId) ordersQuery = ordersQuery.eq('shop_id', shopId)
+
+    const { data: todayOrders, error: ordersError } = await ordersQuery
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError)
