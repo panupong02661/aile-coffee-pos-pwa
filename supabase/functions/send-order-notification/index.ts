@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.telegram.enabled && orderSettings.platforms.telegram.token) {
       console.log('🔵 Sending Telegram notification...');
       try {
-        await sendTelegramNotification(orderSettings.platforms.telegram.token, `${message}${discountText}`, orderData, orderItemsText);
+        await sendTelegramNotification(orderSettings.platforms.telegram.token, `${message}${discountText}`, orderData, orderItemsText, shopName);
         console.log('✅ Telegram notification sent successfully');
         results.telegram = 'success';
         sentCount++;
