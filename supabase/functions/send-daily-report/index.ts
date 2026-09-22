@@ -416,7 +416,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       }
     ],
     footer: {
-      text: `ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
+      text: `${reportData.shopName ? `${reportData.shopName} | ` : ''}ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
     },
     timestamp: new Date().toISOString()
   }
@@ -427,7 +427,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
+      content: `${shopLabel ? `${shopLabel}\n` : ''}📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
       embeds: [embed]
     })
   })
