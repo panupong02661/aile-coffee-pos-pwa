@@ -226,6 +226,10 @@ serve(async (req) => {
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10)
 
+    // ชื่อร้านของสาขาที่ส่งรายงาน (แสดงเป็นหัวข้อความทุกแพลตฟอร์ม)
+    const shopName = await resolveShopName(shopId)
+    console.log('🏪 Shop name resolved:', shopName || '-')
+
     const reportData = {
       date: bangkokTime.toLocaleDateString('th-TH'),
       time: bangkokTime.toLocaleTimeString('th-TH'),
@@ -236,6 +240,7 @@ serve(async (req) => {
       totalDiscount,
       netSales,
       topMenus,
+      shopName,
       triggerType: isManualTrigger ? 'manual' : 'scheduled',
       isTimeMatch,
       timestamp
