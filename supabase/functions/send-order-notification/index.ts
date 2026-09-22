@@ -80,10 +80,13 @@ Deno.serve(async (req) => {
 
     // Get notification settings
     console.log('📋 Fetching notification settings...');
-    const { data: settings, error: settingsError } = await supabase
+    let settingsQuery = supabase
       .from('notification_settings')
-      .select('online_orders, pos_orders')
-      .maybeSingle();
+      .select('online_orders, pos_orders');
+    if (orderData.shop_id) {
+      settingsQuery = settingsQuery.eq('shop_id', orderData.shop_id);
+    }
+    const { data: settings, error: settingsError } = await settingsQuery.maybeSingle();
 
     if (settingsError) {
       console.error('❌ Error fetching notification settings:', settingsError);
