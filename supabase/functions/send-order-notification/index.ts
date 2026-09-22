@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { resolveLineCredentials } from '../_shared/lineCredentials.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -220,7 +221,9 @@ Deno.serve(async (req) => {
           orderData, 
           orderItemsText, 
           orderType,
-          lineType
+          lineType,
+          orderData.shop_id,
+          isPosOrder ? 'pos_orders' : 'online_orders'
         );
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
@@ -435,13 +438,16 @@ async function sendLineNotification(
   orderData: any, 
   orderItemsText: string, 
   orderType: string,
-  lineType: string = 'user'
+  lineType: string = 'user',
+  shopId?: string | null,
+  scope: 'pos_orders' | 'online_orders' = 'pos_orders'
 ) {
-  // ใช้ LINE_CHANNEL_ACCESS_TOKEN จาก environment variable
-  const botToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+  // บัญชี LINE ของสาขา/ของประเภทการแจ้งเตือน ถ้าไม่ได้ตั้งไว้จะใช้บัญชีกลาง
+  const { accessToken: botToken, source } = await resolveLineCredentials(shopId, scope);
+  console.log('🔑 LINE credentials source:', source, 'shop:', shopId || '-', 'scope:', scope);
   
   if (!botToken) {
-    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not configured in environment variables');
+    throw new Error('ยังไม่ได้ตั้งค่า LINE Channel Access Token');
   }
   
   if (!lineId) {
