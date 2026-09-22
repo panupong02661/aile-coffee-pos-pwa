@@ -231,7 +231,8 @@ Deno.serve(async (req) => {
           orderType,
           lineType,
           orderData.shop_id,
-          isPosOrder ? 'pos_orders' : 'online_orders'
+          isPosOrder ? 'pos_orders' : 'online_orders',
+          shopName
         );
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
