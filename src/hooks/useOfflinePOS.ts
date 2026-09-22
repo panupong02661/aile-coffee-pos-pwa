@@ -5,6 +5,7 @@ import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useAuth } from '@/hooks/useAuth';
+import { notifyPosOrder } from '@/utils/orderNotify';
 
 // Types for offline data
 interface OfflineMenuItem {
@@ -326,6 +327,20 @@ export const useOfflinePOS = () => {
           }));
 
           await supabase.from('order_items').insert(orderItems);
+
+          notifyPosOrder({
+            id: data.id,
+            order_number: order.order_number,
+            total_amount: order.total_amount,
+            items_count: orderItems.length,
+            payment_method: order.payment_method,
+            created_at: order.created_at,
+            shop_id: order.shop_id || shopId,
+            member_id: order.member_id || null,
+            bill_discount: order.bill_discount || 0,
+            bill_discount_type: order.bill_discount_type || 'amount',
+            order_items: orderItems as any,
+          });
         }
 
         order.synced = true;
@@ -551,7 +566,22 @@ export const useOfflinePOS = () => {
           }));
 
           await supabase.from('order_items').insert(orderItems);
+
+          notifyPosOrder({
+            id: data.id,
+            order_number: orderData.order_number,
+            total_amount: orderData.total_amount,
+            items_count: orderItems.length,
+            payment_method: orderData.payment_method,
+            created_at: data.created_at,
+            shop_id: shopId,
+            member_id: orderData.member_id || null,
+            bill_discount: orderData.bill_discount || 0,
+            bill_discount_type: orderData.bill_discount_type || 'amount',
+            order_items: orderItems as any,
+          });
         }
+
 
         try {
           const orders = await getStoredOrders(scopedOrdersKey);

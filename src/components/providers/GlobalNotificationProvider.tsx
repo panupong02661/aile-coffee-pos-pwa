@@ -268,7 +268,8 @@ const GlobalNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           // Send notifications ONLY for online orders via edge function
           const notificationCacheKey = `notification_${order.id}_${order.created_at}`;
           
-          if (!globalProcessedOrders.has(notificationCacheKey)) {
+          // POS orders แจ้งเตือนจากหน้าขายโดยตรงแล้ว (src/utils/orderNotify.ts) จึงไม่ส่งซ้ำที่นี่
+          if (!isPosOrder && !globalProcessedOrders.has(notificationCacheKey)) {
             try {
               // Mark notification as being sent
               globalProcessedOrders.add(notificationCacheKey);
