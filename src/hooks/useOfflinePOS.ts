@@ -5,6 +5,7 @@ import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useAuth } from '@/hooks/useAuth';
+import { notifyPosOrder } from '@/utils/orderNotify';
 
 // Types for offline data
 interface OfflineMenuItem {
