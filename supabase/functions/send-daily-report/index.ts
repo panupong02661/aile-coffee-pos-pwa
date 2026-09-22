@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { resolveLineCredentials } from '../_shared/lineCredentials.ts'
+import { resolveShopName } from '../_shared/shopName.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -225,6 +226,10 @@ serve(async (req) => {
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10)
 
+    // ชื่อร้านของสาขาที่ส่งรายงาน (แสดงเป็นหัวข้อความทุกแพลตฟอร์ม)
+    const shopName = await resolveShopName(shopId)
+    console.log('🏪 Shop name resolved:', shopName || '-')
+
     const reportData = {
       date: bangkokTime.toLocaleDateString('th-TH'),
       time: bangkokTime.toLocaleTimeString('th-TH'),
@@ -235,6 +240,7 @@ serve(async (req) => {
       totalDiscount,
       netSales,
       topMenus,
+      shopName,
       triggerType: isManualTrigger ? 'manual' : 'scheduled',
       isTimeMatch,
       timestamp
@@ -361,8 +367,10 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     colorCode = 0x0099ff; // น้ำเงิน
   }
 
+  const shopLabel = reportData.shopName ? `🏪 ${reportData.shopName}` : '';
+
   const embed = {
-    title: `📊 รายงานประจำวัน - ${statusText} ${statusIcon}`,
+    title: `${shopLabel ? `${shopLabel} | ` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}`,
     description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
     color: colorCode,
     fields: [
@@ -408,7 +416,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       }
     ],
     footer: {
-      text: `ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
+      text: `${reportData.shopName ? `${reportData.shopName} | ` : ''}ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
     },
     timestamp: new Date().toISOString()
   }
@@ -419,7 +427,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
+      content: `${shopLabel ? `${shopLabel}\n` : ''}📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
       embeds: [embed]
     })
   })
@@ -452,7 +460,7 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
-  const message = `📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+  const message = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
 ⏰ เวลาส่ง: ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
@@ -505,7 +513,7 @@ async function sendTelegramReport(reportData: any, token: string) {
   const statusIcon = isManualTrigger ? '🖱️' : '🤖';
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
 
-  const message = `📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
+  const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
 
 📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
 ⏰ *เวลาส่ง:* ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)

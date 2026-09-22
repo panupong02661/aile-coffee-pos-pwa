@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { resolveLineCredentials } from '../_shared/lineCredentials.ts'
+import { resolveShopName } from '../_shared/shopName.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,6 +136,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve shop name so every platform shows which branch sent the notification
+    const shopName = await resolveShopName(orderData.shop_id);
+    console.log('🏪 Shop name resolved:', shopName || '-');
+
     // Prepare notification message with variables
     let message = orderSettings.message;
     message = message.replace(/\{\{orderNumber\}\}/g, orderData.order_number);
@@ -200,7 +205,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.discord.enabled && orderSettings.platforms.discord.token) {
       console.log('🔵 Sending Discord notification to:', orderSettings.platforms.discord.token);
       try {
-        await sendDiscordNotification(orderSettings.platforms.discord.token, `${message}${discountText}`, orderData, orderItemsText, orderType);
+        await sendDiscordNotification(orderSettings.platforms.discord.token, `${message}${discountText}`, orderData, orderItemsText, orderType, shopName);
         console.log('✅ Discord notification sent successfully');
         results.discord = 'success';
         sentCount++;
@@ -226,7 +231,8 @@ Deno.serve(async (req) => {
           orderType,
           lineType,
           orderData.shop_id,
-          isPosOrder ? 'pos_orders' : 'online_orders'
+          isPosOrder ? 'pos_orders' : 'online_orders',
+          shopName
         );
         console.log('✅ LINE notification sent successfully');
         results.line = 'success';
@@ -244,7 +250,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.telegram.enabled && orderSettings.platforms.telegram.token) {
       console.log('🔵 Sending Telegram notification...');
       try {
-        await sendTelegramNotification(orderSettings.platforms.telegram.token, `${message}${discountText}`, orderData, orderItemsText);
+        await sendTelegramNotification(orderSettings.platforms.telegram.token, `${message}${discountText}`, orderData, orderItemsText, shopName);
         console.log('✅ Telegram notification sent successfully');
         results.telegram = 'success';
         sentCount++;
@@ -295,7 +301,7 @@ Deno.serve(async (req) => {
 });
 
 // Discord notification function with comprehensive order details
-async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string, orderType: string) {
+async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string, orderType: string, shopName?: string | null) {
   console.log('🔵 Sending Discord notification to:', webhookUrl);
   
   // Create comprehensive fields for Discord embed
@@ -387,13 +393,16 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
     });
   }
 
+  const shopLabel = shopName ? `🏪 ${shopName}` : '';
+  const baseTitle = orderType === 'POS' ? 'มีการสั่งซื้อใหม่ที่ร้าน!' : '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!';
+
   const embed = {
-    title: orderType === 'POS' ? '🏪 มีการสั่งซื้อใหม่ที่ร้าน!' : '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!',
+    title: shopName ? `🏪 ${shopName} | ${baseTitle}` : (orderType === 'POS' ? '🏪 มีการสั่งซื้อใหม่ที่ร้าน!' : baseTitle),
     description: message,
     color: orderType === 'POS' ? 0xff9500 : 0x00ff00, // สีส้มสำหรับ POS, เขียวสำหรับ Online
     fields: fields,
     footer: {
-      text: `ระบบร้านอาหาร | เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
+      text: `${shopName ? `${shopName} | ` : ''}ระบบร้านอาหาร | เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
         timeZone: 'Asia/Bangkok',
         year: 'numeric',
         month: '2-digit',
@@ -407,7 +416,7 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   };
 
   const payload = {
-    content: orderType === 'POS' ? '🏪 **ออเดอร์ POS ใหม่!**' : '🔔 **ออเดอร์ออนไลน์ใหม่!**',
+    content: `${shopLabel ? `${shopLabel}\n` : ''}${orderType === 'POS' ? '🏪 **ออเดอร์ POS ใหม่!**' : '🔔 **ออเดอร์ออนไลน์ใหม่!**'}`,
     embeds: [embed]
   };
 
@@ -443,7 +452,8 @@ async function sendLineNotification(
   orderType: string,
   lineType: string = 'user',
   shopId?: string | null,
-  scope: 'pos_orders' | 'online_orders' = 'pos_orders'
+  scope: 'pos_orders' | 'online_orders' = 'pos_orders',
+  shopName?: string | null
 ) {
   // บัญชี LINE ของสาขา/ของประเภทการแจ้งเตือน ถ้าไม่ได้ตั้งไว้จะใช้บัญชีกลาง
   const { accessToken: botToken, source } = await resolveLineCredentials(shopId, scope);
@@ -461,7 +471,11 @@ async function sendLineNotification(
   const orderTypeEmoji = orderType === 'POS' ? '🏪' : '🛒';
   const orderTypeText = orderType === 'POS' ? 'ออเดอร์ POS ใหม่!' : 'ออเดอร์ออนไลน์ใหม่!';
   
-  let fullMessage = `${orderTypeEmoji} ${orderTypeText}\n`;
+  let fullMessage = '';
+  if (shopName) {
+    fullMessage += `🏪 ${shopName}\n`;
+  }
+  fullMessage += `${orderTypeEmoji} ${orderTypeText}\n`;
   fullMessage += `━━━━━━━━━━━━━━━━━━━━\n`;
   fullMessage += `${message}\n\n`;
   
@@ -539,7 +553,7 @@ async function sendLineNotification(
 }
 
 // Telegram notification function  
-async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string) {
+async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string, shopName?: string | null) {
   // Extract bot token and chat ID from the format: botToken:chatId
   const [token, chatId] = botToken.split(':');
   
@@ -547,7 +561,10 @@ async function sendTelegramNotification(botToken: string, message: string, order
     throw new Error('Telegram token format should be "botToken:chatId"');
   }
 
-  const telegramMessage = `${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`;
+  const shopHeader = shopName
+    ? `🏪 <b>${shopName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>\n`
+    : '';
+  const telegramMessage = `${shopHeader}${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`;
 
   console.log('🔷 Sending Telegram message to chat:', chatId);
 
