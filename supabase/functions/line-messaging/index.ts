@@ -134,6 +134,38 @@ serve(async (req) => {
 
     const { action, userId, message, messages } = requestData;
 
+    // Verify that the bot can actually reach the target (group / room / user)
+    if (action === 'verifyTarget') {
+      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+        return new Response(
+          JSON.stringify({ ok: false, status: 0, reason: 'no_token', lineError: 'LINE_CHANNEL_ACCESS_TOKEN is not configured' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const target = String(userId || '').trim();
+      let checkUrl = '';
+      if (target.startsWith('C')) checkUrl = `https://api.line.me/v2/bot/group/${target}/summary`;
+      else if (target.startsWith('R')) checkUrl = `https://api.line.me/v2/bot/room/${target}/members/count`;
+      else checkUrl = `https://api.line.me/v2/bot/profile/${target}`;
+
+      const checkRes = await fetch(checkUrl, {
+        headers: { 'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}` }
+      });
+      const checkBody = await checkRes.text();
+      console.log('🔎 verifyTarget', target, checkRes.status, checkBody);
+
+      return new Response(
+        JSON.stringify({
+          ok: checkRes.ok,
+          status: checkRes.status,
+          lineError: checkRes.ok ? null : checkBody,
+          info: checkRes.ok ? (() => { try { return JSON.parse(checkBody); } catch { return null; } })() : null,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'send') {
       console.log('📤 Sending message to LINE user:', userId);
       
@@ -159,8 +191,17 @@ serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ LINE API Error:', errorText);
-        throw new Error(`LINE API Error: ${errorText}`);
+        console.error(`❌ LINE API Error [${response.status}] to=${userId}:`, errorText);
+        // Return 200 so the client can read the real reason instead of a generic non-2xx error
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: response.status,
+            lineError: errorText,
+            error: `LINE API Error ${response.status}: ${errorText}`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       console.log('✅ Message sent successfully');
