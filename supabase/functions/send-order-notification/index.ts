@@ -553,7 +553,7 @@ async function sendLineNotification(
 }
 
 // Telegram notification function  
-async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string) {
+async function sendTelegramNotification(botToken: string, message: string, orderData: any, orderItemsText: string, shopName?: string | null) {
   // Extract bot token and chat ID from the format: botToken:chatId
   const [token, chatId] = botToken.split(':');
   
@@ -561,7 +561,10 @@ async function sendTelegramNotification(botToken: string, message: string, order
     throw new Error('Telegram token format should be "botToken:chatId"');
   }
 
-  const telegramMessage = `${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`;
+  const shopHeader = shopName
+    ? `🏪 <b>${shopName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>\n`
+    : '';
+  const telegramMessage = `${shopHeader}${message}\n\n${orderItemsText || 'ไม่มีรายละเอียดรายการ'}`;
 
   console.log('🔷 Sending Telegram message to chat:', chatId);
 
