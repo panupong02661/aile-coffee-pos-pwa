@@ -191,8 +191,17 @@ serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ LINE API Error:', errorText);
-        throw new Error(`LINE API Error: ${errorText}`);
+        console.error(`❌ LINE API Error [${response.status}] to=${userId}:`, errorText);
+        // Return 200 so the client can read the real reason instead of a generic non-2xx error
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: response.status,
+            lineError: errorText,
+            error: `LINE API Error ${response.status}: ${errorText}`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       console.log('✅ Message sent successfully');
