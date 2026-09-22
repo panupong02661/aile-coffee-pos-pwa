@@ -176,16 +176,20 @@ serve(async (req) => {
     console.log('📋 Orders found:', todayOrders?.length || 0)
 
     // Get today's order items for menu analysis
-    const { data: orderItems, error: itemsError } = await supabase
+    let itemsQuery = supabase
       .from('order_items')
       .select(`
         menu_item_name,
         quantity,
         total_price,
-        order:orders!inner(created_at)
+        order:orders!inner(created_at, shop_id)
       `)
       .gte('order.created_at', startOfDay.toISOString())
       .lte('order.created_at', endOfDay.toISOString())
+    if (shopId) itemsQuery = itemsQuery.eq('order.shop_id', shopId)
+
+    const { data: orderItems, error: itemsError } = await itemsQuery
+
 
     if (itemsError) {
       console.error('❌ Error fetching order items:', itemsError)
