@@ -2692,6 +2692,36 @@ export type Database = {
           },
         ]
       }
+      line_channel_credentials: {
+        Row: {
+          channel_access_token: string | null
+          channel_secret: string | null
+          created_at: string
+          id: string
+          scope: string
+          shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel_access_token?: string | null
+          channel_secret?: string | null
+          created_at?: string
+          id?: string
+          scope: string
+          shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel_access_token?: string | null
+          channel_secret?: string | null
+          created_at?: string
+          id?: string
+          scope?: string
+          shop_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lottery: {
         Row: {
           created_at: string

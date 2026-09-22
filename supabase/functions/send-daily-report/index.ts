@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { resolveLineCredentials } from '../_shared/lineCredentials.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -251,7 +252,7 @@ serve(async (req) => {
       try {
         const lineType = dailySettings.platforms.line.type || 'user';
         console.log(`📤 Sending to LINE (${lineType})...`)
-        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType)
+        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, requestBody?.shopId || null)
         sentCount++
         console.log(`✅ LINE notification sent successfully to ${lineType}`)
       } catch (error) {
@@ -414,12 +415,13 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
 }
 
 // Function to send LINE notification
-async function sendLineReport(reportData: any, lineId: string, type: string = 'user') {
-  // ดึง LINE Channel Access Token จาก environment variable
-  const channelAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+async function sendLineReport(reportData: any, lineId: string, type: string = 'user', shopId?: string | null) {
+  // บัญชี LINE ของสาขา (scope: รายงานประจำวัน) ถ้าไม่ได้ตั้งไว้จะใช้บัญชีกลาง
+  const { accessToken: channelAccessToken, source } = await resolveLineCredentials(shopId, 'daily_reports');
+  console.log('🔑 LINE credentials source:', source, 'shop:', shopId || '-')
   
   if (!channelAccessToken) {
-    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not configured in secrets');
+    throw new Error('ยังไม่ได้ตั้งค่า LINE Channel Access Token')
   }
 
   const topMenusList = reportData.topMenus

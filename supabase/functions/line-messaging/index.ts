@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { resolveLineCredentials } from '../_shared/lineCredentials.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,11 +133,16 @@ serve(async (req) => {
       );
     }
 
-    const { action, userId, message, messages } = requestData;
+    const { action, userId, message, messages, shopId, scope } = requestData;
+
+    // Per-shop / per-notification-type LINE account, falling back to the global secret
+    const credentials = await resolveLineCredentials(shopId, scope || 'default');
+    const ACCESS_TOKEN = credentials.accessToken;
+    console.log('🔑 LINE credentials source:', credentials.source, 'shop:', shopId || '-', 'scope:', scope || 'default');
 
     // Verify that the bot can actually reach the target (group / room / user)
     if (action === 'verifyTarget') {
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         return new Response(
           JSON.stringify({ ok: false, status: 0, reason: 'no_token', lineError: 'LINE_CHANNEL_ACCESS_TOKEN is not configured' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -150,7 +156,7 @@ serve(async (req) => {
       else checkUrl = `https://api.line.me/v2/bot/profile/${target}`;
 
       const checkRes = await fetch(checkUrl, {
-        headers: { 'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}` }
+        headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
       });
       const checkBody = await checkRes.text();
       console.log('🔎 verifyTarget', target, checkRes.status, checkBody);
@@ -169,7 +175,7 @@ serve(async (req) => {
     if (action === 'send') {
       console.log('📤 Sending message to LINE user:', userId);
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
@@ -181,7 +187,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         },
         body: JSON.stringify({
           to: userId,
@@ -219,7 +225,7 @@ serve(async (req) => {
     if (action === 'broadcast') {
       console.log('📣 Broadcasting message');
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
@@ -229,7 +235,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         },
         body: JSON.stringify({
           messages: messagesToSend
@@ -257,14 +263,14 @@ serve(async (req) => {
     if (action === 'getProfile') {
       console.log('👤 Getting user profile:', userId);
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
       const response = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         }
       });
 
