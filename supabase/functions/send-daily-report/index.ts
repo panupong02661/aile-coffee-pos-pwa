@@ -268,7 +268,7 @@ serve(async (req) => {
       try {
         const lineType = dailySettings.platforms.line.type || 'user';
         console.log(`📤 Sending to LINE (${lineType})...`)
-        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, requestBody?.shopId || null)
+        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, shopId)
         sentCount++
         console.log(`✅ LINE notification sent successfully to ${lineType}`)
       } catch (error) {
