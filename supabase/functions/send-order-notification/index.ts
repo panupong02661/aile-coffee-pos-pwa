@@ -136,6 +136,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve shop name so every platform shows which branch sent the notification
+    const shopName = await resolveShopName(orderData.shop_id);
+    console.log('🏪 Shop name resolved:', shopName || '-');
+
     // Prepare notification message with variables
     let message = orderSettings.message;
     message = message.replace(/\{\{orderNumber\}\}/g, orderData.order_number);
