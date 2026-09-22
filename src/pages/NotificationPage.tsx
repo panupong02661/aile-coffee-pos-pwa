@@ -861,6 +861,14 @@ ${topMenusList || 'ไม่มีข้อมูล'}
         });
 
         if (error) throw error;
+        if (data && data.success === false) {
+          toast({
+            title: 'ทดสอบไม่สำเร็จ',
+            description: describeLineError(Number(data.status) || 0, String(data.lineError || '')),
+            variant: 'destructive'
+          });
+          return;
+        }
         if (data?.error) throw new Error(data.error);
 
         toast({
