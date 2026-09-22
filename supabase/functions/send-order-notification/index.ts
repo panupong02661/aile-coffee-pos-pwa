@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
     if (orderSettings.platforms.discord.enabled && orderSettings.platforms.discord.token) {
       console.log('🔵 Sending Discord notification to:', orderSettings.platforms.discord.token);
       try {
-        await sendDiscordNotification(orderSettings.platforms.discord.token, `${message}${discountText}`, orderData, orderItemsText, orderType);
+        await sendDiscordNotification(orderSettings.platforms.discord.token, `${message}${discountText}`, orderData, orderItemsText, orderType, shopName);
         console.log('✅ Discord notification sent successfully');
         results.discord = 'success';
         sentCount++;
