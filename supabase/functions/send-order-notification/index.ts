@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
 });
 
 // Discord notification function with comprehensive order details
-async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string, orderType: string) {
+async function sendDiscordNotification(webhookUrl: string, message: string, orderData: any, orderItemsText: string, orderType: string, shopName?: string | null) {
   console.log('🔵 Sending Discord notification to:', webhookUrl);
   
   // Create comprehensive fields for Discord embed
