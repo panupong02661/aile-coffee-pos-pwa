@@ -393,13 +393,16 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
     });
   }
 
+  const shopLabel = shopName ? `🏪 ${shopName}` : '';
+  const baseTitle = orderType === 'POS' ? 'มีการสั่งซื้อใหม่ที่ร้าน!' : '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!';
+
   const embed = {
-    title: orderType === 'POS' ? '🏪 มีการสั่งซื้อใหม่ที่ร้าน!' : '🛒 ออเดอร์ออนไลน์ใหม่เข้ามาแล้ว!',
+    title: shopName ? `🏪 ${shopName} | ${baseTitle}` : (orderType === 'POS' ? '🏪 มีการสั่งซื้อใหม่ที่ร้าน!' : baseTitle),
     description: message,
     color: orderType === 'POS' ? 0xff9500 : 0x00ff00, // สีส้มสำหรับ POS, เขียวสำหรับ Online
     fields: fields,
     footer: {
-      text: `ระบบร้านอาหาร | เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
+      text: `${shopName ? `${shopName} | ` : ''}ระบบร้านอาหาร | เวลา: ${new Date(orderData.created_at).toLocaleString('th-TH', {
         timeZone: 'Asia/Bangkok',
         year: 'numeric',
         month: '2-digit',
@@ -413,7 +416,7 @@ async function sendDiscordNotification(webhookUrl: string, message: string, orde
   };
 
   const payload = {
-    content: orderType === 'POS' ? '🏪 **ออเดอร์ POS ใหม่!**' : '🔔 **ออเดอร์ออนไลน์ใหม่!**',
+    content: `${shopLabel ? `${shopLabel}\n` : ''}${orderType === 'POS' ? '🏪 **ออเดอร์ POS ใหม่!**' : '🔔 **ออเดอร์ออนไลน์ใหม่!**'}`,
     embeds: [embed]
   };
 
