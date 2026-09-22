@@ -134,6 +134,38 @@ serve(async (req) => {
 
     const { action, userId, message, messages } = requestData;
 
+    // Verify that the bot can actually reach the target (group / room / user)
+    if (action === 'verifyTarget') {
+      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+        return new Response(
+          JSON.stringify({ ok: false, status: 0, reason: 'no_token', lineError: 'LINE_CHANNEL_ACCESS_TOKEN is not configured' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const target = String(userId || '').trim();
+      let checkUrl = '';
+      if (target.startsWith('C')) checkUrl = `https://api.line.me/v2/bot/group/${target}/summary`;
+      else if (target.startsWith('R')) checkUrl = `https://api.line.me/v2/bot/room/${target}/members/count`;
+      else checkUrl = `https://api.line.me/v2/bot/profile/${target}`;
+
+      const checkRes = await fetch(checkUrl, {
+        headers: { 'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}` }
+      });
+      const checkBody = await checkRes.text();
+      console.log('🔎 verifyTarget', target, checkRes.status, checkBody);
+
+      return new Response(
+        JSON.stringify({
+          ok: checkRes.ok,
+          status: checkRes.status,
+          lineError: checkRes.ok ? null : checkBody,
+          info: checkRes.ok ? (() => { try { return JSON.parse(checkBody); } catch { return null; } })() : null,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'send') {
       console.log('📤 Sending message to LINE user:', userId);
       
