@@ -9,6 +9,7 @@ import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode, Users, Layers } from '
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { notifyPosOrder } from '@/utils/orderNotify';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
