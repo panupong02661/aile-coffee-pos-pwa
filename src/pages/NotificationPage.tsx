@@ -36,6 +36,14 @@ import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import DiscordWebhookGuide from '@/components/DiscordWebhookGuide';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
+import LineAccountFields, { LineScope } from '@/components/notification/LineAccountFields';
+
+const SCOPE_BY_TYPE: Record<string, LineScope> = {
+  'ออเดอร์ออนไลน์': 'online_orders',
+  'ออเดอร์ POS': 'pos_orders',
+  'รายงานประจำวัน': 'daily_reports',
+  'รายงานประจำเดือน': 'monthly_reports',
+};
 
 const NotificationPage = () => {
   const { toast } = useToast();
@@ -832,7 +840,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
       try {
         // ตรวจก่อนว่าบอทเข้าถึงปลายทางนี้ได้จริงไหม
         const { data: verify } = await supabase.functions.invoke('line-messaging', {
-          body: { action: 'verifyTarget', userId: targetId }
+          body: { action: 'verifyTarget', userId: targetId, shopId, scope: SCOPE_BY_TYPE[type] || 'default' }
         });
 
         if (verify && verify.ok === false) {
@@ -856,7 +864,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}
           body: {
             action: 'send',
             userId: targetId,
-            message: testMessage
+            message: testMessage,
+            shopId,
+            scope: SCOPE_BY_TYPE[type] || 'default'
           }
         });
 
@@ -975,6 +985,15 @@ ${topMenusList || 'ไม่มีข้อมูล'}
               <div className="space-y-3">
                 {/* LINE Type Selector - แสดงสำหรับทุกประเภทการแจ้งเตือน */}
                 {platform === 'line' && (
+                  <LineAccountFields
+                    shopId={shopId}
+                    scope={SCOPE_BY_TYPE[type] || 'default'}
+                    title="บัญชี LINE สำหรับการแจ้งเตือนนี้"
+                    description="เว้นว่างไว้ = ใช้บัญชีเริ่มต้นของร้าน กรอกใหม่เมื่ออยากให้ส่งจากบัญชี LINE คนละบัญชี"
+                  />
+                )}
+
+                {platform === 'line' && (
                   <div>
                     <Label htmlFor={`${type}-${platform}-type`}>ประเภทการส่ง</Label>
                     <Select
@@ -1082,6 +1101,24 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                 <p className="text-gray-600">จัดการการแจ้งเตือนผ่าน LINE, Instagram, Discord และ Telegram</p>
               </div>
             </div>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">บัญชี LINE เริ่มต้นของร้าน</CardTitle>
+            <CardDescription>
+              ใช้กับการแจ้งเตือนทุกประเภทที่ไม่ได้ตั้งบัญชีเฉพาะไว้ เปลี่ยนบัญชีเมื่อไหร่ก็ได้โดยไม่ต้องแก้ระบบหลังบ้าน
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LineAccountFields
+              shopId={shopId}
+              scope="default"
+              allowUseDefault={false}
+              title="บัญชี LINE เริ่มต้น"
+              description="คัดลอก Channel Access Token และ Channel Secret จาก LINE Developers ของบัญชีทางการที่ต้องการใช้"
+            />
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="online-orders" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
