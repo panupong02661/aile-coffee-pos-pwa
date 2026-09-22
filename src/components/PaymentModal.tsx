@@ -489,7 +489,22 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order items saved successfully`);
 
-      // 🚫 POS notification removed - only ONLINE orders should trigger notifications
+      // 🔔 แจ้งเตือนออเดอร์หน้าร้าน (POS) แบบไม่บล็อกการขาย
+      notifyPosOrder({
+        id: order.id,
+        order_number: String(orderNumber),
+        total_amount: Number(actualTotal),
+        items_count: orderData.items_count,
+        payment_method: String(method),
+        created_at: order.created_at,
+        shop_id: shopId || null,
+        member_id: selectedMember?.id || null,
+        customer_name: selectedMember?.name || 'ลูกค้าหน้าร้าน',
+        customer_phone: selectedMember?.phone || '',
+        bill_discount: Number(billDiscount) || 0,
+        bill_discount_type: String(billDiscountType) || 'amount',
+        order_items: orderItems,
+      });
 
       // 🚀 FAST: Fire-and-forget ทุกอย่าง - ไม่รอเลย!
       console.log(`[PaymentModal] 🚀 Starting fire-and-forget background tasks...`);
