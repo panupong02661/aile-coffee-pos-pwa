@@ -513,7 +513,7 @@ async function sendTelegramReport(reportData: any, token: string) {
   const statusIcon = isManualTrigger ? '🖱️' : '🤖';
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
 
-  const message = `📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
+  const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
 
 📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
 ⏰ *เวลาส่ง:* ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
