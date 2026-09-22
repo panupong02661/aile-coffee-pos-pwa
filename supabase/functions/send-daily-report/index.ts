@@ -367,8 +367,10 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
     colorCode = 0x0099ff; // น้ำเงิน
   }
 
+  const shopLabel = reportData.shopName ? `🏪 ${reportData.shopName}` : '';
+
   const embed = {
-    title: `📊 รายงานประจำวัน - ${statusText} ${statusIcon}`,
+    title: `${shopLabel ? `${shopLabel} | ` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}`,
     description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
     color: colorCode,
     fields: [
