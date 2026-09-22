@@ -460,7 +460,7 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
-  const message = `📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+  const message = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
 ⏰ เวลาส่ง: ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
