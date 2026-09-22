@@ -452,7 +452,8 @@ async function sendLineNotification(
   orderType: string,
   lineType: string = 'user',
   shopId?: string | null,
-  scope: 'pos_orders' | 'online_orders' = 'pos_orders'
+  scope: 'pos_orders' | 'online_orders' = 'pos_orders',
+  shopName?: string | null
 ) {
   // บัญชี LINE ของสาขา/ของประเภทการแจ้งเตือน ถ้าไม่ได้ตั้งไว้จะใช้บัญชีกลาง
   const { accessToken: botToken, source } = await resolveLineCredentials(shopId, scope);
