@@ -813,7 +813,37 @@ ${topMenusList || 'ไม่มีข้อมูล'}
         return;
       }
 
+      const describeLineError = (status: number, detail: string) => {
+        if (status === 401) return 'Channel Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาออก Token ใหม่จาก LINE Developers';
+        if (status === 403) {
+          return isGroupMode
+            ? 'บัญชีทางการ (บอท) ยังไม่ได้อยู่ในกลุ่มนี้ หรือกลุ่มนี้เป็นของบัญชีทางการคนละบัญชีกับที่ระบบใช้อยู่ กรุณาเชิญบอทเข้ากลุ่มก่อน'
+            : 'ผู้ใช้คนนี้ยังไม่ได้เพิ่มบอทเป็นเพื่อน หรือบล็อกบอทอยู่';
+        }
+        if (status === 404) {
+          return isGroupMode
+            ? 'ไม่พบกลุ่มนี้ บอทอาจถูกเตะออกจากกลุ่มแล้ว หรือรหัสกลุ่มไม่ตรง'
+            : 'ไม่พบผู้ใช้คนนี้ กรุณาตรวจสอบ User ID อีกครั้ง';
+        }
+        if (status === 400) return 'รหัสปลายทางไม่ถูกต้อง กรุณาคัดลอก ID ที่บอทตอบกลับมาให้ครบทุกตัวอักษร';
+        return detail || 'ส่งข้อความไม่สำเร็จ';
+      };
+
       try {
+        // ตรวจก่อนว่าบอทเข้าถึงปลายทางนี้ได้จริงไหม
+        const { data: verify } = await supabase.functions.invoke('line-messaging', {
+          body: { action: 'verifyTarget', userId: targetId }
+        });
+
+        if (verify && verify.ok === false) {
+          toast({
+            title: 'ทดสอบไม่สำเร็จ',
+            description: describeLineError(Number(verify.status) || 0, String(verify.lineError || '')),
+            variant: 'destructive'
+          });
+          return;
+        }
+
         const testMessage = `🧪 ทดสอบระบบแจ้งเตือนร้านอาหาร
 
 ประเภท: ${type}
