@@ -471,7 +471,11 @@ async function sendLineNotification(
   const orderTypeEmoji = orderType === 'POS' ? '🏪' : '🛒';
   const orderTypeText = orderType === 'POS' ? 'ออเดอร์ POS ใหม่!' : 'ออเดอร์ออนไลน์ใหม่!';
   
-  let fullMessage = `${orderTypeEmoji} ${orderTypeText}\n`;
+  let fullMessage = '';
+  if (shopName) {
+    fullMessage += `🏪 ${shopName}\n`;
+  }
+  fullMessage += `${orderTypeEmoji} ${orderTypeText}\n`;
   fullMessage += `━━━━━━━━━━━━━━━━━━━━\n`;
   fullMessage += `${message}\n\n`;
   
