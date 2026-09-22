@@ -65,24 +65,33 @@ serve(async (req) => {
       timestamp
     });
 
-    // Initialize Supabase client
-    const supabaseUrl = "https://mzvzbxflwvksohrmxbsy.supabase.co"
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16dnpieGZsd3Zrc29ocm14YnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MDU3NTksImV4cCI6MjA2NTI4MTc1OX0.h3nU_8JyrAaDI6NwxvnxTeb3kuiLpSSueuKcDOd33Jo"
-    
+    // Initialize Supabase client (service role - bypass RLS so cron can read settings)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? "https://mzvzbxflwvksohrmxbsy.supabase.co"
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get notification settings
-    const { data: settings, error: settingsError } = await supabase
+    const requestedShopId: string | null = requestBody?.shopId || requestBody?.shop_id || null;
+
+    // Get notification settings (all shops, or the requested one)
+    let settingsQuery = supabase
       .from('notification_settings')
-      .select('daily_reports')
-      .maybeSingle()
+      .select('shop_id, daily_reports')
+    if (requestedShopId) settingsQuery = settingsQuery.eq('shop_id', requestedShopId)
+
+    const { data: settingsRows, error: settingsError } = await settingsQuery
 
     if (settingsError) {
       console.error('❌ Error fetching notification settings:', settingsError)
       throw settingsError
     }
 
-    console.log('⚙️ Settings from database:', settings)
+    console.log('⚙️ Settings rows found:', settingsRows?.length || 0)
+
+    // pick the first row whose daily reports are enabled (per shop)
+    const settingsRow = (settingsRows || []).find((r: any) => r?.daily_reports?.enabled) || (settingsRows || [])[0] || null
+    const settings = settingsRow as any
+    const shopId: string | null = settingsRow?.shop_id || requestedShopId || null
 
     if (!settings?.daily_reports?.enabled) {
       console.log('ℹ️ Daily reports are disabled')
@@ -149,12 +158,15 @@ serve(async (req) => {
       endOfDay: endOfDay.toISOString()
     });
 
-    // Get today's orders
-    const { data: todayOrders, error: ordersError } = await supabase
+    // Get today's orders (scoped to this shop)
+    let ordersQuery = supabase
       .from('orders')
       .select('id, total_amount, bill_discount, created_at')
       .gte('created_at', startOfDay.toISOString())
       .lte('created_at', endOfDay.toISOString())
+    if (shopId) ordersQuery = ordersQuery.eq('shop_id', shopId)
+
+    const { data: todayOrders, error: ordersError } = await ordersQuery
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError)
@@ -164,16 +176,20 @@ serve(async (req) => {
     console.log('📋 Orders found:', todayOrders?.length || 0)
 
     // Get today's order items for menu analysis
-    const { data: orderItems, error: itemsError } = await supabase
+    let itemsQuery = supabase
       .from('order_items')
       .select(`
         menu_item_name,
         quantity,
         total_price,
-        order:orders!inner(created_at)
+        order:orders!inner(created_at, shop_id)
       `)
       .gte('order.created_at', startOfDay.toISOString())
       .lte('order.created_at', endOfDay.toISOString())
+    if (shopId) itemsQuery = itemsQuery.eq('order.shop_id', shopId)
+
+    const { data: orderItems, error: itemsError } = await itemsQuery
+
 
     if (itemsError) {
       console.error('❌ Error fetching order items:', itemsError)
@@ -252,7 +268,7 @@ serve(async (req) => {
       try {
         const lineType = dailySettings.platforms.line.type || 'user';
         console.log(`📤 Sending to LINE (${lineType})...`)
-        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, requestBody?.shopId || null)
+        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, shopId)
         sentCount++
         console.log(`✅ LINE notification sent successfully to ${lineType}`)
       } catch (error) {
