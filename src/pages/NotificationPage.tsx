@@ -394,7 +394,7 @@ const NotificationPage = () => {
   };
 
   // ฟังก์ชันส่งรายงานไป LINE
-  const sendLineReport = async (reportData: any, token: string, type: string = 'user') => {
+  const sendLineReport = async (reportData: any, token: string, type: string = 'user', scope: LineScope = 'daily_reports') => {
     try {
       const topMenusList = reportData.topMenus
         .map((menu: any, index: number) => 
@@ -417,7 +417,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
         body: {
           action: 'send',
           userId: token, // ส่ง userId หรือ groupId
-          message: messageText
+          message: messageText,
+          shopId,
+          scope
         }
       });
 
@@ -531,7 +533,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
   };
 
   // ฟังก์ชันส่งรูปภาพไป LINE
-  const sendLineReportWithImage = async (imageUrl: string, reportTitle: string, reportData: any, token: string, type: string = 'user') => {
+  const sendLineReportWithImage = async (imageUrl: string, reportTitle: string, reportData: any, token: string, type: string = 'user', scope: LineScope = 'daily_reports') => {
     try {
       const topMenusList = reportData.topMenus
         .slice(0, 5)
@@ -559,7 +561,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}
           action: 'send',
           userId: token,
           message: messageText,
-          imageUrl: imageUrl // ส่ง URL รูปภาพด้วย
+          imageUrl: imageUrl, // ส่ง URL รูปภาพด้วย
+          shopId,
+          scope
         }
       });
 
@@ -612,7 +616,8 @@ ${topMenusList || 'ไม่มีข้อมูล'}
               reportTitle,
               reportData, 
               reportSettings.platforms.line.token,
-              (reportSettings.platforms.line as any).type || 'user'
+              (reportSettings.platforms.line as any).type || 'user',
+              reportType === 'daily' ? 'daily_reports' : 'monthly_reports'
             );
             sentCount++;
           } catch (error) {
@@ -641,7 +646,8 @@ ${topMenusList || 'ไม่มีข้อมูล'}
             await sendLineReport(
               reportData, 
               reportSettings.platforms.line.token,
-              (reportSettings.platforms.line as any).type || 'user'
+              (reportSettings.platforms.line as any).type || 'user',
+              reportType === 'daily' ? 'daily_reports' : 'monthly_reports'
             );
             sentCount++;
           } catch (error) {
