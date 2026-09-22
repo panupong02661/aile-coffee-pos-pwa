@@ -133,11 +133,16 @@ serve(async (req) => {
       );
     }
 
-    const { action, userId, message, messages } = requestData;
+    const { action, userId, message, messages, shopId, scope } = requestData;
+
+    // Per-shop / per-notification-type LINE account, falling back to the global secret
+    const credentials = await resolveLineCredentials(shopId, scope || 'default');
+    const ACCESS_TOKEN = credentials.accessToken;
+    console.log('🔑 LINE credentials source:', credentials.source, 'shop:', shopId || '-', 'scope:', scope || 'default');
 
     // Verify that the bot can actually reach the target (group / room / user)
     if (action === 'verifyTarget') {
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         return new Response(
           JSON.stringify({ ok: false, status: 0, reason: 'no_token', lineError: 'LINE_CHANNEL_ACCESS_TOKEN is not configured' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
