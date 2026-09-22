@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { resolveLineCredentials } from '../_shared/lineCredentials.ts'
+import { resolveShopName } from '../_shared/shopName.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
