@@ -156,7 +156,7 @@ serve(async (req) => {
       else checkUrl = `https://api.line.me/v2/bot/profile/${target}`;
 
       const checkRes = await fetch(checkUrl, {
-        headers: { 'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}` }
+        headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
       });
       const checkBody = await checkRes.text();
       console.log('🔎 verifyTarget', target, checkRes.status, checkBody);
@@ -175,7 +175,7 @@ serve(async (req) => {
     if (action === 'send') {
       console.log('📤 Sending message to LINE user:', userId);
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
@@ -187,7 +187,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         },
         body: JSON.stringify({
           to: userId,
@@ -225,7 +225,7 @@ serve(async (req) => {
     if (action === 'broadcast') {
       console.log('📣 Broadcasting message');
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
@@ -235,7 +235,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         },
         body: JSON.stringify({
           messages: messagesToSend
@@ -263,14 +263,14 @@ serve(async (req) => {
     if (action === 'getProfile') {
       console.log('👤 Getting user profile:', userId);
       
-      if (!LINE_CHANNEL_ACCESS_TOKEN) {
+      if (!ACCESS_TOKEN) {
         throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
       }
 
       const response = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
         }
       });
 
