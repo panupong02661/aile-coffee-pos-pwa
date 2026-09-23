@@ -3133,6 +3133,7 @@ export type Database = {
       notification_settings: {
         Row: {
           created_at: string | null
+          daily_report_last_sent_date: string | null
           daily_reports: Json | null
           duration: number | null
           id: string
@@ -3148,6 +3149,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          daily_report_last_sent_date?: string | null
           daily_reports?: Json | null
           duration?: number | null
           id?: string
@@ -3163,6 +3165,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          daily_report_last_sent_date?: string | null
           daily_reports?: Json | null
           duration?: number | null
           id?: string
