@@ -182,6 +182,132 @@ serve(async (req) => {
   }
 })
 
+// Build and send the daily report for ONE shop
+async function processShop(
+  supabase: any,
+  shopId: string | null,
+  dailySettings: NotificationSettings['daily_reports'],
+  bangkokTime: Date,
+  currentTime: string,
+  scheduledTime: string,
+  isManualTrigger: boolean,
+  timestamp: string
+) {
+  const startOfDay = new Date(bangkokTime);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(bangkokTime);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  let ordersQuery = supabase
+    .from('orders')
+    .select('id, total_amount, bill_discount, created_at')
+    .gte('created_at', startOfDay.toISOString())
+    .lte('created_at', endOfDay.toISOString())
+  if (shopId) ordersQuery = ordersQuery.eq('shop_id', shopId)
+
+  const { data: todayOrders, error: ordersError } = await ordersQuery
+  if (ordersError) throw ordersError
+
+  let itemsQuery = supabase
+    .from('order_items')
+    .select(`
+      menu_item_name,
+      quantity,
+      total_price,
+      order:orders!inner(created_at, shop_id)
+    `)
+    .gte('order.created_at', startOfDay.toISOString())
+    .lte('order.created_at', endOfDay.toISOString())
+  if (shopId) itemsQuery = itemsQuery.eq('order.shop_id', shopId)
+
+  const { data: orderItems, error: itemsError } = await itemsQuery
+  if (itemsError) throw itemsError
+
+  const totalOrders = todayOrders?.length || 0
+  const totalSales = todayOrders?.reduce((sum: number, o: any) => sum + (Number(o.total_amount) || 0), 0) || 0
+  const totalDiscount = todayOrders?.reduce((sum: number, o: any) => sum + (Number(o.bill_discount) || 0), 0) || 0
+  const netSales = totalSales - totalDiscount
+
+  const menuStats = orderItems?.reduce((acc: any, item: any) => {
+    const name = item.menu_item_name
+    if (!acc[name]) acc[name] = { quantity: 0, totalSales: 0 }
+    acc[name].quantity += item.quantity
+    acc[name].totalSales += Number(item.total_price) || 0
+    return acc
+  }, {}) || {}
+
+  const topMenus = Object.entries(menuStats)
+    .map(([name, stats]: [string, any]) => ({ name, quantity: stats.quantity, totalSales: stats.totalSales }))
+    .sort((a, b) => b.totalSales - a.totalSales)
+    .slice(0, 10)
+
+  const shopName = await resolveShopName(shopId)
+  console.log('🏪 Shop name resolved:', shopName || '-', shopId)
+
+  const reportData = {
+    date: bangkokTime.toLocaleDateString('th-TH'),
+    time: bangkokTime.toLocaleTimeString('th-TH'),
+    currentTime,
+    scheduledTime,
+    totalOrders,
+    totalSales,
+    totalDiscount,
+    netSales,
+    topMenus,
+    shopName,
+    triggerType: isManualTrigger ? 'manual' : 'scheduled',
+    timestamp
+  }
+
+  let sentCount = 0
+  let errorCount = 0
+  const errors: string[] = []
+
+  if (dailySettings.platforms.discord?.enabled && dailySettings.platforms.discord.token) {
+    try {
+      await sendDiscordReport(reportData, dailySettings.platforms.discord.token)
+      sentCount++
+    } catch (error) {
+      errorCount++; errors.push(`Discord: ${error}`)
+      console.error('❌ Discord failed for shop', shopId, error)
+    }
+  }
+
+  if (dailySettings.platforms.line?.enabled && dailySettings.platforms.line.token) {
+    try {
+      await sendLineReport(reportData, dailySettings.platforms.line.token, dailySettings.platforms.line.type || 'user', shopId)
+      sentCount++
+    } catch (error) {
+      errorCount++; errors.push(`LINE: ${error}`)
+      console.error('❌ LINE failed for shop', shopId, error)
+    }
+  }
+
+  if (dailySettings.platforms.telegram?.enabled && dailySettings.platforms.telegram.token) {
+    try {
+      await sendTelegramReport(reportData, dailySettings.platforms.telegram.token)
+      sentCount++
+    } catch (error) {
+      errorCount++; errors.push(`Telegram: ${error}`)
+      console.error('❌ Telegram failed for shop', shopId, error)
+    }
+  }
+
+  if (dailySettings.platforms.instagram?.enabled && dailySettings.platforms.instagram.token) {
+    try {
+      await sendInstagramReport(reportData, dailySettings.platforms.instagram.token)
+      sentCount++
+    } catch (error) {
+      errorCount++; errors.push(`Instagram: ${error}`)
+      console.error('❌ Instagram failed for shop', shopId, error)
+    }
+  }
+
+  return { shopName, reportData, sentCount, errorCount, errors: errors.length ? errors : undefined }
+}
+
+
 // Function to send Discord notification
 async function sendDiscordReport(reportData: any, webhookUrl: string) {
   const topMenusList = reportData.topMenus
