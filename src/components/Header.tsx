@@ -126,6 +126,15 @@ const Header = ({
       {isMobile && page === 'pos' ? (
         <div className="space-y-1.5">
           <div className="flex min-h-9 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleSidebar}
+              className="size-9 shrink-0"
+              aria-label="เปิดเมนูหลัก"
+            >
+              <Menu className="size-5" />
+            </Button>
             <Popover open={isMobileToolsOpen} onOpenChange={setIsMobileToolsOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="size-9 shrink-0" aria-label="เปิดเครื่องมือ POS">
