@@ -101,7 +101,7 @@ const Header = ({
 
   // Filter menu items based on search term
   const filteredMenuItems = menuItems.filter(item =>
-    item.name.toLowerCase().includes(localSearchTerm.toLowerCase())
+    String(item?.name ?? '').toLowerCase().includes(localSearchTerm.toLowerCase())
   );
 
   const handleSearchChange = (value: string) => {
