@@ -184,7 +184,6 @@ const Header = ({
           </div>
         </div>
       ) : (
-      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
       <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
         <div className={cn('flex flex-col gap-1', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
           <div className="flex items-center gap-1">
