@@ -70,6 +70,10 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
     );
   }, [sidebarStyle, width, collapsed]);
 
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 768) setCollapsed(false);
+  }, [isOpen]);
+
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -124,7 +128,7 @@ const MainSidebar = ({ isOpen, onClose }: MainSidebarProps) => {
       {!collapsed && isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setCollapsed(true)}
+           onClick={onClose}
         />
       )}
 
