@@ -10,6 +10,7 @@ import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 
 import PosCartV2 from '@/components/pos/PosCartV2';
+import MobilePOSBottomNav from '@/components/pos/MobilePOSBottomNav';
 import PosV2CategoryBar from '@/components/preview/PosV2CategoryBar';
 import MobileCart from '@/components/MobileCart';
 import AddonModal from '@/components/AddonModal';
@@ -17,6 +18,7 @@ import MemberSearchModal from '@/components/MemberSearchModal';
 import DebugCodeChecker from '@/components/DebugCodeChecker';
 import DisplaySettingsModal from '@/components/DisplaySettingsModal';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
+import CodeModal from '@/components/CodeModal';
 import { useCart } from '@/hooks/useCart';
 import { useTableOrders } from '@/hooks/useTableOrders';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -192,6 +194,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [isCustomerDetailsOpen, setIsCustomerDetailsOpen] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
 
   const {
     cartItems,
@@ -762,6 +765,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
             onToggleDebug={() => setShowDebug(!showDebug)}
             onSearchOpen={() => setIsSearchOpen(true)}
             onSettingsOpen={() => setIsSettingsOpen(true)}
+            onCodeOpen={() => setIsCodeModalOpen(true)}
             onMemberInfoClick={() => setIsCustomerDetailsOpen(true)}
             trailing={!classic ? (
               <PosV2CategoryBar
@@ -785,7 +789,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
         <div className={cn(
           'flex-1 flex overflow-hidden',
           classic ? (isMobile ? 'flex-col gap-1 p-1' : 'gap-1 p-1') : (isMobile ? 'flex-col gap-1.5 p-1.5' : 'gap-2 p-2 pt-1')
-        )} style={{ minHeight: 0 }}>
+        )} style={{ minHeight: 0, paddingBottom: isMobile ? 'calc(4.25rem + env(safe-area-inset-bottom))' : undefined }}>
           {/* Menu Grid Container */}
           <div className="flex-1 overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
             <div className={cn(
@@ -862,7 +866,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
 
         {/* Mobile Cart Button - Fixed Position */}
         {isMobile && (
-          <div className="fixed bottom-6 right-6 z-30">
+          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-30">
             <Button
               onClick={() => setIsMobileCartOpen(true)}
               className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg relative touch-none"
@@ -877,6 +881,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
             </Button>
           </div>
         )}
+        {isMobile && <MobilePOSBottomNav onDisplaySettings={() => setIsSettingsOpen(true)} />}
       </div>
 
       {/* Mobile Cart Drawer */}
@@ -1003,6 +1008,15 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
         itemSize={itemSize}
         setItemSize={setItemSize}
         page="pos"
+      />
+
+      <CodeModal
+        isOpen={isCodeModalOpen}
+        onClose={() => setIsCodeModalOpen(false)}
+        onApplyCode={(giftData) => {
+          handleCodeApply(giftData);
+          setIsCodeModalOpen(false);
+        }}
       />
 
       {/* Debug Code Checker */}

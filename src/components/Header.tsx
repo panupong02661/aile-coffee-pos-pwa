@@ -5,9 +5,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Menu, Search, Settings, User, Star, Award, Crown, X, Bug } from 'lucide-react';
+import { Menu, Search, Settings, User, Star, Award, Crown, X, Bug, Grid2X2, QrCode } from 'lucide-react';
 import DisplaySettingsModal from './DisplaySettingsModal';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Member {
   id: string;
@@ -41,6 +43,7 @@ interface HeaderProps {
   onToggleDebug?: () => void;
   onSearchOpen?: () => void;
   onSettingsOpen?: () => void;
+  onCodeOpen?: () => void;
   trailing?: React.ReactNode;
 }
 
@@ -65,12 +68,15 @@ const Header = ({
   onToggleDebug,
   onSearchOpen,
   onSettingsOpen,
+  onCodeOpen,
   onMemberInfoClick,
   trailing
 }: HeaderProps) => {
+  const isMobile = useIsMobile();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
 
   const getTierBadgeColor = (tier: string) => {
     switch (tier) {
@@ -117,7 +123,71 @@ const Header = ({
 
   return (
     <>
-      {/* First Row: Menu button, Customer button, Categories, Member Name/Tier */}
+      {isMobile && page === 'pos' ? (
+        <div className="space-y-1.5">
+          <div className="flex min-h-9 items-center gap-2">
+            <Popover open={isMobileToolsOpen} onOpenChange={setIsMobileToolsOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="size-9 shrink-0" aria-label="เปิดเครื่องมือ POS">
+                  <Grid2X2 className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(22rem,calc(100vw-1rem))] p-2">
+                <div className="grid grid-cols-4 gap-1">
+                  <Button variant="ghost" className="h-16 flex-col gap-1 px-1 text-[10px]" onClick={() => { setIsMobileToolsOpen(false); onMemberClick?.(); }}>
+                    <User className="size-5" />สมาชิก
+                  </Button>
+                  <Button variant="ghost" className={cn('h-16 flex-col gap-1 px-1 text-[10px]', showDebug && 'text-primary')} onClick={() => { setIsMobileToolsOpen(false); onToggleDebug?.(); }}>
+                    <Bug className="size-5" />ดีบัก
+                  </Button>
+                  <Button variant="ghost" className="h-16 flex-col gap-1 px-1 text-[10px]" onClick={() => { setIsMobileToolsOpen(false); onCodeOpen?.(); }}>
+                    <QrCode className="size-5" />โค้ด
+                  </Button>
+                  <Button variant="ghost" className="h-16 flex-col gap-1 px-1 text-[10px]" onClick={() => { setIsMobileToolsOpen(false); onSearchOpen?.(); }}>
+                    <Search className="size-5" />ค้นหา
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {selectedMember && (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onMemberInfoClick?.()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') onMemberInfoClick?.();
+                }}
+                className="flex h-9 min-w-0 items-center gap-1.5 rounded-md border border-border bg-card px-2 text-left"
+              >
+                <User className="size-4 shrink-0 text-primary" />
+                <span className="truncate text-xs font-semibold text-foreground">{selectedMember.name}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(event) => { event.stopPropagation(); onRemoveMember(); }}
+                  className="size-6 shrink-0"
+                  aria-label="นำสมาชิกออก"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1 overflow-hidden">
+              {trailing || (
+                <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]">
+                  {categories.map((category) => (
+                    <Button key={category.id} variant={selectedCategory === category.id ? 'default' : 'outline'} size="sm" className="h-9 shrink-0" onClick={() => onCategorySelect(category.id)}>
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
         <div className={cn('flex flex-col gap-1', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
           <div className="flex items-center gap-1">
@@ -207,6 +277,7 @@ const Header = ({
           </div>
         )}
       </div>
+      )}
 
 
       {/* Search Modal */}
