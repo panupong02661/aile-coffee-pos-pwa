@@ -84,6 +84,7 @@ const QueueTracker = lazy(() => import('./pages/QueueTracker'));
 const LauncherPreview = lazy(() => import('./pages/LauncherPreview'));
 const ShiftClose = lazy(() => import('./pages/ShiftClose'));
 const CategoryBarPreview = lazy(() => import('./pages/CategoryBarPreview'));
+const MobilePOSPreview = lazy(() => import('./pages/MobilePOSPreview'));
 
 const PreviewHome = lazy(() => import('./pages/preview/PreviewHome'));
 const PreviewPOS = lazy(() => import('./pages/preview/PreviewPOS'));
@@ -128,6 +129,7 @@ function App() {
                     <Route path="/pos-v2" element={<PosV2 />} />
                     <Route path="/sidebar-preview" element={<SidebarPreview />} />
                     <Route path="/category-bar-preview" element={<CategoryBarPreview />} />
+                    <Route path="/mobile-pos-preview" element={<MobilePOSPreview />} />
 
 
                     {/* Protected routes */}

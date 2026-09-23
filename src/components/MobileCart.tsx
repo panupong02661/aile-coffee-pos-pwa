@@ -1,19 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Minus, Trash2, Tag, X, Clock, QrCode, Gift } from 'lucide-react';
+import { Plus, Minus, Trash2, Tag, X } from 'lucide-react';
 import { CartItem, PaymentMethod } from '@/types';
 import PaymentModal from './PaymentModal';
 import DiscountModal from './DiscountModal';
-import HoldBillModal from './HoldBillModal';
 import ItemDiscountModal from './ItemDiscountModal';
-import CodeModal from './CodeModal';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Drawer,
@@ -80,12 +72,9 @@ const MobileCart = ({
   onProceedToPayment
 }: MobileCartProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isItemDiscountModalOpen, setIsItemDiscountModalOpen] = useState(false);
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<CartItem | null>(null);
-  const [pickupTime, setPickupTime] = useState('');
-  const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('qr');
-  const { toast } = useToast();
 
   // Send cart data to Customer Display using Supabase Realtime
   const syncCartToDisplay = useCallback(async (showPayment: boolean = false) => {
@@ -183,16 +172,6 @@ const MobileCart = ({
     onUpdateBillDiscountType(type);
   };
 
-  const handleHoldBill = () => {
-    onClearCart();
-    onUpdateBillDiscount(0);
-    onClose();
-  };
-
-  const handleRestoreBill = (bill: any) => {
-    onRestoreCart(bill.items, bill.discount, bill.discountType);
-  };
-
   const handleItemDiscountClick = (item: CartItem) => {
     setSelectedItemForDiscount(item);
     setIsItemDiscountModalOpen(true);
@@ -207,8 +186,8 @@ const MobileCart = ({
   return (
     <>
       <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className="max-h-[90vh] flex flex-col">
-          <DrawerHeader className="flex-shrink-0">
+        <DrawerContent className="max-h-[95dvh] flex flex-col">
+          <DrawerHeader className="flex-shrink-0 px-4 pb-2 pt-3">
             <div className="flex items-center justify-between">
               <DrawerTitle className="text-foreground">
                 ตะกร้าสินค้า
@@ -229,20 +208,20 @@ const MobileCart = ({
             </div>
           </DrawerHeader>
           
-          <div className="flex-1 flex flex-col min-h-0 px-4 pb-4">
+            <div className="flex-1 flex flex-col min-h-0 px-3 pb-3">
             {/* Cart Items Section - Show first */}
-            <div className="flex-1 min-h-0 mb-4 flex flex-col">
-              <h3 className="font-medium text-foreground mb-3 flex-shrink-0">รายการสินค้า</h3>
-              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3" style={{ scrollbarWidth: 'thin', minHeight: '200px' }}>
+            <div className="flex-1 min-h-0 mb-2 flex flex-col">
+              <h3 className="mb-2 flex-shrink-0 font-medium text-foreground">รายการสินค้า</h3>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2" style={{ scrollbarWidth: 'thin', minHeight: '160px' }}>
                 {cartItems.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     ไม่มีสินค้าในตะกร้า
                   </div>
                 ) : (
                   cartItems.map((item) => (
-                    <div key={item.id} className="border border-border rounded-lg p-3 space-y-3 bg-white">
+                    <div key={item.id} className="space-y-2 rounded-md border border-border bg-card p-2.5">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
+                         <div className="min-w-0 flex-1">
                           <h4 className="font-medium text-base text-foreground">
                             {item.menu_item.name}
                           </h4>
@@ -261,14 +240,29 @@ const MobileCart = ({
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onRemoveItem(item.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                         <div className="flex items-center gap-1">
+                           <Button
+                             variant={item.item_discount > 0 ? 'secondary' : 'outline'}
+                             size="sm"
+                             onClick={() => handleItemDiscountClick(item)}
+                             className="h-9 gap-1 px-2 text-xs"
+                             aria-label={`ส่วนลดรายการ ${item.menu_item.name}`}
+                           >
+                             <Tag className="size-4" />
+                             {item.item_discount > 0
+                               ? `${item.item_discount_type === 'percent' ? item.item_discount + '%' : '฿' + item.item_discount}`
+                               : 'ส่วนลด'}
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             onClick={() => onRemoveItem(item.id)}
+                             className="size-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                             aria-label={`ลบ ${item.menu_item.name}`}
+                           >
+                             <Trash2 className="size-4" />
+                           </Button>
+                         </div>
                       </div>
 
                       <Separator />
@@ -308,8 +302,21 @@ const MobileCart = ({
             </div>
 
             {/* Payment Summary Section */}
-            <div className="border border-border rounded-lg p-4 mb-4 bg-background flex-shrink-0">
-              <h3 className="font-medium text-foreground mb-3">สรุปยอดชำระ</h3>
+             <div className="mb-2 flex-shrink-0 rounded-md border border-border bg-background p-3">
+               <div className="mb-2 flex items-center justify-between gap-2">
+                 <h3 className="font-medium text-foreground">สรุปยอดชำระ</h3>
+                 <Button
+                   type="button"
+                   variant={billDiscountAmount > 0 ? 'secondary' : 'outline'}
+                   size="sm"
+                   onClick={() => setIsDiscountModalOpen(true)}
+                   disabled={subtotal <= 0}
+                   className="h-9 gap-1.5 px-2.5 text-xs"
+                 >
+                   <Tag className="size-4" />
+                   {billDiscountAmount > 0 ? 'แก้ส่วนลดบิล' : 'ส่วนลดทั้งบิล'}
+                 </Button>
+               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>ยอดรวมย่อย:</span>
@@ -344,9 +351,9 @@ const MobileCart = ({
             </div>
 
             {/* Payment Button */}
-            <div className="flex-shrink-0">
+             <div className="flex-shrink-0">
               <Button 
-                className="w-full bg-orange-500 hover:bg-orange-600 h-14 text-white font-semibold text-lg"
+                 className="h-12 w-full text-base font-semibold"
                 onClick={() => {
                   if (onProceedToPayment) {
                     onProceedToPayment();
@@ -375,6 +382,14 @@ const MobileCart = ({
         selectedMember={selectedMember}
         appliedGiftCode={appliedGiftCode}
         onMemberUpdate={onMemberUpdate}
+      />
+
+      <DiscountModal
+        isOpen={isDiscountModalOpen}
+        onClose={() => setIsDiscountModalOpen(false)}
+        onApplyDiscount={handleApplyDiscount}
+        currentDiscount={billDiscount}
+        currentType={billDiscountType}
       />
 
       {selectedItemForDiscount && (
