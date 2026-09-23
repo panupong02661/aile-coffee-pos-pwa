@@ -77,7 +77,7 @@ serve(async (req) => {
     // Get notification settings (all shops, or the requested one)
     let settingsQuery = supabase
       .from('notification_settings')
-      .select('shop_id, daily_reports')
+      .select('shop_id, daily_reports, daily_report_last_sent_date')
     if (requestedShopId) settingsQuery = settingsQuery.eq('shop_id', requestedShopId)
 
     const { data: settingsRows, error: settingsError } = await settingsQuery
@@ -89,15 +89,16 @@ serve(async (req) => {
 
     console.log('⚙️ Settings rows found:', settingsRows?.length || 0)
 
-    // pick the first row whose daily reports are enabled (per shop)
-    const settingsRow = (settingsRows || []).find((r: any) => r?.daily_reports?.enabled) || (settingsRows || [])[0] || null
-    const settings = settingsRow as any
-    const shopId: string | null = settingsRow?.shop_id || requestedShopId || null
+    // Get current Bangkok time (same for all shops)
+    const { date: bangkokTime, timeString: currentTime } = getBangkokTime();
+    const todayKey = bangkokTime.toISOString().slice(0, 10);
 
-    if (!settings?.daily_reports?.enabled) {
-      console.log('ℹ️ Daily reports are disabled')
-      return new Response(JSON.stringify({ 
-        success: true, 
+    const enabledRows = (settingsRows || []).filter((r: any) => r?.daily_reports?.enabled)
+
+    if (enabledRows.length === 0) {
+      console.log('ℹ️ Daily reports are disabled for every shop')
+      return new Response(JSON.stringify({
+        success: true,
         message: 'Daily reports disabled',
         enabled: false,
         timestamp
@@ -106,232 +107,66 @@ serve(async (req) => {
       })
     }
 
-    // อ่านเวลาที่กำหนดจากการตั้งค่าในฐานข้อมูล
-    const scheduledTime = settings.daily_reports.time;
-    console.log('🎯 Scheduled time from settings:', scheduledTime)
+    const shopResults: any[] = []
 
-    // Get current Bangkok time
-    const { date: bangkokTime, timeString: currentTime } = getBangkokTime();
-    
-    console.log('🌏 Time comparison:', {
-      currentTime,
-      scheduledTime,
-      isManualTrigger,
-      isCronTrigger
-    });
+    // Process every shop independently
+    for (const row of enabledRows) {
+      const shopId: string | null = (row as any).shop_id || null
+      const dailySettings = (row as any).daily_reports as NotificationSettings['daily_reports']
+      const scheduledTime = dailySettings.time
+      const lastSentDate = (row as any).daily_report_last_sent_date || null
 
-    // ตรวจสอบเงื่อนไขการส่ง - ส่งเมื่อถึงเวลาที่กำหนด
-    const isTimeMatch = currentTime === scheduledTime;
-    const shouldSend = isManualTrigger || (isCronTrigger && isTimeMatch);
-    
-    console.log('⏱️ Should send report?', {
-      isTimeMatch,
-      shouldSend,
-      reason: isManualTrigger ? 'manual trigger' : isTimeMatch ? `scheduled time (${scheduledTime})` : 'time not match'
-    });
+      const isTimeMatch = currentTime === scheduledTime
+      const alreadySentToday = lastSentDate === todayKey
+      const shouldSend = isManualTrigger || (isCronTrigger && isTimeMatch && !alreadySentToday)
 
-    if (!shouldSend) {
-      console.log('⏭️ Not sending - conditions not met')
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: `Not scheduled time - will send at ${scheduledTime}`,
-        currentTime,
-        scheduledTime,
-        isTimeMatch,
-        triggerType: isManualTrigger ? 'manual' : 'cron',
-        timestamp
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
+      console.log('🏬 Shop check:', { shopId, scheduledTime, currentTime, isTimeMatch, alreadySentToday, shouldSend })
 
-    console.log(`✅ Sending daily report at ${scheduledTime} - conditions met!`)
-
-    // Generate daily report data
-    const startOfDay = new Date(bangkokTime);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(bangkokTime);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-    
-    console.log('📅 Report date range:', { 
-      startOfDay: startOfDay.toISOString(), 
-      endOfDay: endOfDay.toISOString()
-    });
-
-    // Get today's orders (scoped to this shop)
-    let ordersQuery = supabase
-      .from('orders')
-      .select('id, total_amount, bill_discount, created_at')
-      .gte('created_at', startOfDay.toISOString())
-      .lte('created_at', endOfDay.toISOString())
-    if (shopId) ordersQuery = ordersQuery.eq('shop_id', shopId)
-
-    const { data: todayOrders, error: ordersError } = await ordersQuery
-
-    if (ordersError) {
-      console.error('❌ Error fetching orders:', ordersError)
-      throw ordersError
-    }
-
-    console.log('📋 Orders found:', todayOrders?.length || 0)
-
-    // Get today's order items for menu analysis
-    let itemsQuery = supabase
-      .from('order_items')
-      .select(`
-        menu_item_name,
-        quantity,
-        total_price,
-        order:orders!inner(created_at, shop_id)
-      `)
-      .gte('order.created_at', startOfDay.toISOString())
-      .lte('order.created_at', endOfDay.toISOString())
-    if (shopId) itemsQuery = itemsQuery.eq('order.shop_id', shopId)
-
-    const { data: orderItems, error: itemsError } = await itemsQuery
-
-
-    if (itemsError) {
-      console.error('❌ Error fetching order items:', itemsError)
-      throw itemsError
-    }
-
-    console.log('🍽️ Order items found:', orderItems?.length || 0)
-
-    // Calculate statistics
-    const totalOrders = todayOrders?.length || 0
-    const totalSales = todayOrders?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0
-    const totalDiscount = todayOrders?.reduce((sum, order) => sum + (Number(order.bill_discount) || 0), 0) || 0
-    const netSales = totalSales - totalDiscount
-
-    // Group menu items by name and calculate sales
-    const menuStats = orderItems?.reduce((acc: any, item) => {
-      const name = item.menu_item_name
-      if (!acc[name]) {
-        acc[name] = { quantity: 0, totalSales: 0 }
+      if (!shouldSend) {
+        shopResults.push({
+          shopId,
+          sent: false,
+          reason: alreadySentToday ? 'already sent today' : `not scheduled time (${scheduledTime})`,
+          scheduledTime,
+          currentTime
+        })
+        continue
       }
-      acc[name].quantity += item.quantity
-      acc[name].totalSales += Number(item.total_price) || 0
-      return acc
-    }, {}) || {}
 
-    // Get top 10 selling items
-    const topMenus = Object.entries(menuStats)
-      .map(([name, stats]: [string, any]) => ({
-        name,
-        quantity: stats.quantity,
-        totalSales: stats.totalSales
-      }))
-      .sort((a, b) => b.totalSales - a.totalSales)
-      .slice(0, 10)
-
-    // ชื่อร้านของสาขาที่ส่งรายงาน (แสดงเป็นหัวข้อความทุกแพลตฟอร์ม)
-    const shopName = await resolveShopName(shopId)
-    console.log('🏪 Shop name resolved:', shopName || '-')
-
-    const reportData = {
-      date: bangkokTime.toLocaleDateString('th-TH'),
-      time: bangkokTime.toLocaleTimeString('th-TH'),
-      currentTime,
-      scheduledTime,
-      totalOrders,
-      totalSales,
-      totalDiscount,
-      netSales,
-      topMenus,
-      shopName,
-      triggerType: isManualTrigger ? 'manual' : 'scheduled',
-      isTimeMatch,
-      timestamp
-    }
-
-    console.log('📈 Report data generated:', reportData)
-
-    // Send notifications to enabled platforms
-    let sentCount = 0
-    let errorCount = 0
-    const errors: string[] = []
-    
-    const dailySettings = settings.daily_reports as NotificationSettings['daily_reports']
-
-    // Send to Discord
-    if (dailySettings.platforms.discord.enabled && dailySettings.platforms.discord.token) {
       try {
-        console.log('📤 Sending to Discord...')
-        await sendDiscordReport(reportData, dailySettings.platforms.discord.token)
-        sentCount++
-        console.log('✅ Discord notification sent successfully')
-      } catch (error) {
-        errorCount++
-        errors.push(`Discord: ${error}`)
-        console.error('❌ Discord notification failed:', error)
+        const result = await processShop(supabase, shopId, dailySettings, bangkokTime, currentTime, scheduledTime, isManualTrigger, timestamp)
+
+        if (!isManualTrigger && result.sentCount > 0 && shopId) {
+          const { error: markError } = await supabase
+            .from('notification_settings')
+            .update({ daily_report_last_sent_date: todayKey })
+            .eq('shop_id', shopId)
+          if (markError) console.error('⚠️ Could not mark daily report as sent:', markError)
+        }
+
+        shopResults.push({ shopId, sent: true, ...result })
+      } catch (shopError) {
+        console.error('❌ Shop report failed:', shopId, shopError)
+        shopResults.push({ shopId, sent: false, reason: 'error', error: String(shopError) })
       }
     }
 
-    // Send to LINE
-    if (dailySettings.platforms.line.enabled && dailySettings.platforms.line.token) {
-      try {
-        const lineType = dailySettings.platforms.line.type || 'user';
-        console.log(`📤 Sending to LINE (${lineType})...`)
-        await sendLineReport(reportData, dailySettings.platforms.line.token, lineType, shopId)
-        sentCount++
-        console.log(`✅ LINE notification sent successfully to ${lineType}`)
-      } catch (error) {
-        errorCount++
-        errors.push(`LINE: ${error}`)
-        console.error('❌ LINE notification failed:', error)
-      }
-    }
-
-    // Send to Telegram
-    if (dailySettings.platforms.telegram.enabled && dailySettings.platforms.telegram.token) {
-      try {
-        console.log('📤 Sending to Telegram...')
-        await sendTelegramReport(reportData, dailySettings.platforms.telegram.token)
-        sentCount++
-        console.log('✅ Telegram notification sent successfully')
-      } catch (error) {
-        errorCount++
-        errors.push(`Telegram: ${error}`)
-        console.error('❌ Telegram notification failed:', error)
-      }
-    }
-
-    // Send to Instagram
-    if (dailySettings.platforms.instagram.enabled && dailySettings.platforms.instagram.token) {
-      try {
-        console.log('📤 Sending to Instagram...')
-        await sendInstagramReport(reportData, dailySettings.platforms.instagram.token)
-        sentCount++
-        console.log('✅ Instagram notification sent successfully')
-      } catch (error) {
-        errorCount++
-        errors.push(`Instagram: ${error}`)
-        console.error('❌ Instagram notification failed:', error)
-      }
-    }
+    const totalSent = shopResults.reduce((sum, r) => sum + (r.sentCount || 0), 0)
 
     const result = {
       success: true,
-      message: `รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด ส่งไปยัง ${sentCount} แพลตฟอร์ม`,
-      reportData,
-      sentCount,
-      errorCount,
-      errors: errors.length > 0 ? errors : undefined,
-      debug: {
-        timeMatched: isTimeMatch,
-        bangkokTime: bangkokTime.toISOString(),
-        triggerType: isManualTrigger ? 'manual' : `scheduled at ${scheduledTime}`
-      },
+      message: `รายงานประจำวัน - ประมวลผล ${shopResults.length} ร้าน ส่งสำเร็จรวม ${totalSent} ครั้ง`,
+      shops: shopResults,
+      currentTime,
       timestamp
     }
 
-    console.log(`🎉 Daily report completed at ${scheduledTime}:`, result)
+    console.log('🎉 Daily report completed:', JSON.stringify(result))
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
+
 
   } catch (error) {
     console.error('❌ Fatal error:', error)
