@@ -151,9 +151,13 @@ const Header = ({
             </Popover>
 
             {selectedMember && (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onMemberInfoClick?.()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') onMemberInfoClick?.();
+                }}
                 className="flex h-9 min-w-0 items-center gap-1.5 rounded-md border border-border bg-card px-2 text-left"
               >
                 <User className="size-4 shrink-0 text-primary" />
@@ -167,7 +171,7 @@ const Header = ({
                 >
                   <X className="size-3.5" />
                 </Button>
-              </button>
+              </div>
             )}
 
             <div className="min-w-0 flex-1 overflow-hidden">
