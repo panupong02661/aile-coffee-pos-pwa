@@ -65,7 +65,7 @@ const NotificationPage = () => {
         telegram: { enabled: false, token: '' }
       },
       instantNotification: true,
-      message: 'มีออเดอร์ออนไลน์ใหม่เข้ามา! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
+      message: ''
     },
     // การแจ้งเตือนออเดอร์ POS
     posOrders: {
@@ -1190,28 +1190,6 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                 {settings.onlineOrders.enabled && (
                   <>
                     <Separator />
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="online-message">ข้อความแจ้งเตือน</Label>
-                        <Textarea
-                          id="online-message"
-                          value={settings.onlineOrders.message}
-                          onChange={(e) =>
-                            setSettings(prev => ({
-                              ...prev,
-                              onlineOrders: { ...prev.onlineOrders, message: e.target.value }
-                            }))
-                          }
-                          placeholder="ข้อความที่จะส่งเมื่อมีออเดอร์ใหม่"
-                          className="min-h-[80px]"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          ใช้ {`{{orderNumber}}, {{amount}}, {{customerName}}`} เป็นตัวแปร
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator />
                     <div>
                       <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
                       <PlatformSettings
@@ -1506,7 +1484,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                             ส่งเป็นรูปภาพ Dashboard
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            สร้างรูปภาพสรุปยอดขายเดือนพร้อม Top 5 เมนูขายดี
+                            สร้างรูปภาพสรุปยอดขายเดือน พร้อมส่งรายการเมนูขายดีทั้งหมด
                           </p>
                         </div>
                       </div>

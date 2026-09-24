@@ -441,21 +441,23 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   console.log(`📤 Sending LINE message to ${recipientType}:`, lineId);
 
   // ส่งข้อความไปยัง LINE User ID หรือ Group ID ที่ระบุ
-  const response = await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${channelAccessToken}`,
-    },
-    body: JSON.stringify({
-      to: lineId, // สามารถเป็น userId หรือ groupId ก็ได้
-      messages: messageParts.slice(0, 5).map((text) => ({ type: 'text', text }))
+  for (let index = 0; index < messageParts.length; index += 5) {
+    const response = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${channelAccessToken}`,
+      },
+      body: JSON.stringify({
+        to: lineId,
+        messages: messageParts.slice(index, index + 5).map((text) => ({ type: 'text', text }))
+      })
     })
-  })
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
+    }
   }
   
   console.log(`✅ LINE message sent successfully to ${recipientType}:`, lineId);

@@ -21,8 +21,7 @@ const DisplaySettingsModal = ({
   gridColumns,
   setGridColumns,
   itemSize,
-  setItemSize,
-  page = 'other'
+  setItemSize
 }: DisplaySettingsModalProps) => {
   
   const handleGridColumnsChange = (value: number[]) => {
