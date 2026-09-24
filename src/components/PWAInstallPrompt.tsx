@@ -21,7 +21,8 @@ export const PWAInstallPrompt = () => {
     setIsStandalone(standalone);
 
     // Check if iOS
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const ios = (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !(window as any).MSStream;
     setIsIOS(ios);
 
     // Check if already dismissed
