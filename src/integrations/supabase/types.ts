@@ -3137,6 +3137,7 @@ export type Database = {
           daily_reports: Json | null
           duration: number | null
           id: string
+          monthly_report_last_sent_month: string | null
           monthly_reports: Json | null
           online_orders: Json | null
           pos_orders: Json | null
@@ -3153,6 +3154,7 @@ export type Database = {
           daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_report_last_sent_month?: string | null
           monthly_reports?: Json | null
           online_orders?: Json | null
           pos_orders?: Json | null
@@ -3169,6 +3171,7 @@ export type Database = {
           daily_reports?: Json | null
           duration?: number | null
           id?: string
+          monthly_report_last_sent_month?: string | null
           monthly_reports?: Json | null
           online_orders?: Json | null
           pos_orders?: Json | null
