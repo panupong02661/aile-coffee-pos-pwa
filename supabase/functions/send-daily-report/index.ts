@@ -239,8 +239,7 @@ async function processShop(
 
   const topMenus = Object.entries(menuStats)
     .map(([name, stats]: [string, any]) => ({ name, quantity: stats.quantity, totalSales: stats.totalSales }))
-    .sort((a, b) => b.totalSales - a.totalSales)
-    .slice(0, 10)
+    .sort((a, b) => b.quantity - a.quantity || b.totalSales - a.totalSales)
 
   const shopName = await resolveShopName(shopId)
   console.log('🏪 Shop name resolved:', shopName || '-', shopId)
@@ -310,11 +309,21 @@ async function processShop(
 
 // Function to send Discord notification
 async function sendDiscordReport(reportData: any, webhookUrl: string) {
-  const topMenusList = reportData.topMenus
+  const menuLines = reportData.topMenus
     .map((menu: any, index: number) => 
       `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
     )
-    .join('\n')
+  const menuChunks: string[] = []
+  let currentChunk = ''
+  for (const line of menuLines) {
+    if (currentChunk && `${currentChunk}\n${line}`.length > 1000) {
+      menuChunks.push(currentChunk)
+      currentChunk = line
+    } else {
+      currentChunk += `${currentChunk ? '\n' : ''}${line}`
+    }
+  }
+  if (currentChunk) menuChunks.push(currentChunk)
 
   const isManualTrigger = reportData.triggerType === 'manual';
   
@@ -338,11 +347,6 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       {
         name: '📅 วันที่สร้างรายงาน',
         value: `${reportData.date} เวลา ${reportData.time}`,
-        inline: true
-      },
-      {
-        name: '⏰ เวลาส่ง',
-        value: `${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)`,
         inline: true
       },
       {
@@ -370,11 +374,13 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
         value: `${reportData.netSales.toLocaleString()} บาท`,
         inline: true
       },
-      {
-        name: '🏆 เมนูขายดี (Top 10)',
-        value: topMenusList || 'ไม่มีข้อมูล',
-        inline: false
-      }
+      ...(menuChunks.length > 0
+        ? menuChunks.map((chunk, index) => ({
+            name: index === 0 ? '🏆 เมนูขายดีทั้งหมด' : `🏆 เมนูขายดีทั้งหมด (ต่อ ${index + 1})`,
+            value: chunk,
+            inline: false
+          }))
+        : [{ name: '🏆 เมนูขายดีทั้งหมด', value: 'ไม่มีข้อมูล', inline: false }])
     ],
     footer: {
       text: `${reportData.shopName ? `${reportData.shopName} | ` : ''}ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
@@ -410,7 +416,6 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   }
 
   const topMenusList = reportData.topMenus
-    .slice(0, 5) // LINE has message length limits
     .map((menu: any, index: number) => 
       `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
     )
@@ -421,42 +426,38 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
-  const message = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+  const summary = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
-⏰ เวลาส่ง: ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
 
 🛒 จำนวนออเดอร์: ${reportData.totalOrders} รายการ
 💰 ยอดขายรวม: ${reportData.totalSales.toLocaleString()} บาท
 💸 ส่วนลดรวม: ${reportData.totalDiscount.toLocaleString()} บาท
 💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
 
-🏆 เมนูขายดี (Top 5):
-${topMenusList || 'ไม่มีข้อมูล'}
-
-ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
+🏆 เมนูขายดีทั้งหมด:`
+  const messageParts = splitText(`${summary}\n${topMenusList || 'ไม่มีข้อมูล'}\n\nระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`, 4500)
 
   console.log(`📤 Sending LINE message to ${recipientType}:`, lineId);
 
   // ส่งข้อความไปยัง LINE User ID หรือ Group ID ที่ระบุ
-  const response = await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${channelAccessToken}`,
-    },
-    body: JSON.stringify({
-      to: lineId, // สามารถเป็น userId หรือ groupId ก็ได้
-      messages: [{
-        type: 'text',
-        text: message
-      }]
+  for (let index = 0; index < messageParts.length; index += 5) {
+    const response = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${channelAccessToken}`,
+      },
+      body: JSON.stringify({
+        to: lineId,
+        messages: messageParts.slice(index, index + 5).map((text) => ({ type: 'text', text }))
+      })
     })
-  })
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`LINE API failed: ${response.status} - ${errorText}`)
+    }
   }
   
   console.log(`✅ LINE message sent successfully to ${recipientType}:`, lineId);
@@ -477,14 +478,13 @@ async function sendTelegramReport(reportData: any, token: string) {
   const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
 
 📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
-⏰ *เวลาส่ง:* ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
 
 🛒 *จำนวนออเดอร์:* ${reportData.totalOrders} รายการ
 💰 *ยอดขายรวม:* ${reportData.totalSales.toLocaleString()} บาท
 💸 *ส่วนลดรวม:* ${reportData.totalDiscount.toLocaleString()} บาท
 💵 *ยอดขายสุทธิ:* ${reportData.netSales.toLocaleString()} บาท
 
-🏆 *เมนูขายดี (Top 10):*
+🏆 *เมนูขายดีทั้งหมด:*
 ${topMenusList || 'ไม่มีข้อมูล'}
 
 _ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time_`
@@ -495,22 +495,33 @@ _ระบบแจ้งเตือนอัตโนมัติ ตามเ
     throw new Error('Invalid Telegram token format. Expected format: bot_token:chat_id')
   }
 
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: 'Markdown'
+  for (const text of splitText(message, 3800)) {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
     })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Telegram API failed: ${response.status} - ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Telegram API failed: ${response.status} - ${errorText}`)
+    }
   }
+}
+
+function splitText(text: string, maxLength: number): string[] {
+  if (text.length <= maxLength) return [text]
+  const chunks: string[] = []
+  let current = ''
+  for (const line of text.split('\n')) {
+    if (current && `${current}\n${line}`.length > maxLength) {
+      chunks.push(current)
+      current = line
+    } else {
+      current += `${current ? '\n' : ''}${line}`
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
 }
 
 // Function to send Instagram notification (via Instagram Basic Display API)

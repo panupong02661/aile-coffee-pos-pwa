@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import MenuGrid from '@/components/MenuGrid';
@@ -32,6 +32,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { useAuth } from '@/hooks/useAuth';
+import { buildScopedStorageKey } from '@/utils/storageScope';
 
 interface Member {
   id: string;
@@ -62,6 +65,8 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   const [selectedCategory, setSelectedCategory] = useState('1');
   const { data: lowStockInfo } = useLowStockMenu();
   const isMobile = useIsMobile();
+  const { shopId, loading: shopLoading } = useCurrentShop();
+  const { user } = useAuth();
   const { animationsEnabled, darkModeEnabled, fontSize, fontWeight, primaryColor, textColor, themePreset, glassOpacity } = usePOSSettings();
   const [shopLogoUrl, setShopLogoUrl] = useState<string>('');
 
@@ -166,16 +171,12 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
     /Android/i.test(navigator.userAgent)
   );
 
-  // โหลดการตั้งค่าจาก localStorage — Android default: 6 คอลัมน์ / ขนาดใหญ่
-  const [gridColumns, setGridColumns] = useState(() => {
-    const saved = localStorage.getItem('pos-grid-columns');
-    return saved ? parseInt(saved) : (isAndroid ? 6 : (isMobile ? 3 : 4));
-  });
-  
-  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(() => {
-    const saved = localStorage.getItem('pos-item-size');
-    return saved ? saved as 'small' | 'medium' | 'large' : (isAndroid ? 'large' : (isMobile ? 'small' : 'medium'));
-  });
+  const defaultGridColumns = isAndroid ? 6 : (isMobile ? 3 : 4);
+  const defaultItemSize: 'small' | 'medium' | 'large' = isAndroid ? 'large' : (isMobile ? 'small' : 'medium');
+  const [gridColumns, setGridColumns] = useState(defaultGridColumns);
+  const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(defaultItemSize);
+  const loadedDisplayScopeRef = useRef<string | null>(null);
+  const skipDisplayPersistRef = useRef(false);
   
   console.log('⚙️ Grid settings:', { gridColumns, itemSize });
   
@@ -308,25 +309,33 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   });
 
   useEffect(() => {
-    console.log('📱 Mobile effect triggered:', isMobile);
-    if (isMobile) {
-      setGridColumns(3); 
-      setItemSize('small'); 
-    } else {
-      const saved = localStorage.getItem('pos-grid-columns');
-      setGridColumns(saved ? parseInt(saved) : 4);
-      const savedSize = localStorage.getItem('pos-item-size');
-      setItemSize(savedSize ? savedSize as 'small' | 'medium' | 'large' : 'medium');
+    if (shopLoading || !shopId || !user?.id) return;
+
+    const scope = `${user.id}:${shopId}`;
+    const columnsKey = buildScopedStorageKey('pos-grid-columns', { userId: user.id, shopId });
+    const sizeKey = buildScopedStorageKey('pos-item-size', { userId: user.id, shopId });
+    const savedColumns = localStorage.getItem(columnsKey) ?? localStorage.getItem('pos-grid-columns');
+    const savedSize = localStorage.getItem(sizeKey) ?? localStorage.getItem('pos-item-size');
+    const parsedColumns = savedColumns ? Number.parseInt(savedColumns, 10) : defaultGridColumns;
+    const validSize = savedSize === 'small' || savedSize === 'medium' || savedSize === 'large'
+      ? savedSize
+      : defaultItemSize;
+
+    skipDisplayPersistRef.current = true;
+    loadedDisplayScopeRef.current = scope;
+    setGridColumns(Number.isFinite(parsedColumns) ? Math.min(10, Math.max(1, parsedColumns)) : defaultGridColumns);
+    setItemSize(validSize);
+  }, [shopLoading, shopId, user?.id, defaultGridColumns, defaultItemSize]);
+
+  useEffect(() => {
+    if (!shopId || !user?.id || loadedDisplayScopeRef.current !== `${user.id}:${shopId}`) return;
+    if (skipDisplayPersistRef.current) {
+      skipDisplayPersistRef.current = false;
+      return;
     }
-  }, [isMobile]);
-
-  useEffect(() => {
-    localStorage.setItem('pos-grid-columns', gridColumns.toString());
-  }, [gridColumns]);
-
-  useEffect(() => {
-    localStorage.setItem('pos-item-size', itemSize);
-  }, [itemSize]);
+    localStorage.setItem(buildScopedStorageKey('pos-grid-columns', { userId: user.id, shopId }), gridColumns.toString());
+    localStorage.setItem(buildScopedStorageKey('pos-item-size', { userId: user.id, shopId }), itemSize);
+  }, [gridColumns, itemSize, shopId, user?.id]);
 
   // NOTE: Online order notifications are handled by GlobalNotificationProvider
   // This listener is removed to prevent duplicate notifications
