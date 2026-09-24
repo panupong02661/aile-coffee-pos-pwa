@@ -176,6 +176,7 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
   const [gridColumns, setGridColumns] = useState(defaultGridColumns);
   const [itemSize, setItemSize] = useState<'small' | 'medium' | 'large'>(defaultItemSize);
   const loadedDisplayScopeRef = useRef<string | null>(null);
+  const skipDisplayPersistRef = useRef(false);
   
   console.log('⚙️ Grid settings:', { gridColumns, itemSize });
   
@@ -320,13 +321,18 @@ const POS = ({ classic = false }: { classic?: boolean }) => {
       ? savedSize
       : defaultItemSize;
 
+    skipDisplayPersistRef.current = true;
+    loadedDisplayScopeRef.current = scope;
     setGridColumns(Number.isFinite(parsedColumns) ? Math.min(10, Math.max(1, parsedColumns)) : defaultGridColumns);
     setItemSize(validSize);
-    loadedDisplayScopeRef.current = scope;
   }, [shopLoading, shopId, user?.id, defaultGridColumns, defaultItemSize]);
 
   useEffect(() => {
     if (!shopId || !user?.id || loadedDisplayScopeRef.current !== `${user.id}:${shopId}`) return;
+    if (skipDisplayPersistRef.current) {
+      skipDisplayPersistRef.current = false;
+      return;
+    }
     localStorage.setItem(buildScopedStorageKey('pos-grid-columns', { userId: user.id, shopId }), gridColumns.toString());
     localStorage.setItem(buildScopedStorageKey('pos-item-size', { userId: user.id, shopId }), itemSize);
   }, [gridColumns, itemSize, shopId, user?.id]);
