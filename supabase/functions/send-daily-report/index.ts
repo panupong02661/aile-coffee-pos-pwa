@@ -239,8 +239,7 @@ async function processShop(
 
   const topMenus = Object.entries(menuStats)
     .map(([name, stats]: [string, any]) => ({ name, quantity: stats.quantity, totalSales: stats.totalSales }))
-    .sort((a, b) => b.totalSales - a.totalSales)
-    .slice(0, 10)
+    .sort((a, b) => b.quantity - a.quantity || b.totalSales - a.totalSales)
 
   const shopName = await resolveShopName(shopId)
   console.log('🏪 Shop name resolved:', shopName || '-', shopId)
@@ -310,11 +309,21 @@ async function processShop(
 
 // Function to send Discord notification
 async function sendDiscordReport(reportData: any, webhookUrl: string) {
-  const topMenusList = reportData.topMenus
+  const menuLines = reportData.topMenus
     .map((menu: any, index: number) => 
       `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
     )
-    .join('\n')
+  const menuChunks: string[] = []
+  let currentChunk = ''
+  for (const line of menuLines) {
+    if (currentChunk && `${currentChunk}\n${line}`.length > 1000) {
+      menuChunks.push(currentChunk)
+      currentChunk = line
+    } else {
+      currentChunk += `${currentChunk ? '\n' : ''}${line}`
+    }
+  }
+  if (currentChunk) menuChunks.push(currentChunk)
 
   const isManualTrigger = reportData.triggerType === 'manual';
   
@@ -338,11 +347,6 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       {
         name: '📅 วันที่สร้างรายงาน',
         value: `${reportData.date} เวลา ${reportData.time}`,
-        inline: true
-      },
-      {
-        name: '⏰ เวลาส่ง',
-        value: `${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)`,
         inline: true
       },
       {
@@ -370,11 +374,13 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
         value: `${reportData.netSales.toLocaleString()} บาท`,
         inline: true
       },
-      {
-        name: '🏆 เมนูขายดี (Top 10)',
-        value: topMenusList || 'ไม่มีข้อมูล',
-        inline: false
-      }
+      ...(menuChunks.length > 0
+        ? menuChunks.map((chunk, index) => ({
+            name: index === 0 ? '🏆 เมนูขายดีทั้งหมด' : `🏆 เมนูขายดีทั้งหมด (ต่อ ${index + 1})`,
+            value: chunk,
+            inline: false
+          }))
+        : [{ name: '🏆 เมนูขายดีทั้งหมด', value: 'ไม่มีข้อมูล', inline: false }])
     ],
     footer: {
       text: `${reportData.shopName ? `${reportData.shopName} | ` : ''}ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
@@ -410,7 +416,6 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   }
 
   const topMenusList = reportData.topMenus
-    .slice(0, 5) // LINE has message length limits
     .map((menu: any, index: number) => 
       `${index + 1}. ${menu.name} - ${menu.quantity} รายการ (${menu.totalSales.toLocaleString()} บาท)`
     )
@@ -424,14 +429,13 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const message = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
-⏰ เวลาส่ง: ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
 
 🛒 จำนวนออเดอร์: ${reportData.totalOrders} รายการ
 💰 ยอดขายรวม: ${reportData.totalSales.toLocaleString()} บาท
 💸 ส่วนลดรวม: ${reportData.totalDiscount.toLocaleString()} บาท
 💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
 
-🏆 เมนูขายดี (Top 5):
+🏆 เมนูขายดีทั้งหมด:
 ${topMenusList || 'ไม่มีข้อมูล'}
 
 ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
@@ -477,14 +481,13 @@ async function sendTelegramReport(reportData: any, token: string) {
   const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
 
 📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
-⏰ *เวลาส่ง:* ${reportData.currentTime} (กำหนดส่งตอน ${reportData.scheduledTime} น.)
 
 🛒 *จำนวนออเดอร์:* ${reportData.totalOrders} รายการ
 💰 *ยอดขายรวม:* ${reportData.totalSales.toLocaleString()} บาท
 💸 *ส่วนลดรวม:* ${reportData.totalDiscount.toLocaleString()} บาท
 💵 *ยอดขายสุทธิ:* ${reportData.netSales.toLocaleString()} บาท
 
-🏆 *เมนูขายดี (Top 10):*
+🏆 *เมนูขายดีทั้งหมด:*
 ${topMenusList || 'ไม่มีข้อมูล'}
 
 _ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time_`

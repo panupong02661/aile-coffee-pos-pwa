@@ -4,7 +4,6 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
-import { useEffect } from 'react';
 
 interface DisplaySettingsModalProps {
   isOpen: boolean;
@@ -26,17 +25,6 @@ const DisplaySettingsModal = ({
   page = 'other'
 }: DisplaySettingsModalProps) => {
   
-  // Save settings to localStorage whenever they change
-  useEffect(() => {
-    if (page === 'online') {
-      localStorage.setItem('online-grid-columns', gridColumns.toString());
-      localStorage.setItem('online-item-size', itemSize);
-    } else if (page === 'pos') {
-      localStorage.setItem('pos-grid-columns', gridColumns.toString());
-      localStorage.setItem('pos-item-size', itemSize);
-    }
-  }, [gridColumns, itemSize, page]);
-
   const handleGridColumnsChange = (value: number[]) => {
     setGridColumns(value[0]);
   };
