@@ -77,7 +77,7 @@ serve(async (req) => {
     // Get notification settings (all shops, or the requested one)
     let settingsQuery = supabase
       .from('notification_settings')
-      .select('shop_id, daily_reports, daily_report_last_sent_date')
+      .select('shop_id, daily_reports, daily_report_last_sent_date, monthly_reports, monthly_report_last_sent_month')
     if (requestedShopId) settingsQuery = settingsQuery.eq('shop_id', requestedShopId)
 
     const { data: settingsRows, error: settingsError } = await settingsQuery
@@ -93,9 +93,39 @@ serve(async (req) => {
     const { date: bangkokTime, timeString: currentTime } = getBangkokTime();
     const todayKey = bangkokTime.toISOString().slice(0, 10);
 
-    const enabledRows = (settingsRows || []).filter((r: any) => r?.daily_reports?.enabled)
+    const monthKey = todayKey.slice(0, 7);
+    const requestedType: 'daily' | 'monthly' | null = requestBody?.reportType === 'monthly' ? 'monthly' : requestBody?.reportType === 'daily' ? 'daily' : null
+    const shopResults: any[] = []
 
-    if (enabledRows.length === 0) {
+    // ===== Monthly reports =====
+    if (requestedType !== 'daily') {
+      for (const row of (settingsRows || []) as any[]) {
+        const m = row?.monthly_reports
+        if (!m?.enabled || !m?.platforms) continue
+        if (isManualTrigger && requestedType !== 'monthly') continue
+        const shopId = row.shop_id || null
+        const scheduledTime = m.time || '09:00'
+        const day = Number(m.dayOfMonth || 1)
+        const lastDay = new Date(Date.UTC(bangkokTime.getUTCFullYear(), bangkokTime.getUTCMonth() + 1, 0)).getUTCDate()
+        const isDay = bangkokTime.getUTCDate() === Math.min(day, lastDay)
+        const already = row.monthly_report_last_sent_month === monthKey
+        const shouldSend = isManualTrigger || (isCronTrigger && isDay && currentTime === scheduledTime && !already)
+        if (!shouldSend) continue
+        try {
+          const result = await processShop(supabase, shopId, m, bangkokTime, currentTime, scheduledTime, isManualTrigger, timestamp, 'monthly')
+          if (!isManualTrigger && result.sentCount > 0 && shopId) {
+            await supabase.from('notification_settings').update({ monthly_report_last_sent_month: monthKey }).eq('shop_id', shopId)
+          }
+          shopResults.push({ shopId, type: 'monthly', sent: true, ...result })
+        } catch (e) {
+          shopResults.push({ shopId, type: 'monthly', sent: false, reason: 'error', error: String(e) })
+        }
+      }
+    }
+
+    const enabledRows = requestedType === 'monthly' ? [] : (settingsRows || []).filter((r: any) => r?.daily_reports?.enabled)
+
+    if (enabledRows.length === 0 && shopResults.length === 0) {
       console.log('ℹ️ Daily reports are disabled for every shop')
       return new Response(JSON.stringify({
         success: true,
@@ -106,8 +136,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-
-    const shopResults: any[] = []
 
     // Process every shop independently
     for (const row of enabledRows) {
@@ -191,9 +219,11 @@ async function processShop(
   currentTime: string,
   scheduledTime: string,
   isManualTrigger: boolean,
-  timestamp: string
+  timestamp: string,
+  reportType: 'daily' | 'monthly' = 'daily'
 ) {
   const startOfDay = new Date(bangkokTime);
+  if (reportType === 'monthly') startOfDay.setUTCDate(1);
   startOfDay.setUTCHours(0, 0, 0, 0);
 
   const endOfDay = new Date(bangkokTime);
@@ -255,6 +285,11 @@ async function processShop(
     netSales,
     topMenus,
     shopName,
+    reportType,
+    reportLabel: reportType === 'monthly' ? 'รายงานประจำเดือน' : 'รายงานประจำวัน',
+    periodLabel: reportType === 'monthly'
+      ? `รายงานสรุปยอดขายเดือน ${bangkokTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric', timeZone: 'UTC' })} (วันที่ 1 - ${bangkokTime.getUTCDate()})`
+      : `รายงานสรุปยอดขายประจำวันที่ ${bangkokTime.toLocaleDateString('th-TH')}`,
     triggerType: isManualTrigger ? 'manual' : 'scheduled',
     timestamp
   }
@@ -340,8 +375,8 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
   const shopLabel = reportData.shopName ? `🏪 ${reportData.shopName}` : '';
 
   const embed = {
-    title: `${shopLabel ? `${shopLabel} | ` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}`,
-    description: `รายงานสรุปยอดขายประจำวันที่ ${reportData.date}`,
+    title: `${shopLabel ? `${shopLabel} | ` : ''}📊 ${reportData.reportLabel} - ${statusText} ${statusIcon}`,
+    description: reportData.periodLabel,
     color: colorCode,
     fields: [
       {
@@ -394,7 +429,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      content: `${shopLabel ? `${shopLabel}\n` : ''}📊 **รายงานประจำวัน - ส่งอัตโนมัติ ตามเวลาที่กำหนด** ${statusIcon} (เวลา ${reportData.currentTime})`,
+      content: `${shopLabel ? `${shopLabel}\n` : ''}📊 **${reportData.reportLabel} - ${statusText}** ${statusIcon} (เวลา ${reportData.currentTime})`,
       embeds: [embed]
     })
   })
@@ -408,7 +443,7 @@ async function sendDiscordReport(reportData: any, webhookUrl: string) {
 // Function to send LINE notification
 async function sendLineReport(reportData: any, lineId: string, type: string = 'user', shopId?: string | null) {
   // บัญชี LINE ของสาขา (scope: รายงานประจำวัน) ถ้าไม่ได้ตั้งไว้จะใช้บัญชีกลาง
-  const { accessToken: channelAccessToken, source } = await resolveLineCredentials(shopId, 'daily_reports');
+  const { accessToken: channelAccessToken, source } = await resolveLineCredentials(shopId, reportData.reportType === 'monthly' ? 'monthly_reports' : 'daily_reports');
   console.log('🔑 LINE credentials source:', source, 'shop:', shopId || '-')
   
   if (!channelAccessToken) {
@@ -426,7 +461,7 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
-  const summary = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+  const summary = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 ${reportData.reportLabel} - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
 
@@ -475,7 +510,7 @@ async function sendTelegramReport(reportData: any, token: string) {
   const statusIcon = isManualTrigger ? '🖱️' : '🤖';
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
 
-  const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *รายงานประจำวัน - ${statusText}* ${statusIcon}
+  const message = `${reportData.shopName ? `🏪 *${reportData.shopName}*\n` : ''}📊 *${reportData.reportLabel} - ${statusText}* ${statusIcon}
 
 📅 *วันที่:* ${reportData.date} เวลา ${reportData.time}
 

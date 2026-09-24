@@ -625,6 +625,19 @@ ${topMenusList || 'ไม่มีข้อมูล'}
             errors.push(`LINE: ${error}`);
           }
         }
+      } else if (reportType === 'monthly') {
+        // รายงานประจำเดือน: ใช้ข้อมูลทั้งเดือนของสาขานี้ ส่งทุกช่องทางที่บันทึกไว้
+        const { data, error } = await supabase.functions.invoke('send-daily-report', {
+          body: { manual_trigger: true, reportType: 'monthly', shopId }
+        });
+        if (error) throw error;
+        const shop = (data?.shops || [])[0];
+        if (!shop) {
+          toast({ title: 'ยังไม่ได้บันทึกการตั้งค่ารายงานประจำเดือน', description: 'กรุณาเปิดใช้งานและกดบันทึกก่อนส่ง', variant: 'destructive' });
+          return;
+        }
+        toast({ title: 'ส่งรายงานประจำเดือนสำเร็จ! ✅', description: `ส่งไปยัง ${shop.sentCount || 0} แพลตฟอร์มแล้ว` });
+        return;
       } else {
         // ส่งแบบข้อความปกติ
         const reportData = await generateDailyReport();

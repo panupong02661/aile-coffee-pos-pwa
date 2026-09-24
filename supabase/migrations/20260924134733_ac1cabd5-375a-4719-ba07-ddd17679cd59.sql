@@ -1,0 +1,1 @@
+ALTER TABLE public.notification_settings ADD COLUMN IF NOT EXISTS monthly_report_last_sent_month text;
