@@ -77,7 +77,7 @@ const NotificationPage = () => {
         telegram: { enabled: false, token: '' }
       },
       instantNotification: true,
-      message: 'มีการสั่งซื้อใหม่ที่ร้าน! ออเดอร์ #{{orderNumber}} จำนวน {{amount}} บาท'
+      message: ''
     },
     // รายงานประจำวัน
     dailyReports: {
@@ -269,7 +269,8 @@ const NotificationPage = () => {
       const { data: todayOrders, error: ordersError } = await supabase
         .from('orders')
         .select('id, total_amount, bill_discount, created_at')
-        .gte('created_at', startOfDay.toISOString());
+        .gte('created_at', startOfDay.toISOString())
+        .eq('shop_id', shopId);
 
       if (ordersError) throw ordersError;
 
@@ -280,9 +281,10 @@ const NotificationPage = () => {
           menu_item_name,
           quantity,
           total_price,
-          order:orders!inner(created_at)
+          order:orders!inner(created_at, shop_id)
         `)
-        .gte('order.created_at', startOfDay.toISOString());
+        .gte('order.created_at', startOfDay.toISOString())
+        .eq('order.shop_id', shopId);
 
       if (itemsError) throw itemsError;
 
@@ -309,8 +311,7 @@ const NotificationPage = () => {
           quantity: stats.quantity,
           totalSales: stats.totalSales
         }))
-        .sort((a, b) => b.totalSales - a.totalSales)
-        .slice(0, 10);
+        .sort((a, b) => b.quantity - a.quantity || b.totalSales - a.totalSales);
 
       return {
         date: today.toLocaleDateString('th-TH'),
@@ -366,7 +367,7 @@ const NotificationPage = () => {
           inline: true
         },
         {
-          name: '🏆 เมนูขายดี',
+          name: '🏆 เมนูขายดีทั้งหมด',
           value: topMenusList || 'ไม่มีข้อมูล',
           inline: false
         }
@@ -410,7 +411,7 @@ const NotificationPage = () => {
 💸 ส่วนลด: ${reportData.totalDiscount.toLocaleString()} บาท
 💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
 
-🏆 เมนูขายดี:
+🏆 เมนูขายดีทั้งหมด:
 ${topMenusList || 'ไม่มีข้อมูล'}`;
 
       const { data, error } = await supabase.functions.invoke('line-messaging', {
@@ -450,7 +451,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
       console.log(`🖼️ Generating ${reportType} report image...`);
       
       const { data, error } = await supabase.functions.invoke('generate-report-image', {
-        body: { reportType }
+        body: { reportType, shopId }
       });
 
       if (error) {
@@ -505,7 +506,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
           inline: true
         },
         {
-          name: '🏆 Top 5 เมนูขายดี',
+          name: '🏆 เมนูขายดีทั้งหมด',
           value: topMenusList || 'ไม่มีข้อมูล',
           inline: false
         }
@@ -536,7 +537,6 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
   const sendLineReportWithImage = async (imageUrl: string, reportTitle: string, reportData: any, token: string, type: string = 'user', scope: LineScope = 'daily_reports') => {
     try {
       const topMenusList = reportData.topMenus
-        .slice(0, 5)
         .map((menu: any, index: number) => 
           `${index + 1}. ${menu.name} - ${menu.quantity} ชิ้น`
         )
@@ -550,7 +550,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}`;
 💸 ส่วนลด: ${reportData.totalDiscount.toLocaleString()} บาท
 💵 สุทธิ: ${reportData.netSales.toLocaleString()} บาท
 
-🏆 Top 5 เมนูขายดี:
+🏆 เมนูขายดีทั้งหมด:
 ${topMenusList || 'ไม่มีข้อมูล'}
 
 📷 ดูรูปภาพรายงานด้านบน`;
@@ -1280,28 +1280,6 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                 {settings.posOrders.enabled && (
                   <>
                     <Separator />
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="pos-message">ข้อความแจ้งเตือน</Label>
-                        <Textarea
-                          id="pos-message"
-                          value={settings.posOrders.message}
-                          onChange={(e) =>
-                            setSettings(prev => ({
-                              ...prev,
-                              posOrders: { ...prev.posOrders, message: e.target.value }
-                            }))
-                          }
-                          placeholder="ข้อความที่จะส่งเมื่อมีการสั่งซื้อใหม่ที่ร้าน"
-                          className="min-h-[80px]"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">
-                          ใช้ {`{{orderNumber}}, {{amount}}, {{customerName}}`} เป็นตัวแปร
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator />
                     <div>
                       <h3 className="text-lg font-medium mb-4">แพลตฟอร์มการส่ง</h3>
                       <PlatformSettings
@@ -1387,7 +1365,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
                             ส่งเป็นรูปภาพ Dashboard
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            สร้างรูปภาพสรุปยอดขายพร้อม Top 5 เมนูขายดี
+                            สร้างรูปภาพสรุปยอดขาย พร้อมส่งรายการเมนูขายดีทั้งหมด
                           </p>
                         </div>
                       </div>

@@ -176,18 +176,6 @@ Deno.serve(async (req) => {
       console.log('📋 Formatted order items text:', orderItemsText);
     }
 
-    // Format discount information for notification
-    let discountText = '';
-    if (orderData.bill_discount && orderData.bill_discount > 0) {
-      const billDiscountText = orderData.bill_discount_type === 'percent' 
-        ? `ส่วนลดท้ายบิล ${orderData.bill_discount}%`
-        : `ส่วนลดท้ายบิล ฿${orderData.bill_discount}`;
-      discountText += `\n🏷️ ${billDiscountText}`;
-    }
-    if (orderData.discount_code) {
-      discountText += `\n🏷️ โค้ดส่วนลด: ${orderData.discount_code}`;
-    }
-
     // Send notifications to enabled platforms
     let sentCount = 0;
     let errorCount = 0;

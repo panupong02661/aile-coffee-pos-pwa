@@ -38,7 +38,7 @@ serve(async (req) => {
   }
 
   try {
-    const { reportType = 'daily' } = await req.json();
+    const { reportType = 'daily', shopId = null } = await req.json();
     
     console.log(`📊 Generating ${reportType} report image...`);
 
@@ -69,10 +69,12 @@ serve(async (req) => {
     const startUTC = new Date(startDate.getTime() - (7 * 60 * 60 * 1000)).toISOString();
 
     // Fetch orders
-    const { data: orders, error: ordersError } = await supabase
+    let ordersQuery = supabase
       .from('orders')
       .select('id, total_amount, bill_discount, payment_method, member_id, created_at')
       .gte('created_at', startUTC);
+    if (shopId) ordersQuery = ordersQuery.eq('shop_id', shopId);
+    const { data: orders, error: ordersError } = await ordersQuery;
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError);
@@ -80,15 +82,17 @@ serve(async (req) => {
     }
 
     // Fetch order items for top menus
-    const { data: orderItems, error: itemsError } = await supabase
+    let itemsQuery = supabase
       .from('order_items')
       .select(`
         menu_item_name,
         quantity,
         total_price,
-        order:orders!inner(created_at)
+        order:orders!inner(created_at, shop_id)
       `)
       .gte('order.created_at', startUTC);
+    if (shopId) itemsQuery = itemsQuery.eq('order.shop_id', shopId);
+    const { data: orderItems, error: itemsError } = await itemsQuery;
 
     if (itemsError) {
       console.error('❌ Error fetching order items:', itemsError);
@@ -96,10 +100,12 @@ serve(async (req) => {
     }
 
     // Fetch new members
-    const { data: newMembers, error: membersError } = await supabase
+    let membersQuery = supabase
       .from('members')
       .select('id')
       .gte('created_at', startUTC);
+    if (shopId) membersQuery = membersQuery.eq('shop_id', shopId);
+    const { data: newMembers, error: membersError } = await membersQuery;
 
     if (membersError) {
       console.error('❌ Error fetching members:', membersError);
@@ -128,8 +134,7 @@ serve(async (req) => {
         quantity: stats.quantity,
         totalSales: stats.totalSales
       }))
-      .sort((a, b) => b.totalSales - a.totalSales)
-      .slice(0, 5);
+      .sort((a, b) => b.quantity - a.quantity || b.totalSales - a.totalSales);
 
     // Payment methods breakdown
     const paymentGroups = orders?.reduce((acc: Record<string, { amount: number; count: number }>, order) => {
@@ -191,7 +196,7 @@ CARD 4: "สมาชิกทั้งหมด" (label at top)
 - Below: "+0 วันนี้"
 - People icon
 
-ROW 2 - "Top 5 สินค้าขายดีวันนี้" (Top 5 Best Sellers Today):
+ROW 2 - "สินค้าขายดีวันนี้" (Best Sellers Today; show as many ranked items as fit legibly):
 ${topMenusText || 'ไม่มีข้อมูล'}
 
 ROW 3 - "ช่องทางการชำระเงิน" (Payment Methods):

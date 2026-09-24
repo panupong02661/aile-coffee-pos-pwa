@@ -426,7 +426,7 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
   const statusText = isManualTrigger ? 'ส่งด้วยตนเอง' : `ส่งอัตโนมัติ ตามเวลาที่กำหนด (${reportData.scheduledTime})`;
   const recipientType = type === 'group' ? 'กลุ่ม LINE' : 'ผู้ใช้';
 
-  const message = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
+  const summary = `${reportData.shopName ? `🏪 ${reportData.shopName}\n` : ''}📊 รายงานประจำวัน - ${statusText} ${statusIcon}
 
 📅 วันที่: ${reportData.date} เวลา ${reportData.time}
 
@@ -435,10 +435,8 @@ async function sendLineReport(reportData: any, lineId: string, type: string = 'u
 💸 ส่วนลดรวม: ${reportData.totalDiscount.toLocaleString()} บาท
 💵 ยอดขายสุทธิ: ${reportData.netSales.toLocaleString()} บาท
 
-🏆 เมนูขายดีทั้งหมด:
-${topMenusList || 'ไม่มีข้อมูล'}
-
-ระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`
+🏆 เมนูขายดีทั้งหมด:`
+  const messageParts = splitText(`${summary}\n${topMenusList || 'ไม่มีข้อมูล'}\n\nระบบแจ้งเตือนอัตโนมัติ ตามเวลาที่กำหนด - Bangkok Time`, 4500)
 
   console.log(`📤 Sending LINE message to ${recipientType}:`, lineId);
 
@@ -451,10 +449,7 @@ ${topMenusList || 'ไม่มีข้อมูล'}
     },
     body: JSON.stringify({
       to: lineId, // สามารถเป็น userId หรือ groupId ก็ได้
-      messages: [{
-        type: 'text',
-        text: message
-      }]
+      messages: messageParts.slice(0, 5).map((text) => ({ type: 'text', text }))
     })
   })
 
@@ -498,22 +493,33 @@ _ระบบแจ้งเตือนอัตโนมัติ ตามเ
     throw new Error('Invalid Telegram token format. Expected format: bot_token:chat_id')
   }
 
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: 'Markdown'
+  for (const text of splitText(message, 3800)) {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
     })
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Telegram API failed: ${response.status} - ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Telegram API failed: ${response.status} - ${errorText}`)
+    }
   }
+}
+
+function splitText(text: string, maxLength: number): string[] {
+  if (text.length <= maxLength) return [text]
+  const chunks: string[] = []
+  let current = ''
+  for (const line of text.split('\n')) {
+    if (current && `${current}\n${line}`.length > maxLength) {
+      chunks.push(current)
+      current = line
+    } else {
+      current += `${current ? '\n' : ''}${line}`
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
 }
 
 // Function to send Instagram notification (via Instagram Basic Display API)
