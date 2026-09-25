@@ -712,7 +712,7 @@ const PaymentModal = ({
 
       
       const dbTime = Date.now() - startTime;
-      console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
+      console.log(`[PaymentModal] ✅ Order saved in ${dbTime}ms`);
 
       // ✅ เล่นเสียงหลังจาก save สำเร็จ (ถ้าเปิดการตั้งค่า POS sound)
       if (soundPopupSettings?.pos?.soundEnabled) {

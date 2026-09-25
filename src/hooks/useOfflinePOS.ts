@@ -353,7 +353,7 @@ export const useOfflinePOS = () => {
               member_id: order.member_id || null,
               bill_discount: order.bill_discount || 0,
               bill_discount_type: order.bill_discount_type || 'amount',
-              items_count: order.items.length,
+              items_count: order.items.reduce((sum, item: any) => sum + (Number(item.quantity) || 0), 0),
               order_type: order.order_type || 'dine_in',
               status: 'completed',
               created_at: order.created_at,
@@ -381,6 +381,9 @@ export const useOfflinePOS = () => {
         } else if ((count ?? 0) !== orderItems.length) {
           throw new Error('จำนวนรายการสินค้าที่ซิงก์ไม่ครบ กรุณาซิงก์ใหม่');
         }
+
+        order.synced = true;
+        await setStoredOrders(scopedOrdersKey, orders);
 
         notifyPosOrder({
           id: databaseOrder.id,
@@ -423,7 +426,6 @@ export const useOfflinePOS = () => {
           }
         }
 
-        order.synced = true;
         syncedCount++;
       } catch (error) {
         console.error(`❌ Error syncing order ${order.order_number}:`, error);
@@ -654,7 +656,7 @@ export const useOfflinePOS = () => {
             member_id: orderData.member_id || null,
             bill_discount: orderData.bill_discount || 0,
             bill_discount_type: orderData.bill_discount_type || 'amount',
-            items_count: orderData.items.length,
+            items_count: orderData.items.reduce((sum, item: any) => sum + (Number(item.quantity) || 0), 0),
             order_type: offlineOrder.order_type,
             status: 'completed',
             created_at: offlineOrder.created_at,
