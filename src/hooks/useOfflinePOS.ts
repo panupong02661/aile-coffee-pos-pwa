@@ -645,8 +645,6 @@ export const useOfflinePOS = () => {
 
     if (actuallyOnline) {
       try {
-        const controller = new AbortController();
-        const requestTimeout = window.setTimeout(() => controller.abort(), 8000);
         const { data, error } = await supabase
           .from('orders')
           .insert({
@@ -663,9 +661,7 @@ export const useOfflinePOS = () => {
             shop_id: shopId,
           })
           .select()
-          .single()
-          .abortSignal(controller.signal);
-        window.clearTimeout(requestTimeout);
+          .single();
 
         if (error) throw error;
 
