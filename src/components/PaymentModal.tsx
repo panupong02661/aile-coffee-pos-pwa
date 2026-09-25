@@ -9,7 +9,6 @@ import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode, Users, Layers } from '
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
-import { notifyPosOrder } from '@/utils/orderNotify';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
@@ -21,6 +20,7 @@ import StickerPreview from './StickerPreview';
 import TaxInvoicePreview from './TaxInvoicePreview';
 import SplitBillModal from './SplitBillModal';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
+import { useOfflinePOS } from '@/hooks/useOfflinePOS';
 
 // POS order notifications removed - only online orders should trigger notifications
 
@@ -89,6 +89,7 @@ const PaymentModal = ({
   } | null>(null);
   const { toast } = useToast();
   const { shopId } = useCurrentShop();
+  const { saveOrder: saveOfflineFirstOrder } = useOfflinePOS();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
   const banknotes = [20, 50, 100, 500, 1000];
@@ -441,27 +442,8 @@ const PaymentModal = ({
 
       console.log(`[PaymentModal] Order data:`, orderData);
 
-      // Save order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error(`[PaymentModal] Order insert failed:`, orderError);
-        throw new Error(`ไม่สามารถบันทึกออเดอร์ได้: ${orderError.message}`);
-      }
-
-      if (!order || !order.id) {
-        throw new Error('ไม่ได้รับ ID ออเดอร์จากฐานข้อมูล');
-      }
-
-      console.log(`[PaymentModal] Order saved successfully:`, order);
-
       // Prepare order items
       const orderItems = cartItems.map((item) => ({
-        order_id: order.id,
         menu_item_id: String(item.menu_item.id),
         menu_item_name: String(item.menu_item.name),
         quantity: Number(item.quantity),
@@ -469,43 +451,57 @@ const PaymentModal = ({
         item_discount: Number(item.item_discount) || 0,
         item_discount_type: String(item.item_discount_type) || 'amount',
         total_price: Number(item.total_price),
-        selected_addons: JSON.stringify(item.selected_addons?.map(addon => ({
+        selected_addons: item.selected_addons?.map(addon => ({
           id: String(addon.id),
           name: String(addon.name),
           price: Number(addon.price)
-        })) || [])
+        })) || [],
+        shop_id: shopId,
       }));
 
-      console.log(`[PaymentModal] Saving ${orderItems.length} order items`);
+      const pointsChange = selectedMember
+        ? method === 'points' && pointsUsed > 0
+          ? -pointsUsed
+          : Math.floor(actualTotal * (currentTierSettings?.points_per_baht || 1))
+        : undefined;
 
-      // Save order items
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) {
-        console.error(`[PaymentModal] Order items insert failed:`, itemsError);
-        throw new Error(`ไม่สามารถบันทึกรายการสินค้าได้: ${itemsError.message}`);
-      }
-
-      console.log(`[PaymentModal] Order items saved successfully`);
-
-      // 🔔 แจ้งเตือนออเดอร์หน้าร้าน (POS) แบบไม่บล็อกการขาย
-      notifyPosOrder({
-        id: order.id,
+      const saveResult = await saveOfflineFirstOrder({
         order_number: String(orderNumber),
+        items: cartItems,
         total_amount: Number(actualTotal),
-        items_count: orderData.items_count,
         payment_method: String(method),
-        created_at: order.created_at,
-        shop_id: shopId || null,
-        member_id: selectedMember?.id || null,
+        member_id: selectedMember?.id,
+        bill_discount: Number(billDiscount) || 0,
+        bill_discount_type: billDiscountType,
+        order_items: orderItems,
+        order_type: orderType,
+        created_at: backdatedAt?.toISOString(),
         customer_name: selectedMember?.name || 'ลูกค้าหน้าร้าน',
         customer_phone: selectedMember?.phone || '',
-        bill_discount: Number(billDiscount) || 0,
-        bill_discount_type: String(billDiscountType) || 'amount',
-        order_items: orderItems,
+        member_points_change: pointsChange,
       });
+
+      if (!saveResult.success) throw new Error('ไม่สามารถบันทึกออเดอร์ได้');
+
+      const order = {
+        ...orderData,
+        id: saveResult.orderId,
+        order_number: saveResult.orderNumber,
+        created_at: saveResult.createdAt,
+        queued_offline: saveResult.queued,
+      };
+
+      if (saveResult.queued) {
+        console.log('[PaymentModal] Order safely queued offline:', order.order_number);
+        return {
+          ...order,
+          order_items: orderItems,
+          member_name: selectedMember?.name || null,
+          member_phone: selectedMember?.phone || null,
+          wifi_voucher: null,
+          queue_number: null,
+        };
+      }
 
       // 🚀 FAST: Fire-and-forget ทุกอย่าง - ไม่รอเลย!
       console.log(`[PaymentModal] 🚀 Starting fire-and-forget background tasks...`);
@@ -517,7 +513,7 @@ const PaymentModal = ({
         .then(r => r.success && console.log(`[PaymentModal] ✅ Stock reduced`))
         .catch(err => console.warn('[PaymentModal] Stock error:', err));
       
-      // 2. Member points update - MUST await to trigger realtime
+      // 2. Member points update - order is online, so server work can continue
       if (selectedMember) {
         (async () => {
           try {
@@ -703,25 +699,20 @@ const PaymentModal = ({
     let reservedVoucherId: string | null = null;
     if (wifiVoucherPreview?.id) {
       reservedVoucherId = wifiVoucherPreview.id;
-      setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
+      setReservedVoucherIds(prev => reservedVoucherId ? [...prev, reservedVoucherId] : prev);
     }
 
     const startTime = Date.now();
 
     try {
-      // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
-      console.log('[PaymentModal] 📦 Saving to database...');
+      // เก็บลงเครื่องก่อนเสมอ แล้วค่อยส่งขึ้นระบบเมื่อมีอินเทอร์เน็ต
+      console.log('[PaymentModal] 📦 Saving order offline-first...');
       const actualMethod = isMultiPay ? 'cash' as PaymentMethod : paymentMethod;
-      const savedOrder = await Promise.race([
-        saveOrderToDatabase(actualMethod),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('การบันทึกออเดอร์ใช้เวลานานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')), 20000)
-        ),
-      ]);
+      const savedOrder = await saveOrderToDatabase(actualMethod);
 
       
       const dbTime = Date.now() - startTime;
-      console.log(`[PaymentModal] ✅ DB saved in ${dbTime}ms`);
+      console.log(`[PaymentModal] ✅ Order saved in ${dbTime}ms`);
 
       // ✅ เล่นเสียงหลังจาก save สำเร็จ (ถ้าเปิดการตั้งค่า POS sound)
       if (soundPopupSettings?.pos?.soundEnabled) {
@@ -742,7 +733,10 @@ const PaymentModal = ({
 
       // แสดง toast สำเร็จ
       const queueInfo = savedOrder?.queue_number ? ` | คิว #${String(savedOrder.queue_number).padStart(3, '0')}` : '';
-      toast({
+      toast(savedOrder?.queued_offline ? {
+        title: "บันทึกออเดอร์ออฟไลน์แล้ว",
+        description: `ออเดอร์ #${savedOrder.order_number} รอซิงก์เมื่ออินเทอร์เน็ตกลับมา`,
+      } : {
         title: "✅ ชำระเงินสำเร็จ",
         description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}${queueInfo}`,
       });

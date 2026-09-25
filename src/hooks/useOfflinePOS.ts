@@ -6,6 +6,8 @@ import { Network } from '@capacitor/network';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyPosOrder } from '@/utils/orderNotify';
+import { reduceStockForOrder } from '@/utils/stockUtils';
+import { createQueueFromOrder } from '@/hooks/useQueueSystem';
 
 // Types for offline data
 interface OfflineMenuItem {
@@ -62,6 +64,11 @@ interface OfflineOrder {
   member_id?: string;
   bill_discount?: number;
   bill_discount_type?: string;
+  order_type: string;
+  order_items: any[];
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  member_points_change?: number;
   created_at: string;
   synced: boolean;
   shop_id: string;
@@ -134,14 +141,19 @@ const setStoredData = async (key: string, data: OfflineData): Promise<void> => {
 };
 
 const getStoredOrders = async (key: string): Promise<OfflineOrder[]> => {
-  try {
-    const { value } = await Preferences.get({ key });
-    if (value) {
-      return JSON.parse(value);
-    }
+  const mergeOrders = (primary: OfflineOrder[], secondary: OfflineOrder[]) => {
+    const merged = new Map<string, OfflineOrder>();
+    secondary.forEach((order) => merged.set(order.id, order));
+    primary.forEach((order) => merged.set(order.id, order));
+    return Array.from(merged.values());
+  };
 
+  try {
     const localData = localStorage.getItem(key);
-    return localData ? JSON.parse(localData) : [];
+    const localOrders: OfflineOrder[] = localData ? JSON.parse(localData) : [];
+    const { value } = await Preferences.get({ key });
+    const nativeOrders: OfflineOrder[] = value ? JSON.parse(value) : [];
+    return mergeOrders(localOrders, nativeOrders);
   } catch (e) {
     console.error('Error reading offline orders:', e);
     try {
@@ -154,18 +166,46 @@ const getStoredOrders = async (key: string): Promise<OfflineOrder[]> => {
 };
 
 const setStoredOrders = async (key: string, orders: OfflineOrder[]): Promise<void> => {
+  const jsonData = JSON.stringify(orders);
+  let localSaved = false;
+  let nativeSaved = false;
+
   try {
-    const jsonData = JSON.stringify(orders);
-    await Preferences.set({ key, value: jsonData });
     localStorage.setItem(key, jsonData);
-  } catch (e) {
-    console.error('Error saving offline orders:', e);
-    try {
-      localStorage.setItem(key, JSON.stringify(orders));
-    } catch {
-      // Silent fail
-    }
+    localSaved = localStorage.getItem(key) === jsonData;
+  } catch (error) {
+    console.error('Error saving offline orders to localStorage:', error);
   }
+
+  try {
+    await Preferences.set({ key, value: jsonData });
+    nativeSaved = true;
+  } catch (error) {
+    console.error('Error saving offline orders to Preferences:', error);
+  }
+
+  if (!localSaved && !nativeSaved) {
+    throw new Error('ไม่สามารถบันทึกออเดอร์ลงในเครื่องได้ กรุณาตรวจสอบพื้นที่จัดเก็บ');
+  }
+
+  window.dispatchEvent(new CustomEvent('pos-offline-orders-updated', { detail: { key } }));
+};
+
+const buildOrderItems = (order: OfflineOrder, databaseOrderId: string) => {
+  const sourceItems = order.order_items?.length > 0 ? order.order_items : order.items;
+
+  return sourceItems.map((item: any) => ({
+    order_id: databaseOrderId,
+    menu_item_id: item.menu_item_id || item.menu_item?.id || null,
+    menu_item_name: item.menu_item_name || item.menu_item?.name || item.name || 'Unknown',
+    quantity: Number(item.quantity) || 1,
+    unit_price: Number(item.unit_price ?? item.menu_item?.price) || 0,
+    total_price: Number(item.total_price) || (Number(item.unit_price ?? item.menu_item?.price) || 0) * (Number(item.quantity) || 1),
+    selected_addons: item.selected_addons ?? item.addons ?? [],
+    item_discount: Number(item.item_discount) || 0,
+    item_discount_type: item.item_discount_type || 'amount',
+    shop_id: order.shop_id,
+  }));
 };
 
 export const useOfflinePOS = () => {
@@ -293,57 +333,99 @@ export const useOfflinePOS = () => {
 
     for (const order of pendingOrders) {
       try {
-        const { data, error } = await supabase
+        const { data: existingOrder, error: lookupError } = await supabase
           .from('orders')
-          .insert({
-            order_number: order.order_number,
-            total_amount: order.total_amount,
-            payment_method: order.payment_method,
-            member_id: order.member_id || null,
-            bill_discount: order.bill_discount || 0,
-            bill_discount_type: order.bill_discount_type || 'amount',
-            items_count: order.items.length,
-            order_type: 'dine-in',
-            status: 'completed',
-            created_at: order.created_at,
-            shop_id: order.shop_id || shopId,
-          })
-          .select()
-          .single();
+          .select('*')
+          .eq('order_number', order.order_number)
+          .eq('shop_id', order.shop_id)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (lookupError) throw lookupError;
 
-        if (order.items && data) {
-          const orderItems = order.items.map((item: any) => ({
-            order_id: data.id,
-            menu_item_id: item.menu_item?.id || item.menu_item_id,
-            menu_item_name: item.menu_item?.name || item.name || 'Unknown',
-            quantity: item.quantity,
-            unit_price: item.menu_item?.price || item.unit_price || 0,
-            total_price: (item.menu_item?.price || item.unit_price || 0) * item.quantity,
-            selected_addons: item.addons || [],
-            item_discount: item.item_discount || 0,
-            item_discount_type: item.item_discount_type || 'amount',
-          }));
+        let databaseOrder = existingOrder;
+        if (!databaseOrder) {
+          const { data, error } = await supabase
+            .from('orders')
+            .insert({
+              order_number: order.order_number,
+              total_amount: order.total_amount,
+              payment_method: order.payment_method,
+              member_id: order.member_id || null,
+              bill_discount: order.bill_discount || 0,
+              bill_discount_type: order.bill_discount_type || 'amount',
+              items_count: order.items.reduce((sum, item: any) => sum + (Number(item.quantity) || 0), 0),
+              order_type: order.order_type || 'dine_in',
+              status: 'completed',
+              created_at: order.created_at,
+              shop_id: order.shop_id,
+            })
+            .select()
+            .single();
 
-          await supabase.from('order_items').insert(orderItems);
+          if (error) throw error;
+          databaseOrder = data;
+        }
 
-          notifyPosOrder({
-            id: data.id,
-            order_number: order.order_number,
-            total_amount: order.total_amount,
-            items_count: orderItems.length,
-            payment_method: order.payment_method,
-            created_at: order.created_at,
-            shop_id: order.shop_id || shopId,
-            member_id: order.member_id || null,
-            bill_discount: order.bill_discount || 0,
-            bill_discount_type: order.bill_discount_type || 'amount',
-            order_items: orderItems as any,
-          });
+        if (!databaseOrder) throw new Error('ไม่ได้รับข้อมูลออเดอร์หลังซิงก์');
+
+        const orderItems = buildOrderItems(order, databaseOrder.id);
+        const { count, error: countError } = await supabase
+          .from('order_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', databaseOrder.id);
+
+        if (countError) throw countError;
+        if ((count ?? 0) === 0 && orderItems.length > 0) {
+          const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+          if (itemsError) throw itemsError;
+        } else if ((count ?? 0) !== orderItems.length) {
+          throw new Error('จำนวนรายการสินค้าที่ซิงก์ไม่ครบ กรุณาซิงก์ใหม่');
         }
 
         order.synced = true;
+        await setStoredOrders(scopedOrdersKey, orders);
+
+        notifyPosOrder({
+          id: databaseOrder.id,
+          order_number: order.order_number,
+          total_amount: order.total_amount,
+          items_count: orderItems.length,
+          payment_method: order.payment_method,
+          created_at: order.created_at,
+          shop_id: order.shop_id,
+          member_id: order.member_id || null,
+          customer_name: order.customer_name || 'ลูกค้าหน้าร้าน',
+          customer_phone: order.customer_phone || '',
+          bill_discount: order.bill_discount || 0,
+          bill_discount_type: order.bill_discount_type || 'amount',
+          order_items: orderItems as any,
+        });
+
+        void reduceStockForOrder(orderItems);
+        void createQueueFromOrder(
+          databaseOrder.id,
+          order.shop_id,
+          order.customer_name,
+          order.customer_phone
+        );
+
+        if (order.member_id && order.member_points_change) {
+          const { data: member } = await supabase
+            .from('members')
+            .select('points, total_spent')
+            .eq('id', order.member_id)
+            .maybeSingle();
+          if (member) {
+            await supabase
+              .from('members')
+              .update({
+                points: Math.max(0, member.points + order.member_points_change),
+                total_spent: member.total_spent + order.total_amount,
+              })
+              .eq('id', order.member_id);
+          }
+        }
+
         syncedCount++;
       } catch (error) {
         console.error(`❌ Error syncing order ${order.order_number}:`, error);
@@ -485,6 +567,20 @@ export const useOfflinePOS = () => {
     };
   }, [shopLoading, shopId, user?.id, scopedDataKey, scopedOrdersKey, syncMenuDataInternal, syncPendingOrders]);
 
+  useEffect(() => {
+    if (!shopId || !user?.id) return;
+
+    const refreshPendingCount = async (event: Event) => {
+      const detail = (event as CustomEvent<{ key?: string }>).detail;
+      if (detail?.key && detail.key !== scopedOrdersKey) return;
+      const orders = await getStoredOrders(scopedOrdersKey);
+      setPendingOrdersCount(orders.filter((order) => !order.synced && order.shop_id === shopId).length);
+    };
+
+    window.addEventListener('pos-offline-orders-updated', refreshPendingCount);
+    return () => window.removeEventListener('pos-offline-orders-updated', refreshPendingCount);
+  }, [shopId, user?.id, scopedOrdersKey]);
+
   // Sync menu data from Supabase (public wrapper)
   const syncMenuData = useCallback(async (): Promise<boolean> => {
     return syncMenuDataInternal();
@@ -500,10 +596,15 @@ export const useOfflinePOS = () => {
     bill_discount?: number;
     bill_discount_type?: string;
     order_items?: any[];
-  }): Promise<{ success: boolean; orderId: string }> => {
+    order_type?: string;
+    created_at?: string;
+    customer_name?: string | null;
+    customer_phone?: string | null;
+    member_points_change?: number;
+  }): Promise<{ success: boolean; orderId: string; queued: boolean; orderNumber: string; createdAt: string }> => {
     if (!shopId || !user?.id) {
       toast.error('ไม่พบข้อมูลสาขาของผู้ใช้ที่ล็อกอิน');
-      return { success: false, orderId: '' };
+      return { success: false, orderId: '', queued: false, orderNumber: orderData.order_number, createdAt: '' };
     }
 
     const orderId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -517,7 +618,12 @@ export const useOfflinePOS = () => {
       member_id: orderData.member_id,
       bill_discount: orderData.bill_discount,
       bill_discount_type: orderData.bill_discount_type,
-      created_at: new Date().toISOString(),
+      order_type: orderData.order_type || 'dine_in',
+      order_items: orderData.order_items || [],
+      customer_name: orderData.customer_name,
+      customer_phone: orderData.customer_phone,
+      member_points_change: orderData.member_points_change,
+      created_at: orderData.created_at || new Date().toISOString(),
       synced: false,
       shop_id: shopId,
     };
@@ -528,6 +634,7 @@ export const useOfflinePOS = () => {
       await setStoredOrders(scopedOrdersKey, orders);
     } catch (localError) {
       console.error('❌ Error saving order locally:', localError);
+      throw localError;
     }
 
     let actuallyOnline = navigator.onLine;
@@ -540,7 +647,7 @@ export const useOfflinePOS = () => {
 
     if (actuallyOnline) {
       try {
-        const { data, error } = await supabase
+        const saveRequest = supabase
           .from('orders')
           .insert({
             order_number: orderData.order_number,
@@ -549,23 +656,33 @@ export const useOfflinePOS = () => {
             member_id: orderData.member_id || null,
             bill_discount: orderData.bill_discount || 0,
             bill_discount_type: orderData.bill_discount_type || 'amount',
-            items_count: orderData.items.length,
-            order_type: 'dine-in',
+            items_count: orderData.items.reduce((sum, item: any) => sum + (Number(item.quantity) || 0), 0),
+            order_type: offlineOrder.order_type,
             status: 'completed',
+            created_at: offlineOrder.created_at,
             shop_id: shopId,
           })
           .select()
           .single();
+        const { data, error } = await Promise.race([
+          saveRequest,
+          new Promise<{ data: null; error: Error }>((resolve) => {
+            window.setTimeout(
+              () => resolve({ data: null, error: new Error('หมดเวลารอการเชื่อมต่อ') }),
+              8000
+            );
+          }),
+        ]);
 
         if (error) throw error;
 
-        if (orderData.order_items && data) {
-          const orderItems = orderData.order_items.map((item) => ({
-            ...item,
-            order_id: data.id,
-          }));
+        if (data) {
+          const orderItems = buildOrderItems(offlineOrder, data.id);
 
-          await supabase.from('order_items').insert(orderItems);
+          if (orderItems.length > 0) {
+            const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+            if (itemsError) throw itemsError;
+          }
 
           notifyPosOrder({
             id: data.id,
@@ -595,7 +712,7 @@ export const useOfflinePOS = () => {
           console.error('Error updating sync status:', e);
         }
 
-        return { success: true, orderId: data.id };
+         return { success: true, orderId: data.id, queued: false, orderNumber: orderData.order_number, createdAt: data.created_at };
       } catch (error) {
         console.error('❌ Error saving order online, keeping local:', error);
 
@@ -610,7 +727,7 @@ export const useOfflinePOS = () => {
           description: 'จะซิงค์เมื่อเชื่อมต่ออินเทอร์เน็ต',
         });
 
-        return { success: true, orderId };
+        return { success: true, orderId, queued: true, orderNumber: orderData.order_number, createdAt: offlineOrder.created_at };
       }
     }
 
@@ -625,7 +742,7 @@ export const useOfflinePOS = () => {
       description: 'จะซิงค์เมื่อเชื่อมต่ออินเทอร์เน็ต',
     });
 
-    return { success: true, orderId };
+    return { success: true, orderId, queued: true, orderNumber: orderData.order_number, createdAt: offlineOrder.created_at };
   }, [shopId, user?.id, scopedOrdersKey]);
 
   // Clear synced orders (keep unsynced)
