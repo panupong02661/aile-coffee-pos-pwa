@@ -9,7 +9,6 @@ import { CreditCard, DollarSign, Gift, ArrowLeft, QrCode, Users, Layers } from '
 import { PaymentMethod } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
-import { notifyPosOrder } from '@/utils/orderNotify';
 import { useToast } from '@/hooks/use-toast';
 import { CartItem } from '@/types';
 import { reduceStockForOrder } from '@/utils/stockUtils';
@@ -700,21 +699,16 @@ const PaymentModal = ({
     let reservedVoucherId: string | null = null;
     if (wifiVoucherPreview?.id) {
       reservedVoucherId = wifiVoucherPreview.id;
-      setReservedVoucherIds(prev => [...prev, reservedVoucherId!]);
+      setReservedVoucherIds(prev => reservedVoucherId ? [...prev, reservedVoucherId] : prev);
     }
 
     const startTime = Date.now();
 
     try {
-      // 📦 บันทึก DB ทันที (BLOCKING - ต้องเสร็จก่อนปิด modal)
-      console.log('[PaymentModal] 📦 Saving to database...');
+      // เก็บลงเครื่องก่อนเสมอ แล้วค่อยส่งขึ้นระบบเมื่อมีอินเทอร์เน็ต
+      console.log('[PaymentModal] 📦 Saving order offline-first...');
       const actualMethod = isMultiPay ? 'cash' as PaymentMethod : paymentMethod;
-      const savedOrder = await Promise.race([
-        saveOrderToDatabase(actualMethod),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('การบันทึกออเดอร์ใช้เวลานานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')), 20000)
-        ),
-      ]);
+      const savedOrder = await saveOrderToDatabase(actualMethod);
 
       
       const dbTime = Date.now() - startTime;
@@ -739,7 +733,10 @@ const PaymentModal = ({
 
       // แสดง toast สำเร็จ
       const queueInfo = savedOrder?.queue_number ? ` | คิว #${String(savedOrder.queue_number).padStart(3, '0')}` : '';
-      toast({
+      toast(savedOrder?.queued_offline ? {
+        title: "บันทึกออเดอร์ออฟไลน์แล้ว",
+        description: `ออเดอร์ #${savedOrder.order_number} รอซิงก์เมื่ออินเทอร์เน็ตกลับมา`,
+      } : {
         title: "✅ ชำระเงินสำเร็จ",
         description: `ออเดอร์ #${savedOrder?.order_number || ''} - ฿${total.toLocaleString()}${queueInfo}`,
       });

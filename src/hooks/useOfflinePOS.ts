@@ -141,14 +141,19 @@ const setStoredData = async (key: string, data: OfflineData): Promise<void> => {
 };
 
 const getStoredOrders = async (key: string): Promise<OfflineOrder[]> => {
-  try {
-    const { value } = await Preferences.get({ key });
-    if (value) {
-      return JSON.parse(value);
-    }
+  const mergeOrders = (primary: OfflineOrder[], secondary: OfflineOrder[]) => {
+    const merged = new Map<string, OfflineOrder>();
+    secondary.forEach((order) => merged.set(order.id, order));
+    primary.forEach((order) => merged.set(order.id, order));
+    return Array.from(merged.values());
+  };
 
+  try {
     const localData = localStorage.getItem(key);
-    return localData ? JSON.parse(localData) : [];
+    const localOrders: OfflineOrder[] = localData ? JSON.parse(localData) : [];
+    const { value } = await Preferences.get({ key });
+    const nativeOrders: OfflineOrder[] = value ? JSON.parse(value) : [];
+    return mergeOrders(localOrders, nativeOrders);
   } catch (e) {
     console.error('Error reading offline orders:', e);
     try {
@@ -182,6 +187,8 @@ const setStoredOrders = async (key: string, orders: OfflineOrder[]): Promise<voi
   if (!localSaved && !nativeSaved) {
     throw new Error('ไม่สามารถบันทึกออเดอร์ลงในเครื่องได้ กรุณาตรวจสอบพื้นที่จัดเก็บ');
   }
+
+  window.dispatchEvent(new CustomEvent('pos-offline-orders-updated', { detail: { key } }));
 };
 
 const buildOrderItems = (order: OfflineOrder, databaseOrderId: string) => {
@@ -558,6 +565,20 @@ export const useOfflinePOS = () => {
     };
   }, [shopLoading, shopId, user?.id, scopedDataKey, scopedOrdersKey, syncMenuDataInternal, syncPendingOrders]);
 
+  useEffect(() => {
+    if (!shopId || !user?.id) return;
+
+    const refreshPendingCount = async (event: Event) => {
+      const detail = (event as CustomEvent<{ key?: string }>).detail;
+      if (detail?.key && detail.key !== scopedOrdersKey) return;
+      const orders = await getStoredOrders(scopedOrdersKey);
+      setPendingOrdersCount(orders.filter((order) => !order.synced && order.shop_id === shopId).length);
+    };
+
+    window.addEventListener('pos-offline-orders-updated', refreshPendingCount);
+    return () => window.removeEventListener('pos-offline-orders-updated', refreshPendingCount);
+  }, [shopId, user?.id, scopedOrdersKey]);
+
   // Sync menu data from Supabase (public wrapper)
   const syncMenuData = useCallback(async (): Promise<boolean> => {
     return syncMenuDataInternal();
@@ -624,6 +645,8 @@ export const useOfflinePOS = () => {
 
     if (actuallyOnline) {
       try {
+        const controller = new AbortController();
+        const requestTimeout = window.setTimeout(() => controller.abort(), 8000);
         const { data, error } = await supabase
           .from('orders')
           .insert({
@@ -640,7 +663,9 @@ export const useOfflinePOS = () => {
             shop_id: shopId,
           })
           .select()
-          .single();
+          .single()
+          .abortSignal(controller.signal);
+        window.clearTimeout(requestTimeout);
 
         if (error) throw error;
 

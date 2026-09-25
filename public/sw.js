@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aile-coffee-v3.0';
+const CACHE_NAME = 'aile-coffee-v3.1-offline';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -43,7 +43,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request).catch(() => {
         // If network fails, try cache
-        return caches.match(event.request);
+        return caches.match(event.request).then((cached) => cached || new Response(
+          JSON.stringify({ message: 'offline' }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        ));
       })
     );
     return;
@@ -64,16 +67,13 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // If network fails, try cache
-        return caches.match(event.request);
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') return caches.match('/');
+          return new Response('Offline', { status: 503 });
+        });
       })
   );
-});
-
-// Background sync for offline orders
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(syncOfflineData());
-  }
 });
 
 // Enhanced iOS Background Notification Support
@@ -143,9 +143,6 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(triggerIOSNotificationSync());
   }
   
-  if (event.tag === 'background-sync') {
-    event.waitUntil(syncOfflineData());
-  }
 });
 
 async function triggerIOSNotificationSync() {
@@ -166,36 +163,6 @@ async function triggerIOSNotificationSync() {
   } catch (error) {
     console.error('SW: iOS notification sync error:', error);
   }
-}
-
-async function syncOfflineData() {
-  try {
-    // Get offline data from IndexedDB
-    const offlineData = await getOfflineData();
-    
-    // Sync with server
-    for (const item of offlineData) {
-      await syncItemToServer(item);
-    }
-    
-    // Clear synced data
-    await clearSyncedData();
-  } catch (error) {
-    console.error('Background sync failed:', error);
-  }
-}
-
-async function getOfflineData() {
-  // Implementation to get data from IndexedDB
-  return [];
-}
-
-async function syncItemToServer(item) {
-  // Implementation to sync individual item
-}
-
-async function clearSyncedData() {
-  // Implementation to clear synced data
 }
 
 // iOS-specific notification permission handler
