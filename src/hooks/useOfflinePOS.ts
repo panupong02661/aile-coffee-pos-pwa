@@ -645,7 +645,7 @@ export const useOfflinePOS = () => {
 
     if (actuallyOnline) {
       try {
-        const { data, error } = await supabase
+        const saveRequest = supabase
           .from('orders')
           .insert({
             order_number: orderData.order_number,
@@ -662,6 +662,15 @@ export const useOfflinePOS = () => {
           })
           .select()
           .single();
+        const { data, error } = await Promise.race([
+          saveRequest,
+          new Promise<{ data: null; error: Error }>((resolve) => {
+            window.setTimeout(
+              () => resolve({ data: null, error: new Error('หมดเวลารอการเชื่อมต่อ') }),
+              8000
+            );
+          }),
+        ]);
 
         if (error) throw error;
 
