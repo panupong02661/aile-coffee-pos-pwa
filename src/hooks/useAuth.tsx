@@ -72,23 +72,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
-      const { data, error } = await supabase.functions.invoke('staff-auth', {
-        body: { action: 'login', username, password },
-      });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+      let data: unknown;
+      let error: { message?: string; status?: number; context?: Response } | null;
+
+      try {
+        const response = await supabase.functions.invoke('staff-auth', {
+          body: { action: 'login', username: username.trim(), password },
+          signal: controller.signal,
+        });
+        data = response.data;
+        error = response.error;
+      } finally {
+        window.clearTimeout(timeout);
+      }
 
       if (error) {
         console.error('Auth RPC error:', error);
-        const raw = `${error.message ?? ''} ${(error as { status?: number }).status ?? ''}`.toLowerCase();
-        const outdated = raw.includes('404')
-          || raw.includes('401')
-          || raw.includes('403')
+        let serverMessage = '';
+        try {
+          const body = await error.context?.clone().json() as { message?: string } | undefined;
+          serverMessage = body?.message ?? '';
+        } catch {
+          // The response may not contain JSON when the device is offline.
+        }
+        if (serverMessage === 'Invalid credentials') {
+          return { success: false, message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' };
+        }
+        if (serverMessage === 'Account temporarily locked') {
+          return { success: false, message: 'บัญชีถูกล็อกชั่วคราว กรุณารอ 15 นาทีแล้วลองใหม่' };
+        }
+
+        const raw = `${error.message ?? ''} ${error.status ?? ''}`.toLowerCase();
+        const unavailable = raw.includes('404')
+          || raw.includes('pgrst202')
           || raw.includes('pgrst202')
           || raw.includes('not found')
           || raw.includes('permission denied');
-        if (outdated) {
+        if (unavailable) {
           return {
             success: false,
-            message: 'แอปที่ติดตั้งเป็นเวอร์ชันเก่า กรุณาอัปเดตแอป (หรือเปิดผ่านเบราว์เซอร์ชั่วคราว)',
+            message: 'แอปเชื่อมต่อระบบล็อกอินไม่ได้ กรุณาอัปเดตแอปหรือเปิดผ่านเบราว์เซอร์ชั่วคราว',
           };
         }
         return { success: false, message: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง' };
