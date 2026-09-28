@@ -1,6 +1,28 @@
 
+import { Capacitor } from '@capacitor/core';
+
+const APP_CACHE_PREFIX = 'aile-coffee-';
+
+// Native builds already ship their web files inside the APK. A browser service
+// worker can survive an APK update and keep serving an older login bundle.
+export const clearNativeWebCache = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+  }
+
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    const appCaches = cacheNames.filter((name) => name.startsWith(APP_CACHE_PREFIX));
+    await Promise.allSettled(appCaches.map((name) => caches.delete(name)));
+  }
+};
+
 // PWA Installation and Service Worker Registration
 export const registerServiceWorker = () => {
+  if (Capacitor.isNativePlatform()) return;
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
