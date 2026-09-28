@@ -302,26 +302,44 @@ npx cap run ios`} />
                   </div>
                 </NativeStep>
 
-                <NativeStep step={6} title="อัปเดตแอปที่ติดตั้งไปแล้ว (เมื่อล็อกอินไม่ได้)">
+                <NativeStep step={6} title="อัปเดตแอปเมื่อมีเวอร์ชันใหม่ (ทำทุกครั้งที่มีอัปเดต)">
                   <p className="text-sm text-muted-foreground">
-                    ถ้าเครื่องที่ติดตั้ง APK ไว้เข้าสู่ระบบไม่ได้ แปลว่าแอปในเครื่องยังเป็นโค้ดเก่า
-                    ให้บิลด์ APK ใหม่แล้วติดตั้งทับ (ไม่ต้องถอนแอป ข้อมูลและการตั้งค่าเดิมยังอยู่)
+                    ทุกครั้งที่ระบบ POS มีการอัปเดตใหม่ แล้วอยากอัปเดตแอปในมือถือด้วย ให้ทำตามขั้นตอนนี้
                   </p>
-                  <CodeBlock code={`git pull
-npm install
+
+                  <h5 className="font-semibold text-sm mt-2">ส่วนที่ 1: เปิด PowerShell แล้วรันทีละบรรทัด</h5>
+                  <CodeBlock code={`cd C:\\Users\\panup\\aile-coffee-pos-pwa
+git checkout -- package.json package-lock.json
+git pull
+npm install --legacy-peer-deps
 npm run build
 npx cap sync android
-# แล้วเปิด Android Studio > Build > Build APK(s)`} />
+npx cap open android`} />
                   <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mt-2">
                     <p className="text-sm text-amber-800">
-                      <strong>⚠️ สำคัญ:</strong> ต้องเซ็นไฟล์ APK ด้วย keystore เดิม จึงจะติดตั้งทับของเดิมได้
-                      หากใช้ keystore คนละตัว ต้องถอนแอปเก่าออกก่อน
+                      <strong>⚠️ สำคัญ:</strong> คำสั่ง <code>git pull</code> ต้องขึ้นรายการไฟล์ที่เปลี่ยน ห้ามมีคำว่า <strong>Aborting</strong>
+                      ถ้าขึ้น Aborting แปลว่าโค้ดใหม่ยังไม่ถูกดึงลงมา ให้รัน <code>git checkout -- package.json</code> แล้ว <code>git pull</code> อีกครั้ง
                     </p>
                   </div>
+
+                  <h5 className="font-semibold text-sm mt-3">ส่วนที่ 2: ใน Android Studio</h5>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>1. กดปุ่ม <strong>☰ (4 ขีด) มุมซ้ายบน</strong> แล้วเลือกเมนู <strong>Build</strong></p>
+                    <p>2. เลือก <strong>Build Bundle(s) / APK(s)</strong> → <strong>Build APK(s)</strong></p>
+                    <p>3. รอจนขึ้น <strong>BUILD SUCCESSFUL</strong> แล้วกด <strong>locate</strong> เพื่อเปิดโฟลเดอร์ไฟล์ APK</p>
+                    <p>4. ไฟล์ที่ได้คือ <code>app-debug.apk</code> ส่งเข้ามือถือแล้วติดตั้งทับแอปเดิมได้เลย</p>
+                  </div>
+
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
                     <p className="text-sm text-blue-800">
-                      ตรวจเวอร์ชันได้ที่มุมล่างของหน้าเข้าสู่ระบบ ถ้าเลขบิลด์ในเครื่องเก่ากว่าบนเว็บ แปลว่าต้องอัปเดต
-                      ระหว่างรอ ใช้งานผ่านเบราว์เซอร์แล้วกด "เพิ่มลงหน้าจอโฮม" ได้ทันที
+                      <strong>💡 ตรวจว่าอัปเดตสำเร็จ:</strong> เปิดแอปแล้วดูมุมล่างของหน้าเข้าสู่ระบบ
+                      เลขเวอร์ชันต้องตรงกับเวอร์ชันล่าสุดบนเว็บ ถ้าเลขยังเก่า แปลว่า build ยังไม่ได้ใช้โค้ดใหม่
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mt-2">
+                    <p className="text-sm text-amber-800">
+                      <strong>⚠️ ก่อนถอนแอปเก่า:</strong> ถ้าติดตั้งทับไม่ได้ ต้องเปิดแอปเดิมต่ออินเทอร์เน็ตรอให้ออเดอร์ออฟไลน์ซิงก์ครบก่อน
+                      แล้วค่อยลบแอปเก่าและติดตั้งใหม่
                     </p>
                   </div>
                 </NativeStep>
