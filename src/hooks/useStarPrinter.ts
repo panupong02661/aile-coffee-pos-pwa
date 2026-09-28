@@ -244,7 +244,7 @@ export const useStarPrinter = () => {
 
   // Setup listeners
   useEffect(() => {
-    if (!isMobile || !isStarPluginInstalled()) return;
+    if (!isNativeApp() || !isStarPluginInstalled()) return;
 
     const setupListeners = async () => {
       await StarPrinter.addListener('printerStatusChanged', (status) => {
@@ -265,7 +265,7 @@ export const useStarPrinter = () => {
 
   // Check initial status
   useEffect(() => {
-    if (isMobile) {
+    if (isNativeApp()) {
       checkStatus();
     }
   }, [isMobile, checkStatus]);
@@ -290,9 +290,9 @@ export const useStarPrinter = () => {
     checkStatus,
     
     // Utilities
-    isReady: connection.connected && isMobile,
+    isReady: connection.connected,
     pluginInstalled: isStarPluginInstalled(),
     isNative: isNativeApp(),
-    requiresNativeApp: !isMobile
+    requiresNativeApp: !isNativeApp()
   };
 };

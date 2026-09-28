@@ -30,17 +30,36 @@ const StarPrinterManager = () => {
     testPrint,
     openCashDrawer,
     isReady,
-    requiresNativeApp
+    requiresNativeApp,
+    pluginInstalled
   } = useStarPrinter();
 
   const { isMobile } = useDevice();
 
   useEffect(() => {
     // Auto search for printers on component mount
-    if (isMobile) {
+    if (!requiresNativeApp && pluginInstalled) {
       searchPrinters();
     }
-  }, [isMobile, searchPrinters]);
+  }, [requiresNativeApp, pluginInstalled, searchPrinters]);
+
+  if (!requiresNativeApp && !pluginInstalled) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-destructive">
+            <AlertTriangle className="w-5 h-5 mr-2" />
+            แอปนี้ยังไม่ได้ติดตั้งตัวเชื่อมเครื่องพิมพ์ Star
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>ตอนทำแอปต้องรันคำสั่งนี้หลัง <code>npx cap sync android</code> แล้ว Build APK ใหม่ ติดตั้งทับ:</p>
+          <pre className="bg-muted p-3 rounded text-xs">bash scripts/setup-star-printer.sh</pre>
+          <p className="text-muted-foreground">ดูขั้นตอนเต็มที่หน้า "สร้างแอปมือถือ" → Native App → ขั้นตอนที่ 6</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (requiresNativeApp) {
     return (
