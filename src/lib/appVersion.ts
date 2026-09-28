@@ -1,7 +1,7 @@
 // Version info shown on the login screen so staff can tell which build a device runs.
 declare const __APP_BUILD_TIME__: string;
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 
 export const APP_BUILD_TIME: string =
   typeof __APP_BUILD_TIME__ !== 'undefined' ? __APP_BUILD_TIME__ : new Date().toISOString();
