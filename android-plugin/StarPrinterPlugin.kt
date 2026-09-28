@@ -17,7 +17,9 @@ import com.starmicronics.stario10.starxpandcommand.PrinterBuilder
 import com.starmicronics.stario10.starxpandcommand.StarXpandCommandBuilder
 import com.starmicronics.stario10.starxpandcommand.printer.Alignment
 import com.starmicronics.stario10.starxpandcommand.printer.CutType
-import com.starmicronics.stario10.starxpandcommand.printer.OpenCashDrawerParameter
+import com.starmicronics.stario10.starxpandcommand.DrawerBuilder
+import com.starmicronics.stario10.starxpandcommand.drawer.Channel
+import com.starmicronics.stario10.starxpandcommand.drawer.OpenParameter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -171,9 +173,9 @@ class StarPrinterPlugin : Plugin() {
         scope.launch {
             try {
                 val builder = StarXpandCommandBuilder()
-                val printerBuilder = PrinterBuilder()
-                    .actionOpenCashDrawer(OpenCashDrawerParameter(1))
-                builder.addDocument(DocumentBuilder().addPrinter(printerBuilder))
+                val drawerBuilder = DrawerBuilder()
+                    .actionOpen(OpenParameter().setChannel(Channel.No1))
+                builder.addDocument(DocumentBuilder().addDrawer(drawerBuilder))
                 printer.printAsync(builder.getCommands()).await()
                 val ret = JSObject()
                 ret.put("opened", true)
