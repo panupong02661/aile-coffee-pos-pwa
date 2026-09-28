@@ -4,6 +4,7 @@ import { StarPrinter, StarPrinterStatus } from '@/plugins/star-printer';
 import type { StarPrinter as StarPrinterType } from '@/plugins/star-printer/definitions';
 import { useDevice } from './useDevice';
 import { toast } from 'sonner';
+import { isNativeApp, isStarPluginInstalled, NOT_INSTALLED_MSG, saveSelectedPrinter, getSelectedPrinter } from '@/utils/nativeStarPrint';
 
 interface PrinterConnection {
   connected: boolean;
@@ -32,14 +33,22 @@ export const useStarPrinter = () => {
 
   // ค้นหาเครื่องพิมพ์ที่ใช้ได้
   const searchPrinters = useCallback(async () => {
+    if (isNativeApp() && !isStarPluginInstalled()) {
+      toast.error(NOT_INSTALLED_MSG, { duration: 10000 });
+      return;
+    }
     setIsSearching(true);
     try {
       const result = await StarPrinter.searchPrinters();
       setAvailablePrinters(result.printers);
-      toast.success(`พบเครื่องพิมพ์ ${result.printers.length} เครื่อง`);
+      if (result.printers.length === 0) {
+        toast.error('ไม่พบเครื่องพิมพ์ — ตรวจสาย USB/OTG, เปิดเครื่องพิมพ์ และกด "อนุญาต" เมื่อแอปขอใช้ USB');
+      } else {
+        toast.success(`พบเครื่องพิมพ์ ${result.printers.length} เครื่อง`);
+      }
     } catch (error) {
       console.error('Search printers error:', error);
-      toast.error('ไม่สามารถค้นหาเครื่องพิมพ์ได้');
+      toast.error(`ไม่สามารถค้นหาเครื่องพิมพ์ได้: ${(error as any)?.message || error}`);
     } finally {
       setIsSearching(false);
     }
@@ -54,6 +63,7 @@ export const useStarPrinter = () => {
       });
 
       if (result.connected) {
+        saveSelectedPrinter(printer);
         setConnection({
           connected: true,
           deviceName: printer.modelName,
@@ -73,7 +83,7 @@ export const useStarPrinter = () => {
       }
     } catch (error) {
       console.error('Connect printer error:', error);
-      toast.error('ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้');
+      toast.error(`ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้: ${(error as any)?.message || error}`);
     }
   }, []);
 
@@ -113,7 +123,7 @@ export const useStarPrinter = () => {
       }
     } catch (error) {
       console.error('Print receipt error:', error);
-      toast.error('เกิดข้อผิดพลาดในการพิมพ์');
+      toast.error(`เกิดข้อผิดพลาดในการพิมพ์: ${(error as any)?.message || error}`);
       return false;
     } finally {
       setIsPrinting(false);
@@ -162,7 +172,13 @@ export const useStarPrinter = () => {
   // ตรวจสอบสถานะเครื่องพิมพ์
   const checkStatus = useCallback(async () => {
     try {
-      const status = await StarPrinter.getStatus();
+      if (!isStarPluginInstalled()) return;
+      let status = await StarPrinter.getStatus();
+      const saved = getSelectedPrinter();
+      if (!status.connected && saved) {
+        const r = await StarPrinter.connect({ connectionType: saved.connectionType, deviceIdentifier: saved.portName }).catch(() => ({ connected: false }));
+        if (r.connected) status = { connected: true, deviceName: saved.modelName };
+      }
       setConnection(prev => ({
         ...prev,
         connected: status.connected,
@@ -228,7 +244,7 @@ export const useStarPrinter = () => {
 
   // Setup listeners
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || !isStarPluginInstalled()) return;
 
     const setupListeners = async () => {
       await StarPrinter.addListener('printerStatusChanged', (status) => {
@@ -275,6 +291,8 @@ export const useStarPrinter = () => {
     
     // Utilities
     isReady: connection.connected && isMobile,
+    pluginInstalled: isStarPluginInstalled(),
+    isNative: isNativeApp(),
     requiresNativeApp: !isMobile
   };
 };

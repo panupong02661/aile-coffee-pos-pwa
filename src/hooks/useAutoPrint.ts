@@ -4,6 +4,7 @@ import { printOrderReceipt as networkPrintOrderReceipt } from '@/utils/printerUt
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
 import { buildScopedStorageKey } from '@/utils/storageScope';
+import { isNativeApp, printTextViaStar } from '@/utils/nativeStarPrint';
 
 interface OrderItem {
   menu_item_name: string;
@@ -204,6 +205,19 @@ ${order.payment_method ? `ชำระโดย: ${order.payment_method}` : ''}
   const printOrderReceipt = async (order: PrintOrder) => {
     try {
       console.log('🖨️ Auto-printing order receipt:', order.order_number);
+
+      // Native app: print directly to Star USB printer
+      if (isNativeApp()) {
+        try {
+          await printTextViaStar(generateReceiptContent(order));
+          await addToPrintQueue({ type: 'ใบเสร็จ', document: `ใบเสร็จ #${order.order_number}`, orderData: order, status: 'completed' });
+          toast.success('✅ พิมพ์ใบเสร็จสำเร็จ', { description: `ออเดอร์ #${order.order_number}` });
+          return true;
+        } catch (e: any) {
+          toast.error('พิมพ์ใบเสร็จไม่ได้', { description: e?.message || String(e), duration: 10000 });
+          return false;
+        }
+      }
 
       // Use network printer
       const success = await networkPrintOrderReceipt(order);
