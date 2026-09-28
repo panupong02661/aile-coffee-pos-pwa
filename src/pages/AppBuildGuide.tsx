@@ -314,7 +314,15 @@ git pull
 npm install --legacy-peer-deps
 npm run build
 npx cap sync android
+bash scripts/setup-star-printer.sh
 npx cap open android`} />
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
+                    <p className="text-sm text-blue-800">
+                      <strong>🖨️ เครื่องพิมพ์ USB (Star TSP143III):</strong> บรรทัด <code>bash scripts/setup-star-printer.sh</code> คือการติดตั้งตัวเชื่อมเครื่องพิมพ์เข้าแอป ห้ามข้าม
+                      ต้องขึ้นคำว่า <strong>เสร็จเรียบร้อย</strong> — ถ้าขึ้นว่าไม่รู้จักคำสั่ง bash ให้ใช้ <code>powershell -ExecutionPolicy Bypass -File scripts/setup-star-printer.ps1</code> แทน
+                      หลังติดตั้งแอป เสียบเครื่องพิมพ์ผ่านสาย OTG แล้วกด <strong>อนุญาต</strong> เมื่อแอปขอใช้ USB จากนั้นไปที่ ระบบเครื่องพิมพ์ → Star Printer → ค้นหา → เลือกเครื่อง → ทดสอบพิมพ์
+                    </p>
+                  </div>
                   <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mt-2">
                     <p className="text-sm text-amber-800">
                       <strong>⚠️ สำคัญ:</strong> คำสั่ง <code>git pull</code> ต้องขึ้นรายการไฟล์ที่เปลี่ยน ห้ามมีคำว่า <strong>Aborting</strong>
