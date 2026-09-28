@@ -54,7 +54,7 @@ const StarPrinterManager = () => {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>ตอนทำแอปต้องรันคำสั่งนี้หลัง <code>npx cap sync android</code> แล้ว Build APK ใหม่ ติดตั้งทับ:</p>
-          <pre className="bg-muted p-3 rounded text-xs">bash scripts/setup-star-printer.sh</pre>
+          <pre className="bg-muted p-3 rounded text-xs">powershell -ExecutionPolicy Bypass -File scripts/setup-star-printer.ps1</pre>
           <p className="text-muted-foreground">ดูขั้นตอนเต็มที่หน้า "สร้างแอปมือถือ" → Native App → ขั้นตอนที่ 6</p>
         </CardContent>
       </Card>
