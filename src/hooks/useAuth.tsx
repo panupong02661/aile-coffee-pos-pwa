@@ -78,10 +78,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let error: { message?: string; status?: number; context?: Response } | null;
 
       try {
-        const response = await supabase.functions.invoke('staff-auth', {
+        const invokeRequest = supabase.functions.invoke('staff-auth', {
           body: { action: 'login', username: username.trim(), password },
-          signal: controller.signal,
         });
+        const timeoutRequest = new Promise<never>((_, reject) => {
+          controller.signal.addEventListener('abort', () => reject(new Error('login_timeout')), { once: true });
+        });
+        const response = await Promise.race([invokeRequest, timeoutRequest]);
         data = response.data;
         error = response.error;
       } finally {
@@ -106,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const raw = `${error.message ?? ''} ${error.status ?? ''}`.toLowerCase();
         const unavailable = raw.includes('404')
-          || raw.includes('pgrst202')
           || raw.includes('pgrst202')
           || raw.includes('not found')
           || raw.includes('permission denied');
