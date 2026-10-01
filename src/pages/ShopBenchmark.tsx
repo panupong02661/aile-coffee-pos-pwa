@@ -102,43 +102,17 @@ const ShopBenchmark = () => {
       setShops(shopsData);
       const dateFilter = getDateFilter();
 
-      // Fetch stats for each shop
-      const statsPromises = shopsData.map(async (shop) => {
-        const [ordersRes, membersRes, itemsRes] = await Promise.all([
-          supabase
-            .from('orders')
-            .select('id, total_amount')
-            .eq('shop_id', shop.id)
-            .gte('created_at', dateFilter),
-          supabase
-            .from('members')
-            .select('id')
-            .eq('shop_id', shop.id),
-          supabase
-            .from('order_items')
-            .select('menu_item_name, quantity')
-            .in('order_id', 
-              (await supabase
-                .from('orders')
-                .select('id')
-                .eq('shop_id', shop.id)
-                .gte('created_at', dateFilter)
-              ).data?.map((o: any) => o.id) || []
-            ),
-        ]);
+      // Cross-shop stats via admin-only RPC (RLS limits direct queries to the current shop)
+      const { data: benchRows, error: benchError } = await (supabase as any).rpc('get_shop_benchmark', { p_start: dateFilter });
+      if (benchError) throw benchError;
+      const benchMap = new Map<string, any>((benchRows || []).map((r: any) => [r.shop_id, r]));
 
-        const orders = ordersRes.data || [];
-        const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-        
-        // Aggregate top items
-        const itemMap: Record<string, number> = {};
-        (itemsRes.data || []).forEach((item: any) => {
-          itemMap[item.menu_item_name] = (itemMap[item.menu_item_name] || 0) + (item.quantity || 1);
-        });
-        const topItems = Object.entries(itemMap)
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
+      const statsPromises = shopsData.map(async (shop) => {
+        const row = benchMap.get(shop.id) || {};
+        const orders = { length: Number(row.total_orders) || 0 };
+        const totalRevenue = Number(row.total_revenue) || 0;
+        const membersRes = { data: { length: Number(row.total_members) || 0 } };
+        const topItems = (row.top_items || []).map((t: any) => ({ name: t.name, count: Number(t.count) || 0 }));
 
         return {
           shopId: shop.id,
