@@ -105,13 +105,7 @@ const LoginPage = () => {
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p className="mb-2">ระดับผู้ใช้งาน:</p>
-            <div className="space-y-1">
-              <p><span className="font-medium text-foreground">Admin:</span> ผู้ดูแลระบบ</p>
-              <p><span className="font-medium text-foreground">Manager:</span> ผู้จัดการ</p>
-              <p><span className="font-medium text-foreground">Staff:</span> พนักงาน</p>
-            </div>
-            <p className="mt-4 text-[11px] text-muted-foreground/70">
+            <p className="text-[11px] text-muted-foreground/70">
               เวอร์ชัน {APP_VERSION} · บิลด์ {APP_BUILD_LABEL}
             </p>
           </div>
