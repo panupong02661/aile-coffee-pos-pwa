@@ -280,10 +280,11 @@ export const useDashboardStats = () => {
   const fetchDashboardStats = async () => {
     try {
       const nowBangkok = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-      const today = nowBangkok.toISOString().split('T')[0];
+      const bkkKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const today = bkkKey(nowBangkok);
       const yesterdayBangkok = new Date(nowBangkok);
       yesterdayBangkok.setDate(yesterdayBangkok.getDate() - 1);
-      const yesterday = yesterdayBangkok.toISOString().split('T')[0];
+      const yesterday = bkkKey(yesterdayBangkok);
       const thisMonth = nowBangkok.getFullYear() + '-' + String(nowBangkok.getMonth() + 1).padStart(2, '0');
       const lastMonthDate = new Date(nowBangkok);
       lastMonthDate.setMonth(nowBangkok.getMonth() - 1);
@@ -304,7 +305,7 @@ export const useDashboardStats = () => {
       
       const { data: todayOrders } = await withShopFilter(
         supabase.from('orders')
-          .select('total_amount, bill_discount, payment_method, member_id, created_at')
+          .select('id, total_amount, bill_discount, payment_method, member_id, created_at')
           .gte('created_at', todayStartUTC)
           .lte('created_at', todayEndUTC)
       );
@@ -493,7 +494,23 @@ export const useDashboardStats = () => {
       const pointsUsageToday = pointTransactionsToday?.reduce((sum, tx) => sum + Math.abs(tx.points_change), 0) || 0;
       const pointsUsageMonth = pointTransactionsMonth?.reduce((sum, tx) => sum + Math.abs(tx.points_change), 0) || 0;
 
-      const todayDiscount = todayOrders?.reduce((sum, order) => sum + Number(order.bill_discount || 0), 0) || 0;
+      const todayBillDiscount = todayOrders?.reduce((sum, order) => sum + Number(order.bill_discount || 0), 0) || 0;
+      let todayItemDiscount = 0;
+      const todayOrderIds = (todayOrders || []).map((o: any) => o.id).filter(Boolean);
+      if (todayOrderIds.length > 0) {
+        const { data: discItems } = await supabase
+          .from('order_items')
+          .select('item_discount, item_discount_type, unit_price, quantity')
+          .in('order_id', todayOrderIds)
+          .gt('item_discount', 0);
+        todayItemDiscount = (discItems || []).reduce((sum: number, it: any) => {
+          const d = Number(it.item_discount) || 0;
+          return sum + (it.item_discount_type === 'percent'
+            ? Math.round((Number(it.unit_price) || 0) * (it.quantity || 1) * d / 100)
+            : d);
+        }, 0);
+      }
+      const todayDiscount = todayBillDiscount + todayItemDiscount;
       const monthDiscount = monthOrders?.reduce((sum, order) => sum + Number(order.bill_discount || 0), 0) || 0;
 
       // Promotion stats

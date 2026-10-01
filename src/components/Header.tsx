@@ -200,7 +200,7 @@ const Header = ({
       <div className={cn('flex w-full justify-between', trailing ? 'items-start gap-2' : 'items-center overflow-hidden')}>
         <div className={cn('flex flex-col gap-1', trailing ? 'flex-shrink-0' : 'flex-1 min-w-0 overflow-hidden')}>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="flex-shrink-0 hidden">
+            <Button variant="ghost" size="icon" onClick={onToggleSidebar} aria-label="เปิดเมนู" className="flex-shrink-0 md:hidden">
               <Menu className="w-5 h-5" />
             </Button>
 
