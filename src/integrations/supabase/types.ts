@@ -5680,6 +5680,16 @@ export type Database = {
           unit: string
         }[]
       }
+      get_shop_benchmark: {
+        Args: { p_start: string }
+        Returns: {
+          shop_id: string
+          top_items: Json
+          total_members: number
+          total_orders: number
+          total_revenue: number
+        }[]
+      }
       get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
       has_verified_shop_access: { Args: { _shop_id: string }; Returns: boolean }
       hash_password: { Args: { password: string }; Returns: Json }
