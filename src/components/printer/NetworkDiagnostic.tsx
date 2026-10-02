@@ -175,7 +175,13 @@ const NetworkDiagnostic = () => {
           </div>
         )}
 
-        <div className="text-xs text-gray-500 p-3 bg-gray-50 rounded-lg">
+        <div className="text-sm p-3 rounded-lg border border-primary/30 bg-primary/5 text-foreground">
+          <strong>ใช้เครื่องพิมพ์สาย USB?</strong> หน้านี้ใช้ตรวจเฉพาะเครื่องพิมพ์ที่ต่อสาย LAN/Wi‑Fi เท่านั้น
+          — เครื่องพิมพ์ USB ให้ไปที่แท็บ <strong>Star Printer</strong> แล้วกด "ค้นหาเครื่องพิมพ์" ในแอปบนแท็บเล็ต
+          (ต้องต่อสายจากช่อง USB‑B ด้านหลังเครื่องพิมพ์ ผ่านหัวแปลง OTG เข้าแท็บเล็ต)
+        </div>
+
+        <div className="text-xs text-muted-foreground p-3 bg-muted rounded-lg">
           <strong>หมายเหตุ:</strong> พอร์ต 9100 เป็นพอร์ตมาตรฐานสำหรับเครื่องพิมพ์ thermal 
           หากไม่สามารถเชื่อมต่อได้ ให้ตรวจสอบ:
           <br />• เครื่องพิมพ์เปิดใช้งานและเชื่อมต่อเครือข่าย
