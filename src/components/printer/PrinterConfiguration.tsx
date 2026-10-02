@@ -182,6 +182,10 @@ const PrinterConfiguration = () => {
           <CardDescription>ตั้งค่าวิธีการเชื่อมต่อเครื่องพิมพ์</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground">
+            เครื่องพิมพ์ USB (Star) ไม่ต้องตั้งค่าที่นี่ — ไปที่แท็บ <span className="font-medium text-foreground">"Star Printer"</span> แล้วกด "ค้นหา" แอปจะหาเครื่องให้เองอัตโนมัติ
+          </div>
+
           <div>
             <Label htmlFor="connection_type">ประเภทการเชื่อมต่อ</Label>
             <Select value={connectionType} onValueChange={(value) => setValue('connection_type', value)}>
@@ -189,24 +193,11 @@ const PrinterConfiguration = () => {
                 <SelectValue placeholder="เลือกประเภทการเชื่อมต่อ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USB">USB</SelectItem>
                 <SelectItem value="Ethernet">Ethernet</SelectItem>
-                <SelectItem value="Bluetooth">Bluetooth</SelectItem>
                 <SelectItem value="WiFi">WiFi</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {connectionType === 'USB' && (
-            <div>
-              <Label htmlFor="usb_path">USB Device Path</Label>
-              <Input
-                id="usb_path"
-                {...register('usb_path')}
-                placeholder="/dev/usb/lp0"
-              />
-            </div>
-          )}
 
           {(connectionType === 'Ethernet' || connectionType === 'WiFi') && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
