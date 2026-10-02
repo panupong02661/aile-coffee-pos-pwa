@@ -150,9 +150,10 @@ Deno.serve(async (req) => {
       })
       if (createError || !created.user) throw createError ?? new Error('account_creation_failed')
 
+      const salt = newSalt()
       const { error: profileError } = await admin.from('users').insert({
         username, full_name: String(body?.full_name ?? username), role,
-        password_hash: password, password_salt: null,
+        password_hash: await hashWithSalt(password, salt), password_salt: salt,
         auth_user_id: created.user.id, shop_id: body?.shop_id ?? null,
       })
       if (profileError) {
@@ -182,8 +183,9 @@ Deno.serve(async (req) => {
         const { error } = await admin.auth.admin.updateUserById(authUserId, { password: derived })
         if (error) throw error
       }
+      const salt = newSalt()
       await admin.from('users').update({
-        auth_user_id: authUserId, password_hash: password, password_salt: null,
+        auth_user_id: authUserId, password_hash: await hashWithSalt(password, salt), password_salt: salt,
         failed_login_attempts: 0, locked_until: null,
       }).eq('id', target.id)
       return reply({ success: true })
