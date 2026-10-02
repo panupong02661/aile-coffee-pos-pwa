@@ -192,11 +192,19 @@ const StarPrinterManager = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            เสียบสาย USB จากเครื่องพิมพ์เข้าแท็บเล็ต (ผ่านอแดปเตอร์ OTG) แล้วกด "ค้นหา" — แอปจะหาเครื่องให้เอง ไม่ต้องกรอกอะไร
+          </p>
           {availablePrinters.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Printer className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>ไม่พบเครื่องพิมพ์</p>
               <p className="text-sm">กรุณาตรวจสอบการเชื่อมต่อ USB</p>
+              <ul className="text-sm mt-3 space-y-1 text-left inline-block">
+                <li>• ใช้อแดปเตอร์ OTG (ไม่ใช่สายชาร์จธรรมดา)</li>
+                <li>• เปิดเครื่องพิมพ์และใส่กระดาษเรียบร้อย</li>
+                <li>• ถ้าแอนดรอยด์ถามสิทธิ์ USB ให้กด "อนุญาต"</li>
+              </ul>
             </div>
           ) : (
             <div className="space-y-3">
