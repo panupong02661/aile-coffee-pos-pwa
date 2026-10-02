@@ -27,6 +27,11 @@ const sha256Base64 = async (value: string) => {
   return btoa(String.fromCharCode(...new Uint8Array(digest)))
 }
 
+const newSalt = () =>
+  Array.from(crypto.getRandomValues(new Uint8Array(16))).map((b) => b.toString(16).padStart(2, '0')).join('')
+
+const hashWithSalt = (password: string, salt: string) => sha256Base64(password + salt)
+
 // Auth passwords must be >= 6 chars; legacy staff passwords can be shorter.
 // Derive a deterministic strong password from the username + real password.
 const authPassword = async (username: string, password: string) => {
@@ -78,11 +83,18 @@ Deno.serve(async (req) => {
         return reply({ success: false, message: 'Account temporarily locked' }, 423)
       }
 
-      let valid = false
-      if (!profile.auth_user_id) {
-        valid = profile.password_salt
-          ? await sha256Base64(password + profile.password_salt) === profile.password_hash
-          : password === profile.password_hash
+      // Verify against the stored hash first (supports legacy plain-text rows).
+      const valid = profile.password_salt
+        ? (await hashWithSalt(password, profile.password_salt)) === profile.password_hash
+        : password === profile.password_hash
+
+      // Migrate legacy plain-text password to a salted hash on successful verify.
+      if (valid && !profile.password_salt) {
+        const salt = newSalt()
+        await admin.from('users').update({
+          password_salt: salt,
+          password_hash: await hashWithSalt(password, salt),
+        }).eq('id', profile.id)
       }
 
       const email = internalEmail(profile.username)
@@ -138,9 +150,10 @@ Deno.serve(async (req) => {
       })
       if (createError || !created.user) throw createError ?? new Error('account_creation_failed')
 
+      const salt = newSalt()
       const { error: profileError } = await admin.from('users').insert({
         username, full_name: String(body?.full_name ?? username), role,
-        password_hash: password, password_salt: null,
+        password_hash: await hashWithSalt(password, salt), password_salt: salt,
         auth_user_id: created.user.id, shop_id: body?.shop_id ?? null,
       })
       if (profileError) {
@@ -170,8 +183,9 @@ Deno.serve(async (req) => {
         const { error } = await admin.auth.admin.updateUserById(authUserId, { password: derived })
         if (error) throw error
       }
+      const salt = newSalt()
       await admin.from('users').update({
-        auth_user_id: authUserId, password_hash: password, password_salt: null,
+        auth_user_id: authUserId, password_hash: await hashWithSalt(password, salt), password_salt: salt,
         failed_login_attempts: 0, locked_until: null,
       }).eq('id', target.id)
       return reply({ success: true })
