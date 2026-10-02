@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PrinterConfiguration from '@/components/printer/PrinterConfiguration';
+import StarPrinterManager from '@/components/StarPrinterManager';
 import PrintQueue from '@/components/printer/PrintQueue';
 import PrintReports from '@/components/printer/PrintReports';
 import PrintHistory from '@/components/printer/PrintHistory';
@@ -72,7 +73,8 @@ const PrinterSettings = () => {
                     <NetworkDiagnostic />
                   </TabsContent>
                   
-                  <TabsContent value="config" className="mt-6">
+                  <TabsContent value="config" className="mt-6 space-y-6">
+                    <StarPrinterManager />
                     <PrinterConfiguration />
                   </TabsContent>
                   

@@ -183,7 +183,7 @@ const PrinterConfiguration = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground">
-            เครื่องพิมพ์ USB (Star) ไม่ต้องตั้งค่าที่นี่ — ไปที่แท็บ <span className="font-medium text-foreground">"Star Printer"</span> แล้วกด "ค้นหา" แอปจะหาเครื่องให้เองอัตโนมัติ
+            ส่วนนี้สำหรับเครื่องพิมพ์เครือข่ายเท่านั้น — เครื่องพิมพ์ USB ใช้ปุ่ม <span className="font-medium text-foreground">"ค้นหา"</span> ด้านบน แอปจะหาเครื่องให้เองอัตโนมัติ
           </div>
 
           <div>
