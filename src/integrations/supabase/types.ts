@@ -3487,6 +3487,7 @@ export type Database = {
           pickup_time: string | null
           receipt_image_url: string | null
           shop_id: string | null
+          side_effects_done: boolean
           status: string | null
           total_amount: number
           updated_at: string
@@ -3509,6 +3510,7 @@ export type Database = {
           pickup_time?: string | null
           receipt_image_url?: string | null
           shop_id?: string | null
+          side_effects_done?: boolean
           status?: string | null
           total_amount?: number
           updated_at?: string
@@ -3531,6 +3533,7 @@ export type Database = {
           pickup_time?: string | null
           receipt_image_url?: string | null
           shop_id?: string | null
+          side_effects_done?: boolean
           status?: string | null
           total_amount?: number
           updated_at?: string

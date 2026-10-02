@@ -385,45 +385,53 @@ export const useOfflinePOS = () => {
         order.synced = true;
         await setStoredOrders(scopedOrdersKey, orders);
 
-        notifyPosOrder({
-          id: databaseOrder.id,
-          order_number: order.order_number,
-          total_amount: order.total_amount,
-          items_count: orderItems.length,
-          payment_method: order.payment_method,
-          created_at: order.created_at,
-          shop_id: order.shop_id,
-          member_id: order.member_id || null,
-          customer_name: order.customer_name || 'ลูกค้าหน้าร้าน',
-          customer_phone: order.customer_phone || '',
-          bill_discount: order.bill_discount || 0,
-          bill_discount_type: order.bill_discount_type || 'amount',
-          order_items: orderItems as any,
-        });
+        // Run side effects only once per order (idempotent across re-syncs)
+        if (!databaseOrder.side_effects_done) {
+          notifyPosOrder({
+            id: databaseOrder.id,
+            order_number: order.order_number,
+            total_amount: order.total_amount,
+            items_count: orderItems.length,
+            payment_method: order.payment_method,
+            created_at: order.created_at,
+            shop_id: order.shop_id,
+            member_id: order.member_id || null,
+            customer_name: order.customer_name || 'ลูกค้าหน้าร้าน',
+            customer_phone: order.customer_phone || '',
+            bill_discount: order.bill_discount || 0,
+            bill_discount_type: order.bill_discount_type || 'amount',
+            order_items: orderItems as any,
+          });
 
-        void reduceStockForOrder(orderItems);
-        void createQueueFromOrder(
-          databaseOrder.id,
-          order.shop_id,
-          order.customer_name,
-          order.customer_phone
-        );
+          void reduceStockForOrder(orderItems);
+          void createQueueFromOrder(
+            databaseOrder.id,
+            order.shop_id,
+            order.customer_name,
+            order.customer_phone
+          );
 
-        if (order.member_id && order.member_points_change) {
-          const { data: member } = await supabase
-            .from('members')
-            .select('points, total_spent')
-            .eq('id', order.member_id)
-            .maybeSingle();
-          if (member) {
-            await supabase
+          if (order.member_id && order.member_points_change) {
+            const { data: member } = await supabase
               .from('members')
-              .update({
-                points: Math.max(0, member.points + order.member_points_change),
-                total_spent: member.total_spent + order.total_amount,
-              })
-              .eq('id', order.member_id);
+              .select('points, total_spent')
+              .eq('id', order.member_id)
+              .maybeSingle();
+            if (member) {
+              await supabase
+                .from('members')
+                .update({
+                  points: Math.max(0, member.points + order.member_points_change),
+                  total_spent: member.total_spent + order.total_amount,
+                })
+                .eq('id', order.member_id);
+            }
           }
+
+          await supabase
+            .from('orders')
+            .update({ side_effects_done: true })
+            .eq('id', databaseOrder.id);
         }
 
         syncedCount++;
