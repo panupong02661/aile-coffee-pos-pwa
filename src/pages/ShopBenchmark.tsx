@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -86,25 +87,20 @@ const ShopBenchmark = () => {
   const fetchAllShopsData = async () => {
     setLoading(true);
     try {
-      // Fetch all active shops
-      const { data: shopsData } = await supabase
-        .from('shops')
-        .select('id, shop_name, branch_name, branch_code')
-        .eq('is_active', true);
-
-      if (!shopsData || shopsData.length === 0) {
+      const dateFilter = getDateFilter();
+      // Admin-only RPC returns all shops (direct shops/orders queries are limited by RLS to the current shop)
+      const { data: benchRows, error: benchError } = await (supabase as any).rpc('get_shop_benchmark', { p_start: dateFilter });
+      if (benchError) {
+        toast({ title: 'โหลดข้อมูล Benchmark ไม่ได้', description: benchError.message === 'Admin only' ? 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น' : benchError.message, variant: 'destructive' });
+        throw benchError;
+      }
+      const shopsData = (benchRows || []).map((r: any) => ({ id: r.shop_id, shop_name: r.shop_name, branch_name: r.branch_name, branch_code: null }));
+      if (shopsData.length === 0) {
         setShops([]);
         setShopStats([]);
-        setLoading(false);
         return;
       }
-
       setShops(shopsData);
-      const dateFilter = getDateFilter();
-
-      // Cross-shop stats via admin-only RPC (RLS limits direct queries to the current shop)
-      const { data: benchRows, error: benchError } = await (supabase as any).rpc('get_shop_benchmark', { p_start: dateFilter });
-      if (benchError) throw benchError;
       const benchMap = new Map<string, any>((benchRows || []).map((r: any) => [r.shop_id, r]));
 
       const statsPromises = shopsData.map(async (shop) => {

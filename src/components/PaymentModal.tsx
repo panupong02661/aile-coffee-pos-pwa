@@ -776,8 +776,8 @@ const PaymentModal = ({
   };
 
   const handleBanknoteClick = (amount: number) => {
-    // เมื่อกดธนบัตร จะแทนที่ค่าเดิมทั้งหมด (ไม่รวมกับค่าก่อนหน้า)
-    setCashReceived(amount.toString());
+    // กดธนบัตรซ้ำได้ — บวกเพิ่มจากยอดที่รับไว้
+    setCashReceived(prev => String((parseFloat(prev as any) || 0) + amount));
   };
 
   const handleExactPayment = () => {
@@ -1095,7 +1095,10 @@ const PaymentModal = ({
 
               {/* Banknote Buttons - Compact */}
               <div>
-                <Label className="text-sm font-semibold mb-1 block text-foreground">ธนบัตร</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-sm font-semibold text-foreground">ธนบัตร (กดซ้ำเพื่อบวกเพิ่ม)</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCashReceived('')}>ล้าง</Button>
+                </div>
                 <div className="grid grid-cols-5 gap-1.5 mb-2">
                   {banknotes.map((amount, index) => {
                     const colors = [

@@ -5686,7 +5686,9 @@ export type Database = {
       get_shop_benchmark: {
         Args: { p_start: string }
         Returns: {
+          branch_name: string
           shop_id: string
+          shop_name: string
           top_items: Json
           total_members: number
           total_orders: number
