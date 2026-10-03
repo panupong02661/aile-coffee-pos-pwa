@@ -237,7 +237,7 @@ const ShopBenchmark = () => {
                     <Store className="w-3.5 h-3.5" />
                     จำนวนร้าน
                   </div>
-                  <p className="text-2xl font-bold text-foreground">{shops.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{filteredStats.length}</p>
                   <p className="text-xs text-muted-foreground">สาขาทั้งหมด</p>
                 </CardContent>
               </Card>
