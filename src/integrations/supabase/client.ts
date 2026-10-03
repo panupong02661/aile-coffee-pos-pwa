@@ -72,7 +72,8 @@ const scopedFetch: typeof fetch = async (input, init) => {
 
   let body = init?.body;
 
-  if (isRest && shopId && tableName && !EXCLUDED_TABLES.has(tableName)) {
+  // RPC calls (/rest/v1/rpc/...) must not get shop_id injected — functions would reject the unknown argument
+  if (isRest && shopId && tableName && tableName !== 'rpc' && !EXCLUDED_TABLES.has(tableName)) {
     if (['GET', 'HEAD', 'PATCH', 'DELETE'].includes(method) && !url.searchParams.has('shop_id')) {
       url.searchParams.append('shop_id', `eq.${shopId}`);
     }
