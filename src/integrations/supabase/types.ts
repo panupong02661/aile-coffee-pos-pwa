@@ -5683,18 +5683,27 @@ export type Database = {
           unit: string
         }[]
       }
-      get_shop_benchmark: {
-        Args: { p_start: string }
-        Returns: {
-          branch_name: string
-          shop_id: string
-          shop_name: string
-          top_items: Json
-          total_members: number
-          total_orders: number
-          total_revenue: number
-        }[]
-      }
+      get_shop_benchmark:
+        | {
+            Args: { p_start: string }
+            Returns: Database["public"]["CompositeTypes"]["shop_benchmark_row"][]
+            SetofOptions: {
+              from: "*"
+              to: "shop_benchmark_row"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { p_start: string; shop_id: string }
+            Returns: Database["public"]["CompositeTypes"]["shop_benchmark_row"][]
+            SetofOptions: {
+              from: "*"
+              to: "shop_benchmark_row"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
       get_user_shop_id: { Args: { p_user_id: string }; Returns: string }
       has_verified_shop_access: { Args: { _shop_id: string }; Returns: boolean }
       hash_password: { Args: { password: string }; Returns: Json }
@@ -5731,7 +5740,15 @@ export type Database = {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      shop_benchmark_row: {
+        shop_id: string | null
+        shop_name: string | null
+        branch_name: string | null
+        total_orders: number | null
+        total_revenue: number | null
+        total_members: number | null
+        top_items: Json | null
+      }
     }
   }
 }
