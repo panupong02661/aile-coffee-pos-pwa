@@ -137,11 +137,11 @@ const ShopBenchmark = () => {
     ? shopStats 
     : shopStats.filter(s => s.shopId === selectedShopId);
 
-  const totalRevAll = shopStats.reduce((s, sh) => s + sh.totalRevenue, 0);
-  const totalOrdersAll = shopStats.reduce((s, sh) => s + sh.totalOrders, 0);
-  const totalMembersAll = shopStats.reduce((s, sh) => s + sh.totalMembers, 0);
+  const totalRevAll = filteredStats.reduce((s, sh) => s + sh.totalRevenue, 0);
+  const totalOrdersAll = filteredStats.reduce((s, sh) => s + sh.totalOrders, 0);
+  const totalMembersAll = filteredStats.reduce((s, sh) => s + sh.totalMembers, 0);
 
-  const comparisonData = shopStats.map(s => ({
+  const comparisonData = filteredStats.map(s => ({
     name: s.branchName || s.shopName,
     revenue: s.totalRevenue,
     orders: s.totalOrders,
@@ -149,7 +149,7 @@ const ShopBenchmark = () => {
     avgOrder: Math.round(s.avgOrderValue),
   }));
 
-  const revenueShareData = shopStats.map((s, i) => ({
+  const revenueShareData = filteredStats.map((s, i) => ({
     name: s.branchName || s.shopName,
     value: s.totalRevenue,
     fill: CHART_COLORS[i % CHART_COLORS.length],
@@ -451,7 +451,7 @@ const ShopBenchmark = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {[...shopStats]
+                        {[...filteredStats]
                           .sort((a, b) => b.totalRevenue - a.totalRevenue)
                           .map((stat, i) => (
                             <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
@@ -487,7 +487,7 @@ const ShopBenchmark = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {[...shopStats]
+                        {[...filteredStats]
                           .sort((a, b) => b.totalOrders - a.totalOrders)
                           .map((stat, i) => (
                             <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
@@ -523,7 +523,7 @@ const ShopBenchmark = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {[...shopStats]
+                        {[...filteredStats]
                           .sort((a, b) => b.totalMembers - a.totalMembers)
                           .map((stat, i) => (
                             <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
@@ -559,7 +559,7 @@ const ShopBenchmark = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {[...shopStats]
+                        {[...filteredStats]
                           .sort((a, b) => b.avgOrderValue - a.avgOrderValue)
                           .map((stat, i) => (
                             <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
