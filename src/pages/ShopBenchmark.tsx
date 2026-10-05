@@ -631,6 +631,42 @@ const ShopBenchmark = () => {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Cups Ranking */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Coffee className="w-4 h-4 text-primary" />
+                        อันดับจำนวนแก้ว
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {[...filteredStats]
+                          .sort((a, b) => b.totalItems - a.totalItems)
+                          .map((stat, i) => (
+                            <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  i === 0 ? 'bg-yellow-500 text-white' :
+                                  i === 1 ? 'bg-gray-400 text-white' :
+                                  i === 2 ? 'bg-amber-700 text-white' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>
+                                  {i + 1}
+                                </span>
+                                <span className="text-sm font-medium text-foreground">
+                                  {stat.branchName || stat.shopName}
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold text-foreground">
+                                {stat.totalItems.toLocaleString()} แก้ว
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
             </Tabs>
