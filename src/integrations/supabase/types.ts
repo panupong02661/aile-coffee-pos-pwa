@@ -5686,13 +5686,16 @@ export type Database = {
       get_shop_benchmark:
         | {
             Args: { p_start: string }
-            Returns: Database["public"]["CompositeTypes"]["shop_benchmark_row"][]
-            SetofOptions: {
-              from: "*"
-              to: "shop_benchmark_row"
-              isOneToOne: false
-              isSetofReturn: true
-            }
+            Returns: {
+              branch_name: string
+              shop_id: string
+              shop_name: string
+              top_items: Json
+              total_items: number
+              total_members: number
+              total_orders: number
+              total_revenue: number
+            }[]
           }
         | {
             Args: { p_start: string; shop_id: string }

@@ -12,10 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
-  Store, TrendingUp, DollarSign, Users, ShoppingCart, 
+  Store, TrendingUp, DollarSign, Users, ShoppingCart, Coffee,
   BarChart3, RefreshCw, Eye, ArrowUpRight, ArrowDownRight, Minus
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 
 interface ShopInfo {
   id: string;
@@ -31,6 +31,7 @@ interface ShopStats {
   totalOrders: number;
   totalRevenue: number;
   totalMembers: number;
+  totalItems: number;
   avgOrderValue: number;
   topItems: { name: string; count: number }[];
 }
@@ -117,6 +118,7 @@ const ShopBenchmark = () => {
           totalOrders: orders.length,
           totalRevenue,
           totalMembers: membersRes.data?.length || 0,
+          totalItems: Number(row.total_items) || 0,
           avgOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0,
           topItems,
         } as ShopStats;
@@ -140,12 +142,14 @@ const ShopBenchmark = () => {
   const totalRevAll = filteredStats.reduce((s, sh) => s + sh.totalRevenue, 0);
   const totalOrdersAll = filteredStats.reduce((s, sh) => s + sh.totalOrders, 0);
   const totalMembersAll = filteredStats.reduce((s, sh) => s + sh.totalMembers, 0);
+  const totalItemsAll = filteredStats.reduce((s, sh) => s + sh.totalItems, 0);
 
   const comparisonData = filteredStats.map(s => ({
     name: s.branchName || s.shopName,
     revenue: s.totalRevenue,
     orders: s.totalOrders,
     members: s.totalMembers,
+    items: s.totalItems,
     avgOrder: Math.round(s.avgOrderValue),
   }));
 
@@ -230,7 +234,7 @@ const ShopBenchmark = () => {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
@@ -260,6 +264,16 @@ const ShopBenchmark = () => {
                     ออเดอร์รวม
                   </div>
                   <p className="text-2xl font-bold text-foreground">{totalOrdersAll.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{periodLabel[period]}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                    <Coffee className="w-3.5 h-3.5" />
+                    แก้วรวม
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{totalItemsAll.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">{periodLabel[period]}</p>
                 </CardContent>
               </Card>
@@ -302,7 +316,9 @@ const ShopBenchmark = () => {
                               formatter={(value: number) => [`฿${value.toLocaleString()}`, 'รายได้']}
                               contentStyle={{ borderRadius: 8, fontSize: 12 }}
                             />
-                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                              <LabelList dataKey="revenue" position="top" formatter={(v: number) => `฿${Number(v).toLocaleString()}`} style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -325,7 +341,7 @@ const ShopBenchmark = () => {
                               innerRadius={50} outerRadius={90}
                               paddingAngle={2}
                               dataKey="value"
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              label={({ name, value, percent }) => `${name} ฿${Number(value).toLocaleString()} (${(percent * 100).toFixed(0)}%)`}
                             >
                               {revenueShareData.map((entry, index) => (
                                 <Cell key={index} fill={entry.fill} />
@@ -351,7 +367,9 @@ const ShopBenchmark = () => {
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                             <YAxis tick={{ fontSize: 11 }} />
                             <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                            <Bar dataKey="orders" fill="hsl(var(--chart-2, 160 60% 45%))" radius={[4, 4, 0, 0]} name="ออเดอร์" />
+                            <Bar dataKey="orders" fill="hsl(var(--chart-2, 160 60% 45%))" radius={[4, 4, 0, 0]} name="ออเดอร์">
+                              <LabelList dataKey="orders" position="top" style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -374,7 +392,32 @@ const ShopBenchmark = () => {
                               formatter={(value: number) => [`฿${value.toLocaleString()}`, 'เฉลี่ย/ออเดอร์']}
                               contentStyle={{ borderRadius: 8, fontSize: 12 }}
                             />
-                            <Bar dataKey="avgOrder" fill="hsl(var(--chart-3, 30 80% 55%))" radius={[4, 4, 0, 0]} name="เฉลี่ย/ออเดอร์" />
+                            <Bar dataKey="avgOrder" fill="hsl(var(--chart-3, 30 80% 55%))" radius={[4, 4, 0, 0]} name="เฉลี่ย/ออเดอร์">
+                              <LabelList dataKey="avgOrder" position="top" formatter={(v: number) => `฿${Number(v).toLocaleString()}`} style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cups Comparison */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">เปรียบเทียบจำนวนแก้ว</CardTitle>
+                      <CardDescription>จำนวนชิ้นสินค้าที่ขายได้</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={comparisonData}>
+                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                            <Bar dataKey="items" fill="hsl(var(--chart-4, 280 65% 60%))" radius={[4, 4, 0, 0]} name="แก้ว">
+                              <LabelList dataKey="items" position="top" style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -408,6 +451,10 @@ const ShopBenchmark = () => {
                           <div>
                             <p className="text-[10px] text-muted-foreground">ออเดอร์</p>
                             <p className="text-lg font-bold text-foreground">{stat.totalOrders}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">แก้ว</p>
+                            <p className="text-lg font-bold text-foreground">{stat.totalItems.toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground">สมาชิก</p>
@@ -578,6 +625,42 @@ const ShopBenchmark = () => {
                               </div>
                               <span className="text-sm font-bold text-foreground">
                                 ฿{Math.round(stat.avgOrderValue).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cups Ranking */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Coffee className="w-4 h-4 text-primary" />
+                        อันดับจำนวนแก้ว
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {[...filteredStats]
+                          .sort((a, b) => b.totalItems - a.totalItems)
+                          .map((stat, i) => (
+                            <div key={stat.shopId} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  i === 0 ? 'bg-yellow-500 text-white' :
+                                  i === 1 ? 'bg-gray-400 text-white' :
+                                  i === 2 ? 'bg-amber-700 text-white' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>
+                                  {i + 1}
+                                </span>
+                                <span className="text-sm font-medium text-foreground">
+                                  {stat.branchName || stat.shopName}
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold text-foreground">
+                                {stat.totalItems.toLocaleString()} แก้ว
                               </span>
                             </div>
                           ))}
