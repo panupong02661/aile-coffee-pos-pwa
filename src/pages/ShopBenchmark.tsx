@@ -142,12 +142,14 @@ const ShopBenchmark = () => {
   const totalRevAll = filteredStats.reduce((s, sh) => s + sh.totalRevenue, 0);
   const totalOrdersAll = filteredStats.reduce((s, sh) => s + sh.totalOrders, 0);
   const totalMembersAll = filteredStats.reduce((s, sh) => s + sh.totalMembers, 0);
+  const totalItemsAll = filteredStats.reduce((s, sh) => s + sh.totalItems, 0);
 
   const comparisonData = filteredStats.map(s => ({
     name: s.branchName || s.shopName,
     revenue: s.totalRevenue,
     orders: s.totalOrders,
     members: s.totalMembers,
+    items: s.totalItems,
     avgOrder: Math.round(s.avgOrderValue),
   }));
 
@@ -232,7 +234,7 @@ const ShopBenchmark = () => {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
