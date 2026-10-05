@@ -316,7 +316,9 @@ const ShopBenchmark = () => {
                               formatter={(value: number) => [`฿${value.toLocaleString()}`, 'รายได้']}
                               contentStyle={{ borderRadius: 8, fontSize: 12 }}
                             />
-                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                              <LabelList dataKey="revenue" position="top" formatter={(v: number) => `฿${Number(v).toLocaleString()}`} style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -339,7 +341,7 @@ const ShopBenchmark = () => {
                               innerRadius={50} outerRadius={90}
                               paddingAngle={2}
                               dataKey="value"
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              label={({ name, value, percent }) => `${name} ฿${Number(value).toLocaleString()} (${(percent * 100).toFixed(0)}%)`}
                             >
                               {revenueShareData.map((entry, index) => (
                                 <Cell key={index} fill={entry.fill} />
@@ -365,7 +367,9 @@ const ShopBenchmark = () => {
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                             <YAxis tick={{ fontSize: 11 }} />
                             <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                            <Bar dataKey="orders" fill="hsl(var(--chart-2, 160 60% 45%))" radius={[4, 4, 0, 0]} name="ออเดอร์" />
+                            <Bar dataKey="orders" fill="hsl(var(--chart-2, 160 60% 45%))" radius={[4, 4, 0, 0]} name="ออเดอร์">
+                              <LabelList dataKey="orders" position="top" style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -388,7 +392,32 @@ const ShopBenchmark = () => {
                               formatter={(value: number) => [`฿${value.toLocaleString()}`, 'เฉลี่ย/ออเดอร์']}
                               contentStyle={{ borderRadius: 8, fontSize: 12 }}
                             />
-                            <Bar dataKey="avgOrder" fill="hsl(var(--chart-3, 30 80% 55%))" radius={[4, 4, 0, 0]} name="เฉลี่ย/ออเดอร์" />
+                            <Bar dataKey="avgOrder" fill="hsl(var(--chart-3, 30 80% 55%))" radius={[4, 4, 0, 0]} name="เฉลี่ย/ออเดอร์">
+                              <LabelList dataKey="avgOrder" position="top" formatter={(v: number) => `฿${Number(v).toLocaleString()}`} style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cups Comparison */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">เปรียบเทียบจำนวนแก้ว</CardTitle>
+                      <CardDescription>จำนวนชิ้นสินค้าที่ขายได้</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={comparisonData}>
+                            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                            <Bar dataKey="items" fill="hsl(var(--chart-4, 280 65% 60%))" radius={[4, 4, 0, 0]} name="แก้ว">
+                              <LabelList dataKey="items" position="top" style={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                            </Bar>
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
