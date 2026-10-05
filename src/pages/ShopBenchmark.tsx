@@ -270,6 +270,16 @@ const ShopBenchmark = () => {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+                    <Coffee className="w-3.5 h-3.5" />
+                    แก้วรวม
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{totalItemsAll.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{periodLabel[period]}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
                     <Users className="w-3.5 h-3.5" />
                     สมาชิกรวม
                   </div>
