@@ -453,6 +453,10 @@ const ShopBenchmark = () => {
                             <p className="text-lg font-bold text-foreground">{stat.totalOrders}</p>
                           </div>
                           <div>
+                            <p className="text-[10px] text-muted-foreground">แก้ว</p>
+                            <p className="text-lg font-bold text-foreground">{stat.totalItems.toLocaleString()}</p>
+                          </div>
+                          <div>
                             <p className="text-[10px] text-muted-foreground">สมาชิก</p>
                             <p className="text-lg font-bold text-foreground">{stat.totalMembers}</p>
                           </div>
