@@ -12,10 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
-  Store, TrendingUp, DollarSign, Users, ShoppingCart, 
+  Store, TrendingUp, DollarSign, Users, ShoppingCart, Coffee,
   BarChart3, RefreshCw, Eye, ArrowUpRight, ArrowDownRight, Minus
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 
 interface ShopInfo {
   id: string;
@@ -31,6 +31,7 @@ interface ShopStats {
   totalOrders: number;
   totalRevenue: number;
   totalMembers: number;
+  totalItems: number;
   avgOrderValue: number;
   topItems: { name: string; count: number }[];
 }
@@ -117,6 +118,7 @@ const ShopBenchmark = () => {
           totalOrders: orders.length,
           totalRevenue,
           totalMembers: membersRes.data?.length || 0,
+          totalItems: Number(row.total_items) || 0,
           avgOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0,
           topItems,
         } as ShopStats;
