@@ -841,6 +841,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}
       }
 
       const describeLineError = (status: number, detail: string) => {
+        if (status === 429 || /monthly limit/i.test(detail)) {
+          return 'โควต้าข้อความ LINE รายเดือนหมดแล้ว — LINE จะรีเซ็ตโควต้าในวันที่ 1 ของเดือนถัดไป หรืออัปเกรดแพลนใน LINE Official Account Manager เพื่อส่งต่อได้ทันที (ระหว่างนี้แจ้งเตือนผ่าน Discord ยังทำงานปกติ)';
+        }
         if (status === 401) return 'Channel Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาออก Token ใหม่จาก LINE Developers';
         if (status === 403) {
           return isGroupMode
@@ -908,7 +911,9 @@ ${topMenusList || 'ไม่มีข้อมูล'}
         console.error('LINE test error:', error);
         const raw = String(error?.message || error);
         let hint = raw;
-        if (raw.includes('403') || raw.toLowerCase().includes('forbidden')) {
+        if (raw.includes('429') || /monthly limit/i.test(raw)) {
+          hint = 'โควต้าข้อความ LINE รายเดือนหมดแล้ว — LINE จะรีเซ็ตโควต้าในวันที่ 1 ของเดือนถัดไป หรืออัปเกรดแพลนใน LINE Official Account Manager เพื่อส่งต่อได้ทันที (ระหว่างนี้แจ้งเตือนผ่าน Discord ยังทำงานปกติ)';
+        } else if (raw.includes('403') || raw.toLowerCase().includes('forbidden')) {
           hint = isGroupMode
             ? 'บอทยังไม่ได้อยู่ในกลุ่มนี้ หรือถูกเตะออกจากกลุ่มแล้ว กรุณาเชิญ LINE Official Account เข้ากลุ่มก่อน'
             : 'ผู้ใช้คนนี้ยังไม่ได้เพิ่มบอทเป็นเพื่อน หรือบล็อกบอทอยู่';
