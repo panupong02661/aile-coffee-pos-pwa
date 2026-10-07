@@ -38,6 +38,7 @@ const SidebarPreview = lazy(() => import('./pages/SidebarPreview'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ShopSettings = lazy(() => import('./pages/ShopSettings'));
 const BusinessSettings = lazy(() => import('./pages/BusinessSettings'));
+const POSSystemInfo = lazy(() => import('./pages/POSSystemInfo'));
 const Promotions = lazy(() => import('./pages/Promotions'));
 
 const CustomerMobileApp = lazy(() => import('./pages/CustomerMobileApp'));
@@ -142,6 +143,7 @@ function App() {
                     <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                     <Route path="/shop-settings" element={<ProtectedRoute><ShopSettings /></ProtectedRoute>} />
                     <Route path="/business-settings" element={<ProtectedRoute><BusinessSettings /></ProtectedRoute>} />
+                    <Route path="/pos-system-info" element={<ProtectedRoute><POSSystemInfo /></ProtectedRoute>} />
                     <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
                     <Route path="/menu-promotions" element={<ProtectedRoute><MenuPromotions /></ProtectedRoute>} />
                     <Route path="/customer-app-management" element={<ProtectedRoute><CustomerAppManagement /></ProtectedRoute>} />
