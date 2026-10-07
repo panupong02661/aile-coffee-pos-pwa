@@ -110,6 +110,7 @@ export const launcherGroups: LauncherGroup[] = [
       { id: 'printer-settings', label: 'เครื่องพิมพ์', icon: Printer, path: '/printer-settings', tint: 'from-stone-500 to-zinc-700' },
       { id: 'security-dashboard', label: 'ความปลอดภัย', icon: Shield, path: '/security-dashboard', tint: 'from-red-500 to-rose-600' },
       { id: 'app-build-guide', label: 'สร้างแอป', icon: Smartphone, path: '/app-build-guide', tint: 'from-blue-500 to-indigo-500' },
+      { id: 'pos-system-info', label: 'ข้อมูลระบบ POS', icon: Eye, path: '/pos-system-info', tint: 'from-slate-500 to-slate-600' },
     ],
   },
 ];

@@ -7,6 +7,7 @@ import {
   Users,
   FileText,
   Package,
+  Info,
   UserCheck,
   Bell,
   Smartphone,
@@ -175,6 +176,7 @@ export const menuGroups: MenuGroup[] = [
       { id: 'security-dashboard', label: 'ความปลอดภัย', icon: Shield, path: '/security-dashboard' },
       { id: 'security-recommendations', label: 'แนะนำความปลอดภัย', icon: Shield, path: '/security-recommendations' },
       { id: 'app-build-guide', label: 'สร้างแอปมือถือ', icon: Smartphone, path: '/app-build-guide' },
+      { id: 'pos-system-info', label: 'ข้อมูลระบบ POS', icon: Info, path: '/pos-system-info' },
     ],
   },
 ];
