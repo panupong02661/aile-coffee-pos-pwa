@@ -99,9 +99,22 @@ export const useStarPrinter = () => {
   }, []);
 
   // พิมพ์ใบเสร็จ
+  const ensureConnected = async () => {
+    const st = await StarPrinter.getStatus().catch(() => ({ connected: false } as any));
+    if (st.connected) return true;
+    const saved = getSelectedPrinter();
+    if (!saved) return false;
+    const r = await StarPrinter.connect({ connectionType: saved.connectionType, deviceIdentifier: saved.portName });
+    return !!r.connected;
+  };
+
   const printReceipt = useCallback(async (receiptData: ReceiptData) => {
-    if (!connection.connected) {
-      toast.error('กรุณาเชื่อมต่อเครื่องพิมพ์ก่อน');
+    if (isNativeApp() && !isStarPluginInstalled()) {
+      toast.error(NOT_INSTALLED_MSG, { duration: 10000 });
+      return false;
+    }
+    if (!(await ensureConnected().catch((e) => { toast.error(String(e?.message || e)); return false; }))) {
+      toast.error('กรุณาเชื่อมต่อเครื่องพิมพ์ก่อน (กด ค้นหา แล้วเลือกเครื่อง)');
       return false;
     }
 
@@ -128,7 +141,7 @@ export const useStarPrinter = () => {
     } finally {
       setIsPrinting(false);
     }
-  }, [connection.connected]);
+  }, []);
 
   // ทดสอบการพิมพ์
   const testPrint = useCallback(async () => {
@@ -151,12 +164,11 @@ export const useStarPrinter = () => {
 
   // เปิด Cash Drawer
   const openCashDrawer = useCallback(async () => {
-    if (!connection.connected) {
-      toast.error('กรุณาเชื่อมต่อเครื่องพิมพ์ก่อน');
-      return false;
-    }
-
     try {
+      if (!(await ensureConnected())) {
+        toast.error('กรุณาเชื่อมต่อเครื่องพิมพ์ก่อน');
+        return false;
+      }
       const result = await StarPrinter.openCashDrawer();
       if (result.opened) {
         toast.success('เปิดลิ้นชักเก็บเงินแล้ว');
@@ -164,10 +176,10 @@ export const useStarPrinter = () => {
       }
     } catch (error) {
       console.error('Open cash drawer error:', error);
-      toast.error('ไม่สามารถเปิดลิ้นชักได้');
+      toast.error(`ไม่สามารถเปิดลิ้นชักได้: ${(error as any)?.message || error}`);
     }
     return false;
-  }, [connection.connected]);
+  }, []);
 
   // ตรวจสอบสถานะเครื่องพิมพ์
   const checkStatus = useCallback(async () => {

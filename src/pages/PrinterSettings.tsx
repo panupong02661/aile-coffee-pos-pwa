@@ -75,7 +75,15 @@ const PrinterSettings = () => {
                   
                   <TabsContent value="config" className="mt-6 space-y-6">
                     <StarPrinterManager />
-                    <PrinterConfiguration />
+                    <details className="rounded-lg border border-border p-4">
+                      <summary className="cursor-pointer font-medium text-foreground">
+                        เครื่องพิมพ์แบบสายแลน / WiFi (ไม่ต้องตั้งถ้าต่อ USB)
+                      </summary>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        ส่วนนี้ใช้กับเครื่องพิมพ์ที่ต่อสายแลนหรือ WiFi เท่านั้น ถ้าต่อ USB ให้ใช้ปุ่ม "ทดสอบการพิมพ์" ด้านบน
+                      </p>
+                      <div className="mt-4"><PrinterConfiguration /></div>
+                    </details>
                   </TabsContent>
                   
                   <TabsContent value="copies" className="mt-6">

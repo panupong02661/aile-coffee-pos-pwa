@@ -20,6 +20,12 @@ import com.starmicronics.stario10.starxpandcommand.printer.CutType
 import com.starmicronics.stario10.starxpandcommand.DrawerBuilder
 import com.starmicronics.stario10.starxpandcommand.drawer.Channel
 import com.starmicronics.stario10.starxpandcommand.drawer.OpenParameter
+import com.starmicronics.stario10.starxpandcommand.printer.ImageParameter
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -98,11 +104,12 @@ class StarPrinterPlugin : Plugin() {
                 val printer = StarPrinter(settings, context)
                 withContext(Dispatchers.IO) { printer.openAsync().await() }
                 currentPrinter = printer
+                lastType = interfaceType; lastId = id
                 val ret = JSObject()
                 ret.put("connected", true)
                 call.resolve(ret)
             } catch (e: Exception) {
-                call.reject("Connect failed: ${e.message}")
+                call.reject(friendly(e))
             }
         }
     }
@@ -130,6 +137,56 @@ class StarPrinterPlugin : Plugin() {
         call.resolve(ret)
     }
 
+    private var lastType: InterfaceType = InterfaceType.Usb
+    private var lastId: String = ""
+
+    /** TSP100III เป็นเครื่องพิมพ์แบบภาพ — วาดข้อความ (รวมภาษาไทย) เป็นภาพกว้าง 576px */
+    private fun textToBitmap(raw: String): Bitmap {
+        val text = raw.replace(Regex("\u001B[@EF]|\u001Ba[\u0000-\u0002]"), "")
+            .replace(Regex("[\u0000-\u0009\u000B-\u001F]"), "")
+        val width = 576
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK; textSize = 26f; typeface = Typeface.DEFAULT
+        }
+        val lines = mutableListOf<String>()
+        text.split("\n").forEach { line ->
+            var rest = line
+            if (rest.isEmpty()) lines.add("")
+            while (rest.isNotEmpty()) {
+                val n = paint.breakText(rest, true, width.toFloat() - 8f, null).coerceAtLeast(1)
+                lines.add(rest.substring(0, n)); rest = rest.substring(n)
+            }
+        }
+        val lineH = 34
+        val bmp = Bitmap.createBitmap(width, (lines.size + 1) * lineH, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp); c.drawColor(Color.WHITE)
+        lines.forEachIndexed { i, l -> c.drawText(l, 4f, ((i + 1) * lineH).toFloat(), paint) }
+        return bmp
+    }
+
+    private fun friendly(e: Exception): String {
+        val n = e.javaClass.simpleName; val m = e.message ?: ""
+        return when {
+            n.contains("Unprintable") -> "เครื่องพิมพ์ไม่พร้อม — ตรวจกระดาษหมด/ฝาเครื่องเปิด ($m)"
+            n.contains("Communication") -> "ติดต่อเครื่องพิมพ์ไม่ได้ — ตรวจสาย USB/OTG และเปิดเครื่อง ($m)"
+            m.contains("ermission", true) -> "ยังไม่ได้อนุญาตให้แอปใช้ USB — ถอดสายเสียบใหม่แล้วกด อนุญาต"
+            n.contains("InUse") -> "เครื่องพิมพ์ถูกใช้งานอยู่ — ลองใหม่อีกครั้ง"
+            else -> "$n: $m"
+        }
+    }
+
+    private suspend fun sendWithRetry(commands: String) {
+        try {
+            currentPrinter!!.printAsync(commands).await()
+        } catch (e: Exception) {
+            try { currentPrinter?.closeAsync()?.await() } catch (_: Exception) {}
+            val p = StarPrinter(StarConnectionSettings(lastType, lastId), context)
+            p.openAsync().await()
+            currentPrinter = p
+            p.printAsync(commands).await()
+        }
+    }
+
     @PluginMethod
     fun print(call: PluginCall) {
         val printer = currentPrinter ?: run {
@@ -144,7 +201,7 @@ class StarPrinterPlugin : Plugin() {
                 val builder = StarXpandCommandBuilder()
                 val printerBuilder = PrinterBuilder()
                     .styleAlignment(Alignment.Left)
-                    .actionPrintText(data + "\n")
+                    .actionPrintImage(ImageParameter(textToBitmap(data), 576))
                     .actionCut(
                         when (cutType) {
                             "FullCut" -> CutType.Full
@@ -154,12 +211,12 @@ class StarPrinterPlugin : Plugin() {
                     )
                 builder.addDocument(DocumentBuilder().addPrinter(printerBuilder))
                 val commands = builder.getCommands()
-                printer.printAsync(commands).await()
+                sendWithRetry(commands)
                 val ret = JSObject()
                 ret.put("success", true)
                 call.resolve(ret)
             } catch (e: Exception) {
-                call.reject("Print failed: ${e.message}")
+                call.reject(friendly(e))
             }
         }
     }
@@ -176,12 +233,12 @@ class StarPrinterPlugin : Plugin() {
                 val drawerBuilder = DrawerBuilder()
                     .actionOpen(OpenParameter().setChannel(Channel.No1))
                 builder.addDocument(DocumentBuilder().addDrawer(drawerBuilder))
-                printer.printAsync(builder.getCommands()).await()
+                sendWithRetry(builder.getCommands())
                 val ret = JSObject()
                 ret.put("opened", true)
                 call.resolve(ret)
             } catch (e: Exception) {
-                call.reject("Open drawer failed: ${e.message}")
+                call.reject(friendly(e))
             }
         }
     }
