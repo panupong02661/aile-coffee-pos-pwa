@@ -21,6 +21,7 @@ import TaxInvoicePreview from './TaxInvoicePreview';
 import SplitBillModal from './SplitBillModal';
 import { saveReceiptToAlbum } from '@/utils/receiptSaver';
 import { useOfflinePOS } from '@/hooks/useOfflinePOS';
+import { printOrderDocuments } from '@/utils/orderPrinting';
 
 // POS order notifications removed - only online orders should trigger notifications
 
@@ -88,7 +89,7 @@ const PaymentModal = ({
     online: { soundEnabled: boolean; popupEnabled: boolean; volume: number };
   } | null>(null);
   const { toast } = useToast();
-  const { shopId } = useCurrentShop();
+  const { shopId, currentShop } = useCurrentShop();
   const { saveOrder: saveOfflineFirstOrder } = useOfflinePOS();
 
   const change = paymentMethod === 'cash' ? Math.max(0, parseFloat(cashReceived || '0') - total) : 0;
@@ -719,6 +720,27 @@ const PaymentModal = ({
         playPaymentSuccessBell();
       } else {
         console.log('[PaymentModal] 🔇 POS sound disabled, skipping bell');
+      }
+
+      // 🖨️ พิมพ์ใบเสร็จ/ใบครัว/สติ๊กเกอร์ตามค่าตั้ง (ไม่รอ)
+      if (savedOrder?.order_number) {
+        const recv = parseFloat(cashReceived || '0');
+        void printOrderDocuments({
+          orderNumber: savedOrder.order_number,
+          shopName: currentShop?.shop_name,
+          orderType,
+          queueNumber: savedOrder.queue_number ?? null,
+          items: cartItems.map(ci => ({
+            name: ci.menu_item.name,
+            quantity: ci.quantity,
+            total: Number(ci.total_price) || 0,
+            addons: (ci.selected_addons || []).map(a => a.name),
+          })),
+          total,
+          paymentMethod: isMultiPay ? 'cash' : paymentMethod,
+          cashReceived: paymentMethod === 'cash' ? recv : undefined,
+          change: paymentMethod === 'cash' ? Math.max(0, recv - total) : undefined,
+        });
       }
 
       // ✅ ปิด modal หลังจาก DB เสร็จ

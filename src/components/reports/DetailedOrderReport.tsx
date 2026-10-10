@@ -7,13 +7,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Loader2, Search, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
+import { CalendarIcon, Loader2, Search, FileSpreadsheet, ChevronDown, ChevronRight, Printer } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
 import * as XLSX from 'xlsx';
+import { printOrderDocuments } from '@/utils/orderPrinting';
 
 interface Ingredient {
   name: string;
@@ -88,7 +89,7 @@ interface DetailedOrder {
 
 const DetailedOrderReport = () => {
   const { toast } = useToast();
-  const { shopId, loading: shopLoading } = useCurrentShop();
+  const { shopId, loading: shopLoading, currentShop } = useCurrentShop();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<DetailedOrder[]>([]);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -1195,7 +1196,35 @@ const DetailedOrderReport = () => {
                             <ChevronRight className="w-3 h-3" />
                           )}
                         </TableCell>
-                        <TableCell className="px-1 py-2 font-medium text-xs truncate">{order.order_number}</TableCell>
+                        <TableCell className="px-1 py-2 font-medium text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="truncate">{order.order_number}</span>
+                            <Button
+                              type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                              title="พิมพ์ใบเสร็จ" aria-label="พิมพ์ใบเสร็จ"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void printOrderDocuments({
+                                  orderNumber: order.order_number,
+                                  shopName: currentShop?.shop_name,
+                                  createdAt: order.created_at,
+                                  orderType: order.order_type,
+                                  items: order.order_items.map(i => ({
+                                    name: i.menu_item_name,
+                                    quantity: i.quantity,
+                                    total: Number((i as any).total_price ?? i.unit_price * i.quantity) || 0,
+                                    addons: (i.selected_addons || []).map((a: any) => a.name || a.addon_name).filter(Boolean),
+                                  })),
+                                  discount: Number(order.bill_discount || 0) || undefined,
+                                  total: Number(order.total_amount) || 0,
+                                  paymentMethod: order.payment_method,
+                                }, { reprint: true });
+                              }}
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell className="px-1 py-2 text-xs">{format(new Date(order.created_at), 'dd/MM/yy HH:mm', { locale: th })}</TableCell>
                         <TableCell className="px-1 py-2">
                           <Badge variant="outline" className="text-[10px] px-1 py-0">{getPaymentMethodText(order.payment_method)}</Badge>
