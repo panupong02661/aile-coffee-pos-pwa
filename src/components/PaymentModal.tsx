@@ -728,6 +728,16 @@ const PaymentModal = ({
         void printOrderDocuments({
           orderNumber: savedOrder.order_number,
           shopName: currentShop?.shop_name,
+          shopId: shopId || undefined,
+          createdAt: savedOrder.created_at,
+          cartItems: structuredClone(cartItems),
+          discount: billDiscount,
+          itemDiscountAmount: cartItems.reduce((sum, item) => sum + (item.item_discount_type === 'percent'
+            ? Math.round((item.menu_item.price + (item.selected_addons || []).reduce((s, a) => s + a.price, 0)) * item.quantity * item.item_discount / 100)
+            : item.item_discount), 0),
+          memberName: selectedMember?.name,
+          memberPhone: selectedMember?.phone,
+          wifiVoucher: savedOrder.wifi_voucher || wifiVoucherPreview,
           orderType,
           queueNumber: savedOrder.queue_number ?? null,
           items: cartItems.map(ci => ({
