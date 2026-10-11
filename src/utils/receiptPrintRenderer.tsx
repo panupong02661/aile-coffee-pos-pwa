@@ -46,8 +46,10 @@ export const renderReceiptImage = async (order: PrintableOrder, kind: 'customer'
     await document.fonts.ready;
     // Allow QR effects and image loading to settle before rasterizing.
     await new Promise(resolve => setTimeout(resolve, 150));
-    await Promise.all(Array.from(host.querySelectorAll('img')).map(img =>
-      img.decode().catch(() => undefined)));
+    await Promise.race([
+      Promise.all(Array.from(host.querySelectorAll('img')).map(img => img.decode().catch(() => undefined))),
+      new Promise(resolve => setTimeout(resolve, 5000)),
+    ]);
     const target = host.querySelector<HTMLElement>('[data-receipt-document]');
     if (!target) throw new Error('ไม่พบรูปแบบใบเสร็จ');
     const canvas = await html2canvas(target, { scale: 2, useCORS: true, logging: false, imageTimeout: 5000,

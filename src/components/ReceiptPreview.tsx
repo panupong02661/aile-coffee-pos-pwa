@@ -1,9 +1,8 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
-import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
 import { ReceiptDocument, DEFAULT_RECEIPT_SETTINGS, ShopSettings, ReceiptSettings, WiFiVoucher } from './ReceiptDocument';
 import { cacheReceiptSettings } from '@/utils/receiptSettingsCache';
@@ -99,7 +98,7 @@ const ReceiptPreview = ({
   };
 
   // ใช้ค่าเริ่มต้นเมื่อสาขานี้ยังไม่ได้ตั้งค่า (ไม่ดึงของสาขาอื่น)
-  const effectiveReceiptSettings: ReceiptSettings = receiptSettings || DEFAULT_RECEIPT_SETTINGS;
+  const effectiveReceiptSettings: ReceiptSettings = { ...DEFAULT_RECEIPT_SETTINGS, ...receiptSettings };
   const effectiveShopSettings: ShopSettings = shopSettings || {
     shop_name: currentShop?.shop_name || '',
   };
