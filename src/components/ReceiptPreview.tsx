@@ -1,49 +1,11 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
-import { Separator } from '@/components/ui/separator';
 import { CartItem } from '@/types';
-import QRCode from 'qrcode';
-
-interface ShopSettings {
-  shop_name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  tax_id?: string;
-  logo_url?: string;
-  wifi_header_text?: string;
-  wifi_footer_text?: string;
-}
-
-interface ReceiptSettings {
-  show_logo: boolean;
-  show_shop_info: boolean;
-  show_shop_name: boolean;
-  show_shop_address: boolean;
-  show_shop_phone: boolean;
-  show_tax_id: boolean;
-  show_date_time: boolean;
-  show_order_number: boolean;
-  show_item_details: boolean;
-  show_total: boolean;
-  show_tax: boolean;
-  show_payment_method: boolean;
-  show_customer_info: boolean;
-  show_wifi_voucher: boolean;
-  show_wifi_qr: boolean;
-  show_queue_number: boolean;
-  show_queue_qr: boolean;
-  footer_message?: string;
-}
-
-interface WiFiVoucher {
-  username: string;
-  password: string;
-  qr_code_url: string | null;
-}
+import { ReceiptDocument, DEFAULT_RECEIPT_SETTINGS, ShopSettings, ReceiptSettings, WiFiVoucher } from './ReceiptDocument';
+import { cacheReceiptSettings } from '@/utils/receiptSettingsCache';
 
 interface ReceiptPreviewProps {
   cartItems?: CartItem[];
@@ -58,27 +20,6 @@ interface ReceiptPreviewProps {
   wifiVoucher?: WiFiVoucher | null;
   compact?: boolean;
 }
-
-const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
-  show_logo: true,
-  show_shop_info: true,
-  show_shop_name: true,
-  show_shop_address: true,
-  show_shop_phone: true,
-  show_tax_id: false,
-  show_date_time: true,
-  show_order_number: true,
-  show_item_details: true,
-  show_total: true,
-  show_tax: false,
-  show_payment_method: true,
-  show_customer_info: true,
-  show_wifi_voucher: true,
-  show_wifi_qr: true,
-  show_queue_number: true,
-  show_queue_qr: false,
-  footer_message: 'ขอบคุณที่ใช้บริการ',
-};
 
 const ReceiptPreview = ({ 
   cartItems = [], 
@@ -120,6 +61,7 @@ const ReceiptPreview = ({
   }, [propWifiVoucher]);
 
   const fetchSettings = async () => {
+    if (!shopId) return;
     setIsLoading(true);
     setLoadError(null);
     try {
@@ -127,7 +69,7 @@ const ReceiptPreview = ({
       const { data: shopData, error: shopErr } = await supabase
         .from('shop_settings')
         .select('*')
-        .eq('shop_id', shopId!)
+        .eq('shop_id', shopId)
         .limit(1)
         .maybeSingle();
 
@@ -135,17 +77,18 @@ const ReceiptPreview = ({
       const { data: receiptData, error: receiptErr } = await supabase
         .from('receipt_settings')
         .select('*')
-        .eq('shop_id', shopId!)
+        .eq('shop_id', shopId)
         .limit(1)
         .maybeSingle();
 
       if (shopErr || receiptErr) {
-        setLoadError((shopErr || receiptErr)!.message);
+        setLoadError(shopErr?.message || receiptErr?.message || null);
       }
 
       // WiFi voucher จะถูกส่งมาจาก prop เท่านั้น ไม่ fetch ใหม่
       setShopSettings(shopData as any);
       setReceiptSettings(receiptData as any);
+      if (!shopErr && !receiptErr) cacheReceiptSettings(shopId, { shopSettings: shopData || { shop_name: currentShop?.shop_name || '' }, receiptSettings: { ...DEFAULT_RECEIPT_SETTINGS, ...receiptData } });
     } catch (error: any) {
       console.error('Error fetching settings:', error);
       setLoadError(error?.message || 'ไม่สามารถโหลดการตั้งค่าใบเสร็จได้');
@@ -154,20 +97,8 @@ const ReceiptPreview = ({
     }
   };
 
-  // Calculate from actual cart items
-  const subtotal = cartItems.reduce((sum, item) => {
-    const itemTotal = item.menu_item.price * item.quantity;
-    const addonsTotal = (item.selected_addons || []).reduce((addonSum, addon) => 
-      addonSum + addon.price, 0
-    );
-    return sum + itemTotal + addonsTotal;
-  }, 0);
-  
-  const tax = Math.round(subtotal * 0.07);
-  const total = totalAmount || (subtotal + tax - discountAmount);
-
   // ใช้ค่าเริ่มต้นเมื่อสาขานี้ยังไม่ได้ตั้งค่า (ไม่ดึงของสาขาอื่น)
-  const effectiveReceiptSettings: ReceiptSettings = receiptSettings || DEFAULT_RECEIPT_SETTINGS;
+  const effectiveReceiptSettings: ReceiptSettings = { ...DEFAULT_RECEIPT_SETTINGS, ...receiptSettings };
   const effectiveShopSettings: ShopSettings = shopSettings || {
     shop_name: currentShop?.shop_name || '',
   };
@@ -194,198 +125,11 @@ const ReceiptPreview = ({
               : 'สาขานี้ยังไม่ได้ตั้งค่าใบเสร็จ กำลังแสดงรูปแบบเริ่มต้น'}
           </div>
         )}
-        <div className={`mx-auto bg-white border-2 border-dashed border-gray-300 font-mono text-sm ${compact ? "max-w-[280px] p-3" : "max-w-sm p-6"}`}>
-
-          {/* Logo */}
-          {effectiveReceiptSettings.show_logo && effectiveShopSettings.logo_url && (
-            <div className="text-center mb-4">
-              <img
-                src={effectiveShopSettings.logo_url}
-                alt="Logo"
-                className="w-24 h-24 mx-auto object-contain"
-              />
-            </div>
-          )}
-
-          {/* Shop Info */}
-          {(effectiveReceiptSettings.show_shop_name || effectiveReceiptSettings.show_shop_address || effectiveReceiptSettings.show_shop_phone) && (
-            <div className="text-center mb-4">
-              {effectiveReceiptSettings.show_shop_name && (
-                <div className="font-bold text-lg">{effectiveShopSettings.shop_name}</div>
-              )}
-              {effectiveReceiptSettings.show_shop_address && effectiveShopSettings.address && (
-                <div className="text-xs mt-1">{effectiveShopSettings.address}</div>
-              )}
-              {effectiveReceiptSettings.show_shop_phone && effectiveShopSettings.phone && (
-                <div className="text-xs">โทร: {effectiveShopSettings.phone}</div>
-              )}
-              {effectiveReceiptSettings.show_shop_name && effectiveShopSettings.email && (
-                <div className="text-xs">Email: {effectiveShopSettings.email}</div>
-              )}
-            </div>
-          )}
-
-          {/* Tax ID */}
-          {effectiveReceiptSettings.show_tax_id && effectiveShopSettings.tax_id && (
-            <div className="text-center text-xs mb-4">
-              เลขประจำตัวผู้เสียภาษี: {effectiveShopSettings.tax_id}
-            </div>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Date and Time */}
-          {effectiveReceiptSettings.show_date_time && (
-            <div className="text-xs mb-2">
-              วันที่: {new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH')}
-            </div>
-          )}
-
-          {/* Order Number */}
-          {effectiveReceiptSettings.show_order_number && orderNumber && (
-            <div className="text-xs mb-2">
-              หมายเลขคำสั่งซื้อ: #{orderNumber}
-            </div>
-          )}
-
-          {/* Queue Number */}
-          {(effectiveReceiptSettings as any).show_queue_number && queueNumber && (
-            <div className="text-center mb-4">
-              <div className="inline-block border-2 border-dashed border-gray-400 rounded-lg px-4 py-2">
-                <div className="text-xs text-gray-500">คิวของคุณ</div>
-                <div className="text-2xl font-black">{String(queueNumber).padStart(3, '0')}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Customer Info */}
-          {effectiveReceiptSettings.show_customer_info && (memberName || memberPhone) && (
-            <div className="text-xs mb-4">
-              {memberName && <>ลูกค้า: {memberName}<br /></>}
-              {memberPhone && <>โทร: {memberPhone}</>}
-            </div>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Item Details */}
-          {effectiveReceiptSettings.show_item_details && cartItems.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs font-bold mb-2">รายการสินค้า</div>
-              {cartItems.map((item, index) => (
-                <div key={index}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <div className="flex-1">
-                      {item.menu_item.name} x{item.quantity}
-                    </div>
-                    <div>{(item.menu_item.price * item.quantity).toLocaleString()}</div>
-                  </div>
-                  {item.selected_addons && item.selected_addons.length > 0 && (
-                    <div className="ml-4">
-                      {item.selected_addons.map((addon, addonIndex) => (
-                        <div key={addonIndex} className="flex justify-between text-xs text-gray-600 mb-1">
-                          <div className="flex-1">+ {addon.name}</div>
-                          <div>{addon.price.toLocaleString()}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Total */}
-          {effectiveReceiptSettings.show_total && (
-            <div className="text-xs">
-              <div className="flex justify-between mb-1">
-                <span>ยอดรวม:</span>
-                <span>{subtotal.toLocaleString()} บาท</span>
-              </div>
-              {itemDiscountAmount > 0 && (
-                <div className="flex justify-between mb-1 text-red-600">
-                  <span>ส่วนลดรายการ:</span>
-                  <span>-{itemDiscountAmount.toLocaleString()} บาท</span>
-                </div>
-              )}
-              {discountAmount > 0 && (
-                <div className="flex justify-between mb-1 text-red-600">
-                  <span>ส่วนลดท้ายบิล:</span>
-                  <span>-{discountAmount.toLocaleString()} บาท</span>
-                </div>
-              )}
-              {effectiveReceiptSettings.show_tax && (
-                <div className="flex justify-between mb-1">
-                  <span>ภาษี (7%):</span>
-                  <span>{tax.toLocaleString()} บาท</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-base border-t pt-2">
-                <span>รวมทั้งสิ้น:</span>
-                <span>{total.toLocaleString()} บาท</span>
-              </div>
-            </div>
-          )}
-
-          {/* Payment Method */}
-          {effectiveReceiptSettings.show_payment_method && paymentMethod && (
-            <div className="text-xs mt-4">
-              ชำระด้วย: {paymentMethod === 'cash' ? 'เงินสด' : paymentMethod === 'qr' ? 'QR Code' : 'PromptPay'}
-            </div>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Footer Message */}
-          {effectiveReceiptSettings.footer_message && (
-            <div className="text-center text-xs mt-4">
-              {effectiveReceiptSettings.footer_message}
-            </div>
-          )}
-
-          {/* WiFi Voucher Section */}
-          {wifiVoucher && effectiveReceiptSettings.show_wifi_voucher && (
-            <>
-              <Separator className="my-4" />
-              {effectiveShopSettings?.wifi_header_text && (
-                <div className="text-center text-xs mb-2">
-                  {effectiveShopSettings.wifi_header_text}
-                </div>
-              )}
-              <div className="border-2 border-red-600 rounded-lg p-3 mt-4">
-                <div className="text-center text-red-600 font-bold text-sm mb-2">
-                  บัตรใช้งานอินเทอร์เน็ต
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                  <div className="text-red-600">ชื่อผู้ใช้</div>
-                  <div className="text-red-600">รหัสผ่าน</div>
-                  <div className="font-mono font-bold">{wifiVoucher.username}</div>
-                  <div className="font-mono font-bold">{wifiVoucher.password}</div>
-                </div>
-                {wifiVoucher.qr_code_url && effectiveReceiptSettings.show_wifi_qr && (
-                  <div className="flex justify-center mt-2">
-                    <img 
-                      src={wifiVoucher.qr_code_url} 
-                      alt="WiFi QR Code" 
-                      className="w-24 h-24"
-                    />
-                  </div>
-                )}
-              </div>
-              {effectiveShopSettings?.wifi_footer_text && (
-                <div className="text-center text-xs mt-2">
-                  {effectiveShopSettings.wifi_footer_text}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Queue QR Code */}
-          {(effectiveReceiptSettings as any).show_queue_qr && queueNumber && (
-            <QueueQRSection queueNumber={queueNumber} />
-          )}
+        <div className={compact ? "mx-auto max-w-[280px]" : "mx-auto max-w-sm"}>
+          <ReceiptDocument cartItems={cartItems} totalAmount={totalAmount} discountAmount={discountAmount}
+            itemDiscountAmount={itemDiscountAmount} paymentMethod={paymentMethod} memberName={memberName}
+            memberPhone={memberPhone} orderNumber={orderNumber} queueNumber={queueNumber} wifiVoucher={wifiVoucher}
+            shopSettings={effectiveShopSettings} receiptSettings={effectiveReceiptSettings} />
         </div>
       </CardContent>
     </Card>
@@ -393,27 +137,3 @@ const ReceiptPreview = ({
 };
 
 export default ReceiptPreview;
-
-const QueueQRSection = ({ queueNumber }: { queueNumber: number }) => {
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  
-  useEffect(() => {
-    const url = `${window.location.origin}/queue-tracker?q=${queueNumber}`;
-    QRCode.toDataURL(url, { width: 120, margin: 1 })
-      .then(setQrDataUrl)
-      .catch(console.error);
-  }, [queueNumber]);
-
-  if (!qrDataUrl) return null;
-
-  return (
-    <>
-      <Separator className="my-4" />
-      <div className="text-center">
-        <div className="text-xs text-gray-500 mb-2">แสกน QR เพื่อติดตามคิว</div>
-        <img src={qrDataUrl} alt="Queue QR" className="w-24 h-24 mx-auto" />
-        <div className="text-[10px] text-gray-400 mt-1">คิวที่ {String(queueNumber).padStart(3, '0')}</div>
-      </div>
-    </>
-  );
-};

@@ -19,7 +19,7 @@ export const getSelectedPrinter = (): StarPrinterType | null => {
 };
 
 /** Print plain text receipt via Star USB on native. Throws with a readable Thai message. */
-export const printTextViaStar = async (text: string): Promise<void> => {
+export const printTextViaStar = async (text: string, imageBase64?: string): Promise<void> => {
   if (!isStarPluginInstalled()) throw new Error(NOT_INSTALLED_MSG);
   const saved = getSelectedPrinter();
   if (!saved) throw new Error('ยังไม่ได้เลือกเครื่องพิมพ์ — ไปที่ ระบบเครื่องพิมพ์ → Star Printer → ค้นหา แล้วเลือกเครื่อง');
@@ -28,6 +28,6 @@ export const printTextViaStar = async (text: string): Promise<void> => {
     const r = await StarPrinter.connect({ connectionType: saved.connectionType, deviceIdentifier: saved.portName });
     if (!r.connected) throw new Error('ไม่พบเครื่องพิมพ์ — ตรวจสาย USB/OTG และเปิดเครื่องพิมพ์');
   }
-  const res = await StarPrinter.print({ data: text + '\n\n\n', cutType: 'PartialCut' } as any);
+  const res = await StarPrinter.print({ data: text + '\n\n\n', imageBase64, cutType: 'PartialCut' });
   if (!res.success) throw new Error('เครื่องพิมพ์ไม่ตอบสนอง — ตรวจกระดาษและฝาเครื่อง');
 };

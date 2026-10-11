@@ -1,16 +1,27 @@
 import { isNativeApp, printTextViaStar } from '@/utils/nativeStarPrint';
 import { toast } from 'sonner';
+import type { CartItem } from '@/types';
 
 export interface PrintableItem {
   name: string;
   quantity: number;
   total: number;
   addons?: string[];
+  unitPrice?: number;
+  addonDetails?: { name: string; price: number }[];
+  itemDiscount?: number;
+  itemDiscountType?: 'percent' | 'amount';
 }
 
 export interface PrintableOrder {
   orderNumber: string;
   shopName?: string;
+  shopId?: string;
+  cartItems?: CartItem[];
+  itemDiscountAmount?: number;
+  memberName?: string;
+  memberPhone?: string;
+  wifiVoucher?: { username: string; password: string; qr_code_url: string | null } | null;
   createdAt?: string | Date;
   orderType?: string;
   items: PrintableItem[];
@@ -32,7 +43,19 @@ export interface PrintCopiesLike {
 }
 
 export type DocKind = 'customer' | 'kitchen' | 'sticker';
-export interface PrintDoc { kind: DocKind; text: string }
+export interface PrintDoc { kind: DocKind; text: string; image?: string }
+
+export const printableCartItems = (o: PrintableOrder): CartItem[] => o.cartItems || o.items.map((item, index) => ({
+  id: String(index),
+  menu_item: { id: String(index), name: item.name, price: item.unitPrice ?? item.total / Math.max(1, item.quantity), category_id: '', is_available: true },
+  quantity: item.quantity,
+  selected_addons: (item.addonDetails || (item.addons || []).map(name => ({ name, price: 0 }))).map((addon, i) => ({
+    id: `${index}:${i}`, name: addon.name, price: addon.price, category: 'other' as const, is_required: false, allow_multiple: true,
+  })),
+  item_discount: item.itemDiscount || 0,
+  item_discount_type: item.itemDiscountType || 'amount',
+  total_price: item.total,
+}));
 
 const TYPE_LABEL: Record<string, string> = { dine_in: 'ทานที่ร้าน', takeaway: 'นำกลับบ้าน', delivery: 'จัดส่ง' };
 const PAY_LABEL: Record<string, string> = { cash: 'เงินสด', promptpay: 'พร้อมเพย์', qr: 'QR', points: 'แต้ม', card: 'บัตร', transfer: 'โอน' };
@@ -111,40 +134,54 @@ export const buildPrintDocs = (o: PrintableOrder, cfg: PrintCopiesLike, opts: { 
   return docs;
 };
 
-const escapeHtml = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+const escapeHtml = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
 
-const browserPrint = (docs: PrintDoc[]) => {
+const browserPrint = async (docs: PrintDoc[]) => {
   const iframe = document.createElement('iframe');
   iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
   document.body.appendChild(iframe);
-  const html = docs.map(d => `<pre class="doc">${escapeHtml(d.text)}</pre>`).join('');
-  const doc = iframe.contentDocument!;
+  const html = docs.map(d => d.image ? `<div class="doc"><img src="${d.image}" /></div>` : `<pre class="doc">${escapeHtml(d.text)}</pre>`).join('');
+  const doc = iframe.contentDocument;
+  if (!doc) { iframe.remove(); throw new Error('เปิดหน้าพิมพ์ไม่ได้'); }
   doc.open();
-  doc.write(`<html><head><style>@page{size:80mm auto;margin:0}body{margin:0;width:72mm;font-family:sans-serif;font-size:12px}.doc{white-space:pre-wrap;font-family:inherit;margin:2mm;page-break-after:always}</style></head><body>${html}</body></html>`);
+  doc.write(`<html><head><title>ใบเสร็จ</title><style>@page{size:80mm auto;margin:0}body{margin:0;width:72mm;font-family:sans-serif;font-size:12px}.doc{white-space:pre-wrap;font-family:inherit;margin:0;break-after:page}.doc:last-child{break-after:auto}img{display:block;width:100%;height:auto}</style></head><body>${html}</body></html>`);
   doc.close();
-  setTimeout(() => {
+  try {
+    await Promise.all(Array.from(doc.images).map(img => img.decode()));
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
-    setTimeout(() => iframe.remove(), 60000);
-  }, 300);
+  } finally { setTimeout(() => iframe.remove(), 60000); }
 };
 
 const printedOrders = new Set<string>();
 
 export const printOrderDocuments = async (o: PrintableOrder, opts: { reprint?: boolean } = {}) => {
+  const key = `${o.shopId || ''}:${o.orderNumber}`;
   if (!opts.reprint) {
-    if (printedOrders.has(o.orderNumber)) return;
-    printedOrders.add(o.orderNumber);
+    if (printedOrders.has(key)) return;
+    printedOrders.add(key);
   }
   const docs = buildPrintDocs(o, readPrintCopiesConfig(), opts);
   if (docs.length === 0) return;
   try {
+    const { renderReceiptImage } = await import('./receiptPrintRenderer');
+    const images = new Map<DocKind, string>();
+    for (const d of docs) {
+      if (d.kind === 'sticker') continue;
+      let image = images.get(d.kind);
+      if (!image) {
+        image = await renderReceiptImage(o, d.kind, opts.reprint);
+        images.set(d.kind, image);
+      }
+      d.image = image;
+    }
     if (isNativeApp()) {
-      for (const d of docs) await printTextViaStar(d.text);
+      for (const d of docs) await printTextViaStar(d.text, d.image);
     } else {
-      browserPrint(docs);
+      await browserPrint(docs);
     }
   } catch (e: any) {
+    printedOrders.delete(key);
     toast.error('พิมพ์ใบเสร็จไม่ได้', { description: e?.message || String(e), duration: 10000 });
   }
 };

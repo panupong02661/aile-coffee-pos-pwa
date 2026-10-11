@@ -1207,11 +1207,21 @@ const DetailedOrderReport = () => {
                                 void printOrderDocuments({
                                   orderNumber: order.order_number,
                                   shopName: currentShop?.shop_name,
+                                  shopId: shopId || undefined,
+                                  memberName: order.member_info?.name,
+                                  memberPhone: order.member_info?.phone,
+                                  itemDiscountAmount: order.order_items.reduce((sum, i) => sum + (i.item_discount_type === 'percent'
+                                    ? Math.round((i.unit_price + (i.selected_addons || []).reduce((s: number, a: any) => s + Number(a.price || 0), 0)) * i.quantity * i.item_discount / 100)
+                                    : Number(i.item_discount || 0)), 0),
                                   createdAt: order.created_at,
                                   orderType: order.order_type,
                                   items: order.order_items.map(i => ({
                                     name: i.menu_item_name,
                                     quantity: i.quantity,
+                                    unitPrice: Number(i.unit_price),
+                                    addonDetails: (i.selected_addons || []).map((a: any) => ({ name: a.name || a.addon_name, price: Number(a.price || 0) })),
+                                    itemDiscount: i.item_discount,
+                                    itemDiscountType: i.item_discount_type === 'percent' ? 'percent' : 'amount',
                                     total: Number((i as any).total_price ?? i.unit_price * i.quantity) || 0,
                                     addons: (i.selected_addons || []).map((a: any) => a.name || a.addon_name).filter(Boolean),
                                   })),
