@@ -15,7 +15,7 @@ export interface StarPrinterPlugin {
   searchPrinters(): Promise<{ printers: StarPrinter[] }>;
   
   // พิมพ์ข้อมูล
-  print(options: { data: string, cutType?: 'NoCut' | 'PartialCut' | 'FullCut' }): Promise<{ success: boolean }>;
+  print(options: { data: string, imageBase64?: string, cutType?: 'NoCut' | 'PartialCut' | 'FullCut' }): Promise<{ success: boolean }>;
   
   // เปิด Cash Drawer
   openCashDrawer(): Promise<{ opened: boolean }>;

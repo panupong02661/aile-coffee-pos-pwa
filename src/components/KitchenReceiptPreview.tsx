@@ -5,6 +5,7 @@ import { CartItem } from '@/types';
 interface KitchenReceiptPreviewProps {
   cartItems: CartItem[];
   orderType: 'dine_in' | 'takeaway' | 'delivery';
+  createdAt?: string | Date;
 }
 
 const orderTypeLabels: Record<string, string> = {
@@ -13,12 +14,12 @@ const orderTypeLabels: Record<string, string> = {
   delivery: 'จัดส่ง',
 };
 
-const KitchenReceiptPreview = ({ cartItems, orderType }: KitchenReceiptPreviewProps) => {
-  const now = new Date();
+const KitchenReceiptPreview = ({ cartItems, orderType, createdAt }: KitchenReceiptPreviewProps) => {
+  const now = new Date(createdAt || Date.now());
   const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear() + 543} ${now.toLocaleTimeString('th-TH')}`;
 
   return (
-    <Card className="bg-white shadow-sm border">
+    <Card data-receipt-document className="receipt-paper shadow-none border-0">
       <CardContent className="p-4 space-y-3">
         <div className="text-center">
           <h3 className="text-lg font-bold text-foreground">ใบสั่งครัว</h3>

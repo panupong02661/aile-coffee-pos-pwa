@@ -22,6 +22,8 @@ import com.starmicronics.stario10.starxpandcommand.drawer.Channel
 import com.starmicronics.stario10.starxpandcommand.drawer.OpenParameter
 import com.starmicronics.stario10.starxpandcommand.printer.ImageParameter
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -194,14 +196,20 @@ class StarPrinterPlugin : Plugin() {
             return
         }
         val data = call.getString("data") ?: ""
+        val imageBase64 = call.getString("imageBase64")
         val cutType = call.getString("cutType") ?: "PartialCut"
 
         scope.launch {
             try {
                 val builder = StarXpandCommandBuilder()
+                val bitmap = if (imageBase64 != null) {
+                    val bytes = Base64.decode(imageBase64.substringAfter(",", imageBase64), Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        ?: throw IllegalArgumentException("Invalid receipt image")
+                } else textToBitmap(data)
                 val printerBuilder = PrinterBuilder()
                     .styleAlignment(Alignment.Left)
-                    .actionPrintImage(ImageParameter(textToBitmap(data), 576))
+                    .actionPrintImage(ImageParameter(bitmap, 576))
                     .actionCut(
                         when (cutType) {
                             "FullCut" -> CutType.Full

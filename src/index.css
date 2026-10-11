@@ -12,6 +12,8 @@
 
     --card: 0 0% 100%;
     --card-foreground: 25 12% 15%;
+    --receipt-paper: 0 0% 100%;
+    --receipt-ink: 0 0% 0%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 25 12% 15%;
@@ -75,6 +77,19 @@
     --addon-magazine-accent: 29 76% 43%;
     --addon-magazine-border: 32 24% 81%;
     --addon-magazine-shadow: 29 66% 38% / 0.25;
+  }
+
+  .receipt-paper {
+    --background: var(--receipt-paper);
+    --card: var(--receipt-paper);
+    --foreground: var(--receipt-ink);
+    --card-foreground: var(--receipt-ink);
+    --muted-foreground: 0 0% 35%;
+    --border: 0 0% 75%;
+    --primary: var(--receipt-ink);
+    --destructive: var(--receipt-ink);
+    background: hsl(var(--receipt-paper));
+    color: hsl(var(--receipt-ink));
   }
 
   .dark {
