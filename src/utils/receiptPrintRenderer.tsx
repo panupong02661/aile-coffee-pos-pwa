@@ -9,9 +9,8 @@ import { printableCartItems, type PrintableOrder } from './orderPrinting';
 
 const loadSettings = async (order: PrintableOrder) => {
   const cached = readCachedReceiptSettings(order.shopId);
-  if (cached) return cached;
   const fallback = { shopSettings: { shop_name: order.shopName || '' }, receiptSettings: DEFAULT_RECEIPT_SETTINGS };
-  if (!order.shopId || !navigator.onLine) return fallback;
+  if (!order.shopId || !navigator.onLine) return cached || fallback;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
@@ -19,11 +18,11 @@ const loadSettings = async (order: PrintableOrder) => {
       supabase.from('shop_settings').select('*').eq('shop_id', order.shopId).limit(1).abortSignal(controller.signal).maybeSingle(),
       supabase.from('receipt_settings').select('*').eq('shop_id', order.shopId).limit(1).abortSignal(controller.signal).maybeSingle(),
     ]);
-    if (shop.error || receipt.error) return fallback;
+    if (shop.error || receipt.error) return cached || fallback;
     const settings = { shopSettings: shop.data || fallback.shopSettings, receiptSettings: { ...DEFAULT_RECEIPT_SETTINGS, ...receipt.data } };
     cacheReceiptSettings(order.shopId, settings);
     return settings;
-  } catch { return fallback; } finally { clearTimeout(timeout); }
+  } catch { return cached || fallback; } finally { clearTimeout(timeout); }
 };
 
 /** Capture the same React document shown in checkout, not a separately formatted text receipt. */
