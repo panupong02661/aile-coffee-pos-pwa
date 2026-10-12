@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentShop } from '@/hooks/useCurrentShop';
+import { DEFAULT_RECEIPT_SETTINGS } from '@/components/ReceiptDocument';
+import { cacheReceiptSettings, readCachedReceiptSettings } from '@/utils/receiptSettingsCache';
 
 interface ReceiptSettingsForm {
   show_logo: boolean;
@@ -109,13 +111,21 @@ const ReceiptSettings = () => {
   };
 
   const onSubmit = async (data: ReceiptSettingsForm) => {
+    if (!shopId) {
+      toast({
+        title: 'ข้อผิดพลาด',
+        description: 'ไม่พบสาขาที่กำลังตั้งค่า',
+        variant: 'destructive'
+      });
+      return;
+    }
     setLoading(true);
     try {
       // Check if settings exist for this shop
       const { data: existing } = await supabase
         .from('receipt_settings')
         .select('id')
-        .eq('shop_id', shopId!)
+        .eq('shop_id', shopId)
         .limit(1)
         .maybeSingle();
 
@@ -135,6 +145,20 @@ const ReceiptSettings = () => {
 
         if (error) throw error;
       }
+
+      const cached = readCachedReceiptSettings(shopId);
+      const { data: shopData } = cached
+        ? { data: cached.shopSettings }
+        : await supabase
+            .from('shop_settings')
+            .select('*')
+            .eq('shop_id', shopId)
+            .limit(1)
+            .maybeSingle();
+      cacheReceiptSettings(shopId, {
+        shopSettings: shopData || { shop_name: '' },
+        receiptSettings: { ...DEFAULT_RECEIPT_SETTINGS, ...data },
+      });
 
       toast({
         title: 'บันทึกสำเร็จ',
