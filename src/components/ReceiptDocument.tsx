@@ -79,6 +79,12 @@ export interface ReceiptDocumentProps {
   reprint?: boolean;
 }
 
+export const shouldShowQueueNumber = (settings: ReceiptSettings, queueNumber?: number | null) =>
+  settings.show_queue_number && Boolean(queueNumber);
+
+export const shouldShowQueueQr = (settings: ReceiptSettings, queueNumber?: number | null) =>
+  settings.show_queue_qr && Boolean(queueNumber);
+
 export const ReceiptDocument = ({ cartItems, totalAmount, discountAmount = 0, itemDiscountAmount = 0,
   paymentMethod = '', memberName, memberPhone, orderNumber, queueNumber, wifiVoucher,
   shopSettings: effectiveShopSettings, receiptSettings: effectiveReceiptSettings, createdAt, reprint,
@@ -143,7 +149,7 @@ export const ReceiptDocument = ({ cartItems, totalAmount, discountAmount = 0, it
           )}
 
           {/* Queue Number */}
-          {(effectiveReceiptSettings as any).show_queue_number && queueNumber && (
+          {shouldShowQueueNumber(effectiveReceiptSettings, queueNumber) && (
             <div className="text-center mb-4">
               <div className="inline-block border-2 border-dashed border-border rounded-lg px-4 py-2">
                 <div className="text-xs text-muted-foreground">คิวของคุณ</div>
@@ -277,8 +283,8 @@ export const ReceiptDocument = ({ cartItems, totalAmount, discountAmount = 0, it
           )}
 
           {/* Queue QR Code */}
-          {(effectiveReceiptSettings as any).show_queue_qr && queueNumber && (
-            <QueueQRSection queueNumber={queueNumber} />
+          {shouldShowQueueQr(effectiveReceiptSettings, queueNumber) && (
+            <QueueQRSection queueNumber={queueNumber as number} />
           )}
   </div>;
 };

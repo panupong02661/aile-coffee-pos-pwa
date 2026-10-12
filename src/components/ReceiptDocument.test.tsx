@@ -1,36 +1,22 @@
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RECEIPT_SETTINGS, ReceiptDocument } from './ReceiptDocument';
-
-const renderReceipt = (showQueueNumber: boolean, showQueueQr: boolean) => renderToStaticMarkup(
-  <ReceiptDocument
-    cartItems={[]}
-    totalAmount={0}
-    orderNumber="ORD-QUEUE-1"
-    queueNumber={22}
-    shopSettings={{ shop_name: 'Aile Coffee' }}
-    receiptSettings={{
-      ...DEFAULT_RECEIPT_SETTINGS,
-      show_queue_number: showQueueNumber,
-      show_queue_qr: showQueueQr,
-    }}
-  />,
-);
+import { DEFAULT_RECEIPT_SETTINGS, shouldShowQueueNumber, shouldShowQueueQr } from './ReceiptDocument';
 
 describe('ReceiptDocument queue settings', () => {
   it('hides the queue number when its setting is off', () => {
-    const markup = renderReceipt(false, true);
-    expect(markup).not.toContain('คิวของคุณ');
+    const settings = { ...DEFAULT_RECEIPT_SETTINGS, show_queue_number: false };
+    expect(shouldShowQueueNumber(settings, 22)).toBe(false);
   });
 
   it('hides the queue tracking section when its setting is off', () => {
-    const markup = renderReceipt(true, false);
-    expect(markup).not.toContain('แสกน QR เพื่อติดตามคิว');
+    const settings = { ...DEFAULT_RECEIPT_SETTINGS, show_queue_qr: false };
+    expect(shouldShowQueueQr(settings, 22)).toBe(false);
   });
 
-  it('hides both queue sections when both settings are off', () => {
-    const markup = renderReceipt(false, false);
-    expect(markup).not.toContain('คิวของคุณ');
-    expect(markup).not.toContain('แสกน QR เพื่อติดตามคิว');
+  it('shows each queue section only when its setting is on and the order has a queue', () => {
+    const settings = { ...DEFAULT_RECEIPT_SETTINGS, show_queue_number: true, show_queue_qr: true };
+    expect(shouldShowQueueNumber(settings, 22)).toBe(true);
+    expect(shouldShowQueueQr(settings, 22)).toBe(true);
+    expect(shouldShowQueueNumber(settings, null)).toBe(false);
+    expect(shouldShowQueueQr(settings, null)).toBe(false);
   });
 });
