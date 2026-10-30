@@ -1,0 +1,15 @@
+.env
+node_modules
+.git
+backups
+*.dump
+*.zip
+*.log
+screenshots
+apps
+dist
+tests
+scripts
+README.md
+QUICK_START_TH.md
+V*_RELEASE_NOTES_TH.md

@@ -1,0 +1,40 @@
+# Default: local-only HTTP preview. Place behind authenticated HTTPS reverse proxy
+# before allowing phones/staff to access this app over a network.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pos
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Create a local .env with scripts/setup-local.mjs}
+      POSTGRES_DB: pos_saas
+    volumes:
+      - pos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos -d pos_saas"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:${PORT:-4000}:4000"
+    environment:
+      DATABASE_URL: postgres://pos:${DB_PASSWORD:?Missing DB_PASSWORD}@postgres:5432/pos_saas
+      JWT_SECRET: ${JWT_SECRET:?Missing JWT_SECRET}
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:-}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:-}
+      NOTIFICATIONS_WORKER_ENABLED: ${NOTIFICATIONS_WORKER_ENABLED:-1}
+      PORT: 4000
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+volumes:
+  pos_pgdata:

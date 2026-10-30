@@ -1,0 +1,808 @@
+{
+  "version": "9.7.0",
+  "staffAuthenticatedRoutes": [
+    {
+      "method": "GET",
+      "route": "/api/sales/:id/refundable",
+      "source": "api/src/after-sales.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/sales/:id/refunds",
+      "source": "api/src/after-sales.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales/:id/refunds",
+      "source": "api/src/after-sales.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/finance/summary",
+      "source": "api/src/after-sales.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/products",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/backoffice/products/import",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/backoffice/products/import-file",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/products/export",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/top-products",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/stocks",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/other-export",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/export",
+      "source": "api/src/backoffice.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/access/me",
+      "source": "api/src/branch-access.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/operations/staff/:id/branches",
+      "source": "api/src/branch-access.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/staff/:id/branches/audit",
+      "source": "api/src/branch-access.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/branches",
+      "source": "api/src/branch-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/branches/export",
+      "source": "api/src/branch-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/buffet/plans",
+      "source": "api/src/buffet.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/buffet/plans",
+      "source": "api/src/buffet.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/buffet/plans/:id",
+      "source": "api/src/buffet.js"
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/buffet/plans/:id",
+      "source": "api/src/buffet.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/cashflow",
+      "source": "api/src/cashflow-summary.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/cashflow/export",
+      "source": "api/src/cashflow-summary.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/events",
+      "source": "api/src/dining.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/tables",
+      "source": "api/src/dining.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/kitchen/orders",
+      "source": "api/src/dining.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/kitchen/orders/:id/status",
+      "source": "api/src/dining.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/kitchen/orders/:id/reconcile",
+      "source": "api/src/dining.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/discount-approvals",
+      "source": "api/src/discount-approval-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/discount-approvals/export",
+      "source": "api/src/discount-approval-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/expenses/categories",
+      "source": "api/src/expense-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/expenses",
+      "source": "api/src/expense-reports.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/backoffice/expenses",
+      "source": "api/src/expense-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/expenses/export",
+      "source": "api/src/expense-reports.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/guest-link",
+      "source": "api/src/guest.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/guest-link/revoke",
+      "source": "api/src/guest.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/staff/service-requests",
+      "source": "api/src/guest.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/staff/service-requests/:id",
+      "source": "api/src/guest.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/historical-cost",
+      "source": "api/src/historical-cost.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/historical-cost/export",
+      "source": "api/src/historical-cost.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/ingredient-analytics",
+      "source": "api/src/ingredient-analytics.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/ingredient-analytics/export",
+      "source": "api/src/ingredient-analytics.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/ingredients",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/ingredients",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/ingredients/:id",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/ingredients/:id/movements",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/ingredients/:id/transfers",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/ingredients/:id/stocktake",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/ingredients/:id/waste",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/ingredients/movements",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/recipes",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/recipes/:productId",
+      "source": "api/src/ingredients.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/menu-profitability",
+      "source": "api/src/menu-profitability.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/online/orders",
+      "source": "api/src/online.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/online/orders",
+      "source": "api/src/online.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/online/orders/:id/status",
+      "source": "api/src/online.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/overview",
+      "source": "api/src/operational-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/daily-reconciliation",
+      "source": "api/src/operational-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/ingredients",
+      "source": "api/src/operations-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/shifts",
+      "source": "api/src/operations-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/ingredients/export",
+      "source": "api/src/operations-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/shifts/export",
+      "source": "api/src/operations-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/shifts",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/operations/shifts/open",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/operations/shifts/:id/movements",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/operations/shifts/:id/close",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/shifts/:id/movements",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/staff",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/operations/staff",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/operations/staff/:id",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/operations/audit",
+      "source": "api/src/operations.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/payment-plans",
+      "source": "api/src/payments.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/restaurant/payment-plans/:id",
+      "source": "api/src/payments.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales/:id/receipt",
+      "source": "api/src/payments.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/periods",
+      "source": "api/src/period-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/periods/export",
+      "source": "api/src/period-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/profit",
+      "source": "api/src/profit-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/profit/export",
+      "source": "api/src/profit-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/reconciliation",
+      "source": "api/src/reconciliation-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/reconciliation/export",
+      "source": "api/src/reconciliation-report.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/refund-cost",
+      "source": "api/src/refund-cost.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/refund-cost/export",
+      "source": "api/src/refund-cost.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/comparison/export",
+      "source": "api/src/report-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/comparison",
+      "source": "api/src/report-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/payments/export",
+      "source": "api/src/report-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/payments",
+      "source": "api/src/report-insights.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/restaurant/tables",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/tables",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/restaurant/tables/:id",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/restaurant/tables/:id",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/restaurant/sessions",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/items",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/restaurant/kitchen",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/restaurant/kitchen/:id/status",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/move",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/merge",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/split",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/settle-cash",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/restaurant/sessions/:id/buffet",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/restaurant/sessions/:id/items/:itemId",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/restaurant/sessions/:id/close",
+      "source": "api/src/restaurant.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/saas/account",
+      "source": "api/src/saas.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/saas/branches",
+      "source": "api/src/saas.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/saas/upgrade-requests",
+      "source": "api/src/saas.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/saas/upgrade-requests",
+      "source": "api/src/saas.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/branches",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/stocks",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/products",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/products",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/stocks/receive",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/discount-policy",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/backoffice/discount-policy",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/sales/discount-approvals",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/sales/discount-requests",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales/discount-requests/pending",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales/discount-requests/:id",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/sales/discount-requests/:id/decision",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/sales/cash-checkout",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales/idempotency/:key",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/sales",
+      "source": "api/src/server.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/staff",
+      "source": "api/src/staff-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backoffice/reports/staff/export",
+      "source": "api/src/staff-reports.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/storefront/layout",
+      "source": "api/src/storefront-layout.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/storefront/layout/publish",
+      "source": "api/src/storefront-layout.js"
+    },
+    {
+      "method": "POST",
+      "route": "/api/storefront/layout/unpublish",
+      "source": "api/src/storefront-layout.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/storefront/layout",
+      "source": "api/src/storefront-layout.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/function-control/me",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/function-control/staff/:id",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/function-control/staff/:id",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/function-control/staff/:id/audit",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/settings",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "PUT",
+      "route": "/api/notifications/settings",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/connections",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/notifications/connections",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "PUT",
+      "route": "/api/notifications/connections/:id",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/notifications/connections/:id",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/notifications/connections/:id/test",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/deliveries",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/notifications/deliveries/:id/retry",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/audit",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/health",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/deliveries/:id",
+      "source": "api/src/notifications.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "GET",
+      "route": "/api/notifications/queue-control",
+      "source": "api/src/notification-operations.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "PUT",
+      "route": "/api/notifications/queue-control",
+      "source": "api/src/notification-operations.js",
+      "ownerOnly": true
+    },
+    {
+      "method": "POST",
+      "route": "/api/notifications/deliveries/:id/reviews",
+      "source": "api/src/notification-operations.js",
+      "ownerOnly": true
+    }
+  ],
+  "functionCatalog": "api/src/function-catalog.json",
+  "platformAuthentication": "separate PLATFORM_JWT_SECRET + platform_admins; never tenant owner role",
+  "platformAuthenticatedRoutes": [
+    {
+      "method": "GET",
+      "route": "/api/platform/shops",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/platform/catalog",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/platform/plans/:code/functions",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/platform/plans/:code/functions",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/platform/shops/:id/functions",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/platform/shops/:id/functions",
+      "source": "api/src/function-control.js"
+    },
+    {
+      "method": "GET",
+      "route": "/api/platform/audit",
+      "source": "api/src/function-control.js"
+    }
+  ],
+  "signedProviderCallbacks": [
+    {
+      "method": "GET",
+      "route": "/api/notification-hooks/instagram/:id"
+    },
+    {
+      "method": "POST",
+      "route": "/api/notification-hooks/instagram/:id"
+    },
+    {
+      "method": "POST",
+      "route": "/api/notification-hooks/line/:id"
+    }
+  ]
+}
